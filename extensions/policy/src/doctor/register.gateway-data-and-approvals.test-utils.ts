@@ -1,7 +1,7 @@
 // Imported by register.test.ts to keep its mocked suite in one Vitest module graph.
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { runDoctorLintChecks, type OpenClawConfig } from "openclaw/plugin-sdk/health";
+import { runDoctorLintChecks, type OpenClawConfig } from "astroclaw/plugin-sdk/health";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectPolicyEvidence } from "../policy-state.js";
 import { registerPolicyDoctorChecks } from "./register.js";
@@ -1436,7 +1436,7 @@ describe("registerPolicyDoctorChecks", () => {
       "utf-8",
     );
     await fs.writeFile(
-      join(workspaceDir, "TOOLS.md"),
+      join(workspaceDir, "AGENTS.md"),
       "## Tools\n\n### deploy risk:critical sensitivity:secret\n",
       "utf-8",
     );
@@ -1449,8 +1449,8 @@ describe("registerPolicyDoctorChecks", () => {
       expect.objectContaining({
         checkId: "policy/tools-unknown-sensitivity-token",
         severity: "error",
-        path: "TOOLS.md",
-        ocPath: "oc://TOOLS.md/tools/deploy",
+        path: "AGENTS.md",
+        ocPath: "oc://AGENTS.md/tools/deploy",
       }),
     ]);
   });
