@@ -1,6 +1,6 @@
 // Google Meet tests cover chrome plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
-import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { resolveGoogleMeetConfig } from "../config.js";
 import { launchChromeMeet, recoverCurrentMeetTab } from "./chrome.js";
@@ -231,8 +231,10 @@ describe("google meet chrome transport", () => {
       if (params.path === "/act") {
         return {
           result: JSON.stringify({
-            manualActionRequired: true,
-            manualActionReason: "meet-admission-required",
+            manualAction: {
+              reason: "meet-admission-required",
+              message: "Waiting for admission",
+            },
           }),
         };
       }
