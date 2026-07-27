@@ -6,9 +6,9 @@ import {
   resolveAuthStorePathForDisplay,
   saveAuthProfileStore,
   type AuthProfileStore,
-} from "openclaw/plugin-sdk/agent-runtime";
-import type { MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-auth";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import type { MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/provider-auth";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   HERMES_REASON_AUTH_PROFILE_EXISTS,
@@ -707,17 +707,24 @@ describe("Hermes migration secret items", () => {
     const stateDir = path.join(root, "state");
     const agentDir = path.join(stateDir, "agents", "main", "agent");
     await writeFile(path.join(source, ".env"), "OPENAI_API_KEY=sk-hermes\n");
-    await writeFile(
-      path.join(agentDir, "auth.json"),
-      JSON.stringify({
-        openai: { type: "api_key", provider: "openai", key: "legacy-main-key" },
-      }),
-    );
+    const existingStore: AuthProfileStore = {
+      version: 1,
+      profiles: {
+        "openai:existing": {
+          type: "api_key",
+          provider: "openai",
+          key: "existing-main-key",
+        },
+      },
+    };
+    writeAuthProfileStore(agentDir, existingStore);
+    const beforePlanStore = readAuthProfileStore(agentDir);
 
     const provider = buildHermesMigrationProvider();
     await provider.plan(makeContext({ source, stateDir, workspaceDir, includeSecrets: true }));
 
-    await expect(fs.access(path.join(agentDir, "auth.json"))).resolves.toBeUndefined();
+    expect(readAuthProfileStore(agentDir)).toEqual(beforePlanStore);
+    // Canonical profiles stay in SQLite; planning must not recreate the retired JSON sidecar.
     await expectMissingPath(path.join(agentDir, "auth-profiles.json"));
   });
 
