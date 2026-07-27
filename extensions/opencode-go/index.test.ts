@@ -1,13 +1,13 @@
 // Opencode Go tests cover index plugin behavior.
-import { clampThinkingLevel } from "openclaw/plugin-sdk/llm";
-import type { ProviderRuntimeModel } from "openclaw/plugin-sdk/plugin-entry";
+import { clampThinkingLevel } from "astroclaw/plugin-sdk/llm";
+import type { ProviderRuntimeModel } from "astroclaw/plugin-sdk/plugin-entry";
 import {
   registerProviderPlugin,
   registerSingleProviderPlugin,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { NON_ENV_SECRETREF_MARKER } from "openclaw/plugin-sdk/provider-auth-runtime";
-import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
-import { expectPassthroughReplayPolicy } from "openclaw/plugin-sdk/provider-test-contracts";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { NON_ENV_SECRETREF_MARKER } from "astroclaw/plugin-sdk/provider-auth-runtime";
+import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+import { expectPassthroughReplayPolicy } from "astroclaw/plugin-sdk/provider-test-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import plugin from "./index.js";
 import manifest from "./openclaw.plugin.json" with { type: "json" };
@@ -76,6 +76,20 @@ function expectDeepSeekV4ThinkingLevels(model: ProviderRuntimeModel) {
 describe("opencode-go provider plugin", () => {
   beforeEach(() => {
     clearLiveCatalogCacheForTests();
+  });
+
+  it("registers only the Go auth choice from its own provider manifest", async () => {
+    const provider = await registerSingleProviderPlugin(plugin);
+
+    expect(provider.id).toBe("opencode-go");
+    expect(provider.envVars).toEqual(["OPENCODE_API_KEY", "OPENCODE_ZEN_API_KEY"]);
+    expect(provider.auth.map((method) => method.id)).toEqual(["api-key"]);
+    expect(provider.auth.map((method) => method.wizard?.choiceId)).toEqual(["opencode-go"]);
+    expect(provider.auth[0]?.wizard).toMatchObject({
+      choiceLabel: "OpenCode Go catalog",
+      groupId: "opencode",
+      groupHint: "Shared API key for Zen + Go catalogs",
+    });
   });
 
   it("registers image media understanding through the OpenCode Go plugin", async () => {
