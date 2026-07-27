@@ -1,9 +1,9 @@
 // Telegram tests cover bot native commands.session meta plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
-import { resolveChunkMode } from "openclaw/plugin-sdk/reply-dispatch-runtime";
-import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
-import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
+import { resolveChunkMode } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
+import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TelegramNativeCommandDeps } from "./bot-native-command-deps.runtime.js";
 import {
@@ -19,23 +19,25 @@ import type { RegisterTelegramHandlerParams } from "./bot-native-commands.js";
 // All mocks scoped to this file only — does not affect bot-native-commands.test.ts
 
 type ResolveConfiguredBindingRouteFn =
-  typeof import("openclaw/plugin-sdk/conversation-runtime").resolveConfiguredBindingRoute;
+  typeof import("astroclaw/plugin-sdk/conversation-runtime").resolveConfiguredBindingRoute;
 type EnsureConfiguredBindingRouteReadyFn =
-  typeof import("openclaw/plugin-sdk/conversation-runtime").ensureConfiguredBindingRouteReady;
+  typeof import("astroclaw/plugin-sdk/conversation-runtime").ensureConfiguredBindingRouteReady;
 type DispatchReplyWithBufferedBlockDispatcherFn =
-  typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
+  typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
 type DispatchReplyWithBufferedBlockDispatcherParams =
   Parameters<DispatchReplyWithBufferedBlockDispatcherFn>[0];
 type DispatchReplyWithBufferedBlockDispatcherResult = Awaited<
   ReturnType<DispatchReplyWithBufferedBlockDispatcherFn>
 >;
+type DispatchChannelInboundTurnFn =
+  typeof import("astroclaw/plugin-sdk/channel-inbound").dispatchChannelInboundTurn;
 type ResolveCommandArgMenuFn =
-  typeof import("openclaw/plugin-sdk/command-auth-native").resolveCommandArgMenu;
+  typeof import("astroclaw/plugin-sdk/command-auth-native").resolveCommandArgMenu;
 type DeliverRepliesFn = typeof import("./bot/delivery.js").deliverReplies;
 type DeliverRepliesParams = Parameters<DeliverRepliesFn>[0];
-type LoadModelCatalogFn = typeof import("openclaw/plugin-sdk/agent-runtime").loadModelCatalog;
+type LoadModelCatalogFn = typeof import("astroclaw/plugin-sdk/agent-runtime").loadModelCatalog;
 type ResolveDefaultModelForAgentFn =
-  typeof import("openclaw/plugin-sdk/agent-runtime").resolveDefaultModelForAgent;
+  typeof import("astroclaw/plugin-sdk/agent-runtime").resolveDefaultModelForAgent;
 type MatchPluginCommandFn = typeof import("./bot-native-commands.runtime.js").matchPluginCommand;
 
 const dispatchReplyResult: DispatchReplyWithBufferedBlockDispatcherResult = {
@@ -85,6 +87,52 @@ const replyMocks = vi.hoisted(() => ({
 const deliveryMocks = vi.hoisted(() => ({
   deliverReplies: vi.fn<DeliverRepliesFn>(async () => ({ delivered: true })),
 }));
+const dispatchChannelInboundTurnMock = vi.fn<DispatchChannelInboundTurnFn>(async (plan) => {
+  const recordTask = sessionMocks.recordSessionMetaFromInbound({
+    storePath: sessionMocks.resolveStorePath(plan.cfg.session?.store, {
+      agentId: plan.route.agentId,
+    }),
+    sessionKey: plan.record?.sessionKey ?? plan.ctxPayload.SessionKey ?? plan.route.sessionKey,
+    ctx: plan.ctxPayload,
+  });
+  const trackedRecordTask = Promise.resolve(recordTask).catch((error: unknown) =>
+    plan.record?.onRecordError?.(error),
+  );
+  plan.record?.trackSessionMetaTask?.(trackedRecordTask);
+  await plan.afterRecord?.();
+  const deliver = async (
+    payload: Parameters<
+      DispatchReplyWithBufferedBlockDispatcherParams["dispatcherOptions"]["deliver"]
+    >[0],
+    info: Parameters<
+      DispatchReplyWithBufferedBlockDispatcherParams["dispatcherOptions"]["deliver"]
+    >[1],
+  ) => {
+    const result =
+      "deliverWithProviderMessageSending" in plan.delivery
+        ? await plan.delivery.deliverWithProviderMessageSending(payload, info)
+        : await plan.delivery.deliver(payload, info);
+    await plan.delivery.onDelivered?.(payload, info, result);
+    return result;
+  };
+  const dispatchResult = await replyMocks.dispatchReplyWithBufferedBlockDispatcher({
+    ctx: plan.ctxPayload,
+    cfg: plan.cfg,
+    dispatcherOptions: {
+      ...plan.dispatcherOptions,
+      deliver,
+      onError: plan.delivery.onError,
+    },
+    replyOptions: plan.replyOptions,
+  });
+  return {
+    admission: { kind: "dispatch" },
+    dispatched: true,
+    ctxPayload: plan.ctxPayload,
+    routeSessionKey: plan.route.sessionKey,
+    dispatchResult,
+  };
+});
 const sessionBindingMocks = vi.hoisted(() => ({
   resolveByConversation: vi.fn<
     (ref: unknown) => { bindingId: string; targetSessionKey: string } | null
@@ -96,9 +144,9 @@ const conversationStoreMocks = vi.hoisted(() => ({
   upsertChannelPairingRequest: vi.fn(async () => ({ code: "PAIRCODE", created: true })),
 }));
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
-    "openclaw/plugin-sdk/conversation-runtime",
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
+    "astroclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
@@ -168,9 +216,9 @@ vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
     }),
   };
 });
-vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
-    "openclaw/plugin-sdk/session-store-runtime",
+vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
+    "astroclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -180,9 +228,9 @@ vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
     updateSessionStoreEntry: sessionMocks.updateSessionStoreEntry,
   };
 });
-vi.mock("openclaw/plugin-sdk/command-auth-native", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/command-auth-native")>(
-    "openclaw/plugin-sdk/command-auth-native",
+vi.mock("astroclaw/plugin-sdk/command-auth-native", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/command-auth-native")>(
+    "astroclaw/plugin-sdk/command-auth-native",
   );
   commandAuthMocks.resolveCommandArgMenu.mockImplementation(actual.resolveCommandArgMenu);
   return {
@@ -190,9 +238,9 @@ vi.mock("openclaw/plugin-sdk/command-auth-native", async () => {
     resolveCommandArgMenu: commandAuthMocks.resolveCommandArgMenu,
   };
 });
-vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/agent-runtime")>(
-    "openclaw/plugin-sdk/agent-runtime",
+vi.mock("astroclaw/plugin-sdk/agent-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/agent-runtime")>(
+    "astroclaw/plugin-sdk/agent-runtime",
   );
   agentRuntimeMocks.resolveDefaultModelForAgent.mockImplementation(
     actual.resolveDefaultModelForAgent,
@@ -236,12 +284,14 @@ vi.mock("./bot-native-commands.runtime.js", () => {
     ),
     resolveChunkMode,
     resolveThreadSessionKeys,
-    dispatchReplyWithBufferedBlockDispatcher: replyMocks.dispatchReplyWithBufferedBlockDispatcher,
+    dispatchChannelInboundTurn: dispatchChannelInboundTurnMock as unknown as NonNullable<
+      TelegramNativeCommandDeps["dispatchChannelInboundTurn"]
+    >,
   };
 });
-vi.mock("openclaw/plugin-sdk/plugin-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-runtime")>(
-    "openclaw/plugin-sdk/plugin-runtime",
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-runtime")>(
+    "astroclaw/plugin-sdk/plugin-runtime",
   );
   return {
     ...actual,
@@ -332,7 +382,9 @@ function registerAndResolveCommandHandlerBase(params: {
   const telegramDeps: TelegramNativeCommandDeps = {
     getRuntimeConfig: vi.fn(() => commandRuntimeCfg),
     readChannelAllowFromStore: vi.fn(async () => storeAllowFrom ?? []),
-    dispatchReplyWithBufferedBlockDispatcher: replyMocks.dispatchReplyWithBufferedBlockDispatcher,
+    dispatchChannelInboundTurn: dispatchChannelInboundTurnMock as unknown as NonNullable<
+      TelegramNativeCommandDeps["dispatchChannelInboundTurn"]
+    >,
     getPluginCommandSpecs: vi.fn(() => pluginCommandSpecs ?? []),
     listSkillCommandsForAgents: vi.fn(() => []),
     syncTelegramMenuCommands: vi.fn(),
@@ -645,6 +697,7 @@ function resetSessionMetaMocks() {
   replyMocks.dispatchReplyWithBufferedBlockDispatcher
     .mockClear()
     .mockResolvedValue(dispatchReplyResult);
+  dispatchChannelInboundTurnMock.mockClear();
   sessionBindingMocks.resolveByConversation.mockReset().mockReturnValue(null);
   sessionBindingMocks.touch.mockReset();
   deliveryMocks.deliverReplies.mockClear().mockResolvedValue({ delivered: true });
@@ -666,11 +719,7 @@ describe("registerTelegramNativeCommands — session metadata", () => {
     await handler(createTelegramPrivateCommandContext());
 
     expect(sessionMocks.recordSessionMetaFromInbound).toHaveBeenCalledTimes(1);
-    const dispatchCall = (
-      replyMocks.dispatchReplyWithBufferedBlockDispatcher.mock.calls as unknown as Array<
-        [{ ctx?: { CommandTargetSessionKey?: string } }]
-      >
-    )[0]?.[0];
+    const turnPlan = dispatchChannelInboundTurnMock.mock.calls[0]?.[0];
     const call = (
       sessionMocks.recordSessionMetaFromInbound.mock.calls as unknown as Array<
         [{ sessionKey?: string; ctx?: { OriginatingChannel?: string; Provider?: string } }]
@@ -678,7 +727,8 @@ describe("registerTelegramNativeCommands — session metadata", () => {
     )[0]?.[0];
     expect(call?.ctx?.OriginatingChannel).toBe("telegram");
     expect(call?.ctx?.Provider).toBe("telegram");
-    expect(call?.sessionKey).toBe(dispatchCall?.ctx?.CommandTargetSessionKey);
+    expect(call?.sessionKey).toBe(turnPlan?.ctxPayload.CommandTargetSessionKey);
+    expect(turnPlan?.record?.sessionKey).toBe(turnPlan?.ctxPayload.CommandTargetSessionKey);
   });
 
   it("keeps one live config snapshot through native command execution", async () => {
@@ -1169,7 +1219,7 @@ describe("registerTelegramNativeCommands — session metadata", () => {
     expect(replyMocks.dispatchReplyWithBufferedBlockDispatcher).toHaveBeenCalledTimes(1);
   });
 
-  it("awaits session metadata persistence before dispatch", async () => {
+  it("awaits routed session metadata persistence before command dispatch", async () => {
     const deferred = createDeferred<void>();
     sessionMocks.recordSessionMetaFromInbound.mockReturnValue(deferred.promise);
 
@@ -1184,8 +1234,8 @@ describe("registerTelegramNativeCommands — session metadata", () => {
 
     deferred.resolve();
     await runPromise;
-
     expect(replyMocks.dispatchReplyWithBufferedBlockDispatcher).toHaveBeenCalledTimes(1);
+
     const dispatcherOptions = requireRecord(
       requireRecord(
         firstMockArg(
@@ -1274,6 +1324,60 @@ describe("registerTelegramNativeCommands — session metadata", () => {
     await handler(createTelegramPrivateCommandContext());
 
     expect(deliveryMocks.deliverReplies).not.toHaveBeenCalled();
+  });
+
+  it("does not emit the empty fallback when reply-payload hooks cancel a native reply", async () => {
+    dispatchChannelInboundTurnMock.mockImplementationOnce(async (plan) => {
+      await plan.delivery.onDelivered?.(
+        { text: "cancelled" },
+        { kind: "final" },
+        {
+          visibleReplySent: false,
+          suppression: { reason: "cancelled_by_reply_payload_sending_hook" },
+        },
+      );
+      return {
+        admission: { kind: "dispatch" },
+        dispatched: true,
+        ctxPayload: plan.ctxPayload,
+        routeSessionKey: plan.route.sessionKey,
+        dispatchResult: {
+          queuedFinal: false,
+          counts: { block: 0, final: 0, tool: 0 },
+        },
+      };
+    });
+    const { handler } = registerAndResolveStatusHandler({ cfg: {} });
+
+    await handler(createTelegramPrivateCommandContext());
+
+    expect(deliveryMocks.deliverReplies).not.toHaveBeenCalled();
+  });
+
+  it("retains the empty fallback for a true non-silent metadata-only native reply", async () => {
+    dispatchChannelInboundTurnMock.mockImplementationOnce(async (plan) => {
+      plan.dispatcherOptions?.onSkip?.({}, { kind: "final", reason: "empty" });
+      return {
+        admission: { kind: "dispatch" },
+        dispatched: true,
+        ctxPayload: plan.ctxPayload,
+        routeSessionKey: plan.route.sessionKey,
+        dispatchResult: {
+          queuedFinal: false,
+          counts: { block: 0, final: 0, tool: 0 },
+        },
+      };
+    });
+    const { handler } = registerAndResolveStatusHandler({ cfg: {} });
+
+    await handler(createTelegramPrivateCommandContext());
+
+    expect(deliveryMocks.deliverReplies).toHaveBeenCalledOnce();
+    expect(deliveryMocks.deliverReplies).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replies: [{ text: "No response generated. Please try again." }],
+      }),
+    );
   });
 
   it("sends native command error replies silently when silentErrorReplies is enabled", async () => {
