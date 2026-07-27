@@ -2,7 +2,7 @@ import {
   hasOutboundReplyContent,
   isFastModeAutoProgressPayload,
   resolveSendableOutboundReplyParts,
-} from "openclaw/plugin-sdk/reply-payload";
+} from "astroclaw/plugin-sdk/reply-payload";
 import { isAskUserPromptPending } from "../../agents/tools/ask-user-tool.js";
 import { normalizeAgentPlanSteps } from "../../channels/streaming.js";
 import type { BlockReplyContext } from "../get-reply-options.types.js";
@@ -71,6 +71,7 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
     reasoningPayloadsEnabled,
     recordAgentDispatchCompleted,
     recordProcessed,
+    recordRoutedBlockReplyDelivery,
     replyConfig,
     replyContextAccountId,
     replyResolver,
@@ -81,6 +82,7 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
     routeReplyTo,
     runWithDispatchLifecycleAdmission,
     sendPayloadAsync,
+    sendTrackedBlockReply,
     sendPlanUpdate,
     sendPolicy,
     sendPolicyDenied,
@@ -541,15 +543,16 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
                       return;
                     }
                     if (shouldRouteToOriginating) {
-                      await sendPayloadAsync(
+                      const result = await sendPayloadAsync(
                         normalizedPayload,
                         context?.abortSignal,
                         false,
                         "block",
                       );
+                      recordRoutedBlockReplyDelivery(normalizedPayload, result);
                     } else {
                       markInboundDedupeReplayUnsafe();
-                      const delivered = dispatcher.sendBlockReply(normalizedPayload);
+                      const delivered = sendTrackedBlockReply(normalizedPayload);
                       if (delivered) {
                         state.hasPendingDirectBlockReplyDelivery = true;
                       }
