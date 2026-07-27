@@ -3,16 +3,16 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { RequestScopedSubagentRuntimeError } from "openclaw/plugin-sdk/error-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { RequestScopedSubagentRuntimeError } from "astroclaw/plugin-sdk/error-runtime";
 import {
   resolveMemoryDreamingPluginConfig,
   resolveSessionTranscriptsDirForAgent,
-} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
-import { clearRuntimeConfigSnapshot } from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
-import { formatSqliteSessionFileMarker } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+import { clearRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+import { formatSqliteSessionFileMarker } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   filterRecallEntriesWithinLookback,
@@ -1609,7 +1609,7 @@ describe("memory-core dreaming phases", () => {
           role: "user",
           timestamp: "2026-04-16T18:01:00.000Z",
           content:
-            "System (untrusted): [2026-04-16 11:01:00 PDT] Exec completed (quiet-fo, code 0) :: Converted: 1",
+            "System: [2026-04-16 11:01:00 PDT] Exec completed (quiet-fo, code 0) :: Converted: 1",
         },
         {
           role: "assistant",
@@ -1677,7 +1677,7 @@ describe("memory-core dreaming phases", () => {
     );
     expect(corpus).toContain("User: What changed in the sync?");
     expect(corpus).toContain("Assistant: One new session was converted.");
-    expect(corpus).not.toContain("System (untrusted):");
+    expect(corpus).not.toContain("System: [2026-04-16 11:01:00 PDT]");
     expect(corpus).toContain("Assistant: Handled internally.");
   });
 
