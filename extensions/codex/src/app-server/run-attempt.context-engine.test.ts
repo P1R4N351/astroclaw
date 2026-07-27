@@ -2,22 +2,22 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
-import type { EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
 import {
   embeddedAgentLog,
   supportsModelTools,
   type HarnessContextEngine as ContextEngine,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "openclaw/plugin-sdk/hook-runtime";
-import { MESSAGE_TOOL_DELIVERY_HINTS } from "openclaw/plugin-sdk/message-tool-delivery-hints";
-import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { registerSandboxBackend } from "openclaw/plugin-sdk/sandbox";
-import { formatSqliteSessionFileMarker } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import { MESSAGE_TOOL_DELIVERY_HINTS } from "astroclaw/plugin-sdk/message-tool-delivery-hints";
+import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { registerSandboxBackend } from "astroclaw/plugin-sdk/sandbox";
+import { formatSqliteSessionFileMarker } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
 import { shouldEnableCodexAppServerNativeToolSurface } from "./dynamic-tool-build.js";
@@ -1938,7 +1938,7 @@ describe("runCodexAppServerAttempt context-engine lifecycle", () => {
     params.contextEngine = contextEngine;
     params.currentInboundContext = {
       text: [
-        "Conversation context (untrusted, chronological, selected for current message):",
+        "Conversation context (chronological, selected for current message):",
         "#6474 Sun 2026-05-10 22:22 GMT+5:30 [reply target] OpenClaw: anchor REPLYCTX this is the old message",
         "#6498 Sun 2026-05-10 22:22 GMT+5:30 OpenClaw: filler REPLYCTX 23",
       ].join("\n"),
@@ -1951,7 +1951,7 @@ describe("runCodexAppServerAttempt context-engine lifecycle", () => {
     expect(inputText).toContain("OpenClaw assembled context for this turn:");
     expect(inputText).toContain("Current user request:\nhello");
     expect(inputText).toContain("[reply target] OpenClaw: anchor REPLYCTX");
-    expect(inputText.trim().startsWith("Conversation context (untrusted")).toBe(true);
+    expect(inputText.trim().startsWith("Conversation context (chronological")).toBe(true);
 
     await harness.completeTurn();
     await run;
