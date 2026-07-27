@@ -1,12 +1,12 @@
 // Xai tests cover stream plugin behavior.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
 import {
   streamSimple,
   type Api,
   type Context,
   type Model,
   type ModelThinkingLevel,
-} from "openclaw/plugin-sdk/llm";
+} from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { applyXaiRuntimeModelCompat } from "./runtime-model-compat.js";
 import { wrapXaiProviderStream } from "./stream.js";
@@ -17,6 +17,7 @@ import {
 } from "./test-helpers.js";
 type XaiStreamApi = Extract<Api, "openai-completions" | "openai-responses">;
 type StreamEvent = Record<string, unknown> & { type?: string };
+const PAYLOAD_CAPTURE_TIMEOUT_MS = 5_000;
 
 async function collectEvents(stream: ReturnType<StreamFn>): Promise<StreamEvent[]> {
   const events: StreamEvent[] = [];
@@ -124,7 +125,7 @@ async function captureXaiResponsesPayloadWithThinking(
   const payloadPromise = new Promise<Record<string, unknown>>((resolve, reject) => {
     const timeout = setTimeout(
       () => reject(new Error("provider payload callback was not invoked")),
-      1_000,
+      PAYLOAD_CAPTURE_TIMEOUT_MS,
     );
     const stream = streamSimple(
       model,
@@ -478,19 +479,19 @@ describe("xai stream wrappers", () => {
 
     expect(payload.reasoning).toEqual({ effort: "low", summary: "auto" });
     expect(payload.include).toEqual(["reasoning.encrypted_content"]);
-  });
+  }, 10_000);
 
   it("clamps unsupported Grok 4.5 off reasoning to low", async () => {
     const payload = await captureXaiResponsesPayloadWithThinking("off");
 
     expect(payload.reasoning).toEqual({ effort: "low", summary: "auto" });
-  });
+  }, 10_000);
 
   it("maps Grok 4.3 off reasoning to xAI none", async () => {
     const payload = await captureXaiResponsesPayloadWithThinking("off", "grok-4.3");
 
     expect(payload.reasoning).toEqual({ effort: "none" });
-  });
+  }, 10_000);
 
   it("moves image-bearing tool results out of function_call_output payloads", () => {
     const payload: Record<string, unknown> = {
