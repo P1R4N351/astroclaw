@@ -1,14 +1,15 @@
 // Telegram tests cover bot.create telegram bot.channel post media plugin behavior.
 import { setTimeout as delay } from "node:timers/promises";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { telegramBotInfoForTest } from "./bot.create-telegram-bot.test-support.js";
 
 const saveRemoteMedia = vi.fn();
 const saveMediaBuffer = vi.fn();
 const readRemoteMediaBuffer = vi.fn();
 const rootRead = vi.fn();
 
-vi.mock("openclaw/plugin-sdk/file-access-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/file-access-runtime", () => ({
   root: async (rootDir: string) => ({
     read: async (relativePath: string, options?: { maxBytes?: number }) =>
       await rootRead({ rootDir, relativePath, maxBytes: options?.maxBytes }),
@@ -16,8 +17,8 @@ vi.mock("openclaw/plugin-sdk/file-access-runtime", () => ({
 }));
 
 vi.mock("./bot/delivery.resolve-media.runtime.js", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
-    "openclaw/plugin-sdk/media-runtime",
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
+    "astroclaw/plugin-sdk/media-runtime",
   );
   return {
     readRemoteMediaBuffer: (...args: unknown[]) => readRemoteMediaBuffer(...args),
@@ -74,6 +75,7 @@ const TELEGRAM_TEST_TIMINGS = {
   mediaGroupFlushMs: 20,
   textFragmentGapMs: 30,
 } as const;
+const TEXT_FRAGMENT_COALESCE_TEST_GAP_MS = 5_000;
 
 async function withTelegramSpooledReplayUpdate<T>(
   update: object,
@@ -98,8 +100,10 @@ function setOpenChannelPostConfig() {
   });
 }
 
-function getChannelPostHandler() {
-  createTelegramBot({ token: "tok", testTimings: TELEGRAM_TEST_TIMINGS });
+function getChannelPostHandler(
+  testTimings: { mediaGroupFlushMs: number; textFragmentGapMs: number } = TELEGRAM_TEST_TIMINGS,
+) {
+  createTelegramBot({ token: "tok", testTimings });
   return getOnHandler("channel_post") as (ctx: Record<string, unknown>) => Promise<void>;
 }
 
@@ -247,6 +251,7 @@ describe("createTelegramBot channel_post media", () => {
   beforeAll(() => {
     createTelegramBot = (opts) =>
       createTelegramBotBase({
+        botInfo: telegramBotInfoForTest,
         ...opts,
         telegramDeps: telegramBotDepsForTest,
       });
@@ -304,7 +309,10 @@ describe("createTelegramBot channel_post media", () => {
 
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
     try {
-      const handler = getChannelPostHandler();
+      const handler = getChannelPostHandler({
+        ...TELEGRAM_TEST_TIMINGS,
+        textFragmentGapMs: TEXT_FRAGMENT_COALESCE_TEST_GAP_MS,
+      });
 
       const part1 = "A".repeat(4050);
       const part2 = "B".repeat(50);
@@ -332,10 +340,7 @@ describe("createTelegramBot channel_post media", () => {
       });
 
       expect(replySpy).not.toHaveBeenCalled();
-      await flushChannelPostMediaGroupForDelay(
-        setTimeoutSpy,
-        TELEGRAM_TEST_TIMINGS.textFragmentGapMs,
-      );
+      await flushChannelPostMediaGroupForDelay(setTimeoutSpy, TEXT_FRAGMENT_COALESCE_TEST_GAP_MS);
 
       await vi.waitFor(() => expect(replySpy).toHaveBeenCalledTimes(1));
       const payload = replyPayload() as { RawBody?: string };
