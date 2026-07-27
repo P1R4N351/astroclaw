@@ -4,8 +4,8 @@ import {
   createPluginSetupWizardStatus,
   createTestWizardPrompter,
   runSetupWizardConfigure,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { WizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { WizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../api.js";
 import { tlonChannelConfigSchema } from "./config-schema.js";
@@ -226,6 +226,11 @@ describe("tlon core", () => {
       throw new Error("expected invalid target");
     }
     expect(resolved.error.message).toMatch(/invalid tlon target/i);
+  });
+
+  it("does not invent an account when the Tlon channel is unconfigured", () => {
+    expect(listTlonAccountIds({} as OpenClawConfig)).toEqual([]);
+    expect(listTlonAccountIds({ channels: { tlon: {} } } as OpenClawConfig)).toEqual([]);
   });
 
   it("lists named accounts and the implicit default account", () => {
