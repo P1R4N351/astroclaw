@@ -1,5 +1,5 @@
 // Coverage for normalizing assistant replay content before provider requests.
-import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
 import { describe, expect, it } from "vitest";
 import { markInboundContextLabel } from "../../auto-reply/reply/inbound-context-marker.js";
 import { OPENCLAW_TRANSCRIPT_ARTIFACT_API } from "../../shared/transcript-only-openclaw-assistant.js";
@@ -545,8 +545,7 @@ describe("normalizeAssistantReplayContent", () => {
   });
 
   it("drops a trailing assistant turn that already carries the persisted sentinel content (#77228)", () => {
-    // Covers the case where session-file-repair persisted the sentinel to
-    // disk; on the next turn the loaded transcript ends with a non-empty
+    // Covers a doctor-imported legacy sentinel; on the next turn the loaded transcript ends with a non-empty
     // assistant turn whose only content is the sentinel text. Provider
     // request must still end with user.
     const persistedSentinel = bedrockAssistant([{ type: "text", text: FALLBACK_TEXT }], "error");
