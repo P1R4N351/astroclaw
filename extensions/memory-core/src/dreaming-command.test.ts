@@ -1,7 +1,7 @@
 // Memory Core tests cover dreaming command plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { PluginCommandContext } from "openclaw/plugin-sdk/core";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { PluginCommandContext } from "astroclaw/plugin-sdk/core";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
 import { describe, expect, it, vi } from "vitest";
 import { handleDreamingCommand } from "./dreaming-command.js";
 
@@ -202,7 +202,8 @@ describe("memory-core /dreaming command", () => {
     const result = await runDreamingCommand(harness, "status");
 
     expect(result.text).toContain("Dreaming status:");
-    expect(result.text).toContain("- enabled: off (America/Los_Angeles)");
+    // Dreaming is enabled by default; the fixture sets no explicit enabled flag.
+    expect(result.text).toContain("- enabled: on (America/Los_Angeles)");
     expect(result.text).toContain("- sweep cadence: 15 */8 * * *");
     expect(result.text).toContain("- promotion policy: score>=0.8, recalls>=3, uniqueQueries>=3");
     expect(harness.runtime.config.mutateConfigFile).not.toHaveBeenCalled();
