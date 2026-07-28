@@ -12,16 +12,16 @@ const messageHookRunner = vi.hoisted(() => ({
   runMessageSent: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/hook-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/hook-runtime")>();
+vi.mock("astroclaw/plugin-sdk/hook-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/hook-runtime")>();
   return {
     ...actual,
     triggerInternalHook,
   };
 });
 
-vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
   return {
     ...actual,
     getGlobalHookRunner: () => messageHookRunner,
@@ -678,6 +678,55 @@ describe("deliverSlackSlashReplies chunking", () => {
     );
     expect(fallback.text.match(/Overview/gu)).toHaveLength(1);
     expect(fallback.mrkdwn).toBe(false);
+  });
+
+  it("does not repeat a response_url mutation when body inspection stalls", async () => {
+    vi.useFakeTimers();
+    try {
+      const cancel = vi.fn(async () => undefined);
+      const response = {
+        status: 200,
+        body: {
+          getReader: () => ({
+            read: async () => await new Promise<never>(() => {}),
+            cancel,
+            releaseLock: () => {},
+          }),
+        },
+      };
+      const respond = vi.fn(async () => response);
+
+      const delivery = deliverSlackSlashReplies({
+        replies: [
+          {
+            channelData: {
+              slack: {
+                blocks: [
+                  {
+                    type: "data_visualization",
+                    title: "Revenue mix",
+                    chart: {
+                      type: "pie",
+                      segments: [{ label: "Product", value: 60 }],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        respond,
+        ephemeral: true,
+        textLimit: 8000,
+      });
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      await expect(delivery).resolves.toBeUndefined();
+      expect(respond).toHaveBeenCalledTimes(1);
+      expect(cancel).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("uses complete 40k blockless chunks for oversized native-only fallback", async () => {
