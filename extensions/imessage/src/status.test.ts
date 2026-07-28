@@ -5,9 +5,9 @@ import {
   createPluginSetupWizardStatus,
   createTestWizardPrompter,
   runSetupWizardPrepare,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import * as processRuntime from "openclaw/plugin-sdk/process-runtime";
-import * as setupRuntime from "openclaw/plugin-sdk/setup";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import * as processRuntime from "astroclaw/plugin-sdk/process-runtime";
+import * as setupRuntime from "astroclaw/plugin-sdk/setup";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveIMessageAccount } from "./accounts.js";
 import * as channelRuntimeModule from "./channel.runtime.js";
@@ -32,8 +32,8 @@ const setupToolsMocks = vi.hoisted(() => ({
 }));
 const installIMessageCliMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/setup-tools", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/setup-tools")>()),
+vi.mock("astroclaw/plugin-sdk/setup-tools", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/setup-tools")>()),
   ...setupToolsMocks,
 }));
 
@@ -720,7 +720,9 @@ describe("probeIMessage", () => {
       available: false,
     });
 
-    expect(runCommand).toHaveBeenCalledTimes(4);
+    // Each uncached probe runs status plus both side-effect-free CLI capability
+    // checks (send-rich attachment and poll caption suppression).
+    expect(runCommand).toHaveBeenCalledTimes(6);
   });
 
   it("propagates imsg's status message when advanced features are unavailable", async () => {
@@ -753,6 +755,92 @@ describe("probeIMessage", () => {
     await expect(probeIMessagePrivateApi("imsg-status-message-test", 1000)).resolves.toMatchObject({
       available: false,
       statusMessage: note,
+    });
+  });
+
+  it("detects poll caption suppression from the exact poll send help contract", async () => {
+    const runCommand = vi
+      .spyOn(processRuntime, "runCommandWithTimeout")
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({
+          advanced_features: true,
+          v2_ready: true,
+          selectors: { pollPayloadMessage: true },
+          rpc_methods: ["chats.list"],
+        }),
+        stderr: "",
+        code: 0,
+        signal: null,
+        killed: false,
+        termination: "exit",
+      })
+      .mockResolvedValueOnce({
+        stdout: "send-rich --file",
+        stderr: "",
+        code: 0,
+        signal: null,
+        killed: false,
+        termination: "exit",
+      })
+      .mockResolvedValueOnce({
+        stdout: "poll send --question <text> --option <text> --no-comment",
+        stderr: "",
+        code: 0,
+        signal: null,
+        killed: false,
+        termination: "exit",
+      });
+
+    await expect(
+      probeIMessagePrivateApi("imsg-poll-no-comment-supported", 1000),
+    ).resolves.toMatchObject({
+      cliCapabilities: { pollSendSupportsNoComment: true },
+    });
+    expect(runCommand).toHaveBeenNthCalledWith(
+      3,
+      ["imsg-poll-no-comment-supported", "poll", "send", "--help"],
+      { timeoutMs: 1000 },
+    );
+  });
+
+  it("does not infer poll caption suppression from selectors when the flag is absent", async () => {
+    vi.spyOn(processRuntime, "runCommandWithTimeout")
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({
+          advanced_features: true,
+          v2_ready: true,
+          selectors: { pollPayloadMessage: true },
+          rpc_methods: ["chats.list"],
+        }),
+        stderr: "",
+        code: 0,
+        signal: null,
+        killed: false,
+        termination: "exit",
+      })
+      .mockResolvedValueOnce({
+        stdout: "send-rich --file",
+        stderr: "",
+        code: 0,
+        signal: null,
+        killed: false,
+        termination: "exit",
+      })
+      .mockResolvedValueOnce({
+        stdout: "poll send --question <text> --option <text>",
+        stderr: "",
+        code: 0,
+        signal: null,
+        killed: false,
+        termination: "exit",
+      });
+
+    await expect(
+      probeIMessagePrivateApi("imsg-poll-no-comment-absent", 1000),
+    ).resolves.toMatchObject({
+      available: true,
+      selectors: { pollPayloadMessage: true },
+      cliCapabilities: { pollSendSupportsNoComment: false },
     });
   });
 
