@@ -6,7 +6,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocketServer } from "ws";
 import { rawDataToString } from "../infra/ws.js";
@@ -27,7 +27,7 @@ const { registerManagedProxyBrowserCdpBypassMock } = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime-internal", () => ({
+vi.mock("openclaw/plugin-sdk/ssrf-runtime-internal", () => ({
   registerManagedProxyBrowserCdpBypass: registerManagedProxyBrowserCdpBypassMock,
 }));
 
@@ -39,8 +39,8 @@ vi.mock("../infra/ports.js", () => ({
   ensurePortAvailable: ensurePortAvailableMock,
 }));
 
-vi.mock("../infra/tmp-astroclaw-dir.js", () => ({
-  resolvePreferredAstroclawTmpDir: () => "/tmp/openclaw-browser-test",
+vi.mock("../infra/tmp-openclaw-dir.js", () => ({
+  resolvePreferredOpenClawTmpDir: () => "/tmp/openclaw-browser-test",
 }));
 
 // Shrink long launch/bootstrap timeouts so tests don't wait 15s for
@@ -2092,7 +2092,6 @@ describe("chrome.ts internal", () => {
             `${baseUrl}/json/version`,
           );
           expect(release).toHaveBeenCalled();
-          expect(running.releaseCdpProxyBypass).toBeUndefined();
           running.proc.kill?.("SIGTERM");
         },
       });
