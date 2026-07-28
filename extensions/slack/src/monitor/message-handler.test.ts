@@ -11,9 +11,9 @@ const resolveThreadTsMock = vi.fn(async ({ message }: { message: Record<string, 
 }));
 const { createSlackMessageHandler } = await import("./message-handler.js");
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-inbound")>(
-    "openclaw/plugin-sdk/channel-inbound",
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-inbound")>(
+    "astroclaw/plugin-sdk/channel-inbound",
   );
   return {
     ...actual,
@@ -236,6 +236,48 @@ describe("createSlackMessageHandler", () => {
         ts: "1709000000.000200",
         text: "file follows",
         files: [{ id: "F1" }],
+      } as never,
+      { source: "message" },
+    );
+
+    expect(flushKeyMock).toHaveBeenCalledWith("slack:default:C111:1709000000.000100:U111");
+  });
+
+  it("flushes buffered text before a table-bearing message", async () => {
+    const handler = createSlackMessageHandler({
+      ctx: createContext(),
+      account: { accountId: "default" } as Parameters<
+        typeof createSlackMessageHandler
+      >[0]["account"],
+    });
+
+    await handler(
+      {
+        type: "message",
+        channel: "C111",
+        user: "U111",
+        ts: "1709000000.000100",
+        text: "first buffered text",
+      } as never,
+      { source: "message" },
+    );
+    await handler(
+      {
+        type: "message",
+        channel: "C111",
+        user: "U111",
+        ts: "1709000000.000200",
+        text: "table follows",
+        attachments: [
+          {
+            blocks: [
+              {
+                type: "table",
+                rows: [[{ type: "raw_text", text: "kept" }]],
+              },
+            ],
+          },
+        ],
       } as never,
       { source: "message" },
     );
