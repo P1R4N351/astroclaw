@@ -1,7 +1,7 @@
 // Codex tests cover shared client plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempDir } from "openclaw/plugin-sdk/test-env";
+import { withTempDir } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { WebSocketServer, type RawData } from "ws";
 import { CodexAppServerClient } from "./client.js";
@@ -68,13 +68,13 @@ vi.mock("./managed-binary.js", () => ({
   resolveManagedCodexNativeCommand: mocks.resolveManagedCodexNativeCommand,
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", () => ({
   embeddedAgentLog: mocks.embeddedAgentLog,
   formatErrorMessage: (error: unknown) => String(error),
   OPENCLAW_VERSION: "test",
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
   resolveDefaultAgentDir: mocks.resolveDefaultAgentDir,
 }));
 
@@ -715,6 +715,22 @@ describe("shared Codex app-server client", () => {
     expect(startSpy).toHaveBeenCalledTimes(2);
   });
 
+  it("includes redacted app-server stderr when shared initialize times out", async () => {
+    const harness = createClientHarness();
+    vi.spyOn(CodexAppServerClient, "start").mockReturnValue(harness.client);
+
+    const models = listCodexAppServerModels({ timeoutMs: 100 });
+    await vi.waitFor(() => expect(harness.writes.length).toBeGreaterThanOrEqual(1));
+    harness.process.stderr.write(
+      'Error: failed to initialize sqlite state runtime token="secret-value"\n',
+    );
+
+    await expect(models).rejects.toThrow(
+      'codex app-server initialize timed out; stderr="Error: failed to initialize sqlite state runtime token=\\"<redacted>\\""',
+    );
+    expect(harness.process.stdin.destroyed).toBe(true);
+  });
+
   it("keeps shared startup alive for a caller with a longer initialize timeout", async () => {
     const harness = createClientHarness();
     const startSpy = vi.spyOn(CodexAppServerClient, "start").mockReturnValue(harness.client);
@@ -794,6 +810,20 @@ describe("shared Codex app-server client", () => {
 
     await expect(createIsolatedCodexAppServerClient({ timeoutMs: 5 })).rejects.toThrow(
       "codex app-server initialize timed out",
+    );
+    expect(harness.process.stdin.destroyed).toBe(true);
+  });
+
+  it("includes redacted app-server stderr when isolated initialize times out", async () => {
+    const harness = createClientHarness();
+    vi.spyOn(CodexAppServerClient, "start").mockReturnValue(harness.client);
+
+    const client = createIsolatedCodexAppServerClient({ timeoutMs: 100 });
+    await vi.waitFor(() => expect(harness.writes.length).toBeGreaterThanOrEqual(1));
+    harness.process.stderr.write("state database is locked access_token=secret-value\n");
+
+    await expect(client).rejects.toThrow(
+      'codex app-server initialize timed out; stderr="state database is locked access_token=<redacted>"',
     );
     expect(harness.process.stdin.destroyed).toBe(true);
   });
