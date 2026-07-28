@@ -1,7 +1,7 @@
 // Whatsapp tests cover channel.setup plugin behavior.
-import { createQueuedWizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/routing";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { createQueuedWizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/routing";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WHATSAPP_AUTH_UNSTABLE_CODE } from "./auth-store.js";
 import { whatsappSetupPlugin } from "./channel.setup.js";
@@ -54,9 +54,9 @@ vi.mock("./login.js", () => ({
   loginWeb: hoisted.loginWeb,
 }));
 
-vi.mock("openclaw/plugin-sdk/setup", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/setup")>(
-    "openclaw/plugin-sdk/setup",
+vi.mock("astroclaw/plugin-sdk/setup", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/setup")>(
+    "astroclaw/plugin-sdk/setup",
   );
   return {
     ...actual,
@@ -521,16 +521,15 @@ describe("whatsapp setup wizard", () => {
     expect(result).toEqual({ ok: false, reason: WHATSAPP_AUTH_UNSTABLE_CODE });
   });
 
-  it("does not treat unstable auth as configured in generic plugin config checks", async () => {
+  it("keeps config distinct from indeterminate linkage", async () => {
     hoisted.readWebAuthState.mockResolvedValueOnce("unstable");
+    const account = {
+      authDir: "/tmp/work",
+    } as never;
 
-    await expect(
-      whatsappSetupPlugin.config.isConfigured?.(
-        {
-          authDir: "/tmp/work",
-        } as never,
-        {} as never,
-      ),
-    ).resolves.toBe(false);
+    expect(whatsappSetupPlugin.config.isConfigured?.(account, {} as never)).toBe(true);
+    await expect(whatsappSetupPlugin.config.isLinked?.(account, {} as never)).resolves.toBe(
+      "unknown",
+    );
   });
 });
