@@ -5,8 +5,8 @@ import { OPENCLAW_ACPX_LEASE_ID_ARG, OPENCLAW_GATEWAY_INSTANCE_ID_ARG } from "./
 
 const runExecMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/process-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/process-runtime")>()),
+vi.mock("astroclaw/plugin-sdk/process-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/process-runtime")>()),
   runExec: runExecMock,
 }));
 
@@ -93,7 +93,7 @@ describe("process reaper", () => {
     expect(result).toEqual({
       inspectedPids: [],
       terminatedPids: [],
-      skippedReason: "unverified-root",
+      skippedReason: "process-list-unavailable",
     });
     expect(killSpy).not.toHaveBeenCalled();
   });
@@ -214,7 +214,7 @@ describe("process reaper", () => {
     expect(result).toEqual({
       inspectedPids: [],
       terminatedPids: [],
-      skippedReason: "unverified-root",
+      skippedReason: "process-list-unavailable",
     });
     expect(killed).toStrictEqual([]);
   });
