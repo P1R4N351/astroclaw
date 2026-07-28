@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {
   type JsonSchemaObject,
   validateJsonSchemaValue,
-} from "openclaw/plugin-sdk/json-schema-runtime";
+} from "astroclaw/plugin-sdk/json-schema-runtime";
 import { describe, expect, it } from "vitest";
 
 const manifest = JSON.parse(
@@ -39,6 +39,7 @@ describe("memory-core manifest config schema", () => {
               minUniqueQueries: 3,
               recencyHalfLifeDays: 14,
               maxAgeDays: 30,
+              maxPriorEntryLossFraction: 0.25,
             },
             rem: {
               enabled: true,
