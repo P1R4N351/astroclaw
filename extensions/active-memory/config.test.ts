@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {
   type JsonSchemaObject,
   validateJsonSchemaValue,
-} from "openclaw/plugin-sdk/json-schema-runtime";
+} from "astroclaw/plugin-sdk/json-schema-runtime";
 import { describe, expect, it } from "vitest";
 
 const manifest = JSON.parse(
@@ -118,6 +118,20 @@ describe("active-memory manifest config schema", () => {
         enabled: true,
         agents: ["main"],
         allowedChatTypes: ["direct", "explicit"],
+      },
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts max thinking overrides", () => {
+    const result = validateJsonSchemaValue({
+      schema: manifest.configSchema,
+      cacheKey: "active-memory.manifest.thinking.max",
+      value: {
+        enabled: true,
+        agents: ["main"],
+        thinking: "max",
       },
     });
 
