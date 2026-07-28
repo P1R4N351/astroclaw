@@ -1,5 +1,5 @@
 // Command path policy tests cover allowed CLI command path shapes and lazy imports.
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CliCommandCatalogEntry, CliCommandPathPolicy } from "./command-catalog.js";
 import {
@@ -256,6 +256,11 @@ describe("command-path-policy", () => {
       networkProxy: "bypass",
     });
     expectResolvedPolicy(["gateway", "status"], {
+      routeConfigGuard: "always",
+      loadPlugins: "never",
+      networkProxy: "bypass",
+    });
+    expectResolvedPolicy(["gateway", "health"], {
       routeConfigGuard: "always",
       loadPlugins: "never",
       networkProxy: "bypass",
