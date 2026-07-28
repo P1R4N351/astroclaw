@@ -1,14 +1,14 @@
-import { installChannelDmPolicyContractSuite } from "astroclaw/plugin-sdk/channel-test-helpers";
+import { installChannelDmPolicyContractSuite } from "openclaw/plugin-sdk/channel-test-helpers";
 // Slack tests cover setup surface plugin behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   createQueuedWizardPrompter,
   createSetupWizardAdapter,
   createTestWizardPrompter,
   runSetupWizardConfigure,
   runSetupWizardPrepare,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { WizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { WizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSlackSetupWizardBase, slackSetupAdapter } from "./setup-core.js";
 import { buildSlackSetupLines } from "./setup-shared.js";
