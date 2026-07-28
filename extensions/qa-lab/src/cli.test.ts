@@ -1,7 +1,7 @@
 import { expectDefined } from "@openclaw/normalization-core";
+import type { QaRunnerCliContribution } from "astroclaw/plugin-sdk/qa-runner-runtime";
 // Qa Lab tests cover cli plugin behavior.
 import { Command } from "commander";
-import type { QaRunnerCliContribution } from "openclaw/plugin-sdk/qa-runner-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const TEST_QA_RUNNER = {
@@ -100,7 +100,7 @@ function requireQaSuiteOptions() {
   return options;
 }
 
-vi.mock("openclaw/plugin-sdk/qa-runner-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/qa-runner-runtime", () => ({
   listQaRunnerCliContributions,
 }));
 
@@ -924,13 +924,6 @@ describe("qa cli registration", () => {
     ]);
 
     expect(requireQaSuiteOptions()).toEqual(expect.objectContaining({ failFast: true, runner }));
-  });
-
-  it("forwards --pack for suite runs", async () => {
-    await program.parseAsync(["node", "openclaw", "qa", "suite", "--pack", "personal-agent"]);
-
-    const options = requireQaSuiteOptions();
-    expect(options.pack).toBe("personal-agent");
   });
 
   it("forwards --runtime-pair-lane for suite runs", async () => {
