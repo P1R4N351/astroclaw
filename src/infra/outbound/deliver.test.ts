@@ -38,12 +38,16 @@ import {
   type DiagnosticEventPayload,
 } from "../diagnostic-events.js";
 import { retryAsync } from "../retry.js";
-import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../tmp-openclaw-dir.js";
 import { PlatformMessageNotDispatchedError } from "./deliver-types.js";
 
 const mocks = vi.hoisted(() => ({
   appendAssistantMessageToSessionTranscript: vi.fn<() => Promise<SessionTranscriptAppendResult>>(
-    async () => ({ ok: true, sessionFile: "x", messageId: "m" }),
+    async () => ({
+      ok: true,
+      target: { sessionId: "x", sessionKey: "x", storePath: "/tmp/sessions.json" },
+      messageId: "m",
+    }),
   ),
 }));
 const hookMocks = vi.hoisted(() => ({
@@ -113,7 +117,7 @@ vi.mock("../../hooks/internal-hooks.js", () => ({
   createInternalHookEvent: internalHookMocks.createInternalHookEvent,
   triggerInternalHook: internalHookMocks.triggerInternalHook,
 }));
-vi.mock("./delivery-queue.js", () => ({
+vi.mock("./delivery-queue-storage.js", () => ({
   enqueueDelivery: queueMocks.enqueueDelivery,
   enqueueDeliveryOnce: queueMocks.enqueueDeliveryOnce,
   ackDelivery: queueMocks.ackDelivery,
@@ -123,6 +127,15 @@ vi.mock("./delivery-queue.js", () => ({
   markDeliveryPlatformOutcomeUnknown: queueMocks.markDeliveryPlatformOutcomeUnknown,
   markDeliveryPlatformSendDispatched: queueMocks.markDeliveryPlatformSendDispatched,
   markDeliveryPlatformSendAttemptStarted: queueMocks.markDeliveryPlatformSendAttemptStarted,
+}));
+vi.mock("./delivery-queue.js", () => ({
+  enqueueDelivery: queueMocks.enqueueDelivery,
+  enqueueDeliveryOnce: queueMocks.enqueueDeliveryOnce,
+  ackDelivery: queueMocks.ackDelivery,
+  failDelivery: queueMocks.failDelivery,
+  failDeliveryAfterPlatformSend: queueMocks.failDeliveryAfterPlatformSend,
+  failDeliveryBeforePlatformSend: queueMocks.failDeliveryBeforePlatformSend,
+  markDeliveryPlatformSendDispatched: queueMocks.markDeliveryPlatformSendDispatched,
   withActiveDeliveryClaim: queueMocks.withActiveDeliveryClaim,
 }));
 vi.mock("./delivery-completion.js", () => ({
@@ -153,7 +166,7 @@ const matrixChunkConfig: OpenClawConfig = {
   channels: { matrix: { textChunkLimit: 4000 } } as OpenClawConfig["channels"],
 };
 
-const expectedPreferredTmpRoot = resolvePreferredAstroclawTmpDir();
+const expectedPreferredTmpRoot = resolvePreferredOpenClawTmpDir();
 
 type DeliverOutboundArgs = Parameters<DeliverModule["deliverOutboundPayloads"]>[0];
 type DeliverOutboundPayload = DeliverOutboundArgs["payloads"][number];
@@ -4045,7 +4058,7 @@ describe("deliverOutboundPayloads", () => {
     // same capability the live send resolves, so a fabricated localRoots here
     // would hide whether the two gates agree.
     const sourceDir = await fsPromises.realpath(
-      await fsPromises.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "deliver-spool-")),
+      await fsPromises.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "deliver-spool-")),
     );
     const openClawState = await createOpenClawTestState({
       layout: "state-only",
