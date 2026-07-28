@@ -8,9 +8,14 @@ import JSZip from "jszip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
 import { resolveStateDir } from "../config/paths.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
-import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../plugins/runtime.js";
+import {
+  pinActivePluginHttpRouteRegistry,
+  releasePinnedPluginHttpRouteRegistry,
+  resetPluginRuntimeStateForTest,
+  setActivePluginRegistry,
+} from "../plugins/runtime.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { resizeToJpeg } from "./media-services.js";
 import { encodePngRgba, fillPixel } from "./png-encode.js";
@@ -42,7 +47,7 @@ beforeAll(async () => {
     optimizeImageToJpeg,
     resolveImageCompressionGrid,
   } = await import("./web-media.js"));
-  fixtureRoot = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "web-media-core-"));
+  fixtureRoot = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "web-media-core-"));
   tinyPngFile = path.join(fixtureRoot, "tiny.png");
   await fs.writeFile(tinyPngFile, Buffer.from(TINY_PNG_BASE64, "base64"));
   workspaceDir = path.join(fixtureRoot, "workspace");
@@ -343,6 +348,32 @@ describe("loadWebMedia", () => {
 
     expect(result.kind).toBe("image");
     expect(result.buffer.length).toBeGreaterThan(0);
+  });
+
+  it("loads hosted plugin media from the pinned HTTP-route registry", async () => {
+    const httpRegistry = createEmptyPluginRegistry();
+    httpRegistry.hostedMediaResolvers = [
+      {
+        pluginId: "hosted-media",
+        resolver: (mediaUrl) =>
+          mediaUrl === "/__test__/hosted/pinned-tiny.png" ? canvasPngFile : null,
+        source: "test",
+      },
+    ];
+
+    try {
+      pinActivePluginHttpRouteRegistry(httpRegistry);
+      setActivePluginRegistry(createEmptyPluginRegistry());
+
+      const result = await loadWebMedia("/__test__/hosted/pinned-tiny.png", {
+        maxBytes: 1024 * 1024,
+      });
+
+      expect(result.kind).toBe("image");
+      expect(result.buffer.length).toBeGreaterThan(0);
+    } finally {
+      releasePinnedPluginHttpRouteRegistry(httpRegistry);
+    }
   });
 
   it("surfaces Rastermill decode failures when image optimization cannot produce a JPEG", async () => {
@@ -752,7 +783,7 @@ describe("loadWebMedia", () => {
 
   it("requires a marker when outbound staging is nested under the trusted temp root", async () => {
     const stateRoot = await fs.mkdtemp(
-      path.join(resolvePreferredAstroclawTmpDir(), "web-media-overlap-state-"),
+      path.join(resolvePreferredOpenClawTmpDir(), "web-media-overlap-state-"),
     );
     try {
       await withEnvAsync({ OPENCLAW_STATE_DIR: stateRoot }, async () => {
@@ -764,7 +795,7 @@ describe("loadWebMedia", () => {
           1024 * 1024,
           "report.html",
         );
-        expect(path.resolve(saved.path)).toContain(path.resolve(resolvePreferredAstroclawTmpDir()));
+        expect(path.resolve(saved.path)).toContain(path.resolve(resolvePreferredOpenClawTmpDir()));
         await expectLoadWebMediaErrorCode(
           loadWebMedia(saved.path, {
             maxBytes: 1024 * 1024,
@@ -974,7 +1005,7 @@ describe("loadWebMedia", () => {
 
   it("rejects trusted host-read HTML hardlinks to files outside OpenClaw temp root", async () => {
     const outsideRoot = await fs.mkdtemp(
-      path.join(path.dirname(resolvePreferredAstroclawTmpDir()), "web-media-host-html-"),
+      path.join(path.dirname(resolvePreferredOpenClawTmpDir()), "web-media-host-html-"),
     );
     const outsideHtml = path.join(outsideRoot, "report.html");
     const htmlLink = path.join(fixtureRoot, "hardlinked-report.html");
