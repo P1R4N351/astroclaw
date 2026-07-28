@@ -5,7 +5,7 @@ import path from "node:path";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 import { startNostrBus } from "./nostr-bus.js";
@@ -218,6 +218,30 @@ describe("startNostrBus inbound guards", () => {
     expect(onConnect).toHaveBeenCalledWith("wss://relay.example/");
 
     await bus.close();
+  });
+
+  it("classifies a durable queue open failure as unavailable ingress", async () => {
+    const queueError = new Error("sqlite unavailable");
+    setNostrRuntime({
+      state: {
+        openChannelIngressQueue: () => {
+          throw queueError;
+        },
+      },
+    } as unknown as PluginRuntime);
+
+    await expect(
+      startTestNostrBus({
+        ...buildResolvedNostrAccount(),
+        onMessage: vi.fn(async () => {}),
+        onMetric: () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: "ChannelIngressUnavailableError",
+      code: "CHANNEL_INGRESS_UNAVAILABLE",
+      cause: queueError,
+    });
+    expect(mockState.subscribeMany).not.toHaveBeenCalled();
   });
 
   it("waits for EOSE before persisting a durable relay cursor", async () => {
