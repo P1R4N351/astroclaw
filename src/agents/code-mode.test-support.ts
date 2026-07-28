@@ -36,8 +36,35 @@ type CodeModeWorkerResult =
   | { status: "failed"; error: string; code: CodeModeFailureCode; output: unknown[] };
 
 type CodeModeTestApi = {
-  activeRuns: Map<string, { config: CodeModeConfig; expiresAt: number }>;
+  activeRuns: Map<
+    string,
+    {
+      runId: string;
+      config: CodeModeConfig;
+      expiresAt: number;
+      replayId?: string;
+      agentWaitRetainUntil?: number;
+      pending: Array<{
+        id: string;
+        method: string;
+        args: unknown[];
+        promise: Promise<unknown>;
+        settled?: unknown;
+        cancel?: () => void;
+      }>;
+    }
+  >;
   resumingRunIds: Set<string>;
+  codeModeReplayIdForToolCall(
+    ctx: ToolSearchToolContext,
+    toolCallId: string,
+    code: string,
+    assistantTurnId?: string,
+  ): string;
+  removeExpiredRuns(now?: number): void;
+  runBridgeRequest(
+    params: Record<string, unknown>,
+  ): Promise<{ id: string; ok: true; value: unknown } | { id: string; ok: false; error: string }>;
   createHeadlessAbortScope(
     signal: AbortSignal | undefined,
     wallClockMs: number,
@@ -64,7 +91,15 @@ type CodeModeTestApi = {
   ): CodeModeConfig;
   resolveCodeModeWorkerUrl(currentModuleUrl: string): URL;
   getTypescriptRuntimePromise(): Promise<typeof import("typescript")> | null;
-  setTypescriptRuntimeForTest(runtime: typeof import("typescript") | null): void;
+  setTypescriptRuntimeForTest(
+    runtime: typeof import("typescript") | Promise<typeof import("typescript")> | null,
+  ): void;
+  setSwarmDepsForTest(overrides?: {
+    emitSessionLifecycleEvent?: (event: Record<string, unknown>) => void;
+    getSwarmRunByLaunchReplayKey?: (key: string, requesterSessionKey?: string) => unknown;
+    initSubagentRegistry?: () => void;
+    waitForCollectorCompletion?: (params: Record<string, unknown>) => Promise<unknown>;
+  }): void;
 };
 
 function getTestApi(): CodeModeTestApi {
