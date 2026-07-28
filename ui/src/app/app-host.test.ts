@@ -11,9 +11,12 @@ import {
 } from "../components/command-palette-contract.ts";
 import {
   BROWSER_PANEL_TOGGLE_EVENT,
+  CUSTODIAN_PANEL_TOGGLE_EVENT,
   TERMINAL_PANEL_TOGGLE_EVENT,
   UI_COMMAND_EVENT,
 } from "../components/panel-toggle-contract.ts";
+import { i18n } from "../i18n/index.ts";
+import { SESSION_FACE_PREFERENCE_PARAM } from "../lib/sessions/route-navigation.ts";
 import { createStorageMock } from "../test-helpers/storage.ts";
 import { selectShellRouteState } from "./app-host-route-state.ts";
 import { resetAppHostTestGlobals, type ShellKeyboardState } from "./app-host.test-support.ts";
@@ -26,6 +29,16 @@ import type {
 import { shouldMergeChatChrome } from "./mobile-nav-layout.ts";
 import { resolveOnboardingMode } from "./onboarding-mode.ts";
 import { resetServerUiPrefsSync } from "./server-prefs.ts";
+import { scheduleStaleChunkReload } from "./stale-chunk-reload.ts";
+
+vi.mock("./stale-chunk-reload.ts", async () => {
+  const actual =
+    await vi.importActual<typeof import("./stale-chunk-reload.ts")>("./stale-chunk-reload.ts");
+  return {
+    ...actual,
+    scheduleStaleChunkReload: vi.fn(async () => true),
+  };
+});
 
 type AppLifecycleState = {
   loginToken: string;
@@ -48,6 +61,18 @@ type ShellInitializationState = {
   ) => void;
 };
 
+type ShellGatewaySynchronizationState = {
+  outboxStoreImport: { load: () => Promise<unknown> };
+  synchronizeGateway: (snapshot: ApplicationGatewaySnapshot) => void;
+};
+
+type I18nRecoveryWiring = {
+  localeLoadRecovery?: {
+    isUnrecoverableError: (error: unknown) => boolean;
+    onUnrecoverableLocaleLoad?: (locale: string) => void;
+  };
+};
+
 type ShellServerPreferencesState = {
   runtime: { context: ApplicationContext };
   reconcileServerUiPrefs: (runtimeConfig: ApplicationContext["runtimeConfig"]) => void;
@@ -62,7 +87,9 @@ type TestOptionalCustomElement = {
 type ShellLazySurfaceState = ShellKeyboardState & {
   browserPanelElement: TestOptionalCustomElement;
   commandPaletteElement: TestOptionalCustomElement;
+  custodianPanelElement: TestOptionalCustomElement;
   handleDeferredBrowserToggle: (event: Event) => void;
+  handleDeferredCustodianToggle: (event: Event) => void;
   handleDeferredTerminalToggle: (event: Event) => void;
   terminalPanelElement: TestOptionalCustomElement;
 };
@@ -193,6 +220,11 @@ type ShellRouteCommitState = {
   updateRouteState: (state: ReturnType<typeof selectShellRouteState>) => void;
 };
 
+type ShellCustodianRouteState = {
+  custodianMinimizeRequestId: number;
+  updateRouteState: (state: { routeId?: RouteId }) => void;
+};
+
 type ShellSessionNavigationState = {
   runtime: { context: ApplicationContext };
   activeSessionKey: string;
@@ -264,6 +296,47 @@ describe("OpenClaw app lifecycle", () => {
 });
 
 describe("OpenClaw shell source initialization", () => {
+  it("delegates repeated locale import failures to guarded stale-chunk recovery", () => {
+    const scheduleReload = vi.mocked(scheduleStaleChunkReload);
+    scheduleReload.mockClear();
+    const recovery = (i18n as unknown as I18nRecoveryWiring).localeLoadRecovery;
+
+    expect(
+      recovery?.isUnrecoverableError(
+        new Error("Failed to fetch dynamically imported module: /assets/fr-abc123.js"),
+      ),
+    ).toBe(true);
+    recovery?.onUnrecoverableLocaleLoad?.("fr");
+
+    expect(scheduleReload).toHaveBeenCalledOnce();
+  });
+
+  it("retries a pending locale once when the Gateway becomes connected", () => {
+    const retryPendingLocale = vi.spyOn(i18n, "retryPendingLocale").mockImplementation(() => {});
+    const shell = document.createElement(
+      "openclaw-app-shell",
+    ) as unknown as ShellGatewaySynchronizationState;
+    shell.outboxStoreImport = { load: vi.fn(async () => undefined) };
+    const reconnecting = {
+      client: null,
+      phase: "reconnecting",
+      sessionKey: "",
+    } as ApplicationGatewaySnapshot;
+    const connected = {
+      client: {} as GatewayBrowserClient,
+      phase: "connected",
+      sessionKey: "",
+    } as ApplicationGatewaySnapshot;
+
+    shell.synchronizeGateway(reconnecting);
+    shell.synchronizeGateway(connected);
+    shell.synchronizeGateway({ ...connected });
+    shell.synchronizeGateway({ ...connected });
+
+    expect(retryPendingLocale).toHaveBeenCalledOnce();
+    retryPendingLocale.mockRestore();
+  });
+
   it("clears retained presentation and source ownership when its context epoch ends", () => {
     const shell = document.createElement("openclaw-app-shell") as unknown as ShellEpochState;
     const client = {} as GatewayBrowserClient;
@@ -422,7 +495,9 @@ describe("OpenClaw shell route session commits", () => {
 
   it("adopts a resolved chat session after path navigation from Tasks", () => {
     vi.stubGlobal("localStorage", createStorageMock());
-    const setSessionKey = vi.fn();
+    const calls: string[] = [];
+    const setAgent = vi.fn((agentId: string | null) => calls.push(`agent:${agentId}`));
+    const setSessionKey = vi.fn((sessionKey: string) => calls.push(`session:${sessionKey}`));
     const shell = document.createElement("openclaw-app-shell") as unknown as ShellRouteCommitState;
     shell.runtime = {
       context: {
@@ -430,6 +505,7 @@ describe("OpenClaw shell route session commits", () => {
           snapshot: { phase: "stopped", client: null, sessionKey: "agent:main:session-a" },
           setSessionKey,
         },
+        agentSelection: { set: setAgent },
       } as unknown as ApplicationContext,
     };
     shell.activeSessionKey = "agent:main:session-a";
@@ -447,6 +523,20 @@ describe("OpenClaw shell route session commits", () => {
 
     expect(shell.activeSessionKey).toBe("agent:main:session-b");
     expect(setSessionKey).toHaveBeenCalledExactlyOnceWith("agent:main:session-b");
+    expect(calls).toEqual(["agent:main", "session:agent:main:session-b"]);
+  });
+
+  it("retains the custodian leave transition through an unresolved route state", () => {
+    const shell = document.createElement(
+      "openclaw-app-shell",
+    ) as unknown as ShellCustodianRouteState;
+
+    shell.updateRouteState({ routeId: "custodian" });
+    shell.updateRouteState({});
+    expect(shell.custodianMinimizeRequestId).toBe(0);
+
+    shell.updateRouteState({ routeId: "config" });
+    expect(shell.custodianMinimizeRequestId).toBe(1);
   });
 });
 
@@ -711,11 +801,14 @@ describe("OpenClaw shell keyboard shortcuts", () => {
   it("delivers first panel toggles after their lazy modules load", async () => {
     const terminalElement = createLazyElementSpec("terminal panel");
     const browserElement = createLazyElementSpec("browser panel");
+    const custodianElement = createLazyElementSpec("custodian panel");
     const terminalToggle = vi.fn();
     const browserToggle = vi.fn();
+    const custodianToggle = vi.fn();
     const shell = document.createElement("openclaw-app-shell") as unknown as ShellLazySurfaceState;
     shell.terminalPanelElement = terminalElement;
     shell.browserPanelElement = browserElement;
+    shell.custodianPanelElement = custodianElement;
     shell.runtime = {
       context: {
         gateway: {
@@ -723,7 +816,7 @@ describe("OpenClaw shell keyboard shortcuts", () => {
             phase: "connected",
             hello: {
               auth: { role: "operator", scopes: ["operator.admin"] },
-              features: { methods: ["terminal.open", "browser.request"] },
+              features: { methods: ["terminal.open", "browser.request", "openclaw.chat"] },
             },
           },
         },
@@ -743,6 +836,9 @@ describe("OpenClaw shell keyboard shortcuts", () => {
         if (selector === browserElement.tagName) {
           return { handleToggleRequest: browserToggle };
         }
+        if (selector === custodianElement.tagName) {
+          return { handleToggleRequest: custodianToggle };
+        }
         return null;
       },
     });
@@ -750,13 +846,16 @@ describe("OpenClaw shell keyboard shortcuts", () => {
       detail: { dock: "right", open: true },
     });
     const browserEvent = new CustomEvent(BROWSER_PANEL_TOGGLE_EVENT);
+    const custodianEvent = new CustomEvent(CUSTODIAN_PANEL_TOGGLE_EVENT);
 
     shell.handleDeferredTerminalToggle(terminalEvent);
     shell.handleDeferredBrowserToggle(browserEvent);
+    shell.handleDeferredCustodianToggle(custodianEvent);
 
     await vi.waitFor(() => {
       expect(terminalToggle).toHaveBeenCalledWith(terminalEvent);
       expect(browserToggle).toHaveBeenCalledWith(browserEvent);
+      expect(custodianToggle).toHaveBeenCalledWith(custodianEvent);
     });
   });
 
@@ -782,6 +881,7 @@ describe("OpenClaw shell keyboard shortcuts", () => {
   it("routes UI commands to navigation, panels, and chat fallback", () => {
     const update = vi.fn();
     const setSessionKey = vi.fn();
+    const setAgent = vi.fn();
     const navigate = vi.fn();
     const panelEvent = vi.fn();
     const uiCommandEvent = vi.fn();
@@ -794,7 +894,7 @@ describe("OpenClaw shell keyboard shortcuts", () => {
         navigation: { update },
         gateway: { setSessionKey, snapshot: { hello: null } },
         agents: { state: { agentsList: { mainKey: "main" } } },
-        agentSelection: { state: { selectedId: "main" } },
+        agentSelection: { state: { selectedId: "main" }, set: setAgent },
         sessions: { state: { result: null } },
         navigate,
       } as unknown as ApplicationContext,
@@ -843,7 +943,13 @@ describe("OpenClaw shell keyboard shortcuts", () => {
     expect(setSessionKey).toHaveBeenCalledWith(
       "agent:main:dashboard:12345678-90ab-cdef-1234-567890abcdef",
     );
-    expect(navigate).toHaveBeenCalledWith("chat", { pathname: "/chat/main/12345678" });
+    // The pushed command names a session the UI has not cached, so its face is a guess
+    // and the navigation is marked for the chat loader to re-derive from the gateway.
+    expect(setAgent).toHaveBeenCalledWith("main");
+    expect(navigate).toHaveBeenCalledWith("chat", {
+      pathname: "/chat/main/12345678",
+      search: `?${SESSION_FACE_PREFERENCE_PARAM}=1`,
+    });
     expect(uiCommandEvent).toHaveBeenLastCalledWith(
       expect.objectContaining({
         detail: {
