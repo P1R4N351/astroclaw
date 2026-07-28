@@ -1,5 +1,5 @@
 // Feishu tests cover drive plugin behavior.
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi, PluginRuntime } from "../runtime-api.js";
 
@@ -174,7 +174,6 @@ describe("registerFeishuDriveTools", () => {
       perm: false,
       scopes: false,
       bitable: false,
-      base: false,
     });
     createFeishuToolClientMock.mockReturnValue({
       request: requestMock,
