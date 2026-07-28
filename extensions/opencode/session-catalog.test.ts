@@ -3,11 +3,11 @@ import { once } from "node:events";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 type ResolveAcpSessionAvailability =
-  (typeof import("astroclaw/plugin-sdk/acp-runtime"))["resolveAcpSessionAvailability"];
+  (typeof import("openclaw/plugin-sdk/acp-runtime"))["resolveAcpSessionAvailability"];
 
 const nodeHostMocks = vi.hoisted(() => ({
   runNodePtyCommand: vi.fn(async () => ({ exitCode: 0 })),
@@ -33,14 +33,14 @@ vi.mock("node:child_process", async (importOriginal) => {
   return { ...actual, spawn: childProcessMocks.spawn };
 });
 
-vi.mock("astroclaw/plugin-sdk/acp-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/acp-runtime")>()),
+vi.mock("openclaw/plugin-sdk/acp-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/acp-runtime")>()),
   resolveAcpSessionAvailability: acpRuntimeMocks.resolveAcpSessionAvailability,
 }));
 
-vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-runtime")>();
   return {
     ...actual,
     withSessionTranscriptWriteLock: async (
@@ -69,8 +69,8 @@ vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/node-host", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/node-host")>();
+vi.mock("openclaw/plugin-sdk/node-host", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/node-host")>();
   return {
     ...actual,
     runNodePtyCommand: nodeHostMocks.runNodePtyCommand,
@@ -688,19 +688,20 @@ describe("OpenCode session catalog", () => {
       }),
     };
     const invoke = vi.fn().mockResolvedValue(page);
+    const nodes = [
+      {
+        nodeId: "node-1",
+        connected: true,
+        commands: [OPENCODE_SESSIONS_LIST_COMMAND, OPENCODE_TERMINAL_RESUME_COMMAND],
+      },
+    ];
+    const runtimeListNodes = vi.fn().mockResolvedValue({ nodes });
+    const requestListNodes = vi.fn().mockResolvedValue({ nodes });
     registerOpenCodeSessionCatalog({
       pluginConfig: {},
       runtime: {
         nodes: {
-          list: vi.fn().mockResolvedValue({
-            nodes: [
-              {
-                nodeId: "node-1",
-                connected: true,
-                commands: [OPENCODE_SESSIONS_LIST_COMMAND, OPENCODE_TERMINAL_RESUME_COMMAND],
-              },
-            ],
-          }),
+          list: runtimeListNodes,
           invoke,
         },
       },
@@ -711,7 +712,13 @@ describe("OpenCode session catalog", () => {
       registerNodeInvokePolicy: vi.fn(),
     } as unknown as OpenClawPluginApi);
 
-    await expect(provider!.list({ hostIds: ["node:node-1"], search: "remote" })).resolves.toEqual([
+    await expect(
+      provider!.list({
+        hostIds: ["node:node-1"],
+        search: "remote",
+        listNodes: requestListNodes,
+      }),
+    ).resolves.toEqual([
       expect.objectContaining({
         sessions: [
           expect.objectContaining({
@@ -722,6 +729,8 @@ describe("OpenCode session catalog", () => {
         ],
       }),
     ]);
+    expect(requestListNodes).toHaveBeenCalledOnce();
+    expect(runtimeListNodes).not.toHaveBeenCalled();
     expect(invoke).toHaveBeenNthCalledWith(1, {
       nodeId: "node-1",
       command: OPENCODE_SESSIONS_LIST_COMMAND,
