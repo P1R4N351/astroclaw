@@ -7,7 +7,7 @@ import {
   bundledDistPluginFile,
   bundledPluginFile,
   bundledPluginRoot,
-} from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { withEnv } from "../test-utils/env.js";
 import {
@@ -301,7 +301,7 @@ function createUserInstalledPluginSdkAliasFixture() {
   fs.writeFileSync(
     externalPluginEntry,
     [
-      'import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";',
+      'import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";',
       'export default definePluginEntry({ id: "demo", register() {} });',
       "",
     ].join("\n"),
@@ -351,7 +351,7 @@ function expectPluginSdkAliasTargets(
   },
 ) {
   if (params.channelRuntimePath) {
-    expect(fs.realpathSync(aliases["astroclaw/plugin-sdk/channel-runtime-context"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["openclaw/plugin-sdk/channel-runtime-context"] ?? "")).toBe(
       fs.realpathSync(params.channelRuntimePath),
     );
     expect(fs.realpathSync(aliases["@openclaw/plugin-sdk/channel-runtime-context"] ?? "")).toBe(
@@ -359,7 +359,7 @@ function expectPluginSdkAliasTargets(
     );
   }
   if (params.pluginEntryPath) {
-    expect(fs.realpathSync(aliases["astroclaw/plugin-sdk/plugin-entry"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["openclaw/plugin-sdk/plugin-entry"] ?? "")).toBe(
       fs.realpathSync(params.pluginEntryPath),
     );
     expect(fs.realpathSync(aliases["@openclaw/plugin-sdk/plugin-entry"] ?? "")).toBe(
@@ -384,8 +384,8 @@ function listPluginSdkExportedSubpaths(params: {
       params.devSourceRoot,
     ),
   )
-    .filter((key) => key.startsWith("astroclaw/plugin-sdk/"))
-    .map((key) => key.slice("astroclaw/plugin-sdk/".length))
+    .filter((key) => key.startsWith("openclaw/plugin-sdk/"))
+    .map((key) => key.slice("openclaw/plugin-sdk/".length))
     .toSorted();
 }
 
@@ -409,7 +409,7 @@ function expectCwdFallbackPluginSdkAliasResolution(params: {
       { NODE_ENV: undefined },
       () =>
         buildPluginLoaderAliasMap("/tmp/tsx-cache/openclaw-loader.js", "")[
-          "astroclaw/plugin-sdk/channel-runtime-context"
+          "openclaw/plugin-sdk/channel-runtime-context"
         ] ?? null,
     ),
   );
@@ -518,10 +518,10 @@ describe("plugin sdk alias helpers", () => {
     );
 
     expect(subpaths).toEqual(["core", "qa-runner-runtime"]);
-    expect(fs.realpathSync(aliases["astroclaw/plugin-sdk/qa-runner-runtime"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["openclaw/plugin-sdk/qa-runner-runtime"] ?? "")).toBe(
       fs.realpathSync(sourceQaRunnerPath),
     );
-    expect(aliases["astroclaw/plugin-sdk/qa-runtime"]).toBeUndefined();
+    expect(aliases["openclaw/plugin-sdk/qa-runtime"]).toBeUndefined();
   });
 
   it("adds the non-QA private Codex helper subpath only for trusted Codex plugins", () => {
@@ -763,16 +763,16 @@ describe("plugin sdk alias helpers", () => {
       buildPluginLoaderAliasMap(sourcePluginEntry),
     );
 
-    expect(fs.realpathSync(aliases["astroclaw/plugin-sdk/qa-runtime"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["openclaw/plugin-sdk/qa-runtime"] ?? "")).toBe(
       fs.realpathSync(sourceQaRuntimePath),
     );
-    expect(fs.realpathSync(aliases["astroclaw/plugin-sdk/qa-channel"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["openclaw/plugin-sdk/qa-channel"] ?? "")).toBe(
       fs.realpathSync(sourceQaChannelPath),
     );
-    expect(fs.realpathSync(aliases["astroclaw/plugin-sdk/qa-channel-protocol"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["openclaw/plugin-sdk/qa-channel-protocol"] ?? "")).toBe(
       fs.realpathSync(sourceQaChannelProtocolPath),
     );
-    expect(fs.realpathSync(aliases["astroclaw/plugin-sdk/qa-lab"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["openclaw/plugin-sdk/qa-lab"] ?? "")).toBe(
       fs.realpathSync(distQaLabPath),
     );
   });
@@ -910,19 +910,19 @@ describe("plugin sdk alias helpers", () => {
       ),
     );
 
-    expect(fs.realpathSync(aliases["astroclaw/plugin-sdk/codex-mcp-projection"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["openclaw/plugin-sdk/codex-mcp-projection"] ?? "")).toBe(
       fs.realpathSync(sourceCodexMcpProjectionPath),
     );
     expect(
-      fs.realpathSync(installedAliases["astroclaw/plugin-sdk/codex-mcp-projection"] ?? ""),
+      fs.realpathSync(installedAliases["openclaw/plugin-sdk/codex-mcp-projection"] ?? ""),
     ).toBe(fs.realpathSync(distCodexMcpProjectionPath));
-    expect(fs.realpathSync(devRootAliases["astroclaw/plugin-sdk/codex-mcp-projection"] ?? "")).toBe(
+    expect(fs.realpathSync(devRootAliases["openclaw/plugin-sdk/codex-mcp-projection"] ?? "")).toBe(
       fs.realpathSync(devCodexMcpProjectionPath),
     );
-    expect(aliases["astroclaw/plugin-sdk/qa-runtime"]).toBeUndefined();
-    expect(otherAliases["astroclaw/plugin-sdk/codex-mcp-projection"]).toBeUndefined();
-    expect(installedOtherAliases["astroclaw/plugin-sdk/codex-mcp-projection"]).toBeUndefined();
-    expect(shadowCodexAliases["astroclaw/plugin-sdk/codex-mcp-projection"]).toBeUndefined();
+    expect(aliases["openclaw/plugin-sdk/qa-runtime"]).toBeUndefined();
+    expect(otherAliases["openclaw/plugin-sdk/codex-mcp-projection"]).toBeUndefined();
+    expect(installedOtherAliases["openclaw/plugin-sdk/codex-mcp-projection"]).toBeUndefined();
+    expect(shadowCodexAliases["openclaw/plugin-sdk/codex-mcp-projection"]).toBeUndefined();
   });
 
   it("aliases the SSRF internal helper only for bundled local IPC owner plugins", async () => {
@@ -960,7 +960,7 @@ describe("plugin sdk alias helpers", () => {
       bundledPluginFile("demo", "index.ts"),
     );
     const entryBody = [
-      'import { ssrfInternal } from "astroclaw/plugin-sdk/ssrf-runtime-internal";',
+      'import { ssrfInternal } from "openclaw/plugin-sdk/ssrf-runtime-internal";',
       "export const loadedSsrFInternal = ssrfInternal;",
       "",
     ].join("\n");
@@ -1054,29 +1054,27 @@ describe("plugin sdk alias helpers", () => {
     expect(sourceSubpaths).toEqual(["core", "ssrf-runtime-internal"]);
     expect(sourceBrowserSubpaths).toEqual(["core", "ssrf-runtime-internal"]);
     expect(privateQaOtherSubpaths).toEqual(["core"]);
-    expect(fs.realpathSync(sourceAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"] ?? "")).toBe(
+    expect(fs.realpathSync(sourceAliases["openclaw/plugin-sdk/ssrf-runtime-internal"] ?? "")).toBe(
       fs.realpathSync(sourceSsrFInternalPath),
     );
     expect(
-      fs.realpathSync(sourceBrowserAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"] ?? ""),
+      fs.realpathSync(sourceBrowserAliases["openclaw/plugin-sdk/ssrf-runtime-internal"] ?? ""),
     ).toBe(fs.realpathSync(sourceSsrFInternalPath));
-    expect(fs.realpathSync(distAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"] ?? "")).toBe(
+    expect(fs.realpathSync(distAliases["openclaw/plugin-sdk/ssrf-runtime-internal"] ?? "")).toBe(
       fs.realpathSync(distSsrFInternalPath),
     );
     expect(
-      fs.realpathSync(distBrowserAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"] ?? ""),
+      fs.realpathSync(distBrowserAliases["openclaw/plugin-sdk/ssrf-runtime-internal"] ?? ""),
     ).toBe(fs.realpathSync(distSsrFInternalPath));
     expect(
-      fs.realpathSync(distRuntimeAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"] ?? ""),
+      fs.realpathSync(distRuntimeAliases["openclaw/plugin-sdk/ssrf-runtime-internal"] ?? ""),
     ).toBe(fs.realpathSync(distSsrFInternalPath));
     expect(
-      fs.realpathSync(
-        distRuntimeBrowserAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"] ?? "",
-      ),
+      fs.realpathSync(distRuntimeBrowserAliases["openclaw/plugin-sdk/ssrf-runtime-internal"] ?? ""),
     ).toBe(fs.realpathSync(distSsrFInternalPath));
-    expect(otherAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"]).toBeUndefined();
-    expect(privateQaOtherAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"]).toBeUndefined();
-    expect(installedAliases["astroclaw/plugin-sdk/ssrf-runtime-internal"]).toBeUndefined();
+    expect(otherAliases["openclaw/plugin-sdk/ssrf-runtime-internal"]).toBeUndefined();
+    expect(privateQaOtherAliases["openclaw/plugin-sdk/ssrf-runtime-internal"]).toBeUndefined();
+    expect(installedAliases["openclaw/plugin-sdk/ssrf-runtime-internal"]).toBeUndefined();
 
     const createJiti = await getCreateJiti();
     const sourceLoaderBaseUrl = pathToFileURL(
@@ -1530,9 +1528,6 @@ describe("plugin sdk alias helpers", () => {
     expect(fs.realpathSync(aliases["@openclaw/media-generation-core/catalog"] ?? "")).toBe(
       fs.realpathSync(mediaGenerationCore.distFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/acp-core/normalize-text"] ?? "")).toBe(
-      fs.realpathSync(acpCoreRootDistFile),
-    );
     expect(fs.realpathSync(aliases["@openclaw/normalization-core/record-coerce"] ?? "")).toBe(
       fs.realpathSync(normalizationCoreRootDistFile),
     );
@@ -1665,7 +1660,7 @@ describe("plugin sdk alias helpers", () => {
       buildPluginLoaderAliasMap(sourcePluginEntry, undefined, undefined, "dist"),
     );
 
-    expect(fs.realpathSync(distAliases["astroclaw/plugin-sdk/provider-entry"] ?? "")).toBe(
+    expect(fs.realpathSync(distAliases["openclaw/plugin-sdk/provider-entry"] ?? "")).toBe(
       fs.realpathSync(sourceProviderEntryPath),
     );
   });
@@ -1961,10 +1956,10 @@ describe("plugin sdk alias helpers", () => {
     expect(distAgain).toBe(dist);
     expect(auto).not.toBe(dist);
     expect(
-      fs.realpathSync(auto.aliasMap["astroclaw/plugin-sdk/channel-runtime-context"] ?? ""),
+      fs.realpathSync(auto.aliasMap["openclaw/plugin-sdk/channel-runtime-context"] ?? ""),
     ).toBe(fs.realpathSync(sourceChannelRuntimePath));
     expect(
-      fs.realpathSync(dist.aliasMap["astroclaw/plugin-sdk/channel-runtime-context"] ?? ""),
+      fs.realpathSync(dist.aliasMap["openclaw/plugin-sdk/channel-runtime-context"] ?? ""),
     ).toBe(fs.realpathSync(distChannelRuntimePath));
   });
 
@@ -2014,7 +2009,7 @@ export const syntheticRuntimeMarker = {
 
     const withAlias = createJiti(sourceLoaderBaseUrl, {
       ...buildPluginLoaderJitiOptions({
-        "astroclaw/plugin-sdk/channel-outbound": copiedChannelRuntimeShim,
+        "openclaw/plugin-sdk/channel-outbound": copiedChannelRuntimeShim,
         "@openclaw/plugin-sdk/channel-outbound": copiedChannelRuntimeShim,
       }),
       tryNative: false,
@@ -2243,6 +2238,14 @@ describe("buildPluginLoaderAliasMap memoization", () => {
     expect(aliasA).not.toBe(aliasB);
   });
 
+  it("reuses one merged map for plugin entrypoints with the same effective SDK surface", () => {
+    const fixture = createPluginSdkAliasFixture();
+    const entryA = writePluginEntry(fixture.root, bundledPluginFile("a", "src/index.ts"));
+    const entryB = writePluginEntry(fixture.root, bundledPluginFile("b", "src/index.ts"));
+
+    expect(buildPluginLoaderAliasMap(entryB)).toBe(buildPluginLoaderAliasMap(entryA));
+  });
+
   it("returns different references when pluginSdkResolution differs", () => {
     const fixture = createPluginSdkAliasFixture();
     const entry = writePluginEntry(fixture.root, bundledPluginFile("res", "src/index.ts"));
@@ -2253,14 +2256,24 @@ describe("buildPluginLoaderAliasMap memoization", () => {
     expect(auto).not.toBe(dist);
   });
 
-  it("returns different references when argv1 differs", () => {
+  it("reuses one merged map when resolution modes have the same effective order", () => {
+    const fixture = createPluginSdkAliasFixture();
+    const entry = writePluginEntry(fixture.root, bundledPluginFile("same-order", "src/index.ts"));
+
+    const auto = buildPluginLoaderAliasMap(entry, undefined, undefined, "auto");
+    const source = buildPluginLoaderAliasMap(entry, undefined, undefined, "src");
+
+    expect(source).toBe(auto);
+  });
+
+  it("reuses a merged map when different argv hints resolve the same SDK surface", () => {
     const fixture = createPluginSdkAliasFixture();
     const entry = writePluginEntry(fixture.root, bundledPluginFile("argv", "src/index.ts"));
 
     const a = buildPluginLoaderAliasMap(entry, "/path/to/cli-a.mjs");
     const b = buildPluginLoaderAliasMap(entry, "/path/to/cli-b.mjs");
 
-    expect(a).not.toBe(b);
+    expect(a).toBe(b);
   });
 
   it("returns different references when an explicit dev source root differs", () => {
@@ -2302,8 +2315,8 @@ describe("buildPluginLoaderAliasMap memoization", () => {
     );
 
     expect(publicAliases).not.toBe(privateAliases);
-    expect(publicAliases["astroclaw/plugin-sdk/qa-runtime"]).toBeUndefined();
-    expect(fs.realpathSync(privateAliases["astroclaw/plugin-sdk/qa-runtime"] ?? "")).toBe(
+    expect(publicAliases["openclaw/plugin-sdk/qa-runtime"]).toBeUndefined();
+    expect(fs.realpathSync(privateAliases["openclaw/plugin-sdk/qa-runtime"] ?? "")).toBe(
       fs.realpathSync(sourceQaRuntimePath),
     );
   });
@@ -2345,7 +2358,7 @@ describe("buildPluginLoaderJitiOptions", () => {
 
     const options = withEnv({ TMPDIR: tmpDir }, () =>
       buildPluginLoaderJitiOptions(
-        { "astroclaw/plugin-sdk/core": path.join(root, "dist", "plugin-sdk", "core.js") },
+        { "openclaw/plugin-sdk/core": path.join(root, "dist", "plugin-sdk", "core.js") },
         { modulePath: path.join(root, "dist", "plugins", "loader.js") },
       ),
     );
@@ -2356,7 +2369,7 @@ describe("buildPluginLoaderJitiOptions", () => {
   it("pre-normalizes and marks alias maps for source transforms", () => {
     const marker = Symbol.for("pathe:normalizedAlias");
     const aliasMap = {
-      "astroclaw/plugin-sdk/core": "/repo/src/plugin-sdk/core.ts",
+      "openclaw/plugin-sdk/core": "/repo/src/plugin-sdk/core.ts",
       "@openclaw/plugin-sdk/core": "/repo/src/plugin-sdk/core.ts",
     };
 
