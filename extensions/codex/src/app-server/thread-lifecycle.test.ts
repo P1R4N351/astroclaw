@@ -2,8 +2,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness-runtime";
-import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "openclaw/plugin-sdk/provider-model-shared";
+import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "astroclaw/plugin-sdk/provider-model-shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CodexAppServerRpcError } from "./client.js";
 import { buildCodexAppServerConnectionFingerprint } from "./plugin-app-cache-key.js";
@@ -1105,6 +1105,44 @@ describe("Codex app-server native code mode config", () => {
 });
 
 describe("Codex app-server turn input image sanitizing", () => {
+  it("excludes implicit temporary writable roots from forced private-QA Codex turns", () => {
+    vi.stubEnv("OPENCLAW_BUILD_PRIVATE_QA", "1");
+    vi.stubEnv("OPENCLAW_QA_FORCE_RUNTIME", "codex");
+    try {
+      const request = buildTurnStartParams(createAttemptParams({ provider: "openai" }), {
+        threadId: "thread-1",
+        cwd: "/tmp/qa/workspace",
+        appServer: createAppServerOptions() as never,
+      });
+
+      expect(request.sandboxPolicy).toEqual({
+        type: "workspaceWrite",
+        writableRoots: ["/tmp/qa/workspace"],
+        networkAccess: false,
+        excludeTmpdirEnvVar: true,
+        excludeSlashTmp: true,
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("preserves implicit temporary writable roots for ordinary Codex turns", () => {
+    const request = buildTurnStartParams(createAttemptParams({ provider: "openai" }), {
+      threadId: "thread-1",
+      cwd: "/tmp/qa/workspace",
+      appServer: createAppServerOptions() as never,
+    });
+
+    expect(request.sandboxPolicy).toEqual({
+      type: "workspaceWrite",
+      writableRoots: ["/tmp/qa/workspace"],
+      networkAccess: false,
+      excludeTmpdirEnvVar: false,
+      excludeSlashTmp: false,
+    });
+  });
+
   it("uses an explicit turn sandbox policy override when provided", () => {
     const request = buildTurnStartParams(createAttemptParams({ provider: "openai" }), {
       threadId: "thread-1",
