@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 type ResolveAcpSessionAvailability =
-  (typeof import("astroclaw/plugin-sdk/acp-runtime"))["resolveAcpSessionAvailability"];
+  (typeof import("openclaw/plugin-sdk/acp-runtime"))["resolveAcpSessionAvailability"];
 
 const nodeHostMocks = vi.hoisted(() => ({
   runNodePtyCommand: vi.fn(async () => ({ exitCode: 0 })),
@@ -14,13 +14,13 @@ const acpRuntimeMocks = vi.hoisted(() => ({
   resolveAcpSessionAvailability: vi.fn<ResolveAcpSessionAvailability>(() => ({ available: true })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/acp-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/acp-runtime")>()),
+vi.mock("openclaw/plugin-sdk/acp-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/acp-runtime")>()),
   resolveAcpSessionAvailability: acpRuntimeMocks.resolveAcpSessionAvailability,
 }));
 
-vi.mock("astroclaw/plugin-sdk/node-host", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/node-host")>();
+vi.mock("openclaw/plugin-sdk/node-host", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/node-host")>();
   return {
     ...actual,
     runNodePtyCommand: nodeHostMocks.runNodePtyCommand,
@@ -745,19 +745,20 @@ describe("Pi session catalog", () => {
       }),
     };
     const invoke = vi.fn().mockResolvedValue(page);
+    const nodes = [
+      {
+        nodeId: "node-1",
+        connected: true,
+        commands: [PI_SESSIONS_LIST_COMMAND, PI_TERMINAL_RESUME_COMMAND],
+      },
+    ];
+    const runtimeListNodes = vi.fn().mockResolvedValue({ nodes });
+    const requestListNodes = vi.fn().mockResolvedValue({ nodes });
     registerPiSessionCatalog({
       pluginConfig: {},
       runtime: {
         nodes: {
-          list: vi.fn().mockResolvedValue({
-            nodes: [
-              {
-                nodeId: "node-1",
-                connected: true,
-                commands: [PI_SESSIONS_LIST_COMMAND, PI_TERMINAL_RESUME_COMMAND],
-              },
-            ],
-          }),
+          list: runtimeListNodes,
           invoke,
         },
       },
@@ -768,7 +769,13 @@ describe("Pi session catalog", () => {
       registerNodeInvokePolicy: vi.fn(),
     } as unknown as OpenClawPluginApi);
 
-    await expect(provider!.list({ hostIds: ["node:node-1"], search: "remote" })).resolves.toEqual([
+    await expect(
+      provider!.list({
+        hostIds: ["node:node-1"],
+        search: "remote",
+        listNodes: requestListNodes,
+      }),
+    ).resolves.toEqual([
       expect.objectContaining({
         sessions: [
           expect.objectContaining({
@@ -779,6 +786,8 @@ describe("Pi session catalog", () => {
         ],
       }),
     ]);
+    expect(requestListNodes).toHaveBeenCalledOnce();
+    expect(runtimeListNodes).not.toHaveBeenCalled();
     expect(invoke).toHaveBeenNthCalledWith(1, {
       nodeId: "node-1",
       command: PI_SESSIONS_LIST_COMMAND,
