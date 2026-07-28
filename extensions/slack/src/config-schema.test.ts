@@ -1,5 +1,5 @@
 // Slack tests cover config schema plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { SlackConfigSchema } from "../config-api.js";
 import { listSlackAccountIds, resolveSlackAccount } from "./accounts.js";
@@ -18,6 +18,11 @@ function expectSlackConfigIssue(config: unknown, path: string) {
 }
 
 describe("slack config schema", () => {
+  it("accepts capability arrays and rejects retired interactive reply objects", () => {
+    expectSlackConfigValid({ capabilities: ["presentation"] });
+    expectSlackConfigIssue({ capabilities: { interactiveReplies: true } }, "capabilities");
+  });
+
   it("accepts explicit Enterprise Grid org-install mode", () => {
     expectSlackConfigValid({ enterpriseOrgInstall: true });
     expectSlackConfigValid({ accounts: { org: { enterpriseOrgInstall: true } } });
