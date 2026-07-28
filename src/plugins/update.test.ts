@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import { bundledPluginRootAt } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRootAt } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -749,6 +749,104 @@ describe("updateNpmInstalledPlugins", () => {
     resolveBundledPluginSourcesMock.mockReturnValue(new Map());
     runCommandWithTimeoutMock.mockReset();
     validatePackageExtensionEntriesForInstallMock.mockReset();
+  });
+
+  it("moves only the replaced npm plugin's exact explicit load path", async () => {
+    const previousInstallPath = createInstalledPackageDir({
+      name: "@acme/demo",
+      version: "1.0.0",
+    });
+    const nextInstallPath = createInstalledPackageDir({
+      name: "@acme/demo",
+      version: "2.0.0",
+    });
+    const adjacentInstallPath = createInstalledPackageDir({
+      name: "@acme/adjacent",
+      version: "1.0.0",
+    });
+    const customPath = path.join(previousInstallPath, "custom-child");
+    mockNpmViewMetadata({ name: "@acme/demo", version: "2.0.0" });
+    installPluginFromNpmSpecMock.mockResolvedValue(
+      createSuccessfulNpmUpdateResult({
+        pluginId: "demo",
+        targetDir: nextInstallPath,
+        version: "2.0.0",
+        npmResolution: {
+          name: "@acme/demo",
+          version: "2.0.0",
+          resolvedSpec: "@acme/demo@2.0.0",
+        },
+      }),
+    );
+    const adjacentRecord = {
+      source: "npm" as const,
+      spec: "@acme/adjacent@1.0.0",
+      installPath: adjacentInstallPath,
+    };
+
+    const result = await updateNpmInstalledPlugins({
+      config: {
+        plugins: {
+          load: {
+            paths: [customPath, previousInstallPath, adjacentInstallPath],
+          },
+          installs: {
+            demo: {
+              source: "npm",
+              spec: "@acme/demo@1.0.0",
+              installPath: previousInstallPath,
+              resolvedName: "@acme/demo",
+              resolvedSpec: "@acme/demo@1.0.0",
+              resolvedVersion: "1.0.0",
+            },
+            adjacent: adjacentRecord,
+          },
+        },
+      },
+      pluginIds: ["demo"],
+    });
+
+    expect(result.changed).toBe(true);
+    expect(result.config.plugins?.load?.paths).toEqual([
+      customPath,
+      nextInstallPath,
+      adjacentInstallPath,
+    ]);
+    expect(result.config.plugins?.installs?.adjacent).toEqual(adjacentRecord);
+  });
+
+  it("preserves explicit load paths when the npm replacement fails", async () => {
+    const previousInstallPath = createInstalledPackageDir({
+      name: "@acme/demo",
+      version: "1.0.0",
+    });
+    const customPath = "/tmp/custom-demo";
+    mockNpmViewMetadata({ name: "@acme/demo", version: "2.0.0" });
+    installPluginFromNpmSpecMock.mockResolvedValue({
+      ok: false,
+      error: "npm install failed",
+    });
+    const config = {
+      plugins: {
+        load: { paths: [previousInstallPath, customPath] },
+        installs: {
+          demo: {
+            source: "npm" as const,
+            spec: "@acme/demo@1.0.0",
+            installPath: previousInstallPath,
+            resolvedName: "@acme/demo",
+            resolvedSpec: "@acme/demo@1.0.0",
+            resolvedVersion: "1.0.0",
+          },
+        },
+      },
+    } satisfies OpenClawConfig;
+
+    const result = await updateNpmInstalledPlugins({ config, pluginIds: ["demo"] });
+
+    expect(result.changed).toBe(false);
+    expect(result.config).toBe(config);
+    expect(result.config.plugins?.load?.paths).toEqual([previousInstallPath, customPath]);
   });
 
   afterEach(() => {
