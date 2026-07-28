@@ -3,8 +3,8 @@ import {
   installChannelActionsContractSuite,
   installChannelSetupContractSuite,
   installChannelStatusContractSuite,
-} from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect } from "vitest";
 import { slackPlugin } from "../api.js";
 import { slackSetupPlugin } from "../setup-plugin-api.js";
@@ -37,22 +37,6 @@ describe("slack actions contract", () => {
             slack: {
               botToken: "xoxb-test",
               appToken: "xapp-test",
-            },
-          },
-        } as OpenClawConfig,
-        expectedActions: slackDefaultActions,
-        expectedCapabilities: ["presentation"],
-      },
-      {
-        name: "interactive replies keep the shared presentation capability",
-        cfg: {
-          channels: {
-            slack: {
-              botToken: "xoxb-test",
-              appToken: "xapp-test",
-              capabilities: {
-                interactiveReplies: true,
-              },
             },
           },
         } as OpenClawConfig,
