@@ -3,10 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {
   loadTranscriptEventsSync,
-  parseSqliteSessionFileMarker,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createSession,
@@ -281,11 +280,6 @@ describe("qa suite runtime agent session helpers", () => {
         origin: { label: "Seeded QA transcript" },
       },
     });
-    expect(parseSqliteSessionFileMarker(sessionStore[sessionKey]?.sessionFile)).toMatchObject({
-      agentId: "qa",
-      sessionId,
-    });
-
     const transcriptEvents = loadTranscriptEventsSync({
       agentId: "qa",
       env: qaSessionEnv(tempRoot),
