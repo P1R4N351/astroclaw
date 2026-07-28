@@ -2,9 +2,9 @@
 import {
   createCapturedPluginRegistration,
   registerSingleProviderPlugin,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
-import type { ProviderCatalogContext } from "openclaw/plugin-sdk/provider-catalog-shared";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+import type { ProviderCatalogContext } from "astroclaw/plugin-sdk/provider-catalog-shared";
 import { describe, expect, it, vi } from "vitest";
 import deepinfraPlugin from "./index.js";
 import { DEEPINFRA_MODEL_CATALOG } from "./provider-models.js";
@@ -229,7 +229,8 @@ describe("deepinfra capability registration", () => {
     expect(captured.mediaUnderstandingProviders.map((provider) => provider.id)).toEqual([
       "deepinfra",
     ]);
-    expect(captured.memoryEmbeddingProviders.map((provider) => provider.id)).toEqual(["deepinfra"]);
+    expect(captured.embeddingProviders.map((provider) => provider.id)).toEqual(["deepinfra"]);
+    expect(captured.memoryEmbeddingProviders).toEqual([]);
     expect(captured.speechProviders.map((provider) => provider.id)).toEqual(["deepinfra"]);
     expect(captured.videoGenerationProviders.map((provider) => provider.id)).toEqual(["deepinfra"]);
   });
