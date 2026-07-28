@@ -21,6 +21,7 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_FILES = [
   "extensions/discord/subagent-hooks-api.ts",
   "extensions/feishu/subagent-hooks-api.ts",
   "extensions/matrix/subagent-hooks-api.ts",
+  "extensions/memory-core/index.ts",
   "extensions/memory-core/src/dreaming.ts",
   "extensions/memory-lancedb/index.ts",
   "extensions/onepassword/index.ts",
@@ -42,6 +43,7 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_GUARDS = {
   "extensions/feishu/subagent-hooks-api.ts": ["subagent_delivery_target", "subagent_ended"],
   "extensions/matrix/subagent-hooks-api.ts": ["subagent_delivery_target", "subagent_ended"],
   "extensions/memory-core/src/dreaming.ts": ["before_agent_reply", "gateway_start", "gateway_stop"],
+  "extensions/memory-core/index.ts": ["before_agent_reply", "before_prompt_build", "gateway_start"],
   "extensions/memory-lancedb/index.ts": ["agent_end", "before_prompt_build", "session_end"],
   "extensions/onepassword/index.ts": ["before_tool_call", "tool_result_persist"],
   "extensions/thread-ownership/index.ts": ["message_received", "message_sending"],
@@ -353,7 +355,7 @@ describe("plugin contract boundary invariants", () => {
       }
       const source = readRepoSource(file);
       return (
-        source.includes("openclaw/plugin-sdk/test-fixtures") &&
+        source.includes("astroclaw/plugin-sdk/test-fixtures") &&
         /\b(?:BUNDLED_PLUGIN_|bundled(?:Dist)?Plugin(?:Root|File|DirPrefix)|installedPluginRoot|repoInstallSpec)\b/u.test(
           source,
         )
