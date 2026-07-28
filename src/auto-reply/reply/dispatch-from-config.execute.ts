@@ -2,7 +2,7 @@ import {
   hasOutboundReplyContent,
   isFastModeAutoProgressPayload,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
+} from "openclaw/plugin-sdk/reply-payload";
 import { isAskUserPromptPending } from "../../agents/tools/ask-user-tool.js";
 import { normalizeAgentPlanSteps } from "../../channels/streaming.js";
 import type { BlockReplyContext } from "../get-reply-options.types.js";
@@ -110,6 +110,7 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
     suppressToolErrorWarnings,
     traceReplyPhase,
     trackDispatchLifecycleWork,
+    turnLedger,
     typing,
     waitForPendingDirectBlockReplyDelivery,
     wrapProgressCallback,
@@ -312,7 +313,7 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
                       await sendPayloadAsync(deliveryPayload, undefined, false);
                     } else {
                       markInboundDedupeReplayUnsafe();
-                      const delivered = dispatcher.sendToolResult(deliveryPayload);
+                      const delivered = turnLedger.sendQueued("tool", deliveryPayload).queued;
                       if (delivered && hasAskUserPayload(deliveryPayload)) {
                         // ask_user blocks until this callback resolves; drain its prompt now
                         // or the answerable UI can remain queued behind the blocked agent run.
