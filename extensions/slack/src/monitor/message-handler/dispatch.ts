@@ -1,27 +1,27 @@
 // Slack plugin module implements dispatch behavior.
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   dispatchChannelInboundTurn,
   type InboundReplyRecordOptions,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { hasVisibleInboundReplyDispatch } from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { hasVisibleInboundReplyDispatch } from "openclaw/plugin-sdk/channel-inbound";
 import {
   buildChannelProgressDraftLine,
   buildChannelProgressDraftLineForEntry,
-} from "astroclaw/plugin-sdk/channel-outbound";
+} from "openclaw/plugin-sdk/channel-outbound";
 import {
   defineFinalizableLivePreviewAdapter,
   deliverWithFinalizableLivePreviewAdapter,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { toErrorObject } from "openclaw/plugin-sdk/error-runtime";
 import {
   buildTtsSupplementMediaPayload,
   getReplyPayloadTtsSupplement,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import type { ReplyDispatchKind } from "astroclaw/plugin-sdk/reply-runtime";
-import { danger, logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import type { ReplyDispatchKind } from "openclaw/plugin-sdk/reply-runtime";
+import { danger, logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { formatSlackError } from "../../errors.js";
 import { normalizeSlackOutboundText } from "../../format.js";
 import { emitSlackMessageSentHooks } from "../../message-sent-hook.js";
@@ -46,6 +46,7 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
     cfg,
     ctx,
     disableBlockStreaming,
+    hasSlackCustomIdentity,
     hasRepliedRef,
     message,
     messageSentHookContext,
@@ -195,6 +196,7 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
       info.kind === "final" &&
       ttsSupplement &&
       draftStream &&
+      !hasSlackCustomIdentity &&
       !draftPreviewCommitted.value &&
       !delivery.observedFinalReplyDelivery &&
       previewStreamingEnabled &&
@@ -280,6 +282,7 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
             : undefined,
         buildFinalEdit: () => {
           if (
+            hasSlackCustomIdentity ||
             !previewStreamingEnabled ||
             (reply.hasMedia && !ttsSupplement) ||
             payload.isError ||
