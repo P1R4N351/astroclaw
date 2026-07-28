@@ -1,5 +1,5 @@
 // Imessage tests cover actions plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const probeMock = vi.hoisted(() => ({
@@ -36,9 +36,9 @@ const loggerMock = vi.hoisted(() => ({
   fatal: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
-    "openclaw/plugin-sdk/runtime-env",
+vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
+    "astroclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -984,6 +984,7 @@ describe("imessage message actions", () => {
         {
           target: { kind: "chat_id", chatId: 42 },
           options: imsgOptions(),
+          conversationReadOrigin: "delegated",
         },
       ],
     ]);
@@ -1111,6 +1112,7 @@ describe("imessage message actions", () => {
         {
           target: { kind: "chat_identifier", chatIdentifier: "team-thread" },
           options: imsgOptions(),
+          conversationReadOrigin: "delegated",
         },
       ],
     ]);
@@ -1355,6 +1357,7 @@ describe("imessage message actions", () => {
               chatIdentifier: "iMessage;-;+12069106512",
             },
             options: imsgOptions(),
+            conversationReadOrigin: "direct-operator",
           },
         ],
       ]);
