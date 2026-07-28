@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IMessageRpcClient } from "./client.js";
 import { loadFreshIMessageReplyCacheForTest } from "./test-support/runtime.js";
@@ -294,11 +294,15 @@ describe("sendMessageIMessage receipts", () => {
       service: "SMS",
     });
 
-    await sendMessageIMessage("+1 (555) 000-4567", "hello", {
+    const result = await sendMessageIMessage("+1 (555) 000-4567", "hello", {
       config: IMESSAGE_TEST_CFG,
       client,
     });
 
+    expect(result).toMatchObject({
+      service: "sms",
+      chatGuid: "SMS;-;+15550004567",
+    });
     expect(
       findLatestIMessageEntryForChat({
         accountId: "default",
@@ -313,6 +317,23 @@ describe("sendMessageIMessage receipts", () => {
         isFromMe: true,
       }),
     );
+  });
+
+  it("infers the confirmed service from the provider chat GUID", async () => {
+    const client = createClient({
+      guid: "p:0/imsg-canonical-guid-only",
+      chat_guid: "SMS;-;+15550004567",
+    });
+
+    await expect(
+      sendMessageIMessage("+1 (555) 000-4567", "hello", {
+        config: IMESSAGE_TEST_CFG,
+        client,
+      }),
+    ).resolves.toMatchObject({
+      service: "sms",
+      chatGuid: "SMS;-;+15550004567",
+    });
   });
 
   it("caches the provider-resolved GUID alongside an outbound chat ID", async () => {
