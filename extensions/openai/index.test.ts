@@ -1,16 +1,16 @@
 // Openai tests cover index plugin behavior.
 import { expectDefined } from "@openclaw/normalization-core";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
-import { requireRegisteredProvider } from "openclaw/plugin-sdk/plugin-test-runtime";
-import * as providerAuth from "openclaw/plugin-sdk/provider-auth-runtime";
-import * as providerHttp from "openclaw/plugin-sdk/provider-http";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+import { requireRegisteredProvider } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import * as providerAuth from "astroclaw/plugin-sdk/provider-auth-runtime";
+import * as providerHttp from "astroclaw/plugin-sdk/provider-http";
 import {
   GPT5_BEHAVIOR_CONTRACT,
   GPT5_FRIENDLY_CHAT_PROMPT_OVERLAY,
   GPT5_HEARTBEAT_PROMPT_OVERLAY,
   type ProviderPlugin,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildOpenAIImageGenerationProvider } from "./image-generation-provider.js";
 import plugin from "./index.js";
@@ -24,9 +24,9 @@ const runtimeMocks = vi.hoisted(() => ({
   refreshOpenAICodexToken: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
-    "openclaw/plugin-sdk/runtime-env",
+vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
+    "astroclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -154,6 +154,35 @@ describe("openai plugin", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("registers the native GPT-Live offer route and cleanup lifecycle", () => {
+    const registerHttpRoute = vi.fn();
+    const registerRuntimeLifecycle = vi.fn();
+    plugin.register(
+      createTestPluginApi({
+        id: "openai",
+        name: "OpenAI Provider",
+        source: "test",
+        config: {},
+        runtime: { config: { current: vi.fn(() => ({})) } } as never,
+        registerHttpRoute,
+        registerRuntimeLifecycle,
+      }),
+    );
+
+    expect(registerHttpRoute).toHaveBeenCalledWith({
+      path: "/plugins/openai/realtime/calls",
+      auth: "plugin",
+      match: "exact",
+      handler: expect.any(Function),
+    });
+    expect(registerRuntimeLifecycle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "openai-quicksilver-realtime-browser-session",
+        cleanup: expect.any(Function),
+      }),
+    );
   });
 
   it("generates PNG buffers from the OpenAI Images API", async () => {
