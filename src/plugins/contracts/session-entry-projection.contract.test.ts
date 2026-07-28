@@ -4,12 +4,12 @@ import path from "node:path";
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "astroclaw/plugin-sdk/plugin-test-contracts";
+} from "openclaw/plugin-sdk/plugin-test-contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { SessionEntry } from "../../config/sessions.js";
 import { listSessionEntries, replaceSessionEntry } from "../../config/sessions/session-accessor.js";
 import { withTempConfig } from "../../gateway/test-temp-config.js";
-import { resolvePreferredAstroclawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
 import { withEnvAsync } from "../../test-utils/env.js";
 import { cleanupReplacedPluginHostRegistry, runPluginHostCleanup } from "../host-hook-cleanup.js";
 import { clearPluginHostRuntimeState } from "../host-hook-runtime.js";
@@ -75,7 +75,7 @@ async function withProjectionSessionStore(
     tempConfig: { session: { store: string } };
   }) => Promise<void>,
 ): Promise<void> {
-  const stateDir = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), prefix));
+  const stateDir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), prefix));
   const storePath = path.join(stateDir, "sessions.json");
   const tempConfig = {
     agents: { entries: { main: { default: true } } },
@@ -310,6 +310,11 @@ describe("plugin session extension SessionEntry projection", () => {
           description: "bad run error slot",
           sessionEntrySlotKey: "lastRunError",
         });
+        api.registerSessionExtension({
+          namespace: "transcript-path",
+          description: "retired transcript locator",
+          sessionEntrySlotKey: "transcriptPath",
+        });
       },
     });
 
@@ -332,6 +337,10 @@ describe("plugin session extension SessionEntry projection", () => {
       {
         pluginId: "slot-collision",
         message: "sessionEntrySlotKey is reserved by SessionEntry: lastRunError",
+      },
+      {
+        pluginId: "slot-collision",
+        message: "sessionEntrySlotKey is reserved by SessionEntry: transcriptPath",
       },
     ]);
   });
