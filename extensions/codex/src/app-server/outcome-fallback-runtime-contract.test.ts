@@ -2,14 +2,15 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
-import type { EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness";
-import { classifyEmbeddedAgentRunResultForModelFallback } from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
+import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
+import { classifyEmbeddedAgentRunResultForModelFallback } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   createContractRunResult,
+  installSessionManagerFileCompat,
   OUTCOME_FALLBACK_RUNTIME_CONTRACT,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
-import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+import { SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
 import { createCodexDynamicToolBridge } from "./dynamic-tools.js";
@@ -20,6 +21,8 @@ const THREAD_ID = "thread-outcome-contract";
 const TURN_ID = "turn-outcome-contract";
 const tempDirs = new Set<string>();
 
+installSessionManagerFileCompat();
+
 type ProjectorNotification = Parameters<CodexAppServerEventProjector["handleNotification"]>[0];
 type ProjectedAttemptResult = ReturnType<CodexAppServerEventProjector["buildResult"]>;
 type CodexAppServerToolTelemetry = Parameters<CodexAppServerEventProjector["buildResult"]>[0];
@@ -29,7 +32,7 @@ async function createParams(): Promise<EmbeddedRunAttemptParams> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-outcome-contract-"));
   tempDirs.add(tempDir);
   const sessionFile = path.join(tempDir, "session.jsonl");
-  SessionManager.open(sessionFile);
+  SessionManager.openFile(sessionFile);
   return {
     prompt: OUTCOME_FALLBACK_RUNTIME_CONTRACT.prompt,
     sessionId: OUTCOME_FALLBACK_RUNTIME_CONTRACT.sessionId,
