@@ -1,5 +1,5 @@
 // Codex tests cover media understanding provider plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildCodexMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import type { CodexAppServerClient } from "./src/app-server/client.js";
@@ -465,6 +465,9 @@ describe("codex media understanding provider", () => {
   });
 
   it("clamps oversized image understanding turn timeouts", async () => {
+    // The bounded timer subtracts startup time from its clamped deadline.
+    // Freeze the clock so the clamp assertion cannot lose a real millisecond.
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
     try {
       const { client } = createFakeClient();
@@ -486,6 +489,7 @@ describe("codex media understanding provider", () => {
       expect(result?.text).toBe("A red square.");
       expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), MAX_TIMER_TIMEOUT_MS);
     } finally {
+      dateNowSpy.mockRestore();
       vi.restoreAllMocks();
       vi.clearAllTimers();
       vi.useRealTimers();
