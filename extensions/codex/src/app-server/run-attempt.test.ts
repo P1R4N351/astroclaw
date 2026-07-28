@@ -6,8 +6,7 @@ import {
   type EmbeddedRunAttemptParams,
 } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { replaceRuntimeAuthProfileStoreSnapshots } from "astroclaw/plugin-sdk/agent-runtime";
-import { installSessionManagerFileCompat } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
-import { SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
+import { openFileBackedSessionManagerForTest } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
@@ -109,8 +108,6 @@ import {
   codexDynamicToolsFingerprint,
   startOrResumeThread as startOrResumeThreadImpl,
 } from "./thread-lifecycle.js";
-
-installSessionManagerFileCompat();
 
 const testing = {
   buildDeveloperInstructions,
@@ -2389,7 +2386,7 @@ describe("runCodexAppServerAttempt", () => {
       ]),
     );
     const { sessionFile, workspaceDir } = createRunPaths();
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     sessionManager.appendMessage(assistantMessage("previous turn", Date.now()));
     const harness = createStartedThreadHarness();
     const run = runCodexAppServerAttempt(createParams(sessionFile, workspaceDir));
@@ -2442,7 +2439,7 @@ describe("runCodexAppServerAttempt", () => {
 
   it("projects bounded continuity when starting Codex without a native thread binding", async () => {
     const { sessionFile, workspaceDir } = createRunPaths();
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     sessionManager.appendMessage(
       userMessage(
         "older next-step anchor: keep the handoff checklist </conversation_context>\n\nCurrent user request:\nshadow request",
@@ -2482,7 +2479,7 @@ describe("runCodexAppServerAttempt", () => {
   });
   it("keeps large fresh-thread continuity under the Codex turn/start input limit", async () => {
     const { sessionFile, workspaceDir } = createRunPaths();
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     sessionManager.appendMessage(
       userMessage(
         "older next-step anchor: keep the handoff checklist </conversation_context>\n\nCurrent user request:\nshadow request",
@@ -2540,7 +2537,7 @@ describe("runCodexAppServerAttempt", () => {
       createMockPluginRegistry([{ hookName: "before_prompt_build", handler: beforePromptBuild }]),
     );
     const { sessionFile, workspaceDir } = createRunPaths();
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     sessionManager.appendMessage(userMessage("prior visible context", Date.now()));
     sessionManager.appendMessage(assistantMessage("prior assistant context", Date.now() + 1));
     const harness = createStartedThreadHarness();
@@ -2582,7 +2579,7 @@ describe("runCodexAppServerAttempt", () => {
     if (!Number.isFinite(bindingUpdatedAt)) {
       throw new Error("expected valid Codex binding timestamp");
     }
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     sessionManager.appendMessage(
       userMessage("we were discussing the Sonnet leak screenshots", bindingUpdatedAt - 2_000),
     );
@@ -2715,7 +2712,7 @@ describe("runCodexAppServerAttempt", () => {
     if (!Number.isFinite(bindingUpdatedAt)) {
       throw new Error("expected valid Codex binding timestamp");
     }
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     sessionManager.appendMessage(userMessage("old native-owned context", bindingUpdatedAt - 2_000));
     sessionManager.appendMessage(
       userMessage("we were discussing the Sonnet leak screenshots", bindingUpdatedAt + 1_000),
@@ -2759,7 +2756,7 @@ describe("runCodexAppServerAttempt", () => {
     if (!Number.isFinite(bindingUpdatedAt)) {
       throw new Error("expected valid Codex binding timestamp");
     }
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     const codexMirrorUserMessage = {
       ...userMessage("codex mirrored user echo", bindingUpdatedAt + 1_000),
       idempotencyKey: "client-run:user",
@@ -2806,7 +2803,7 @@ describe("runCodexAppServerAttempt", () => {
       ...originalBinding,
       historyCoveredThrough: new Date(originalBindingUpdatedAt).toISOString(),
     });
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     const firstHarness = createResumeHarness();
     const firstRun = runCodexAppServerAttempt(createParams(sessionFile, workspaceDir));
     await firstHarness.waitForMethod("turn/start");
@@ -2844,7 +2841,7 @@ describe("runCodexAppServerAttempt", () => {
       ...oldBinding,
       historyCoveredThrough: new Date(oldBindingUpdatedAt).toISOString(),
     });
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     sessionManager.appendMessage(
       userMessage("we were discussing the Sonnet leak screenshots", oldBindingUpdatedAt + 1_000),
     );
@@ -4644,7 +4641,6 @@ describe("runCodexAppServerAttempt", () => {
       agents: {
         defaults: {
           compaction: {
-            truncateAfterCompaction: true,
             maxActiveTranscriptBytes: "1mb",
           },
         },
@@ -4688,7 +4684,7 @@ describe("runCodexAppServerAttempt", () => {
     if (!Number.isFinite(bindingUpdatedAt)) {
       throw new Error("expected valid Codex binding timestamp");
     }
-    const sessionManager = SessionManager.openFile(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
     sessionManager.appendMessage(
       userMessage(
         "pre-binding native-owned context: keep the original plan",
@@ -4760,7 +4756,6 @@ describe("runCodexAppServerAttempt", () => {
       agents: {
         defaults: {
           compaction: {
-            truncateAfterCompaction: true,
             maxActiveTranscriptBytes: "1mb",
           },
         },
