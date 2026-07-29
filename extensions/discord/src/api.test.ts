@@ -1,7 +1,7 @@
 // Discord tests cover api plugin behavior.
 import { createServer, type Server } from "node:http";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
-import { withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
+import { withFetchPreconnect } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DiscordApiError, fetchDiscord, requestDiscord } from "./api.js";
 import { jsonResponse } from "./test-http-helpers.js";
@@ -336,6 +336,35 @@ describe("fetchDiscord", () => {
 
     expect(error).toBeInstanceOf(DiscordApiError);
     expect(String(error)).toContain("Discord API /users/@me/guilds returned malformed JSON");
+  });
+
+  it("rejects malformed UTF-8 in otherwise valid Discord JSON", async () => {
+    let response: Response | undefined;
+    const server = createServer((_req, res) => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.write('[{"id":"guild-');
+      res.write(Buffer.from([0xff]));
+      res.end('","name":"Guild"}]');
+    });
+    const port = await listenLoopbackServer(server);
+
+    try {
+      stubDiscordFetchToLoopback(`http://127.0.0.1:${port}`, (nextResponse) => {
+        response = nextResponse;
+      });
+
+      await expect(
+        requestDiscord("/users/@me/guilds", "test", {
+          retry: { attempts: 1 },
+        }),
+      ).rejects.toThrow("Discord API /users/@me/guilds returned malformed JSON");
+      expect(response?.bodyUsed).toBe(true);
+      console.log(
+        `[discord requestDiscord loopback proof] malformed UTF-8: rejected=true body_used=${response?.bodyUsed}`,
+      );
+    } finally {
+      await closeServer(server);
+    }
   });
 
   it("returns under-cap requestDiscord responses from a real loopback HTTP server", async () => {
