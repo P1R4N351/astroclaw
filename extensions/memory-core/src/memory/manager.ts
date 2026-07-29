@@ -1,10 +1,9 @@
 // Memory Core plugin module implements manager behavior.
 import type { DatabaseSync } from "node:sqlite";
-import type { FSWatcher } from "chokidar";
-import { resolveAgentConfig } from "openclaw/plugin-sdk/agent-runtime";
-import { formatErrorMessage, readErrorName } from "openclaw/plugin-sdk/error-runtime";
-import { listRegisteredMemoryEmbeddingProviderAdapters } from "openclaw/plugin-sdk/memory-core-host-embedding-registry";
-import { classifyMemoryMultimodalPath } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { resolveAgentConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { formatErrorMessage, readErrorName } from "astroclaw/plugin-sdk/error-runtime";
+import { listRegisteredMemoryEmbeddingProviderAdapters } from "astroclaw/plugin-sdk/memory-core-host-embedding-registry";
+import { classifyMemoryMultimodalPath } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   createSubsystemLogger,
   resolveGlobalSingleton,
@@ -13,8 +12,8 @@ import {
   resolveMemorySearchConfig,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { extractKeywords } from "openclaw/plugin-sdk/memory-core-host-engine-qmd";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { extractKeywords } from "astroclaw/plugin-sdk/memory-core-host-engine-qmd";
 import {
   readCuratedProjectMemoryCandidates,
   readMemoryFile,
@@ -32,10 +31,11 @@ import {
   type MemorySessionSyncTarget,
   type MemorySource,
   type MemorySyncParams,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
-import { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
-import { uniqueValues } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+import { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
+import { uniqueValues } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import type { FSWatcher } from "chokidar";
 import {
   resolveMemoryCoreLocalServiceHostIdentity,
   type MemoryCoreAcquireLocalService,
@@ -1498,27 +1498,8 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
     activeProjectKeys?: string[];
   }): Promise<MemorySearchResult[]> {
     const limit = Math.max(1, Math.min(512, Math.floor(opts?.limit ?? 512)));
-    return readCuratedMemoryTriggerCandidates(this.db, limit, opts?.activeProjectKeys).map(
-      (row) => {
-        const result: MemorySearchResult = {
-          path: row.path,
-          startLine: row.start_line,
-          endLine: row.end_line,
-          score: 0,
-          snippet: row.text,
-          source: "memory",
-        };
-        if (typeof row.importance === "number") {
-          result.importance = row.importance;
-        }
-        if (typeof row.triggers === "string" && row.triggers.trim()) {
-          result.triggers = row.triggers.trim();
-        }
-        if (typeof row.project_key === "string" && row.project_key.trim()) {
-          result.projectKey = row.project_key.trim();
-        }
-        return result;
-      },
+    return this.toCuratedMemorySearchResults(
+      readCuratedMemoryTriggerCandidates(this.db, limit, opts?.activeProjectKeys),
     );
   }
 
@@ -1527,7 +1508,15 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
     limit?: number;
   }): Promise<MemorySearchResult[]> {
     const limit = Math.max(1, Math.min(512, Math.floor(opts.limit ?? 48)));
-    return readCuratedProjectMemoryCandidates(this.db, limit, opts.activeProjectKeys).map((row) => {
+    return this.toCuratedMemorySearchResults(
+      readCuratedProjectMemoryCandidates(this.db, limit, opts.activeProjectKeys),
+    );
+  }
+
+  private toCuratedMemorySearchResults(
+    rows: ReturnType<typeof readCuratedMemoryTriggerCandidates>,
+  ): MemorySearchResult[] {
+    return rows.map((row) => {
       const result: MemorySearchResult = {
         path: row.path,
         startLine: row.start_line,
