@@ -1,20 +1,21 @@
 // Google provider module implements model/runtime integration.
-import { resolveGeneratedMediaMaxBytes } from "astroclaw/plugin-sdk/media-generation-runtime";
-import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
+import { resolveGeneratedMediaMaxBytes } from "openclaw/plugin-sdk/media-generation-runtime";
+import { canonicalizeBase64 } from "openclaw/plugin-sdk/media-runtime";
+import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
 import {
   createProviderOperationDeadline,
   executeProviderOperationWithRetry,
   resolveProviderOperationTimeoutMs,
   waitProviderOperationPollInterval,
-} from "astroclaw/plugin-sdk/provider-http";
-import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-http";
+import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type {
   GeneratedVideoAsset,
   VideoGenerationProvider,
   VideoGenerationRequest,
-} from "astroclaw/plugin-sdk/video-generation";
+} from "openclaw/plugin-sdk/video-generation";
 import { parseGeminiAuth, resolveGoogleGenerativeAiApiOrigin } from "./api.js";
 import {
   createGoogleVideoGenerationProviderMetadata,
@@ -564,7 +565,11 @@ export function buildGoogleVideoGenerationProvider(): VideoGenerationProvider {
             | { videoBytes?: string; uri?: string; mimeType?: string }
             | undefined;
           if (inline?.videoBytes) {
-            const buffer = Buffer.from(inline.videoBytes, "base64");
+            const canonicalVideo = canonicalizeBase64(inline.videoBytes);
+            if (!canonicalVideo) {
+              throw new Error("Google video generation returned malformed base64 video data");
+            }
+            const buffer = Buffer.from(canonicalVideo, "base64");
             assertGeneratedVideoBufferWithinLimit(buffer, maxVideoBytes);
             return {
               buffer,
