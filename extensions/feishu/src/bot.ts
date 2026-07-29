@@ -4,34 +4,34 @@ import {
   formatInboundMediaUnavailableText,
   recordChannelBotPairLoopAndCheckSuppression,
   resolveEnvelopeFormatOptions,
-  toInboundMediaFacts,
-} from "astroclaw/plugin-sdk/channel-inbound";
+  toInboundMediaFactsWithMetadata,
+} from "openclaw/plugin-sdk/channel-inbound";
 import {
   bindIngressLifecycleToReplyOptions,
   resolveAgentOutboundIdentity,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
 import {
   ensureConfiguredBindingRouteReady,
   resolveConfiguredBindingRoute,
   resolveRuntimeConversationBindingRoute,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { parseStrictNonNegativeInteger } from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
 import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   createChannelHistoryWindow,
   type HistoryEntry,
-} from "astroclaw/plugin-sdk/reply-history";
-import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/reply-history";
+import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
 import {
   resolveDefaultGroupPolicy,
   resolveOpenProviderRuntimeGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "astroclaw/plugin-sdk/runtime-group-policy";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { normalizeOptionalString, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/runtime-group-policy";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { normalizeOptionalString, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { resolveFeishuRuntimeAccount } from "./accounts.js";
 import { buildFeishuAgentBody } from "./bot-agent-body.js";
 import {
@@ -799,6 +799,9 @@ export async function handleFeishuMessage(params: {
     // Using a group-scoped From causes the agent to treat different users as the same person.
     const feishuFrom = `feishu:${ctx.senderOpenId}`;
     const feishuTo = isGroup ? `chat:${ctx.chatId}` : `user:${ctx.senderOpenId}`;
+    // Reply in the inbound conversation while keeping DM routing/session identity sender-scoped.
+    // Synthetic menu and card-action events do not always carry a real Feishu chat ID.
+    const feishuReplyTarget = ctx.chatId.startsWith("oc_") ? `chat:${ctx.chatId}` : feishuTo;
     const peerId = isGroup ? (groupSession?.peerId ?? ctx.chatId) : ctx.senderOpenId;
     const parentPeer = isGroup ? (groupSession?.parentPeer ?? null) : null;
     const directThreadReply = !isGroup && Boolean(ctx.threadId?.trim());
@@ -1051,7 +1054,7 @@ export async function handleFeishuMessage(params: {
         : mediaList.findIndex(
             (media) => media.kind === "audio" || media.contentType?.startsWith("audio/"),
           );
-    const inboundMedia = toInboundMediaFacts(mediaList, {
+    const inboundMedia = await toInboundMediaFactsWithMetadata(mediaList, {
       transcribed: (_media, index) => index === preflightAudioIndex,
     });
     const requiredMentionTargets =
@@ -1683,7 +1686,7 @@ export async function handleFeishuMessage(params: {
                 agentId,
                 runtime: runtime as RuntimeEnv,
                 chatId: ctx.chatId,
-                sendTarget: feishuTo,
+                sendTarget: feishuReplyTarget,
                 allowReasoningPreview,
                 replyToMessageId: replyTargetMessageId,
                 typingTargetMessageId,
@@ -1813,7 +1816,7 @@ export async function handleFeishuMessage(params: {
           agentId: route.agentId,
           runtime: runtime as RuntimeEnv,
           chatId: ctx.chatId,
-          sendTarget: feishuTo,
+          sendTarget: feishuReplyTarget,
           allowReasoningPreview,
           replyToMessageId: replyTargetMessageId,
           typingTargetMessageId,
