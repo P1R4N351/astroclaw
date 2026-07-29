@@ -1,6 +1,6 @@
 // Whatsapp tests cover auto reply.web auto reply.last route plugin behavior.
 import "./test-helpers.js";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { installWebAutoReplyUnitTestHooks, makeSessionStore } from "./auto-reply.test-harness.js";
 import { buildMentionConfig } from "./auto-reply/mentions.js";
@@ -9,6 +9,19 @@ import { createWebOnMessageHandler } from "./auto-reply/monitor/on-message.js";
 import { createTestWebInboundMessage } from "./inbound/test-message.test-helper.js";
 
 const updateLastRouteInBackgroundMock = vi.hoisted(() => vi.fn());
+const runChannelInboundEventMock = vi.hoisted(() =>
+  vi.fn(async () => ({ dispatched: false }) as never),
+);
+
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-inbound")>(
+    "astroclaw/plugin-sdk/channel-inbound",
+  );
+  return {
+    ...actual,
+    runChannelInboundEvent: runChannelInboundEventMock,
+  };
+});
 
 vi.mock("./auto-reply/monitor/last-route.js", async () => {
   const actual = await vi.importActual<typeof import("./auto-reply/monitor/last-route.js")>(
@@ -107,6 +120,7 @@ describe("web auto-reply last-route", () => {
 
   beforeEach(() => {
     updateLastRouteInBackgroundMock.mockClear();
+    runChannelInboundEventMock.mockClear();
   });
 
   it("updates last-route for direct chats without senderE164", async () => {
