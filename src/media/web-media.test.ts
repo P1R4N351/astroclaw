@@ -8,7 +8,7 @@ import JSZip from "jszip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
 import { resolveStateDir } from "../config/paths.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import {
   pinActivePluginHttpRouteRegistry,
@@ -47,7 +47,7 @@ beforeAll(async () => {
     optimizeImageToJpeg,
     resolveImageCompressionGrid,
   } = await import("./web-media.js"));
-  fixtureRoot = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "web-media-core-"));
+  fixtureRoot = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "web-media-core-"));
   tinyPngFile = path.join(fixtureRoot, "tiny.png");
   await fs.writeFile(tinyPngFile, Buffer.from(TINY_PNG_BASE64, "base64"));
   workspaceDir = path.join(fixtureRoot, "workspace");
@@ -68,15 +68,19 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  resetPluginRuntimeStateForTest();
-  if (fixtureRoot) {
-    await fs.rm(fixtureRoot, { recursive: true, force: true });
-  }
-  if (stateDir) {
-    await fs.rm(path.join(stateDir, "canvas", "documents", "cv_test"), {
-      recursive: true,
-      force: true,
-    });
+  try {
+    resetPluginRuntimeStateForTest();
+    if (fixtureRoot) {
+      await fs.rm(fixtureRoot, { recursive: true, force: true });
+    }
+    if (stateDir) {
+      await fs.rm(path.join(stateDir, "canvas", "documents", "cv_test"), {
+        recursive: true,
+        force: true,
+      });
+    }
+  } finally {
+    vi.resetModules();
   }
 });
 
@@ -783,7 +787,7 @@ describe("loadWebMedia", () => {
 
   it("requires a marker when outbound staging is nested under the trusted temp root", async () => {
     const stateRoot = await fs.mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "web-media-overlap-state-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "web-media-overlap-state-"),
     );
     try {
       await withEnvAsync({ OPENCLAW_STATE_DIR: stateRoot }, async () => {
@@ -795,7 +799,7 @@ describe("loadWebMedia", () => {
           1024 * 1024,
           "report.html",
         );
-        expect(path.resolve(saved.path)).toContain(path.resolve(resolvePreferredOpenClawTmpDir()));
+        expect(path.resolve(saved.path)).toContain(path.resolve(resolvePreferredAstroclawTmpDir()));
         await expectLoadWebMediaErrorCode(
           loadWebMedia(saved.path, {
             maxBytes: 1024 * 1024,
@@ -1005,7 +1009,7 @@ describe("loadWebMedia", () => {
 
   it("rejects trusted host-read HTML hardlinks to files outside OpenClaw temp root", async () => {
     const outsideRoot = await fs.mkdtemp(
-      path.join(path.dirname(resolvePreferredOpenClawTmpDir()), "web-media-host-html-"),
+      path.join(path.dirname(resolvePreferredAstroclawTmpDir()), "web-media-host-html-"),
     );
     const outsideHtml = path.join(outsideRoot, "report.html");
     const htmlLink = path.join(fixtureRoot, "hardlinked-report.html");
