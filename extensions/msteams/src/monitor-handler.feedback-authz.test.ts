@@ -14,8 +14,8 @@ const channelInboundMockState = vi.hoisted(() => ({
   recordChannelFeedbackEvent: vi.fn(async () => true),
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>()),
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>()),
   recordChannelFeedbackEvent: channelInboundMockState.recordChannelFeedbackEvent,
 }));
 
@@ -49,6 +49,7 @@ function createRuntimeStub(readAllowFromStore: ReturnType<typeof vi.fn>): Plugin
           enqueue: async () => {},
           flushKey: async () => {},
           cancelKey: () => false,
+          drain: async () => {},
         }),
       },
       pairing: {
