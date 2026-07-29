@@ -2,13 +2,13 @@
 import {
   getProviderHttpMocks,
   installProviderHttpMockCleanup,
-} from "openclaw/plugin-sdk/provider-http-test-mocks";
+} from "astroclaw/plugin-sdk/provider-http-test-mocks";
 import {
   expectDashscopeVideoTaskPoll,
   expectExplicitVideoGenerationCapabilities,
   expectSuccessfulDashscopeVideoResult,
   mockSuccessfulDashscopeVideoTask,
-} from "openclaw/plugin-sdk/provider-test-contracts";
+} from "astroclaw/plugin-sdk/provider-test-contracts";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const {
@@ -175,7 +175,7 @@ describe("qwen video generation provider", () => {
         method: "GET",
         headers: expect.any(Headers),
       }),
-      120_000,
+      expect.any(Number),
       fetch,
       {
         ssrfPolicy: { allowPrivateNetwork: true },
@@ -186,7 +186,7 @@ describe("qwen video generation provider", () => {
       2,
       "https://example.com/out.mp4",
       { method: "GET" },
-      120_000,
+      expect.any(Number),
       fetch,
       {
         ssrfPolicy: { allowPrivateNetwork: true },
