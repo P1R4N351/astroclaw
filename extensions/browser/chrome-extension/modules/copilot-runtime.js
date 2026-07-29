@@ -436,6 +436,7 @@ var GatewayProtocolRequestError = class extends Error {
       this.connectSent = !1;
       this.connectRequestSent = !1;
       this.handshakeTimer = null;
+      this.reconnectSignal = null;
       this.socketOpened = !1;
       this.helloReceived = !1;
       this.connectTiming = null;
@@ -459,10 +460,15 @@ var GatewayProtocolRequestError = class extends Error {
       return [...this.pending.values()].some((pending) => pending.unbounded);
     }
     start() {
-      ((this.stopped = !1), this.reconnectSupervisor.cancel(), this.connect());
+      this.socket ||
+        this.reconnectSignal ||
+        ((this.stopped = !1), this.reconnectSupervisor.cancel(), this.connect());
     }
     stop() {
-      ((this.stopped = !0), this.clearHandshakeTimer(), this.reconnectSupervisor.reset());
+      ((this.stopped = !0),
+        this.clearHandshakeTimer(),
+        (this.reconnectSignal = null),
+        this.reconnectSupervisor.reset());
       let socket = this.socket;
       (socket &&
         this.opts.notifyStoppedClose &&
@@ -548,7 +554,7 @@ var GatewayProtocolRequestError = class extends Error {
       this.socket?.close(code, reason);
     }
     resetReconnectBackoff(initialMs) {
-      this.reconnectSupervisor.reset(initialMs);
+      ((this.reconnectSignal = null), this.reconnectSupervisor.reset(initialMs));
     }
     recordTiming(phase, generation, plan, detail) {
       let now = this.nowMs(),
@@ -737,7 +743,11 @@ var GatewayProtocolRequestError = class extends Error {
         if (seq !== null) {
           if (this.lastSeq !== null && seq > this.lastSeq + 1) {
             let expected = this.lastSeq + 1;
-            this.invoke("gap", () => this.opts.onGap?.({ expected, received: seq }));
+            if (
+              (this.invoke("gap", () => this.opts.onGap?.({ expected, received: seq })),
+              !this.isActive(socket, generation))
+            )
+              return;
           }
           this.lastSeq = seq;
         }
@@ -820,10 +830,16 @@ var GatewayProtocolRequestError = class extends Error {
       overrideMs !== void 0 && (this.reconnectSupervisor.nextDelayOverrideMs = overrideMs);
       let retry = this.reconnectSupervisor.next();
       retry &&
+        ((this.reconnectSignal = retry.signal),
         sleepWithAbort(retry.delayMs, retry.signal).then(
-          () => this.connect(),
-          () => {},
-        );
+          () => {
+            this.reconnectSignal === retry.signal &&
+              ((this.reconnectSignal = null), this.connect());
+          },
+          () => {
+            this.reconnectSignal === retry.signal && (this.reconnectSignal = null);
+          },
+        ));
     }
     closeContext() {
       return {
