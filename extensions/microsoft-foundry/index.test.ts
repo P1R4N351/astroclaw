@@ -1,7 +1,7 @@
 // Microsoft Foundry tests cover index plugin behavior.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { azLoginDeviceCodeWithOptions, getAccessTokenResultAsync } from "./cli.js";
 import plugin from "./index.js";
@@ -52,8 +52,8 @@ vi.mock("node:child_process", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/process-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/process-runtime")>();
+vi.mock("astroclaw/plugin-sdk/process-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/process-runtime")>();
   return {
     ...actual,
     runCommandWithTimeout: runCommandWithTimeoutMock,
@@ -61,9 +61,9 @@ vi.mock("openclaw/plugin-sdk/process-runtime", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/provider-auth", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/provider-auth")>(
-    "openclaw/plugin-sdk/provider-auth",
+vi.mock("astroclaw/plugin-sdk/provider-auth", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/provider-auth")>(
+    "astroclaw/plugin-sdk/provider-auth",
   );
   return {
     ...actual,
@@ -803,6 +803,8 @@ describe("microsoft-foundry plugin", () => {
     const model = config.models?.providers?.["microsoft-foundry"]?.models[0];
     expect(model?.id).toBe("gpt-5.4");
     expect(model?.reasoning).toBe(true);
+    expect(model?.contextWindow).toBe(1_050_000);
+    expect(model?.maxTokens).toBe(128_000);
     expect(model?.compat?.supportsReasoningEffort).toBe(true);
   });
 
@@ -1419,6 +1421,41 @@ describe("microsoft-foundry plugin", () => {
     expect(provider?.apiKey).toBeUndefined();
     expect(provider?.headers).toBeUndefined();
   });
+
+  it.each([
+    ["gpt-5.6", 1_050_000, 128_000],
+    ["gpt-5.6-sol", 1_050_000, 128_000],
+    ["gpt-5.6-terra", 1_050_000, 128_000],
+    ["gpt-5.6-luna", 1_050_000, 128_000],
+    ["gpt-5.5", 1_050_000, 128_000],
+    ["gpt-5.4", 1_050_000, 128_000],
+    ["gpt-5.4-pro", 1_050_000, 128_000],
+    ["gpt-5.4-mini", 400_000, 128_000],
+    ["gpt-5.4-nano", 400_000, 128_000],
+    ["gpt-5-chat", 128_000, 16_384],
+    ["gpt-4o-mini", 128_000, 16_384],
+  ] as const)(
+    "uses Foundry-native token limits for %s",
+    (modelNameHint, contextWindow, maxTokens) => {
+      const result = buildFoundryAuthResult({
+        profileId: "microsoft-foundry:default",
+        apiKey: "test-api-key",
+        endpoint: "https://example.services.ai.azure.com",
+        modelId: `prod-${modelNameHint}`,
+        modelNameHint,
+        api: modelNameHint.startsWith("gpt-5") ? "openai-responses" : "openai-completions",
+        authMethod: "api-key",
+      });
+
+      expect(result.configPatch?.models?.providers?.["microsoft-foundry"]?.models[0]).toMatchObject(
+        {
+          name: modelNameHint,
+          contextWindow,
+          maxTokens,
+        },
+      );
+    },
+  );
 
   it.each([
     ["claude-mythos-preview", 128_000],
