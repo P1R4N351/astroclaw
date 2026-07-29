@@ -412,6 +412,34 @@ function createRetryRunner(runtime = {}) {
   };
 }
 var retryAsync = createRetryRunner();
+var GatewayEventListeners = class {
+  constructor() {
+    this.listeners = new Map();
+  }
+  add(listener) {
+    let subscription = this.listeners.get(listener) ?? {};
+    return (
+      this.listeners.set(listener, subscription),
+      () => {
+        this.listeners.get(listener) === subscription && this.listeners.delete(listener);
+      }
+    );
+  }
+  snapshot() {
+    return [...this.listeners];
+  }
+  isCurrent(listener, subscription) {
+    return this.listeners.get(listener) === subscription;
+  }
+};
+var DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS = 15e3;
+function startGatewayConnectTimeout(onTimeout) {
+  let timer = setTimeout(onTimeout, DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS);
+  return (timer.unref?.(), timer);
+}
+function clearGatewayConnectTimeout(timer) {
+  return (timer !== null && clearTimeout(timer), null);
+}
 var GatewayProtocolRequestError = class extends Error {
     constructor(error) {
       (super(error.message ?? "request failed"),
@@ -428,7 +456,7 @@ var GatewayProtocolRequestError = class extends Error {
       this.opts = opts;
       this.socket = null;
       this.pending = new Map();
-      this.listeners = new Set();
+      this.listeners = new GatewayEventListeners();
       this.stopped = !0;
       this.generation = 0;
       this.lastSeq = null;
@@ -548,7 +576,7 @@ var GatewayProtocolRequestError = class extends Error {
       });
     }
     addEventListener(listener) {
-      return (this.listeners.add(listener), () => this.listeners.delete(listener));
+      return this.listeners.add(listener);
     }
     closeSocket(code, reason) {
       this.socket?.close(code, reason);
@@ -657,7 +685,13 @@ var GatewayProtocolRequestError = class extends Error {
     }
     sendConnect(socket, generation) {
       if (!this.isActive(socket, generation) || !socket.isOpen() || this.connectSent) return;
-      ((this.connectSent = !0), this.clearHandshakeTimer());
+      ((this.connectSent = !0),
+        this.clearHandshakeTimer(),
+        (this.handshakeTimer = startGatewayConnectTimeout(() => {
+          this.isActive(socket, generation) &&
+            !this.helloReceived &&
+            socket.close(4e3, "connect timeout");
+        })));
       let planOrPromise;
       try {
         planOrPromise = this.opts.buildConnectPlan({ nonce: this.connectNonce, generation });
@@ -694,6 +728,7 @@ var GatewayProtocolRequestError = class extends Error {
           .then((hello) => {
             this.isActive(socket, generation) &&
               ((this.helloReceived = !0),
+              this.clearHandshakeTimer(),
               (this.connectFailure = void 0),
               this.reconnectSupervisor.reset(),
               this.recordTiming("hello", generation, plan),
@@ -756,8 +791,13 @@ var GatewayProtocolRequestError = class extends Error {
           }
           this.lastSeq = seq;
         }
+        let listeners = this.listeners.snapshot();
         this.invoke("event", () => this.opts.onEvent?.(parsed));
-        for (let listener of this.listeners) this.invoke("event listener", () => listener(parsed));
+        for (let [listener, subscription] of listeners) {
+          if (!this.isActive(socket, generation)) return;
+          this.listeners.isCurrent(listener, subscription) &&
+            this.invoke("event listener", () => listener(parsed));
+        }
         return;
       }
       isGatewayResponseFrame(parsed) && (this.opts.onActivity?.(), this.handleResponse(parsed));
@@ -862,7 +902,7 @@ var GatewayProtocolRequestError = class extends Error {
       return this.opts.nowMs?.() ?? Date.now();
     }
     clearHandshakeTimer() {
-      this.handshakeTimer && (clearTimeout(this.handshakeTimer), (this.handshakeTimer = null));
+      this.handshakeTimer = clearGatewayConnectTimeout(this.handshakeTimer);
     }
     invoke(label, callback) {
       try {
