@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { createReplyOperation } from "../../auto-reply/reply/reply-run-registry.js";
 import { upsertSessionEntry } from "../../config/sessions/session-accessor.js";
@@ -1542,6 +1542,10 @@ describe("compactEmbeddedAgentSessionDirect hooks", () => {
     expect(mockCallArg(resolveModelMock, 0, 1)).toBe("gpt-5.5");
     expect(mockCallArg(resolveModelAsyncMock, 0, 4)).toMatchObject({
       authProfileMode: "api_key",
+      preparedModelRuntime: expect.objectContaining({
+        configuredRuntimeModels: [],
+        inlineProviderModels: [],
+      }),
     });
   });
 
@@ -3886,20 +3890,21 @@ describe("compactEmbeddedAgentSession hooks (ownsCompaction engine)", () => {
     });
   });
 
-  it("does not fire after_compaction when compaction fails", async () => {
+  it("does not fire after_compaction when the session is already compacted", async () => {
     hookRunner.hasHooks.mockReturnValue(true);
     const sync = vi.fn(async () => {});
     getMemorySearchManagerMock.mockResolvedValue({ manager: { sync } });
     contextEngineCompactMock.mockResolvedValue({
       ok: false,
       compacted: false,
-      reason: "nothing to compact",
+      reason: "already_compacted",
       result: undefined,
     });
 
     const result = await compactEmbeddedAgentSession(wrappedCompactionArgs());
 
     expect(result.ok).toBe(false);
+    expect(result.reason).toBe("already_compacted");
     expect(hookRunner.runBeforeCompaction).toHaveBeenCalledTimes(1);
     expect(hookRunner.runAfterCompaction).not.toHaveBeenCalled();
     expect(sync).not.toHaveBeenCalled();
