@@ -15,8 +15,8 @@ const { messageQueueMock, messageAllowMock, inboundInfoSpy } = vi.hoisted(() => 
   inboundInfoSpy: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   const makeLogger = () => {
     const logger = {
       subsystem: "test",
@@ -35,20 +35,20 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
   return { ...actual, createSubsystemLogger: () => makeLogger() };
 });
 
-vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: (...args: unknown[]) => messageQueueMock(...args),
 }));
-vi.mock("openclaw/plugin-sdk/system-event-runtime.js", () => ({
+vi.mock("astroclaw/plugin-sdk/system-event-runtime.js", () => ({
   enqueueSystemEvent: (...args: unknown[]) => messageQueueMock(...args),
 }));
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-runtime")>();
   return {
     ...actual,
     readChannelAllowFromStore: (...args: unknown[]) => messageAllowMock(...args),
   };
 });
-vi.mock("openclaw/plugin-sdk/text-chunking", () => ({
+vi.mock("astroclaw/plugin-sdk/text-chunking", () => ({
   chunkItems: <T>(items: T[]) => [items],
   markdownToIR: (text: string) => text,
   renderMarkdownIRChunksWithinLimit: (text: string) => [text],
@@ -715,6 +715,18 @@ describe("registerSlackMessageEvents", () => {
 
     expect(handleSlackMessage).not.toHaveBeenCalled();
     // Dropped DM app_mention (already handled via message.im) must not log a receipt.
+    expect(inboundLogLines()).toEqual([]);
+  });
+
+  it("skips app_mention events for modern C-prefixed group DMs without channel_type", async () => {
+    const { handleSlackMessage } = await invokeRegisteredHandler({
+      eventName: "app_mention",
+      overrides: { dmPolicy: "open", channelType: "mpim" },
+      event: { ...makeAppMentionEvent({ channel: "C0MPDM42" }), channel_type: undefined },
+    });
+
+    expect(handleSlackMessage).not.toHaveBeenCalled();
+    // Handled via message.mpim; must not log a duplicate receipt.
     expect(inboundLogLines()).toEqual([]);
   });
 
