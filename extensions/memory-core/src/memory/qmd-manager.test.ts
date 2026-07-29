@@ -230,10 +230,7 @@ import {
 } from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
 import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { PluginStateLeaseError } from "astroclaw/plugin-sdk/plugin-state-runtime";
-import {
-  formatSqliteSessionFileMarker,
-  upsertSessionEntry,
-} from "astroclaw/plugin-sdk/session-store-runtime";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import { formatSessionTranscriptMemoryHitKey } from "astroclaw/plugin-sdk/session-transcript-hit";
 import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
 import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
@@ -289,11 +286,6 @@ async function seedQmdSessionTranscript(params: {
     storePath,
     entry: {
       sessionId: params.sessionId,
-      sessionFile: formatSqliteSessionFileMarker({
-        agentId: params.agentId,
-        sessionId: params.sessionId,
-        storePath,
-      }),
       updatedAt: timestamp,
     },
   });
