@@ -1,9 +1,9 @@
 // Openrouter tests cover video generation provider plugin behavior.
-import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-shared";
+import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-shared";
 import {
   expectExplicitVideoGenerationCapabilities,
   expectUnifiedModelCatalogEntries,
-} from "openclaw/plugin-sdk/provider-test-contracts";
+} from "astroclaw/plugin-sdk/provider-test-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildOpenRouterVideoGenerationProvider,
@@ -61,13 +61,13 @@ const {
   waitProviderOperationPollIntervalMock: vi.fn(async () => {}),
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-http", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/provider-http")>(
-    "openclaw/plugin-sdk/provider-http",
+vi.mock("astroclaw/plugin-sdk/provider-http", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/provider-http")>(
+    "astroclaw/plugin-sdk/provider-http",
   );
   return {
     ...actual,
@@ -353,6 +353,52 @@ describe("openrouter video generation provider", () => {
       enabled: true,
       maxInputImages: 2,
     });
+  });
+
+  it("keeps valid rows when OpenRouter video catalog data is mixed with malformed entries", async () => {
+    fetchWithTimeoutGuardedMock.mockResolvedValueOnce(
+      releasedJson({
+        data: [null, "malformed-row", ["nested-array"], { id: "google/veo-3.1", name: "Veo 3.1" }],
+      }),
+    );
+
+    const rows = await listOpenRouterVideoModelCatalog({
+      config: {} as never,
+      env: {},
+      resolveProviderApiKey: () => ({
+        apiKey: "k",
+        discoveryApiKey: "d",
+      }),
+      resolveProviderAuth: () => ({
+        apiKey: "k",
+        discoveryApiKey: "d",
+        mode: "api_key" as const,
+        source: "env" as const,
+      }),
+    });
+
+    expect(rows?.map((row) => row.model)).toEqual(["google/veo-3.1"]);
+  });
+
+  it("returns an empty catalog for a malformed OpenRouter video catalog envelope", async () => {
+    fetchWithTimeoutGuardedMock.mockResolvedValueOnce(releasedJson(null));
+
+    const rows = await listOpenRouterVideoModelCatalog({
+      config: {} as never,
+      env: {},
+      resolveProviderApiKey: () => ({
+        apiKey: "k",
+        discoveryApiKey: "d",
+      }),
+      resolveProviderAuth: () => ({
+        apiKey: "k",
+        discoveryApiKey: "d",
+        mode: "api_key" as const,
+        source: "env" as const,
+      }),
+    });
+
+    expect(rows).toEqual([]);
   });
 
   it("lets configured auth replace the OpenRouter catalog default", async () => {
