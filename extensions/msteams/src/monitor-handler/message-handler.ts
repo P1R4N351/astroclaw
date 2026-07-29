@@ -1,5 +1,5 @@
 // Msteams plugin module implements message handler behavior.
-import { formatAllowlistMatchMeta } from "astroclaw/plugin-sdk/allow-from";
+import { formatAllowlistMatchMeta } from "openclaw/plugin-sdk/allow-from";
 import {
   buildChannelInboundEventContext,
   createChannelInboundEnvelopeBuilder,
@@ -7,24 +7,24 @@ import {
   logInboundDrop,
   resolveInboundMentionDecision,
   resolveInboundSupplementalSenderAllowed,
-  toInboundMediaFacts,
-} from "astroclaw/plugin-sdk/channel-inbound";
+  toInboundMediaFactsWithMetadata,
+} from "openclaw/plugin-sdk/channel-inbound";
 import {
   hasFinalInboundReplyDispatch,
   resolveInboundReplyDispatchCounts,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { fanInChannelIngressLifecycles } from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import { bindIngressLifecycleToReplyOptions } from "astroclaw/plugin-sdk/channel-outbound";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { fanInChannelIngressLifecycles } from "openclaw/plugin-sdk/channel-ingress-runtime";
+import { bindIngressLifecycleToReplyOptions } from "openclaw/plugin-sdk/channel-outbound";
 import {
   filterSupplementalContextItems,
   resolveChannelContextVisibilityMode,
-} from "astroclaw/plugin-sdk/context-visibility-runtime";
+} from "openclaw/plugin-sdk/context-visibility-runtime";
 import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   createChannelHistoryWindow,
   type HistoryEntry,
-} from "astroclaw/plugin-sdk/reply-history";
-import { sliceUtf16Safe, truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/reply-history";
+import { sliceUtf16Safe, truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { serializeMSTeamsAdaptiveCardActionValue } from "../adaptive-card-submit.js";
 import {
   resolveMSTeamsAdvertisedMedia,
@@ -872,7 +872,7 @@ export function createMSTeamsMessageHandler(deps: MSTeamsMessageHandlerDeps) {
             }
           : undefined,
       },
-      media: toInboundMediaFacts(inboundMedia),
+      media: await toInboundMediaFactsWithMetadata(inboundMedia),
       messageId: activity.id,
       timestamp: timestamp?.getTime() ?? Date.now(),
       from: teamsFrom,
