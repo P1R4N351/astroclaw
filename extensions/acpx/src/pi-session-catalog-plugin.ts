@@ -1,18 +1,18 @@
 import process from "node:process";
-import { resolveAcpSessionAvailability } from "astroclaw/plugin-sdk/acp-runtime";
-import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveAcpSessionAvailability } from "openclaw/plugin-sdk/acp-runtime";
+import { resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   decodeNodePtyResumeParams,
   resolveNodeHostExecutable,
   runNodePtyCommand,
-} from "astroclaw/plugin-sdk/node-host";
+} from "openclaw/plugin-sdk/node-host";
 import type {
   OpenClawPluginApi,
   OpenClawPluginNodeHostCommand,
   OpenClawPluginNodeInvokePolicy,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
 import type {
   SessionCatalogHost,
   SessionCatalogProvider,
@@ -20,15 +20,15 @@ import type {
   SessionCatalogTerminalPlan,
   SessionCatalogTranscriptItem,
   SessionsCatalogReadResult,
-} from "astroclaw/plugin-sdk/session-catalog";
+} from "openclaw/plugin-sdk/session-catalog";
 import {
   createSessionCatalogAdoptionCoordinator,
   importSessionCatalogHistory,
   listAdoptedSessionCatalogSessions,
   sessionCatalogAdoptedSessionKey,
   sessionCatalogAdoptedSourceKey,
-} from "astroclaw/plugin-sdk/session-catalog";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/session-catalog";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   isExactPiSessionCursor,
   listLocalPiSessionPage,
@@ -382,7 +382,7 @@ async function listPiHosts(
   }
   let nodes: Awaited<ReturnType<PluginRuntime["nodes"]["list"]>>["nodes"];
   try {
-    nodes = (await runtime.nodes.list()).nodes;
+    nodes = (await (query.listNodes?.() ?? runtime.nodes.list())).nodes;
   } catch {
     return hosts;
   }
