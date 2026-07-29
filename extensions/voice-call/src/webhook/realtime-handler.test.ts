@@ -6,7 +6,7 @@ import type {
   RealtimeVoiceProviderPlugin,
   RealtimeVoiceSessionHarness,
   RealtimeVoiceToolCallEvent,
-} from "openclaw/plugin-sdk/realtime-voice";
+} from "astroclaw/plugin-sdk/realtime-voice";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebSocket, type RawData } from "ws";
 import type { VoiceCallRealtimeConfig } from "../config.js";
@@ -20,8 +20,8 @@ const realtimeVoiceHarnessTestHooks = vi.hoisted(() => ({
   onCreate: undefined as ((harness: RealtimeVoiceSessionHarness) => void) | undefined,
 }));
 
-vi.mock("openclaw/plugin-sdk/realtime-voice", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/realtime-voice")>();
+vi.mock("astroclaw/plugin-sdk/realtime-voice", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/realtime-voice")>();
   return {
     ...actual,
     createRealtimeVoiceSessionHarness: (
@@ -231,6 +231,7 @@ function parseWebSocketMessage(data: RawData): Record<string, unknown> {
 
 async function withBargeInHarness(
   params: {
+    bridgeHandlesInputAudioBargeIn?: boolean;
     handlesProviderBargeIn?: boolean;
     interruptResponseOnInputAudio?: boolean;
     providerCallId: string;
@@ -251,7 +252,13 @@ async function withBargeInHarness(
   const call = makeCallRecord(params.providerCallId);
   const createBridge = vi.fn((request: RealtimeBridgeRequest) => {
     callbacks = request;
-    return makeBridge({ handleBargeIn, sendAudio });
+    return makeBridge({
+      handleBargeIn,
+      sendAudio,
+      ...(params.bridgeHandlesInputAudioBargeIn === undefined
+        ? {}
+        : { handlesInputAudioBargeIn: params.bridgeHandlesInputAudioBargeIn }),
+    });
   });
   const capabilities = params.handlesProviderBargeIn
     ? PROVIDER_BARGE_IN_CAPABILITIES
@@ -1005,6 +1012,34 @@ describe("RealtimeCallHandler path routing", () => {
         expect(
           recentTalkEvents(call).findLast((event) => event.type === "output.audio.done")?.turnId,
         ).toBe(cancelled.turnId);
+      },
+    );
+  });
+
+  it("lets a session bridge override provider-level barge-in capabilities", async () => {
+    await withBargeInHarness(
+      {
+        bridgeHandlesInputAudioBargeIn: false,
+        handlesProviderBargeIn: true,
+        providerCallId: "CA-bridge-local-barge-in",
+      },
+      async ({ callbacks, call, handleBargeIn, outboundMessages, sendAudio, ws }) => {
+        callbacks?.onAudio?.(Buffer.from([1, 2, 3]));
+        for (let i = 0; i < 4; i += 1) {
+          ws.send(
+            JSON.stringify({
+              event: "media",
+              media: { payload: Buffer.alloc(160, 0x00).toString("base64") },
+            }),
+          );
+        }
+
+        await waitForRealtimeTest(() => {
+          expect(sendAudio).toHaveBeenCalledTimes(4);
+          expect(requireCancelledTurn(call).turnId).toMatch(/^turn-\d+$/);
+          expect(outboundMessages.some((message) => message.event === "clear")).toBe(true);
+        });
+        expect(handleBargeIn).toHaveBeenCalledWith({ audioPlaybackActive: true });
       },
     );
   });
