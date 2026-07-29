@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { expectDefined } from "@openclaw/normalization-core";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import JSZip from "jszip";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer, createTinyJpegBuffer } from "../../test/helpers/image-fixtures.js";
 import { isPathWithinBase } from "../../test/helpers/paths.js";
@@ -26,6 +26,8 @@ describe("media store", () => {
       await tempHome.restore();
     } catch {
       // ignore cleanup failures in tests
+    } finally {
+      vi.resetModules();
     }
   });
 
