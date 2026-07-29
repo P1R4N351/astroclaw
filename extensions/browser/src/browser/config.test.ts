@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { BrowserConfig } from "../config/config.js";
 import { resolveUserPath } from "../utils.js";
@@ -140,6 +140,39 @@ describe("browser config", () => {
       },
     });
     expect(resolveProfile(resolved, "work")?.cdpPort).toBe(20123);
+  });
+
+  it("does not assign an implicit extension relay an explicitly pinned extension port", () => {
+    const resolved = resolveBrowserConfig({
+      profiles: {
+        work: { driver: "extension", cdpPort: 18799, color: "#00AA00" },
+      },
+    });
+
+    expect(resolveProfile(resolved, "work")?.cdpPort).toBe(18799);
+    expect(resolveProfile(resolved, "chrome")?.cdpPort).toBe(18798);
+  });
+
+  it("does not assign an implicit extension relay an explicitly pinned managed port", () => {
+    const resolved = resolveBrowserConfig({
+      profiles: {
+        pinned: { cdpPort: 18799, color: "#00AA00" },
+      },
+    });
+
+    expect(resolveProfile(resolved, "pinned")?.cdpPort).toBe(18799);
+    expect(resolveProfile(resolved, "chrome")?.cdpPort).toBe(18798);
+  });
+
+  it("rejects implicit extension relays that exhaust the reserved port band", () => {
+    const profiles: NonNullable<BrowserConfig["profiles"]> = Object.fromEntries(
+      Array.from({ length: 8 }, (_, index) => [
+        `extension-${index}`,
+        { driver: "extension" as const, color: "#00AA00" },
+      ]),
+    );
+
+    expect(() => resolveBrowserConfig({ profiles })).toThrow(/extension.*relay.*port/i);
   });
 
   it("embeds the host-local relay secret as Basic auth in the extension cdpUrl", () => {
