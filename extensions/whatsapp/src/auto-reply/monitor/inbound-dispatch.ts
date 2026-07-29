@@ -1,20 +1,20 @@
 // Whatsapp plugin module implements inbound dispatch behavior.
-import type { StatusReactionController } from "astroclaw/plugin-sdk/channel-feedback";
+import type { StatusReactionController } from "openclaw/plugin-sdk/channel-feedback";
 import {
   buildChannelInboundEventContext,
   isChannelPartialDeliveryError,
   type CommandFacts,
   type ChannelInboundTurnPlan,
-  toInboundMediaFacts,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { hasVisibleInboundReplyDispatch } from "astroclaw/plugin-sdk/channel-inbound";
+  toInboundMediaFactsWithMetadata,
+} from "openclaw/plugin-sdk/channel-inbound";
+import { hasVisibleInboundReplyDispatch } from "openclaw/plugin-sdk/channel-inbound";
 import {
   bindIngressLifecycleToReplyOptions,
   resolveChannelStreamingBlockEnabled,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { buildInboundHistoryFromEntries } from "astroclaw/plugin-sdk/reply-history";
-import type { FinalizedMsgContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { buildInboundHistoryFromEntries } from "openclaw/plugin-sdk/reply-history";
+import type { FinalizedMsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { requireWhatsAppInboundAdmission } from "../../inbound/admission.js";
 import { resolveWhatsAppIngressLifecycle } from "../../inbound/ingress-lifecycle.js";
 import type { AdmittedWebInboundMessage } from "../../inbound/types.js";
@@ -389,7 +389,7 @@ export async function buildWhatsAppInboundContext(params: {
         })
       : undefined;
 
-  const media = toInboundMediaFacts(
+  const media = await toInboundMediaFactsWithMetadata(
     params.msg.payload.media
       ? [
           {
