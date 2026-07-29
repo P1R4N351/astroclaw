@@ -1,9 +1,9 @@
 // Memory Core plugin module implements tools behavior.
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import type {
   MemoryReadResult,
   MemorySource,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
 import {
   asToolParamsRecord,
   jsonResult,
@@ -14,17 +14,17 @@ import {
   resolveMemorySearchConfig,
   type MemoryCorpusSearchResult,
   type OpenClawConfig,
-} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
 import type {
   MemorySearchResult,
   MemorySearchRuntimeDebug,
-} from "openclaw/plugin-sdk/memory-core-host-runtime-files";
+} from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
 import {
   resolveMemoryDreamingConfig,
   resolveMemoryDeepDreamingConfig,
-} from "openclaw/plugin-sdk/memory-core-host-status";
-import type { OpenClawPluginToolContext } from "openclaw/plugin-sdk/plugin-entry";
-import type { PluginStateLeaseRunner } from "openclaw/plugin-sdk/plugin-state-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-status";
+import type { OpenClawPluginToolContext } from "astroclaw/plugin-sdk/plugin-entry";
+import type { PluginStateLeaseRunner } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import { asRecord } from "./dreaming-shared.js";
 import type { MemoryCoreAcquireLocalService } from "./memory/embedding-local-service.js";
 import {
@@ -109,6 +109,18 @@ function mergeQmdRuntimeDebug(
     }
   }
   return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
+function mergeEmbeddingBootstrapRuntimeDebug(
+  entries: readonly MemorySearchRuntimeDebug[],
+): MemorySearchRuntimeDebug["embeddingBootstrap"] | undefined {
+  let merged: MemorySearchRuntimeDebug["embeddingBootstrap"];
+  for (const entry of entries) {
+    if (entry.embeddingBootstrap) {
+      merged = entry.embeddingBootstrap;
+    }
+  }
+  return merged;
 }
 
 function resolveMemorySearchToolCooldownKey(options: {
@@ -608,6 +620,7 @@ export function createMemorySearchTool(options: {
                   outsideSearchMs?: number;
                   searchMs: number;
                   managerCacheState?: string;
+                  embeddingBootstrap?: MemorySearchRuntimeDebug["embeddingBootstrap"];
                   qmd?: MemorySearchRuntimeDebug["qmd"];
                   hits: number;
                 }
@@ -701,6 +714,7 @@ export function createMemorySearchTool(options: {
                 // retry. Long-lived QMD managers must not run update work in the tool hot path.
                 if (
                   rawResults.length === 0 &&
+                  !runtimeDebug.some((entry) => entry.embeddingBootstrap) &&
                   activeMemory.manager.sync &&
                   (statusBeforeRetry.backend !== "qmd" || options.oneShotCliRun === true)
                 ) {
@@ -764,6 +778,7 @@ export function createMemorySearchTool(options: {
                 fallback = status.fallback;
                 const latestDebug = runtimeDebug.at(-1);
                 const qmdDebug = mergeQmdRuntimeDebug(runtimeDebug);
+                const embeddingBootstrap = mergeEmbeddingBootstrapRuntimeDebug(runtimeDebug);
                 searchMode = latestDebug?.effectiveMode;
                 const searchMs = Math.max(0, Date.now() - searchStartedAt);
                 searchDebug = {
@@ -777,6 +792,7 @@ export function createMemorySearchTool(options: {
                   managerMs,
                   searchMs,
                   managerCacheState,
+                  embeddingBootstrap,
                   qmd: qmdDebug,
                   hits: rawResults.length,
                 };
