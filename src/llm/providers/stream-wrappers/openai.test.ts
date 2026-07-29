@@ -1,7 +1,7 @@
 // OpenAI stream wrapper tests cover streamed text, tools, and reasoning fields.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { Model } from "openclaw/plugin-sdk/llm";
-import { createAssistantMessageEventStream } from "openclaw/plugin-sdk/llm";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import type { Model } from "astroclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import {
   createOpenAIAttributionHeadersWrapper,
@@ -325,64 +325,67 @@ describe("createCodexNativeWebSearchWrapper", () => {
     ]);
   });
 
-  it("keeps grouped provider tool declarations when code mode filters the payload", () => {
-    const payloads: Array<Record<string, unknown>> = [];
-    const baseStreamFn: StreamFn = (model, context, options) => {
-      const payload: Record<string, unknown> = {
-        model: model.id,
-        tools: [
-          {
-            functionDeclarations: [
-              { name: "exec", description: "Run code" },
-              { name: "sessions_yield", description: "Yield the current session" },
-              { name: "structured_output", description: "Return a structured response" },
-              { name: "computer", description: "Control a desktop" },
-              { name: "image", description: "Read an image" },
-              { name: "message", description: "Deliver the response" },
-              { name: "read", description: "Read a file" },
-              { name: "wait", description: "Resume code" },
-            ],
-          },
-          { google_search: {} },
-        ],
+  it.each(["functionDeclarations", "function_declarations"] as const)(
+    "keeps grouped %s when code mode filters the payload",
+    (declarationField) => {
+      const payloads: Array<Record<string, unknown>> = [];
+      const baseStreamFn: StreamFn = (model, context, options) => {
+        const payload: Record<string, unknown> = {
+          model: model.id,
+          tools: [
+            {
+              [declarationField]: [
+                { name: "exec", description: "Run code" },
+                { name: "sessions_yield", description: "Yield the current session" },
+                { name: "structured_output", description: "Return a structured response" },
+                { name: "computer", description: "Control a desktop" },
+                { name: "image", description: "Read an image" },
+                { name: "message", description: "Deliver the response" },
+                { name: "read", description: "Read a file" },
+                { name: "wait", description: "Resume code" },
+              ],
+            },
+            { google_search: {} },
+          ],
+        };
+        options?.onPayload?.(payload, model);
+        payloads.push(structuredClone(payload));
+        return createAssistantMessageEventStream();
       };
-      options?.onPayload?.(payload, model);
-      payloads.push(structuredClone(payload));
-      return createAssistantMessageEventStream();
-    };
-    const wrapped = createCodexNativeWebSearchWrapper(baseStreamFn, {
-      codeModeToolSurfaceEnabled: true,
-    });
+      const wrapped = createCodexNativeWebSearchWrapper(baseStreamFn, {
+        codeModeToolSurfaceEnabled: true,
+      });
 
-    void wrapped(
-      {
-        api: "google-generative-ai",
-        provider: "google",
-        id: "gemini-3.1-pro",
-      } as never,
-      {
-        messages: [],
-        tools: [
-          { name: "exec", description: "", parameters: {} },
-          { name: "wait", description: "", parameters: {} },
-          { name: "sessions_yield", description: "", parameters: {} },
-          { name: "structured_output", description: "", parameters: {} },
-        ],
-      },
-      {},
-    );
+      void wrapped(
+        {
+          api: "google-generative-ai",
+          provider: "google",
+          id: "gemini-3.1-pro",
+        } as never,
+        {
+          messages: [],
+          tools: [
+            { name: "exec", description: "", parameters: {} },
+            { name: "wait", description: "", parameters: {} },
+            { name: "sessions_yield", description: "", parameters: {} },
+            { name: "structured_output", description: "", parameters: {} },
+          ],
+        },
+        {},
+      );
 
-    expect(payloads[0]?.tools).toEqual([
-      {
-        functionDeclarations: [
-          { name: "exec", description: "Run code" },
-          { name: "sessions_yield", description: "Yield the current session" },
-          { name: "structured_output", description: "Return a structured response" },
-          { name: "wait", description: "Resume code" },
-        ],
-      },
-    ]);
-  });
+      expect(payloads[0]?.tools).toEqual([
+        {
+          [declarationField]: [
+            { name: "exec", description: "Run code" },
+            { name: "sessions_yield", description: "Yield the current session" },
+            { name: "structured_output", description: "Return a structured response" },
+            { name: "wait", description: "Resume code" },
+          ],
+        },
+      ]);
+    },
+  );
 
   it("does not inject native web_search when agent policy denies web search", () => {
     const payloads: Array<Record<string, unknown>> = [];
