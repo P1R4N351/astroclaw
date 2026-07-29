@@ -1,7 +1,7 @@
 // Diffs tests cover tool plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi, OpenClawPluginToolContext } from "../api.js";
 import type { DiffScreenshotter } from "./browser.js";
@@ -163,7 +163,10 @@ describe("diffs tool", () => {
 
     expect(screenshotter["screenshotHtml"]).toHaveBeenCalledTimes(1);
     expect(readTextContent(result, 0)).toContain("Diff PNG generated at:");
-    expect(readTextContent(result, 0)).toContain("Use the `message` tool");
+    // Artifact text is model-visible, so it names the delivery capability rather
+    // than the `message` tool, which gating removes from many sessions.
+    expect(readTextContent(result, 0)).toContain("use an available file-sending tool");
+    expect(readTextContent(result, 0)).not.toMatch(/`message`|\bmessage tool\b/);
     expect(result?.content).toHaveLength(1);
     const details = readDetails(result);
     expect(requireString(details.filePath, "filePath")).toMatch(/preview\.png$/);
