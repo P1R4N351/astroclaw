@@ -609,9 +609,9 @@ var GatewayProtocolRequestError = class extends Error {
     connect() {
       if (this.stopped) return;
       let generation = this.generation + 1;
-      ((this.connectNonce = null),
-        (this.connectSent = !1),
-        (this.connectRequestSent = !1),
+      ((this.lastSeq = null),
+        (this.connectNonce = null),
+        (this.connectSent = this.connectRequestSent = !1),
         (this.socketOpened = !1),
         (this.helloReceived = !1),
         (this.connectFailure = void 0));
