@@ -1,12 +1,12 @@
-import { createChannelDmPolicy } from "astroclaw/plugin-sdk/channel-dm-policy";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { createChannelDmPolicy } from "openclaw/plugin-sdk/channel-dm-policy";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 // Feishu plugin module implements setup surface behavior.
 import {
   DEFAULT_ACCOUNT_ID,
   formatDocsLink,
   hasConfiguredSecretInput,
   mergeAllowFromEntries,
-  patchTopLevelChannelConfigSection,
+  patchScopedAccountConfig,
   promptSingleChannelSecretInput,
   setSetupChannelEnabled,
   splitSetupEntries,
@@ -16,8 +16,8 @@ import {
   type DmPolicy,
   type OpenClawConfig,
   type SecretInput,
-} from "astroclaw/plugin-sdk/setup";
-import { normalizeOptionalString as normalizeString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/setup";
+import { normalizeOptionalString as normalizeString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveDefaultFeishuAccountId, resolveFeishuAccount } from "./accounts.js";
 import type { AppRegistrationResult } from "./app-registration.js";
 import type { FeishuConfig, FeishuDomain } from "./types.js";
@@ -90,30 +90,11 @@ function patchFeishuConfig(
   accountId: string,
   patch: Record<string, unknown>,
 ): OpenClawConfig {
-  const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
-  if (accountId === DEFAULT_ACCOUNT_ID) {
-    return patchTopLevelChannelConfigSection({
-      cfg,
-      channel,
-      enabled: true,
-      patch,
-    });
-  }
-  const nextAccountPatch = {
-    ...(feishuCfg?.accounts?.[accountId] as Record<string, unknown> | undefined),
-    enabled: true,
-    ...patch,
-  };
-  return patchTopLevelChannelConfigSection({
+  return patchScopedAccountConfig({
     cfg,
-    channel,
-    enabled: true,
-    patch: {
-      accounts: {
-        ...feishuCfg?.accounts,
-        [accountId]: nextAccountPatch,
-      },
-    },
+    channelKey: channel,
+    accountId,
+    patch: { enabled: true, ...patch },
   });
 }
 
