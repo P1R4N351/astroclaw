@@ -1,9 +1,9 @@
 // Memory Core plugin module implements tools behavior.
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import type {
   MemoryReadResult,
   MemorySource,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
 import {
   asToolParamsRecord,
   jsonResult,
@@ -14,17 +14,17 @@ import {
   resolveMemorySearchConfig,
   type MemoryCorpusSearchResult,
   type OpenClawConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
 import type {
   MemorySearchResult,
   MemorySearchRuntimeDebug,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-files";
 import {
   resolveMemoryDreamingConfig,
   resolveMemoryDeepDreamingConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-status";
-import type { OpenClawPluginToolContext } from "astroclaw/plugin-sdk/plugin-entry";
-import type { PluginStateLeaseRunner } from "astroclaw/plugin-sdk/plugin-state-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-status";
+import type { OpenClawPluginToolContext } from "openclaw/plugin-sdk/plugin-entry";
+import type { PluginStateLeaseRunner } from "openclaw/plugin-sdk/plugin-state-runtime";
 import { asRecord } from "./dreaming-shared.js";
 import type { MemoryCoreAcquireLocalService } from "./memory/embedding-local-service.js";
 import {
@@ -469,6 +469,7 @@ export function createMemorySearchTool(options: {
   sandboxed?: boolean;
   oneShotCliRun?: boolean;
   conversationRecall?: OpenClawPluginToolContext["conversationRecall"];
+  activeProjectKeys?: readonly string[];
   acquireLocalService?: MemoryCoreAcquireLocalService;
   withLease?: PluginStateLeaseRunner;
 }) {
@@ -662,6 +663,9 @@ export function createMemorySearchTool(options: {
                     minScore,
                     sessionKey: options.agentSessionKey,
                     qmdSearchModeOverride,
+                    activeProjectKeys: options.activeProjectKeys
+                      ? [...options.activeProjectKeys]
+                      : undefined,
                     signal,
                     onDebug: (debug: MemorySearchRuntimeDebug) => {
                       runtimeDebug.push(debug);
