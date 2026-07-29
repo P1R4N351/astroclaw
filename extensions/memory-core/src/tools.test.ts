@@ -1,9 +1,9 @@
-import type { MemorySearchRuntimeDebug } from "openclaw/plugin-sdk/memory-core-host-runtime-files";
+import type { MemorySearchRuntimeDebug } from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
 // Memory Core tests cover tools plugin behavior.
 import {
   clearMemoryPluginState,
   registerMemoryCorpusSupplement,
-} from "openclaw/plugin-sdk/memory-host-core";
+} from "astroclaw/plugin-sdk/memory-host-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getMemoryCloseMockCalls,
@@ -95,9 +95,9 @@ function createTestSearchManager(params: {
   };
 }
 
-vi.mock("openclaw/plugin-sdk/session-transcript-hit", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-hit", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-hit")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-hit")>();
   return {
     ...actual,
     loadCombinedSessionStoreForGateway: vi.fn(() => ({
@@ -1060,6 +1060,47 @@ describe("memory_search unavailable payloads", () => {
       groupCount: 2,
       sources: ["memory", "sessions"],
     });
+  });
+
+  it("surfaces embedding bootstrap degradation when keyword search has no hits", async () => {
+    let searchCalls = 0;
+    setMemorySearchImpl(async (opts) => {
+      searchCalls += 1;
+      opts?.onDebug?.({
+        backend: "builtin",
+        embeddingBootstrap: {
+          ok: false,
+          provider: "openai",
+          reason:
+            'MissingProviderAuthError: No API key resolved for provider "openai" (auth mode: api-key, checked: OPENAI_API_KEY).',
+          degradedTo: "keyword-only",
+        },
+      });
+      return [];
+    });
+    const tool = createMemorySearchToolOrThrow({
+      config: {
+        agents: { list: [{ id: "main", default: true }] },
+        memory: { citations: "off" },
+      },
+    });
+
+    const result = await tool.execute("bootstrap-debug", { query: "unknown memory" });
+    const details = result.details as {
+      results?: unknown[];
+      debug?: { embeddingBootstrap?: MemorySearchRuntimeDebug["embeddingBootstrap"] };
+    };
+
+    expect(details.results).toEqual([]);
+    expect(details.debug?.embeddingBootstrap).toEqual({
+      ok: false,
+      provider: "openai",
+      reason:
+        'MissingProviderAuthError: No API key resolved for provider "openai" (auth mode: api-key, checked: OPENAI_API_KEY).',
+      degradedTo: "keyword-only",
+    });
+    expect(searchCalls).toBe(1);
+    expect(getMemorySyncMockCalls()).toBe(0);
   });
 
   it("returns unavailable metadata when the index identity is paused", async () => {
