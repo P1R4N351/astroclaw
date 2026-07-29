@@ -29,11 +29,12 @@ import type {
   SimpleStreamOptions,
   TextContent,
   ToolResultMessage,
-} from "astroclaw/plugin-sdk/llm";
+} from "openclaw/plugin-sdk/llm";
 import type { Static, TSchema } from "typebox";
 import type { Theme } from "../../modes/interactive/theme/theme.js";
 import type {
   AgentMessage,
+  AgentTool,
   AgentToolResult,
   AgentToolUpdateCallback,
   StreamFn,
@@ -281,7 +282,7 @@ export interface ExtensionUIContext {
    *
    * @example
    * ```ts
-   * import { CustomEditor } from "astroclaw/plugin-sdk/agent-sessions";
+   * import { CustomEditor } from "openclaw/plugin-sdk/agent-sessions";
    *
    * class VimEditor extends CustomEditor {
    *   private mode: "normal" | "insert" = "insert";
@@ -496,6 +497,8 @@ export interface ToolDefinition<
   label: string;
   /** Preserve lifecycle telemetry without rendering transient channel progress. */
   hideFromChannelProgress?: boolean;
+  /** Tool results contain externally controlled network content. */
+  resultContentSource?: AgentTool["resultContentSource"];
   /** Description for LLM */
   description: string;
   /** Optional one-line snippet for the Available tools section in the default system prompt. Custom tools are omitted from that section when this is not provided. */
