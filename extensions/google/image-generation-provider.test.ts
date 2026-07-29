@@ -1,8 +1,8 @@
 // Google tests cover image generation provider plugin behavior.
-import * as providerAuth from "openclaw/plugin-sdk/provider-auth";
-import * as providerAuthRuntime from "openclaw/plugin-sdk/provider-auth-runtime";
-import * as providerHttp from "openclaw/plugin-sdk/provider-http";
-import { mockPinnedHostnameResolution } from "openclaw/plugin-sdk/test-env";
+import * as providerAuth from "astroclaw/plugin-sdk/provider-auth";
+import * as providerAuthRuntime from "astroclaw/plugin-sdk/provider-auth-runtime";
+import * as providerHttp from "astroclaw/plugin-sdk/provider-http";
+import { mockPinnedHostnameResolution } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildGoogleImageGenerationProvider } from "./image-generation-provider.js";
 
@@ -498,35 +498,18 @@ describe("Google image-generation provider", () => {
     expect(postJsonRequestOptions(postJsonRequestSpy).allowPrivateNetwork).toBe(true);
   });
 
-  it("normalizes a configured bare Google host to the v1beta API root", async () => {
-    mockGoogleApiKeyAuth();
-    const fetchMock = installGoogleFetchMock();
-
-    const provider = buildGoogleImageGenerationProvider();
-    await provider.generateImage({
-      provider: "google",
-      model: "gemini-3-pro-image",
+  it.each([
+    {
+      name: "normalizes a configured bare Google host to the v1beta API root",
+      baseUrl: "https://generativelanguage.googleapis.com",
       prompt: "draw a cat",
-      cfg: {
-        models: {
-          providers: {
-            google: {
-              baseUrl: "https://generativelanguage.googleapis.com",
-              models: [],
-            },
-          },
-        },
-      },
-    });
-
-    const request = fetchRequest(fetchMock);
-    expect(request.url).toBe(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image:generateContent",
-    );
-    expect(typeof request.method).toBe("string");
-  });
-
-  it("strips a configured /openai suffix before calling the native Gemini image API", async () => {
+    },
+    {
+      name: "strips a configured /openai suffix before calling the native Gemini image API",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+      prompt: "draw a fox",
+    },
+  ])("$name", async ({ baseUrl, prompt }) => {
     mockGoogleApiKeyAuth();
     const fetchMock = installGoogleFetchMock();
 
@@ -534,12 +517,12 @@ describe("Google image-generation provider", () => {
     await provider.generateImage({
       provider: "google",
       model: "gemini-3-pro-image",
-      prompt: "draw a fox",
+      prompt,
       cfg: {
         models: {
           providers: {
             google: {
-              baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+              baseUrl,
               models: [],
             },
           },
