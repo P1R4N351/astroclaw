@@ -1,9 +1,9 @@
 // Feishu plugin module implements docx behavior.
 import { resolve } from "node:path";
 import type * as Lark from "@larksuiteoapi/node-sdk";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { normalizeOptionalString, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { jsonResult as json } from "astroclaw/plugin-sdk/tool-results";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { normalizeOptionalString, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { jsonResult as json } from "openclaw/plugin-sdk/tool-results";
 import { Type } from "typebox";
 import type { OpenClawPluginApi } from "../runtime-api.js";
 import { listEnabledFeishuAccounts } from "./accounts.js";
@@ -1265,6 +1265,14 @@ export function registerFeishuDocTools(api: OpenClawPluginApi) {
           async execute(_toolCallId, params) {
             const p = params as FeishuDocExecuteParams;
             try {
+              // Feishu creates title-only docs; flattened tool schemas can still expose
+              // sibling `content`, so reject it before creating an empty document.
+              if (p.action === "create" && Object.hasOwn(p, "content")) {
+                return json({
+                  error:
+                    'Feishu document creation does not support content. Call action "create" first, then call action "write" with the returned document_id as doc_token.',
+                });
+              }
               const client = getClient(p, defaultAccountId);
               switch (p.action) {
                 case "read":
