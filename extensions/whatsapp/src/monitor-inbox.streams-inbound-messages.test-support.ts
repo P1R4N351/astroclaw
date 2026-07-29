@@ -1,9 +1,9 @@
 // Whatsapp plugin module implements monitor inbox.streams inbound messages support behavior.
 import fsSync from "node:fs";
 import path from "node:path";
-import type { GroupMetadata, WAMessageKey } from "baileys";
+import { defaultRuntime } from "astroclaw/plugin-sdk/runtime-env";
 import "./monitor-inbox.test-harness.js";
-import { defaultRuntime } from "openclaw/plugin-sdk/runtime-env";
+import type { GroupMetadata, WAMessageKey } from "baileys";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   readWhatsAppBaileysCacheEntry,
@@ -45,9 +45,9 @@ vi.mock("./connection-controller-runtime-context.js", () => ({
   getWhatsAppConnectionController: (accountId: string) => controllerContexts.get(accountId) ?? null,
 }));
 
-vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
-    "openclaw/plugin-sdk/media-runtime",
+vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
+    "astroclaw/plugin-sdk/media-runtime",
   );
   return {
     ...actual,
@@ -2035,6 +2035,47 @@ describe("web monitor inbox", () => {
 
   it("captures reply context from quoted messages", async () => {
     await expectQuotedReplyContext({ conversation: "original" });
+  });
+
+  it("preserves native reply context when WhatsApp omits the quoted message", async () => {
+    const onMessage = vi.fn(async () => {});
+    const { listener, sock } = await startInboxMonitor(onMessage as InboxOnMessage);
+
+    sock.ev.emit("messages.upsert", {
+      type: "notify",
+      messages: [
+        {
+          key: {
+            id: nextMessageId("quoted-unavailable"),
+            fromMe: false,
+            remoteJid: "999@s.whatsapp.net",
+          },
+          message: {
+            extendedTextMessage: {
+              text: "yes",
+              contextInfo: {
+                stanzaId: "original-message",
+                participant: "111@s.whatsapp.net",
+              },
+            },
+          },
+          messageTimestamp: 1_700_000_000,
+          pushName: "Tester",
+        },
+      ],
+    });
+
+    await waitForMessageCalls(onMessage, 1);
+
+    const inbound = inboundMessage(onMessage);
+    expect(inbound.payload.body).toBe("yes");
+    expect(inbound.quote).toMatchObject({
+      id: "original-message",
+      body: "[quoted message unavailable]",
+      sender: { displayName: "+111", jid: "111@s.whatsapp.net", e164: "+111" },
+    });
+
+    await listener.close();
   });
 
   it("captures reply context from wrapped quoted messages", async () => {
