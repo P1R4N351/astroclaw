@@ -1,7 +1,8 @@
 // Imessage tests cover monitor.media policy plugin behavior.
-import * as channelInbound from "openclaw/plugin-sdk/channel-inbound";
-import type { dispatchReplyWithBufferedBlockDispatcher } from "openclaw/plugin-sdk/reply-runtime";
-import type { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
+import * as channelInbound from "astroclaw/plugin-sdk/channel-inbound";
+import { createTestInboundDebounceFlush } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { dispatchReplyWithBufferedBlockDispatcher } from "astroclaw/plugin-sdk/reply-runtime";
+import type { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { createIMessageRpcClient } from "./client.js";
 import { monitorIMessageProvider } from "./monitor.js";
@@ -21,12 +22,12 @@ const dispatchReplyWithBufferedBlockDispatcherMock = vi.hoisted(() =>
   })),
 );
 
-vi.mock("openclaw/plugin-sdk/transport-ready-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/transport-ready-runtime", () => ({
   waitForTransportReady: waitForTransportReadyMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-runtime")>();
   return {
     ...actual,
     readChannelAllowFromStore: readChannelAllowFromStoreMock,
@@ -35,13 +36,17 @@ vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
   return {
     ...actual,
     createChannelInboundDebouncer: vi.fn((opts) => ({
       debouncer: {
-        enqueue: async (entry: unknown) => await opts.onFlush([entry]),
+        enqueue: async (entry: unknown) =>
+          await opts.onFlush([entry], createTestInboundDebounceFlush).completion,
+        flushKey: async () => {},
+        cancelKey: () => false,
+        drain: async () => {},
       },
     })),
     shouldDebounceTextInbound: vi.fn(() => false),
