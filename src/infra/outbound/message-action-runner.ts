@@ -4,7 +4,7 @@ import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
 } from "@openclaw/normalization-core/string-coerce";
-import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
+import { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
 import { ErrorCodes } from "../../../packages/gateway-protocol/src/schema/error-codes.js";
 import { stripPlainTextToolCallBlocks } from "../../../packages/tool-call-repair/src/index.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
@@ -80,7 +80,10 @@ import {
   type MessageBroadcastAccountPlan,
   validateExplicitMessageAccountSelection,
 } from "./message-account-selection.js";
-import { normalizeMessageActionInput } from "./message-action-normalization.js";
+import {
+  normalizeMessageActionInput,
+  resolveImplicitMessageActionTarget,
+} from "./message-action-normalization.js";
 import { hasPotentialPluginActionParam } from "./message-action-param-keys.js";
 import {
   collectActionMediaSourceHints,
@@ -802,8 +805,7 @@ function hasPotentialActionTargetInput(
 ): boolean {
   return Boolean(
     hasExplicitSingularTargetParam(params) ||
-    normalizeOptionalString(input.toolContext?.currentChannelId) ||
-    normalizeOptionalString(input.toolContext?.currentMessagingTarget) ||
+    resolveImplicitMessageActionTarget(input.toolContext) ||
     hasPotentialPluginActionParam(params),
   );
 }
