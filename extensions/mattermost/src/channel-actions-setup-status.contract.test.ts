@@ -3,8 +3,8 @@ import {
   installChannelActionsContractSuite,
   installChannelSetupContractSuite,
   installChannelStatusContractSuite,
-} from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect } from "vitest";
 import { mattermostPlugin, mattermostSetupPlugin } from "../channel-plugin-api.js";
 
@@ -14,7 +14,7 @@ describe("mattermost actions contract", () => {
     unsupportedAction: "poll",
     cases: [
       {
-        name: "configured account exposes send and react",
+        name: "configured account exposes send and react while reads stay opt in",
         cfg: {
           channels: {
             mattermost: {
@@ -28,7 +28,7 @@ describe("mattermost actions contract", () => {
         expectedCapabilities: ["presentation"],
       },
       {
-        name: "reactions can be disabled while send stays available",
+        name: "disabled reactions do not enable message reads",
         cfg: {
           channels: {
             mattermost: {
@@ -40,6 +40,21 @@ describe("mattermost actions contract", () => {
           },
         } as OpenClawConfig,
         expectedActions: ["send"],
+        expectedCapabilities: ["presentation"],
+      },
+      {
+        name: "message reads can be disabled while send and react stay available",
+        cfg: {
+          channels: {
+            mattermost: {
+              enabled: true,
+              botToken: "test-token-placeholder",
+              baseUrl: "https://chat.example.com",
+              actions: { messages: false },
+            },
+          },
+        } as OpenClawConfig,
+        expectedActions: ["send", "react"],
         expectedCapabilities: ["presentation"],
       },
       {
