@@ -2,8 +2,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
-import { createPluginStateKeyedStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { createPluginStateKeyedStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 import { runMSTeamsFileConsentInvokeHandler } from "./file-consent-invoke.js";
@@ -44,6 +44,7 @@ function createRuntimeStub(stateDir?: string): PluginRuntime {
           enqueue: async () => {},
           flushKey: async () => {},
           cancelKey: () => false,
+          drain: async () => {},
         }),
       },
     },
