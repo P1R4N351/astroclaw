@@ -7,9 +7,9 @@ import {
   setGoogleOAuthSettingsFs,
 } from "./google-oauth.test-support.js";
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
-    "openclaw/plugin-sdk/runtime-env",
+vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
+    "astroclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -17,9 +17,9 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/ssrf-runtime")>(
-    "openclaw/plugin-sdk/ssrf-runtime",
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>(
+    "astroclaw/plugin-sdk/ssrf-runtime",
   );
   return {
     ...actual,
@@ -40,8 +40,8 @@ vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
 });
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/runtime-env");
-  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/runtime-env");
+  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
@@ -51,6 +51,13 @@ const mockRealpathSync = vi.fn();
 const mockReaddirSync = vi.fn();
 const mockSettingsExistsSync = vi.fn();
 const mockSettingsReadFileSync = vi.fn();
+
+function setGeminiPersonalOAuthSettings(): void {
+  mockSettingsExistsSync.mockReturnValue(true);
+  mockSettingsReadFileSync.mockReturnValue(
+    JSON.stringify({ security: { auth: { selectedType: "oauth-personal" } } }),
+  );
+}
 
 function countMatching<T>(items: readonly T[], predicate: (item: T) => boolean): number {
   let count = 0;
@@ -120,16 +127,7 @@ describe("isGeminiCliPersonalOAuth", () => {
   });
 
   it("reads the nested security auth selection from ~/.gemini/settings.json", () => {
-    mockSettingsExistsSync.mockReturnValue(true);
-    mockSettingsReadFileSync.mockReturnValue(
-      JSON.stringify({
-        security: {
-          auth: {
-            selectedType: "oauth-personal",
-          },
-        },
-      }),
-    );
+    setGeminiPersonalOAuthSettings();
 
     expect(isGeminiCliPersonalOAuth()).toBe(true);
   });
@@ -1050,16 +1048,7 @@ describe("loginGeminiCliOAuth", () => {
   });
 
   it("skips loadCodeAssist entirely when Gemini CLI is configured for personal OAuth", async () => {
-    mockSettingsExistsSync.mockReturnValue(true);
-    mockSettingsReadFileSync.mockReturnValue(
-      JSON.stringify({
-        security: {
-          auth: {
-            selectedType: "oauth-personal",
-          },
-        },
-      }),
-    );
+    setGeminiPersonalOAuthSettings();
 
     const { requests } = installGeminiOAuthFetchMock(() => undefined);
     const { exchangeCodeForTokens } = await import("./oauth.token.js");
@@ -1070,16 +1059,7 @@ describe("loginGeminiCliOAuth", () => {
   });
 
   it("refreshes Gemini CLI OAuth tokens without loadCodeAssist in personal OAuth mode", async () => {
-    mockSettingsExistsSync.mockReturnValue(true);
-    mockSettingsReadFileSync.mockReturnValue(
-      JSON.stringify({
-        security: {
-          auth: {
-            selectedType: "oauth-personal",
-          },
-        },
-      }),
-    );
+    setGeminiPersonalOAuthSettings();
 
     const { requests } = installGeminiOAuthFetchMock(() => undefined);
     const { refreshTokensForGeminiCli } = await import("./oauth.token.js");
@@ -1098,16 +1078,7 @@ describe("loginGeminiCliOAuth", () => {
   });
 
   it("keeps malformed token expiry values out of refreshed Gemini CLI credentials", async () => {
-    mockSettingsExistsSync.mockReturnValue(true);
-    mockSettingsReadFileSync.mockReturnValue(
-      JSON.stringify({
-        security: {
-          auth: {
-            selectedType: "oauth-personal",
-          },
-        },
-      }),
-    );
+    setGeminiPersonalOAuthSettings();
 
     const beforeRefresh = Date.now();
     installGeminiOAuthFetchMock(() => undefined, {
@@ -1128,16 +1099,7 @@ describe("loginGeminiCliOAuth", () => {
   });
 
   it("keeps invalid clocks out of refreshed Gemini CLI credential expiry", async () => {
-    mockSettingsExistsSync.mockReturnValue(true);
-    mockSettingsReadFileSync.mockReturnValue(
-      JSON.stringify({
-        security: {
-          auth: {
-            selectedType: "oauth-personal",
-          },
-        },
-      }),
-    );
+    setGeminiPersonalOAuthSettings();
 
     installGeminiOAuthFetchMock(() => undefined, {
       tokenResponse: () =>
@@ -1161,16 +1123,7 @@ describe("loginGeminiCliOAuth", () => {
   });
 
   it("keeps unsafe token expiry values out of refreshed Gemini CLI credentials", async () => {
-    mockSettingsExistsSync.mockReturnValue(true);
-    mockSettingsReadFileSync.mockReturnValue(
-      JSON.stringify({
-        security: {
-          auth: {
-            selectedType: "oauth-personal",
-          },
-        },
-      }),
-    );
+    setGeminiPersonalOAuthSettings();
 
     const beforeRefresh = Date.now();
     installGeminiOAuthFetchMock(() => undefined, {
