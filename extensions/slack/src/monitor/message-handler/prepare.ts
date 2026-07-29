@@ -3,7 +3,7 @@ import {
   resolveAckReaction,
   shouldAckReaction as shouldAckReactionGate,
   type AckReactionScope,
-} from "astroclaw/plugin-sdk/channel-feedback";
+} from "openclaw/plugin-sdk/channel-feedback";
 import {
   buildChannelInboundEventContext,
   buildMentionRegexes,
@@ -16,28 +16,28 @@ import {
   resolveInboundMentionDecision,
   resolveEnvelopeFormatOptions,
   resolveUnmentionedGroupInboundPolicy,
-  toInboundMediaFacts,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { resolveChannelImplicitMentions } from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import { resolveChannelMessageSourceReplyDeliveryMode } from "astroclaw/plugin-sdk/channel-outbound";
-import { hasControlCommand } from "astroclaw/plugin-sdk/command-detection";
-import { isAbortRequestText } from "astroclaw/plugin-sdk/command-primitives-runtime";
-import { shouldHandleTextCommands } from "astroclaw/plugin-sdk/command-surface";
-import { ensureConfiguredBindingRouteReady } from "astroclaw/plugin-sdk/conversation-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { mimeTypeFromFilePath } from "astroclaw/plugin-sdk/media-mime";
-import { createChannelHistoryWindow } from "astroclaw/plugin-sdk/reply-history";
-import type { FinalizedMsgContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
-import { logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
+  toInboundMediaFactsWithMetadata,
+} from "openclaw/plugin-sdk/channel-inbound";
+import { resolveChannelImplicitMentions } from "openclaw/plugin-sdk/channel-ingress-runtime";
+import { resolveChannelMessageSourceReplyDeliveryMode } from "openclaw/plugin-sdk/channel-outbound";
+import { hasControlCommand } from "openclaw/plugin-sdk/command-detection";
+import { isAbortRequestText } from "openclaw/plugin-sdk/command-primitives-runtime";
+import { shouldHandleTextCommands } from "openclaw/plugin-sdk/command-surface";
+import { ensureConfiguredBindingRouteReady } from "openclaw/plugin-sdk/conversation-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { mimeTypeFromFilePath } from "openclaw/plugin-sdk/media-mime";
+import { createChannelHistoryWindow } from "openclaw/plugin-sdk/reply-history";
+import type { FinalizedMsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
+import { logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
 import {
   asOptionalRecord as asRecord,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { resolveSlackReplyToMode } from "../../account-reply-mode.js";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import { reactSlackMessage } from "../../actions.js";
@@ -331,7 +331,7 @@ async function resolveSlackHistoryMediaForPendingRecord(params: {
     mediaReadIdleTimeoutMs: SLACK_HISTORY_MEDIA_IDLE_TIMEOUT_MS,
     mediaTotalTimeoutMs: SLACK_HISTORY_MEDIA_TOTAL_TIMEOUT_MS,
   });
-  return toInboundMediaFacts(content?.effectiveDirectMedia, {
+  return await toInboundMediaFactsWithMetadata(content?.effectiveDirectMedia, {
     kind: "image",
     messageId: params.message.ts,
   });
@@ -1527,7 +1527,7 @@ export async function prepareSlackMessage(params: {
 
   // Use direct media (including forwarded attachment media) if available, else thread starter media
   const effectiveMedia = effectiveDirectMedia ?? threadStarterMedia;
-  const inboundMedia = toInboundMediaFacts(effectiveMedia, {
+  const inboundMedia = await toInboundMediaFactsWithMetadata(effectiveMedia, {
     transcribed: (entry) =>
       effectiveMedia === effectiveDirectMedia && entry === preflightAudioMedia,
   });
