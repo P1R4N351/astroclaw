@@ -4,7 +4,7 @@ import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "@openclaw/ai/internal/shared";
 import * as providerTransportStream from "@openclaw/ai/transports";
 // Stream resolution tests cover how embedded runs choose provider, boundary,
 // native Codex, or custom stream functions and pass auth/cache/signal options.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { bindStreamLlmRuntime } from "../../llm/model-runtime-binding.js";
 import { streamSimple } from "../../llm/stream.js";
@@ -226,7 +226,9 @@ describe("resolveEmbeddedAgentStreamFn", () => {
     expect(authStorage.getApiKey).not.toHaveBeenCalled();
   });
 
-  it("still routes supported streamSimple fallbacks through boundary-aware transports", () => {
+  it("preserves run session identity in boundary-aware OpenAI transports", async () => {
+    const innerStreamFn = vi.fn(async (_model, _context, options) => options);
+    overrideBoundaryAwareStreamFnOnce(innerStreamFn as never);
     const streamFn = resolveEmbeddedAgentStreamFn({
       currentStreamFn: undefined,
       sessionId: "session-1",
@@ -238,6 +240,12 @@ describe("resolveEmbeddedAgentStreamFn", () => {
     });
 
     expect(streamFn).not.toBe(streamSimple);
+    const options = await expectStreamResultRecord(
+      streamFn({ provider: "openai", id: "gpt-5.4" } as never, {} as never, {}),
+      "boundary-aware OpenAI transport options",
+    );
+    expect(options.sessionId).toBe("session-1");
+    expect(innerStreamFn).toHaveBeenCalledTimes(1);
   });
 
   it("routes Codex responses fallbacks through OpenClaw native transport", async () => {
