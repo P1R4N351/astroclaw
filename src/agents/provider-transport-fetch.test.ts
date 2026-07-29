@@ -1,7 +1,7 @@
 // Verifies guarded provider fetch wiring, stream cleanup, proxy, and local service behavior.
 import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import { Stream } from "openai/streaming";
-import type { Model } from "openclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mintSecretSentinel } from "../secrets/sentinel.js";
 import { buildGuardedModelFetch } from "./provider-transport-fetch.js";
@@ -1176,11 +1176,17 @@ describe("buildGuardedModelFetch", () => {
       api: "openai-responses",
       baseUrl: "https://api.openai.com/v1",
     } as unknown as Model<"openai-responses">;
+    const body = JSON.stringify({ model: "gpt-5.5", stream: true });
+    const parse = vi.spyOn(JSON, "parse");
 
     const response = await buildGuardedModelFetch(model)("https://api.openai.com/v1/responses", {
       method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
     });
 
+    expect(parse).not.toHaveBeenCalled();
+    parse.mockRestore();
     await expect(response.text()).resolves.toBe(
       'event: response.created\n\ndata: {"ok": true}\n\n',
     );
