@@ -1,5 +1,5 @@
 // Codex tests cover context engine projection plugin behavior.
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { describe, expect, it } from "vitest";
 import {
   fitCodexProjectedContextForTurnStart,
@@ -391,6 +391,18 @@ describe("projectContextEngineAssemblyForCodex", () => {
       32_000,
     );
   });
+
+  it.each([
+    { contextTokenBudget: 4_000, maxRenderedContextChars: 8_000 },
+    { contextTokenBudget: 8_000, maxRenderedContextChars: 16_000 },
+  ])(
+    "keeps a $contextTokenBudget-token model within its reserved prompt budget",
+    ({ contextTokenBudget, maxRenderedContextChars }) => {
+      expect(resolveCodexContextEngineProjectionMaxChars({ contextTokenBudget })).toBe(
+        maxRenderedContextChars,
+      );
+    },
+  );
 
   it("applies configured reserve tokens to the scaled projection cap", () => {
     expect(
