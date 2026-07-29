@@ -1,8 +1,8 @@
 // Qa Lab plugin module implements confidence report behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   formatGatewayLogSentinelSummary,
   type GatewayLogSentinelFinding,
@@ -954,7 +954,7 @@ function formatVerdict(lane: QaConfidenceLaneResult): string {
 }
 
 function escapeTableCell(value: string): string {
-  return value.replace(/\|/gu, "\\|").replace(/\s+/gu, " ").trim();
+  return value.replace(/\\/gu, "\\\\").replace(/\|/gu, "\\|").replace(/\s+/gu, " ").trim();
 }
 
 export function renderQaConfidenceMarkdownReport(report: QaConfidenceReport): string {
