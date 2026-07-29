@@ -266,6 +266,7 @@ function createLegacyStateMigrationDetectionResult(params?: {
       hasLegacy: false,
       preview: [],
     },
+    worktrees: { hasLegacy: false },
     taskStateSidecars: {
       taskRunsPath: "/tmp/state/tasks/runs.sqlite",
       flowRunsPath: "/tmp/state/flows/registry.sqlite",
@@ -466,22 +467,22 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
   isNonSecretApiKeyMarker: () => false,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-model-shared", () => ({
+vi.mock("openclaw/plugin-sdk/provider-model-shared", () => ({
   DEFAULT_CONTEXT_TOKENS: 32768,
   normalizeProviderId: (value: string) => normalizeLowercaseStringOrEmpty(value),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-stream-shared", () => ({
+vi.mock("openclaw/plugin-sdk/provider-stream-shared", () => ({
   createMoonshotThinkingWrapper: () => undefined,
   resolveMoonshotThinkingType: () => undefined,
   streamWithPayloadPatch: () => undefined,
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   createSubsystemLogger: () => ({
     debug: () => {},
     info: () => {},
