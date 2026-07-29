@@ -603,6 +603,11 @@ var GatewayProtocolRequestError = class extends Error {
           this.opts.rethrowSocketFactoryError?.(normalized2))
         )
           throw normalized2;
+        this.opts.shouldRetrySocketFactoryError?.(normalized2) &&
+          !this.stopped &&
+          !this.socket &&
+          !this.reconnectSignal &&
+          this.scheduleReconnect();
         return;
       }
       ((this.generation = generation), (this.socket = socket));
