@@ -39,6 +39,7 @@ import {
   stubAnimationFrames,
 } from "./chat-view.test-helpers.ts";
 import { renderChat } from "./chat-view.ts";
+import { ChatAttachmentReadLifecycle } from "./components/chat-attachments.ts";
 import { resetChatComposerState } from "./components/chat-composer.ts";
 import * as chatMessage from "./components/chat-message.ts";
 import {
@@ -47,6 +48,7 @@ import {
 } from "./components/chat-model-controls.ts";
 import {
   resetChatThreadPresentationState,
+  resetChatThreadSessionPresentationState,
   toggleChatThreadSearch,
 } from "./components/chat-thread.ts";
 import { renderWelcomeState } from "./components/chat-welcome.ts";
@@ -1713,7 +1715,7 @@ describe("chat composer workbench", () => {
 
   it("moves the background-tasks rail to a bottom strip on narrow panes", () => {
     const backgroundTasks = {
-      agentId: "main",
+      sessionKey: "agent:main:main",
       statusRowId: "chat-tasks-status-test",
       collapsed: false,
       narrowLayout: false,
@@ -1751,7 +1753,7 @@ describe("chat composer workbench", () => {
 
   it("shows the running-tasks status row after the turn settles, not while working", () => {
     const backgroundTasks = {
-      agentId: "main",
+      sessionKey: "agent:main:main",
       statusRowId: "chat-tasks-status-test",
       collapsed: true,
       narrowLayout: false,
@@ -1885,7 +1887,7 @@ describe("per-pane chat presentation state", () => {
     expect(paneB.querySelector(".agent-chat__search-bar")).toBeNull();
 
     toggleChatThreadSearch("pane-b", vi.fn());
-    resetChatThreadPresentationState("pane-a");
+    resetChatThreadSessionPresentationState("pane-a");
     renderPane(paneA, "pane-a", "");
     renderPane(paneB, "pane-b", "");
     expect(paneA.querySelector(".agent-chat__search-bar")).toBeNull();
@@ -3632,6 +3634,143 @@ describe("chat slash menu accessibility", () => {
 });
 
 describe("chat attachment picker", () => {
+  it.each(["clipboard", "file picker", "drop"] as const)(
+    "waits for an in-flight %s attachment before accepting an immediate send",
+    async (entry) => {
+      const readers: FileReader[] = [];
+      vi.spyOn(FileReader.prototype, "readAsDataURL").mockImplementation(
+        function (this: FileReader) {
+          readers.push(this);
+        },
+      );
+      const container = document.createElement("div");
+      const file = new File(["attachment proof"], "proof.png", { type: "image/png" });
+      const draft = "Send the attachment with this message";
+      let attachments: ChatAttachment[] = [];
+      const onSend = vi.fn(() => {
+        expect(attachments.map((attachment) => attachment.fileName)).toEqual(["proof.png"]);
+      });
+      const redraw = () => {
+        const readSignal = reads.readSignal;
+        render(
+          renderChat(
+            createChatProps({
+              attachments,
+              draft,
+              getAttachments: () => attachments,
+              getDraft: () => draft,
+              getPendingAttachmentReads: () => reads.pendingReads,
+              onAttachmentsChange: (next) => {
+                attachments = next;
+              },
+              onPendingReadsChange: (delta) => reads.updatePending(readSignal, delta),
+              onSend,
+              pendingAttachmentReads: reads.pendingReads,
+              readSignal,
+            }),
+          ),
+          container,
+        );
+      };
+      const reads = new ChatAttachmentReadLifecycle(redraw);
+      redraw();
+
+      if (entry === "clipboard") {
+        const paste = new Event("paste", { bubbles: true, cancelable: true });
+        Object.defineProperty(paste, "clipboardData", {
+          value: {
+            items: [{ type: file.type, getAsFile: () => file }],
+            getData: () => "",
+          },
+        });
+        getComposerTextarea(container).dispatchEvent(paste);
+      } else if (entry === "file picker") {
+        const input = requireElement(
+          container,
+          ".agent-chat__file-input",
+          "attachment file input",
+        ) as HTMLInputElement;
+        Object.defineProperty(input, "files", { configurable: true, value: [file] });
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      } else {
+        const drop = new Event("drop", { bubbles: true, cancelable: true });
+        Object.defineProperty(drop, "dataTransfer", {
+          value: { files: [file], types: ["Files"] },
+        });
+        requireElement(container, "section.card.chat", "chat drop target").dispatchEvent(drop);
+      }
+
+      expect(readers).toHaveLength(1);
+      expect(reads.pendingReads).toBe(1);
+      expect(getComposerTextarea(container).disabled).toBe(false);
+      const send = requireElement(
+        container,
+        'button[aria-label="Send message"]',
+        "send button",
+      ) as HTMLButtonElement;
+      expect(send.disabled).toBe(true);
+      getComposerTextarea(container).dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }),
+      );
+      expect(onSend).not.toHaveBeenCalled();
+
+      const reader = expectDefined(readers[0], "deferred attachment reader");
+      Object.defineProperty(reader, "result", {
+        configurable: true,
+        value: `data:image/png;base64,${btoa("attachment proof")}`,
+      });
+      reader.dispatchEvent(new ProgressEvent("load"));
+
+      await waitForFast(() => {
+        expect(reads.pendingReads).toBe(0);
+        expect(attachments.map((attachment) => attachment.fileName)).toEqual(["proof.png"]);
+      });
+      const readySend = requireElement(
+        container,
+        'button[aria-label="Send message"]',
+        "ready send button",
+      ) as HTMLButtonElement;
+      expect(readySend.disabled).toBe(false);
+      readySend.click();
+      expect(onSend).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("does not attach an aborted file read to a newly selected session", async () => {
+    const readers: FileReader[] = [];
+    vi.spyOn(FileReader.prototype, "readAsDataURL").mockImplementation(function (this: FileReader) {
+      readers.push(this);
+    });
+    const reads = new ChatAttachmentReadLifecycle(() => undefined);
+    const oldSignal = reads.readSignal;
+    const onAttachmentsChange = vi.fn();
+    const file = new File(["private session A"], "private.png", { type: "image/png" });
+    const container = renderChatView({
+      getPendingAttachmentReads: () => reads.pendingReads,
+      onAttachmentsChange,
+      onPendingReadsChange: (delta) => reads.updatePending(oldSignal, delta),
+      pendingAttachmentReads: reads.pendingReads,
+      readSignal: oldSignal,
+      sessionKey: "agent:main:session-a",
+    });
+    const drop = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, "dataTransfer", {
+      value: { files: [file], types: ["Files"] },
+    });
+    requireElement(container, "section.card.chat", "session A drop target").dispatchEvent(drop);
+
+    expect(readers).toHaveLength(1);
+    expect(reads.pendingReads).toBe(1);
+    reads.abortReads();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(oldSignal.aborted).toBe(true);
+    expect(reads.pendingReads).toBe(0);
+    expect(reads.readSignal).not.toBe(oldSignal);
+    expect(onAttachmentsChange).not.toHaveBeenCalled();
+  });
+
   it("highlights only the chat pane receiving a file drag", () => {
     const first = renderChatView();
     const second = renderChatView();
@@ -4553,6 +4692,9 @@ describe("chat model controls", () => {
         { id: "sonnet", name: "OpenCode Sonnet", provider: "opencode" },
         { id: "kimi", name: "OpenCode Kimi", provider: "opencode-go" },
         { id: "glm", name: "OpenCode GLM", provider: "opencode-zen" },
+        { id: "kimi-k3", name: "Kimi K3", provider: "moonshot" },
+        { id: "kimi-k2.7", name: "Kimi K2.7", provider: "moonshot-ai" },
+        { id: "kimi-k2.6", name: "Kimi K2.6", provider: "moonshotai" },
       ],
     });
     const container = renderModelControls(state);
@@ -4561,7 +4703,7 @@ describe("chat model controls", () => {
       container.querySelectorAll<HTMLButtonElement>("[data-chat-model-provider]"),
     );
     const providerLabels = providerButtons.map((button) => button.textContent?.trim());
-    expect(providerLabels).toEqual(["OpenAI", "Google", "OpenCode"]);
+    expect(providerLabels).toEqual(["OpenAI", "Google", "OpenCode", "Moonshot AI"]);
     expect(new Set(providerLabels).size).toBe(providerLabels.length);
     expect(
       container.querySelector('[data-chat-model-provider-group="google"]')?.textContent,
@@ -4578,6 +4720,38 @@ describe("chat model controls", () => {
     ).toBeNull();
     expect(container.querySelector('[data-chat-model-provider-group="opencode-go"]')).toBeNull();
     expect(container.querySelector('[data-chat-model-provider-group="opencode-zen"]')).toBeNull();
+    const moonshotModels = container.querySelector(
+      '[data-chat-model-provider-group="moonshot"]',
+    )?.textContent;
+    expect(moonshotModels).toContain("Kimi K3");
+    expect(moonshotModels).toContain("Kimi K2.7");
+    expect(moonshotModels).toContain("Kimi K2.6");
+    expect(container.querySelector('[data-chat-model-provider-group="moonshot-ai"]')).toBeNull();
+    expect(container.querySelector('[data-chat-model-provider-group="moonshotai"]')).toBeNull();
+  });
+
+  it("shows model context size inline without a redundant tooltip", () => {
+    const { state } = createChatHeaderState({
+      model: "gpt-5.6-sol",
+      modelProvider: "openai",
+      models: [
+        {
+          id: "gpt-5.6-sol",
+          name: "GPT-5.6 Sol",
+          provider: "openai",
+          contextWindow: 1_050_000,
+        },
+      ],
+    });
+    const container = renderModelControls(state);
+    const modelOption = container.querySelector<HTMLButtonElement>(
+      '[data-chat-model-option="openai/gpt-5.6-sol"]',
+    );
+
+    expect(modelOption?.querySelector(".chat-controls__model-option-meta")?.textContent).toBe(
+      "1.1M context",
+    );
+    expect(modelOption?.closest("openclaw-tooltip")).toBeNull();
   });
 
   it("shows canonical OpenAI model names instead of command aliases", () => {
@@ -4889,6 +5063,7 @@ describe("chat model controls", () => {
       ),
       refresh: async () => {},
       setModelOverride: vi.fn(),
+      patchRowLocal: vi.fn(),
     };
     const host = {
       client: {},
@@ -4958,6 +5133,7 @@ describe("chat model controls", () => {
       ),
       refresh: async () => {},
       setModelOverride: vi.fn(),
+      patchRowLocal: vi.fn(),
     };
     const host = {
       client: {},
@@ -5010,6 +5186,7 @@ describe("chat model controls", () => {
       ),
       refresh: async () => {},
       setModelOverride: vi.fn(),
+      patchRowLocal: vi.fn(),
     };
     const host = {
       client: {},
@@ -5075,6 +5252,7 @@ describe("chat model controls", () => {
           });
         },
         refresh: async () => {},
+        patchRowLocal: () => {},
       },
     } as unknown as Parameters<typeof switchChatFastMode>[0];
 
