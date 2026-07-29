@@ -3,35 +3,35 @@ import {
   buildLegacyDmAccountAllowlistAdapter,
   createAccountScopedAllowlistNameResolver,
   createFlatAllowlistOverrideResolver,
-} from "astroclaw/plugin-sdk/allowlist-config-edit";
-import { adaptScopedAccountAccessor } from "astroclaw/plugin-sdk/channel-config-helpers";
+} from "openclaw/plugin-sdk/allowlist-config-edit";
+import { adaptScopedAccountAccessor } from "openclaw/plugin-sdk/channel-config-helpers";
 import {
   buildThreadAwareOutboundSessionRoute,
   createChatChannelPlugin,
-} from "astroclaw/plugin-sdk/channel-core";
+} from "openclaw/plugin-sdk/channel-core";
 import {
   createChannelMessageAdapterFromOutbound,
   createRuntimeOutboundDelegates,
   resolveOutboundSendDep,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
-import type { ChannelOutboundAdapter } from "astroclaw/plugin-sdk/channel-send-result";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
+import type { ChannelOutboundAdapter } from "openclaw/plugin-sdk/channel-send-result";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "astroclaw/plugin-sdk/directory-runtime";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { buildOutboundBaseSessionKey, type RoutePeer } from "astroclaw/plugin-sdk/routing";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/directory-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { buildOutboundBaseSessionKey, type RoutePeer } from "openclaw/plugin-sdk/routing";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
 import {
   mergeSlackAccountConfig,
   resolveDefaultSlackAccountId,
@@ -61,10 +61,6 @@ import { assertSlackDirectSendAllowed } from "./direct-send-admission.js";
 import { formatSlackError } from "./errors.js";
 import { shouldSuppressLocalSlackExecApprovalPrompt } from "./exec-approvals.js";
 import { resolveSlackGroupRequireMention, resolveSlackGroupToolPolicy } from "./group-policy.js";
-import {
-  compileSlackInteractiveReplies,
-  isSlackInteractiveRepliesEnabled,
-} from "./interactive-replies.js";
 import { SLACK_TEXT_LIMIT } from "./limits.js";
 import { SLACK_PRESENTATION_CAPABILITIES } from "./presentation.js";
 import type { SlackProbe } from "./probe.js";
@@ -136,8 +132,8 @@ type TargetResolverRuntimeSurface = {
   >;
 };
 
-const EXTENSION_SHARED_MODULE_ID = "astroclaw/plugin-sdk/extension-shared";
-const TARGET_RESOLVER_RUNTIME_MODULE_ID = "astroclaw/plugin-sdk/target-resolver-runtime";
+const EXTENSION_SHARED_MODULE_ID = "openclaw/plugin-sdk/extension-shared";
+const TARGET_RESOLVER_RUNTIME_MODULE_ID = "openclaw/plugin-sdk/target-resolver-runtime";
 
 const loadExtensionSharedSdk = createLazyRuntimeModule(
   () => import(EXTENSION_SHARED_MODULE_ID) as Promise<ExtensionSharedSurface>,
@@ -474,10 +470,6 @@ const slackChannelOutbound: ChannelOutboundAdapter = {
   chunker: null,
   textChunkLimit: SLACK_TEXT_LIMIT,
   sanitizeText: ({ text }) => sanitizeAssistantVisibleText(text),
-  normalizePayload: ({ payload, cfg, accountId }) =>
-    isSlackInteractiveRepliesEnabled({ cfg, accountId })
-      ? compileSlackInteractiveReplies(payload)
-      : payload,
   deliveryCapabilities: {
     durableFinal: {
       text: true,
@@ -681,12 +673,6 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount, SlackProbe> = crea
       },
       inferTargetChatType: ({ to }) => resolveSlackRouteTarget(to)?.chatType,
       resolveOutboundSessionRoute: async (params) => await resolveSlackOutboundSessionRoute(params),
-      transformReplyPayload: ({ payload, cfg, accountId }) =>
-        isSlackInteractiveRepliesEnabled({ cfg, accountId })
-          ? compileSlackInteractiveReplies(payload)
-          : payload,
-      enableInteractiveReplies: ({ cfg, accountId }) =>
-        isSlackInteractiveRepliesEnabled({ cfg, accountId }),
       hasStructuredReplyPayload: ({ payload }) => {
         try {
           return Boolean(resolveSlackReplyBlocks(payload)?.length);
