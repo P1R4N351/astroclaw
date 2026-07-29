@@ -2,9 +2,9 @@
 import {
   createInboundDebouncer,
   resolveInboundDebounceMs,
-} from "openclaw/plugin-sdk/channel-inbound-debounce";
-import { hasControlCommand, isControlCommandMessage } from "openclaw/plugin-sdk/command-detection";
-import { createNonExitingRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound-debounce";
+import { hasControlCommand, isControlCommandMessage } from "astroclaw/plugin-sdk/command-detection";
+import { createNonExitingRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig, PluginRuntime } from "../runtime-api.js";
 import { parseFeishuMessageEvent, type FeishuMessageEvent } from "./bot.js";
@@ -757,6 +757,7 @@ describe("Feishu inbound debounce regressions", () => {
           },
           flushKey: async () => {},
           cancelKey: () => false,
+          drain: async () => {},
         }),
       }),
     );
