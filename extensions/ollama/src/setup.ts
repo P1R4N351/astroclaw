@@ -1,11 +1,11 @@
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 // Ollama setup module handles plugin onboarding behavior.
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
 import type {
   OpenClawConfig,
   SecretInput,
   SecretInputMode,
-} from "astroclaw/plugin-sdk/provider-auth";
+} from "openclaw/plugin-sdk/provider-auth";
 import {
   ensureApiKeyFromOptionEnvOrPrompt,
   isNonSecretApiKeyMarker,
@@ -13,13 +13,13 @@ import {
   normalizeOptionalSecretInput,
   upsertAuthProfileWithLock,
   validateApiKeyInput,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { readProviderJsonResponse } from "astroclaw/plugin-sdk/provider-http";
-import { applyAgentDefaultModelPrimary } from "astroclaw/plugin-sdk/provider-onboard";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
-import { WizardCancelledError, type WizardPrompter } from "astroclaw/plugin-sdk/setup";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-auth";
+import { readProviderJsonResponse } from "openclaw/plugin-sdk/provider-http";
+import { applyAgentDefaultModelPrimary } from "openclaw/plugin-sdk/provider-onboard";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
+import { WizardCancelledError, type WizardPrompter } from "openclaw/plugin-sdk/setup";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   OLLAMA_CLOUD_BASE_URL,
   OLLAMA_CLOUD_DEFAULT_MODELS,
@@ -843,15 +843,20 @@ export async function configureOllamaNonInteractive(params: {
     return params.nextConfig;
   }
 
-  await storeOllamaCredential(params.agentDir);
-
   const enrichedModels = await enrichOllamaModelsWithContext(
     baseUrl,
     models.slice(0, OLLAMA_CONTEXT_ENRICH_LIMIT),
   );
   const discoveredModelsByName = new Map(enrichedModels.map((model) => [model.name, model]));
   const modelNames = models.map((model) => model.name);
-  const orderedModelNames = mergeUniqueModelNames(OLLAMA_SUGGESTED_MODELS_LOCAL, modelNames);
+  // Configured local models are advertised as available, so suggested models
+  // belong in the inventory only when Ollama actually reports them as installed.
+  const orderedModelNames = mergeUniqueModelNames(
+    OLLAMA_SUGGESTED_MODELS_LOCAL.filter(
+      (modelName) => findAvailableOllamaModelName(modelName, modelNames) !== undefined,
+    ),
+    modelNames,
+  );
 
   const requestedDefaultModelId =
     explicitModel ??
@@ -905,6 +910,9 @@ export async function configureOllamaNonInteractive(params: {
       `Ollama model ${requestedDefaultModelId} was not available; using ${defaultModelId} instead.`,
     );
   }
+
+  // Failed setup must not leave a durable local profile behind.
+  await storeOllamaCredential(params.agentDir);
 
   const config = applyOllamaProviderConfig(
     params.nextConfig,
