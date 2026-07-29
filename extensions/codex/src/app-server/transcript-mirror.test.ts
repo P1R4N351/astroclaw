@@ -4,19 +4,19 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "openclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { readSessionTranscriptEvents } from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { readSessionTranscriptEvents } from "astroclaw/plugin-sdk/session-transcript-runtime";
 import {
   castAgentMessage,
   makeAgentAssistantMessage,
   makeAgentUserMessage,
-} from "openclaw/plugin-sdk/test-fixtures";
+} from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CodexThread } from "./protocol.js";
 import { readCodexMirroredSessionHistoryMessages } from "./session-history.js";
@@ -33,9 +33,9 @@ const mirrorTranscriptBestEffort = codexTranscriptMirrorRuntime.mirrorBestEffort
 
 const publishSessionTranscriptUpdateByIdentityMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-runtime")>();
   return {
     ...actual,
     publishSessionTranscriptUpdateByIdentity: publishSessionTranscriptUpdateByIdentityMock,
@@ -924,6 +924,38 @@ describe("mirrorCodexAppServerTranscript", () => {
     });
 
     expect((await readMirrorMessages(target)).filter((message) => message.role)).toHaveLength(2);
+  });
+
+  it("serializes concurrent mirrors with the same supplied identity", async () => {
+    const target = await createSqliteMirrorTarget("openclaw-codex-mirror-concurrent-");
+    const message = attachCodexMirrorIdentity(
+      makeAgentUserMessage({
+        content: [{ type: "text", text: "append once" }],
+        timestamp: Date.now(),
+      }),
+      "turn-1:prompt",
+    );
+
+    const results = await Promise.all([
+      mirrorCodexAppServerTranscript({
+        ...target,
+        messages: [message],
+        idempotencyScope: "codex-app-server:thread-1",
+      }),
+      mirrorCodexAppServerTranscript({
+        ...target,
+        messages: [message],
+        idempotencyScope: "codex-app-server:thread-1",
+      }),
+    ]);
+
+    expect((await readMirrorMessages(target)).filter((entry) => entry.role)).toEqual([
+      { role: "user", text: "append once" },
+    ]);
+    expect(results.map((result) => messageContent(result.userMessagesPresent[0]))).toEqual([
+      [{ type: "text", text: "append once" }],
+      [{ type: "text", text: "append once" }],
+    ]);
   });
 
   it("reports final assistant ownership for new and idempotent mirrors", async () => {
