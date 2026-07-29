@@ -1,17 +1,18 @@
 // Memory Core plugin module coordinates synchronization and shadow reindexing.
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentDir,
   resolveUserPath,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
-import type {
-  MemorySyncParams,
-  MemorySyncProgressUpdate,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import {
+  MEMORY_CHUNKING_VERSION,
+  type MemorySyncParams,
+  type MemorySyncProgressUpdate,
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import {
   createEmbeddingProvider,
   type EmbeddingProvider,
@@ -236,6 +237,10 @@ export abstract class MemoryManagerSyncOps extends MemoryManagerSourceSyncOps {
       indexIdentity.status === "missing" && !hasTargetArchiveFiles && canRebuildMissingIdentity;
     const needsExplicitIdentityReindex =
       params?.reason === "cli" && indexIdentity.status !== "valid" && !hasTargetArchiveFiles;
+    // Source hashes do not reflect chunk boundaries, so an implementation
+    // upgrade must rebuild the shadow index instead of attempting dirty sync.
+    const needsChunkingVersionReindex =
+      meta !== null && meta.chunkingVersion !== MEMORY_CHUNKING_VERSION && !hasTargetArchiveFiles;
     const canRunRetryFullReindex =
       indexIdentity.status !== "missing" || needsInitialIndex || canRebuildMissingIdentity;
     const needsFullReindex =
@@ -243,6 +248,7 @@ export abstract class MemoryManagerSyncOps extends MemoryManagerSourceSyncOps {
       needsInitialIndex ||
       needsMissingIdentityReindex ||
       needsExplicitIdentityReindex ||
+      needsChunkingVersionReindex ||
       (this.memoryFullRetryDirty && canRunRetryFullReindex) ||
       (this.sessionsFullRetryDirty && indexIdentity.status !== "valid" && canRunRetryFullReindex);
     const needsFullSessionReindex = needsFullReindex || this.sessionsFullRetryDirty;
@@ -590,6 +596,7 @@ export abstract class MemoryManagerSyncOps extends MemoryManagerSourceSyncOps {
         }),
         chunkTokens: this.settings.chunking.tokens,
         chunkOverlap: this.settings.chunking.overlap,
+        chunkingVersion: MEMORY_CHUNKING_VERSION,
         ftsTokenizer: this.settings.store.fts.tokenizer,
         provenanceVersion: MEMORY_INDEX_PROVENANCE_VERSION,
       };
