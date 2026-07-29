@@ -1,9 +1,10 @@
 // Memory Core plugin module implements manager behavior.
 import type { DatabaseSync } from "node:sqlite";
-import { resolveAgentConfig } from "astroclaw/plugin-sdk/agent-runtime";
-import { formatErrorMessage, readErrorName } from "astroclaw/plugin-sdk/error-runtime";
-import { listRegisteredMemoryEmbeddingProviderAdapters } from "astroclaw/plugin-sdk/memory-core-host-embedding-registry";
-import { classifyMemoryMultimodalPath } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import type { FSWatcher } from "chokidar";
+import { resolveAgentConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { formatErrorMessage, readErrorName } from "openclaw/plugin-sdk/error-runtime";
+import { listRegisteredMemoryEmbeddingProviderAdapters } from "openclaw/plugin-sdk/memory-core-host-embedding-registry";
+import { classifyMemoryMultimodalPath } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   createSubsystemLogger,
   resolveGlobalSingleton,
@@ -12,8 +13,8 @@ import {
   resolveMemorySearchConfig,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { extractKeywords } from "astroclaw/plugin-sdk/memory-core-host-engine-qmd";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { extractKeywords } from "openclaw/plugin-sdk/memory-core-host-engine-qmd";
 import {
   readCuratedProjectMemoryCandidates,
   readMemoryFile,
@@ -31,11 +32,10 @@ import {
   type MemorySessionSyncTarget,
   type MemorySource,
   type MemorySyncParams,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
-import { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
-import { uniqueValues } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import type { FSWatcher } from "chokidar";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
+import { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
+import { uniqueValues } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   resolveMemoryCoreLocalServiceHostIdentity,
   type MemoryCoreAcquireLocalService,
@@ -1112,6 +1112,10 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
   }
 
   async search(query: string, opts?: MemoryIndexSearchOptions): Promise<MemorySearchResult[]> {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+      return [];
+    }
     const maxResults = opts?.maxResults ?? this.settings.query.maxResults;
     const minScore = opts?.minScore ?? this.settings.query.minScore;
     const hasActiveProject = (opts?.activeProjectKeys?.length ?? 0) > 0;
@@ -1119,7 +1123,7 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
       ? Math.min(200, Math.max(maxResults, maxResults * 4))
       : maxResults;
     const candidateMinScore = hasActiveProject ? minScore / 1.15 : minScore;
-    const results = await this.searchUnranked(query, {
+    const results = await this.searchUnranked(normalizedQuery, {
       ...opts,
       maxResults: candidateMaxResults,
       minScore: candidateMinScore,
@@ -1131,15 +1135,11 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
   }
 
   private async searchUnranked(
-    query: string,
+    normalizedQuery: string,
     opts?: MemoryIndexSearchOptions,
   ): Promise<MemorySearchResult[]> {
     return await this.withManagerOperation(async () => {
       opts?.onDebug?.({ backend: "builtin" });
-      const normalizedQuery = query.trim();
-      if (!normalizedQuery) {
-        return [];
-      }
       if (this.providerRequirement.mode === "required") {
         await this.ensureProviderInitialized();
         this.assertRequiredProviderAvailable("search");
