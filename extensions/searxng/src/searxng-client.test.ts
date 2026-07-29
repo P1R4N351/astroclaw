@@ -1,6 +1,6 @@
 // Searxng tests cover searxng client plugin behavior.
 import { expectDefined } from "@openclaw/normalization-core";
-import type { LookupFn } from "openclaw/plugin-sdk/ssrf-runtime";
+import type { LookupFn } from "astroclaw/plugin-sdk/ssrf-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const endpointMockState = vi.hoisted(() => ({
@@ -13,8 +13,8 @@ const endpointMockState = vi.hoisted(() => ({
   responses: [] as Response[],
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-web-search", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/provider-web-search")>();
+vi.mock("astroclaw/plugin-sdk/provider-web-search", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/provider-web-search")>();
   const runEndpoint = async (
     params: { url: string; timeoutSeconds: number; init: RequestInit; signal?: AbortSignal },
     run: (response: Response) => Promise<unknown>,
@@ -62,6 +62,21 @@ describe("searxng client", () => {
     ).toBe(
       "https://search.example.com/searxng/search?q=openclaw&format=json&categories=general%2Cnews&language=en",
     );
+  });
+
+  it("does not duplicate a configured search endpoint", () => {
+    expect(
+      testing.buildSearxngSearchUrl({
+        baseUrl: "https://search.example.com/search",
+        query: "openclaw",
+      }),
+    ).toBe("https://search.example.com/search?q=openclaw&format=json");
+    expect(
+      testing.buildSearxngSearchUrl({
+        baseUrl: "https://search.example.com/search/",
+        query: "openclaw",
+      }),
+    ).toBe("https://search.example.com/search?q=openclaw&format=json");
   });
 
   it("parses SearXNG JSON results and applies the requested count cap", () => {
