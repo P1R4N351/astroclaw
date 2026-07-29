@@ -2,13 +2,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { ExecApprovalRequest } from "openclaw/plugin-sdk/approval-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ExecApprovalRequest } from "astroclaw/plugin-sdk/approval-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   normalizeSessionDeliveryState,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { normalizeMatrixApproverId } from "./approval-ids.js";
 import {
@@ -150,6 +150,22 @@ describe("matrix exec approvals", () => {
     expect(
       isMatrixExecApprovalClientEnabled({
         cfg: buildConfig({ enabled: true, approvers: ["@owner:example.org"] }),
+      }),
+    ).toBe(true);
+  });
+
+  it("enables explicit auto mode only when Matrix approvers can be resolved", () => {
+    expect(isMatrixExecApprovalClientEnabled({ cfg: buildConfig({ enabled: "auto" }) })).toBe(
+      false,
+    );
+    expect(
+      isMatrixExecApprovalClientEnabled({
+        cfg: buildConfig({ enabled: "auto" }, { dm: { allowFrom: ["@owner:example.org"] } }),
+      }),
+    ).toBe(true);
+    expect(
+      isMatrixExecApprovalClientEnabled({
+        cfg: buildConfig({ enabled: "auto", approvers: ["@owner:example.org"] }),
       }),
     ).toBe(true);
   });
