@@ -6,7 +6,7 @@ import { asOptionalRecord as asRecord } from "@openclaw/normalization-core/recor
 import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
-import { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
+import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
 import { createInlineCodeState } from "../../packages/markdown-core/src/code-spans.js";
 import {
   parseReplyDirectives,
@@ -1153,6 +1153,9 @@ export function handleMessageEnd(
     return;
   }
 
+  // Transcript-only messages never reach the provider, so this counts exactly
+  // the completed model round trips consumers see as `assistantTurns`.
+  ctx.state.assistantTurnCount += 1;
   const assistantMessage = preservePendingAssistantUsage(msg, ctx.state.pendingAssistantUsage);
   const assistantPhase = resolveAssistantMessagePhase(assistantMessage);
   const suppressVisibleAssistantOutput = shouldSuppressAssistantVisibleOutput(assistantMessage);
