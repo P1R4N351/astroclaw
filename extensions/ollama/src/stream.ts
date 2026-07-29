@@ -1,7 +1,7 @@
 // Ollama plugin module implements stream behavior.
 import { randomUUID } from "node:crypto";
-import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import type {
   AssistantMessage,
   StopReason,
@@ -10,33 +10,29 @@ import type {
   ToolCall,
   Tool,
   Usage,
-} from "astroclaw/plugin-sdk/llm";
-import { createAssistantMessageEventStream, streamSimple } from "astroclaw/plugin-sdk/llm";
+} from "openclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream, streamSimple } from "openclaw/plugin-sdk/llm";
 import type {
   OpenClawConfig,
   ProviderRuntimeModel,
   ProviderWrapStreamFnContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { isNonSecretApiKeyMarker } from "astroclaw/plugin-sdk/provider-auth";
-import { readResponseTextLimited } from "astroclaw/plugin-sdk/provider-http";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { isNonSecretApiKeyMarker } from "openclaw/plugin-sdk/provider-auth";
+import { readResponseTextLimited } from "openclaw/plugin-sdk/provider-http";
 import {
   DEFAULT_CONTEXT_TOKENS,
   normalizeProviderId,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 import {
   createMoonshotThinkingWrapper,
   createPlainTextToolCallCompatWrapper,
   resolveMoonshotThinkingType,
   streamWithPayloadPatch,
-} from "astroclaw/plugin-sdk/provider-stream-shared";
-import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
-import {
-  isRecord,
-  normalizeLowercaseStringOrEmpty,
-  readStringValue,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/provider-stream-shared";
+import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+import { fetchWithSsrFGuard, isLoopbackHost } from "openclaw/plugin-sdk/ssrf-runtime";
+import { isRecord, readStringValue } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { OLLAMA_CLOUD_BASE_URL, OLLAMA_DEFAULT_BASE_URL } from "./defaults.js";
 import { shouldWrapOllamaCompatMoonshotThinking } from "./model-behavior.js";
 import { normalizeOllamaWireModelId } from "./model-id.js";
@@ -196,13 +192,7 @@ export function isOllamaCompatProvider(model: {
   }
   try {
     const parsed = new URL(model.baseUrl);
-    const hostname = normalizeLowercaseStringOrEmpty(parsed.hostname);
-    const isLocalhost =
-      hostname === "localhost" ||
-      hostname === "127.0.0.1" ||
-      hostname === "::1" ||
-      hostname === "[::1]";
-    if (isLocalhost && parsed.port === "11434") {
+    if (isLoopbackHost(parsed.hostname) && parsed.port === "11434") {
       return true;
     }
 
