@@ -1,5 +1,5 @@
 // Azure Speech tests cover tts plugin behavior.
-import { installPinnedHostnameTestHooks } from "openclaw/plugin-sdk/test-media-understanding";
+import { installPinnedHostnameTestHooks } from "astroclaw/plugin-sdk/test-media-understanding";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   azureSpeechTTS,
@@ -157,6 +157,69 @@ describe("azure speech tts", () => {
         id: "en-US-JennyNeural",
         name: "Jenny",
         description: "Warm",
+        locale: "en-US",
+        gender: "Female",
+        personalities: ["Warm"],
+      },
+    ]);
+  });
+
+  it("returns an empty catalog for a malformed top-level voice payload", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("null", {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(
+      listAzureSpeechVoices({
+        apiKey: "speech-key",
+        baseUrl: "https://custom.example.com",
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  it("skips malformed voice rows without discarding valid entries", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify([
+            null,
+            "unexpected",
+            [],
+            { ShortName: 42 },
+            {
+              ShortName: "en-US-JennyNeural",
+              DisplayName: "Jenny",
+              Locale: "en-US",
+              Gender: "Female",
+              Status: "GA",
+              VoiceTag: {
+                TailoredScenarios: [null, "Conversational"],
+                VoicePersonalities: [false, "Warm", "  "],
+              },
+            },
+          ]),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    await expect(
+      listAzureSpeechVoices({
+        apiKey: "speech-key",
+        baseUrl: "https://custom.example.com",
+      }),
+    ).resolves.toEqual([
+      {
+        id: "en-US-JennyNeural",
+        name: "Jenny",
+        description: "Conversational, Warm",
         locale: "en-US",
         gender: "Female",
         personalities: ["Warm"],
