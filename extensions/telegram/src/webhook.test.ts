@@ -9,8 +9,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { WEBHOOK_RATE_LIMIT_DEFAULTS } from "openclaw/plugin-sdk/webhook-ingress";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { WEBHOOK_RATE_LIMIT_DEFAULTS } from "astroclaw/plugin-sdk/webhook-ingress";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTelegramSpooledReplayDeferredParticipant,
@@ -918,6 +918,28 @@ describe("startTelegramWebhook", () => {
       vi.useRealTimers();
       await started.stop();
     }
+  });
+
+  it("continues webhook shutdown after bot stop fails", async () => {
+    const runtimeError = vi.fn();
+    const setStatus = vi.fn();
+    stopSpy.mockRejectedValueOnce(new Error("bot stop failed"));
+
+    const started = await startTelegramWebhook({
+      token: TELEGRAM_TOKEN,
+      port: 0,
+      secret: TELEGRAM_SECRET,
+      path: TELEGRAM_WEBHOOK_PATH,
+      spoolDir: requireWebhookSpoolDir(),
+      setStatus,
+      runtime: { log: vi.fn(), error: runtimeError, exit: vi.fn() },
+    });
+
+    await expect(started.stop()).resolves.toBeUndefined();
+
+    expect(transportCloseSpies[0]).toHaveBeenCalledOnce();
+    expect(setStatus).toHaveBeenLastCalledWith({ mode: "webhook", connected: false });
+    expectMockMessageContains(runtimeError, "telegram webhook bot stop failed");
   });
 
   it("marks delivery accepted only after the durable enqueue commits", async () => {
