@@ -3,10 +3,10 @@ import "./test-helpers.js";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { escapeRegExp, formatEnvelopeTimestamp } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { setLoggerOverride } from "openclaw/plugin-sdk/runtime-env";
-import { withEnvAsync } from "openclaw/plugin-sdk/test-env";
+import { escapeRegExp, formatEnvelopeTimestamp } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { setLoggerOverride } from "astroclaw/plugin-sdk/runtime-env";
+import { withEnvAsync } from "astroclaw/plugin-sdk/test-env";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { getActiveWebListener } from "./active-listener.js";
 import { WhatsAppAuthUnstableError, resolveWebCredsPath } from "./auth-store.js";
@@ -47,7 +47,7 @@ const deliveryQueueMocks = vi.hoisted(() => ({
   drainPendingDeliveries: vi.fn(async (_opts: unknown) => undefined),
 }));
 
-vi.mock("openclaw/plugin-sdk/delivery-queue-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/delivery-queue-runtime", () => ({
   drainPendingDeliveries: deliveryQueueMocks.drainPendingDeliveries,
 }));
 
@@ -311,6 +311,39 @@ describe("web auto-reply connection", () => {
     expect(sleep).toHaveBeenCalled();
     expectErrorContaining(runtime.error, "status 408");
     expectErrorContaining(runtime.error, "Retry 1/2");
+  });
+
+  it("marks an opening-phase remote logout as a terminal disconnect", async () => {
+    vi.mocked(waitForWaConnection).mockRejectedValueOnce({
+      output: { statusCode: 401 },
+    });
+    const listenerFactory = vi.fn(async () => createMockWebListener());
+    const sleep = vi.fn(async () => {});
+    const statuses: Array<{
+      running?: boolean;
+      connected?: boolean;
+      healthState?: string;
+      terminalDisconnect?: boolean;
+    }> = [];
+    const { runtime, run } = startWebAutoReplyMonitor({
+      monitorWebChannelFn: monitorWebChannel as never,
+      listenerFactory,
+      sleep,
+      statusSink: (next) => statuses.push({ ...next }),
+    });
+
+    await expect(run).resolves.toBeUndefined();
+
+    expect(waitForWaConnection).toHaveBeenCalledOnce();
+    expect(listenerFactory).not.toHaveBeenCalled();
+    expect(sleep).not.toHaveBeenCalled();
+    expect(statuses.at(-1)).toMatchObject({
+      running: false,
+      connected: false,
+      healthState: "logged-out",
+      terminalDisconnect: true,
+    });
+    expectErrorContaining(runtime.error, "openclaw channels login --channel whatsapp");
   });
 
   it("keeps post-open Baileys 428 on the reconnect path", async () => {
