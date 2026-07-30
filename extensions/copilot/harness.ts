@@ -14,8 +14,8 @@ import {
   type AgentHarnessCompactParams,
   type AgentHarnessCompactResult,
   type AgentHarnessResetParams,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import type { CopilotSessionConfig } from "./src/attempt.js";
 import { createCopilotByokAuth, resolveCopilotAuth, tokenFingerprint } from "./src/auth-bridge.js";
 import { createCopilotByokProxy } from "./src/byok-proxy.js";
@@ -31,6 +31,10 @@ import type {
   PooledClient,
   PoolKey,
 } from "./src/runtime.js";
+
+type AgentHarnessIsolatedCompletion = NonNullable<AgentHarness["runIsolatedCompletion"]>;
+type AgentHarnessIsolatedCompletionParams = Parameters<AgentHarnessIsolatedCompletion>[0];
+type AgentHarnessIsolatedCompletionResult = Awaited<ReturnType<AgentHarnessIsolatedCompletion>>;
 
 const COPILOT_PROVIDER_IDS: ReadonlySet<string> = new Set(["github-copilot"]);
 
@@ -882,6 +886,33 @@ export function createCopilotAgentHarness(
     }
   }
 
+  async function runIsolatedCompletion(
+    params: AgentHarnessIsolatedCompletionParams,
+  ): Promise<AgentHarnessIsolatedCompletionResult> {
+    const completionPromise = (async () => {
+      if (disposed) {
+        throw new Error("[copilot] harness has been disposed; cannot start isolated completion");
+      }
+      const { runCopilotIsolatedCompletion } = await import("./src/isolated-completion.js");
+      if (disposed) {
+        throw new Error("[copilot] harness was disposed while starting isolated completion");
+      }
+      return await runCopilotIsolatedCompletion(params, async () => {
+        const pool = await getPool();
+        if (disposed) {
+          throw new Error("[copilot] harness was disposed while starting isolated completion");
+        }
+        return pool;
+      });
+    })();
+    inFlight.add(completionPromise);
+    try {
+      return await completionPromise;
+    } finally {
+      inFlight.delete(completionPromise);
+    }
+  }
+
   return {
     id: options?.id ?? "copilot",
     label: options?.label ?? "GitHub Copilot agent runtime",
@@ -931,6 +962,8 @@ export function createCopilotAgentHarness(
     },
 
     runAttempt: (params) => runHarnessAttempt(params, "attempt"),
+
+    runIsolatedCompletion,
 
     finalizeSettledTurn: async ({ attempt }) => {
       const result = await runHarnessAttempt(attempt, "settled-tool-finalization");
