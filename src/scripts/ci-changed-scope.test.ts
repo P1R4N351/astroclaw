@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { bundledPluginFile } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
 
 const {
@@ -365,7 +365,7 @@ describe("detectChangedScope", () => {
     });
   });
 
-  it("keeps native platform lanes scoped when the CI workflow changes", () => {
+  it("runs CI-owned platform lanes when the CI workflow changes", () => {
     expect(detectChangedScope([".github/workflows/ci.yml"])).toEqual({
       runNode: true,
       runMacos: false,
@@ -375,7 +375,7 @@ describe("detectChangedScope", () => {
       runSkillsPython: false,
       runChangedSmoke: false,
       runControlUiI18n: false,
-      runUiTests: false,
+      runUiTests: true,
     });
   });
 
