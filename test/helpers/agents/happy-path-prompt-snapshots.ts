@@ -1,7 +1,7 @@
 // Happy path prompt snapshot helper reads expected prompt snapshot files.
 import fs from "node:fs";
 import path from "node:path";
-import type { Model } from "openclaw/plugin-sdk/llm";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import { resolveHeartbeatPromptForResponseTool } from "../../../src/auto-reply/heartbeat.js";
 import {
   buildDirectChatContext,
@@ -59,7 +59,7 @@ const CODEX_YOLO_PERMISSION_INSTRUCTIONS = [
 ].join("\n");
 const HAPPY_PATH_TOOL_NAMES = new Set([
   "nodes",
-  "cron",
+  "automations",
   "message",
   "heartbeat_respond",
   "tts",
