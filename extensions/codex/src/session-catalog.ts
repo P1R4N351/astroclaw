@@ -1,19 +1,19 @@
 import { createHash } from "node:crypto";
-import { resolveDefaultAgentDir, resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveDefaultAgentDir, resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import type {
   OpenClawPluginApi,
   OpenClawPluginNodeHostCommand,
   OpenClawPluginNodeInvokePolicy,
-} from "openclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
 import {
   listSessionCatalogEntries,
   type SessionCatalogEntrySnapshot,
   type SessionCatalogHost,
   type SessionCatalogProvider,
-} from "openclaw/plugin-sdk/session-catalog";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/session-catalog";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { CODEX_CONTROL_METHODS } from "./app-server/capabilities.js";
 import { resolveCodexAppServerClientInstanceId } from "./app-server/client.js";
 import {
@@ -627,6 +627,7 @@ async function listCodexSessionCatalog(params: {
     nodes = (await (params.listNodes?.() ?? params.runtime.nodes.list())).nodes
       .filter(
         (node) =>
+          node.gatewayLocal !== true &&
           node.commands?.includes(CODEX_APP_SERVER_THREADS_LIST_COMMAND) &&
           (!requestedHostIds || requestedHostIds.has(`node:${node.nodeId}`)),
       )
