@@ -1,18 +1,18 @@
 import {
   loadTranscriptEventsSync,
   resolveStorePath,
-} from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   loadSqliteTrajectoryRuntimeEvents,
   type SqliteTrajectoryRuntimeEventForTest,
-} from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 // Qa Lab plugin module implements runtime parity behavior.
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   asFiniteNumber as readFiniteNumber,
   isRecord as isMessageRecord,
   normalizeOptionalString as readNonEmptyString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   scanDirectReplyTranscriptSentinels,
   scanGatewayLogSentinels,
@@ -241,9 +241,14 @@ function readUsageTotals(raw: unknown): RuntimeParityUsage {
     readFiniteNumber(usage.outputTokens) ??
     readFiniteNumber(usage.output_tokens) ??
     0;
-  const cacheRead = readFiniteNumber(usage.cacheRead) ?? readFiniteNumber(usage.cache_read_tokens);
-  const cacheWrite =
-    readFiniteNumber(usage.cacheWrite) ?? readFiniteNumber(usage.cache_write_tokens);
+  const cacheTelemetryUnavailable =
+    isMessageRecord(usage.cacheTelemetry) && usage.cacheTelemetry.state === "unavailable";
+  const cacheRead = cacheTelemetryUnavailable
+    ? undefined
+    : (readFiniteNumber(usage.cacheRead) ?? readFiniteNumber(usage.cache_read_tokens));
+  const cacheWrite = cacheTelemetryUnavailable
+    ? undefined
+    : (readFiniteNumber(usage.cacheWrite) ?? readFiniteNumber(usage.cache_write_tokens));
   const componentTotal = inputTokens + outputTokens + (cacheRead ?? 0) + (cacheWrite ?? 0);
   const totalTokens =
     readFiniteNumber(usage.total) ??
@@ -257,6 +262,26 @@ function readUsageTotals(raw: unknown): RuntimeParityUsage {
     ...(cacheRead !== undefined ? { cacheRead } : {}),
     ...(cacheWrite !== undefined ? { cacheWrite } : {}),
   };
+}
+
+function readAssistantUsage(message: Record<string, unknown>): RuntimeParityUsage {
+  const usage = readUsageTotals(message.usage ?? null);
+  if (!isMessageRecord(message.usage) || isMessageRecord(message.usage.cacheTelemetry)) {
+    return usage;
+  }
+  const provider = readNonEmptyString(message.provider)?.toLowerCase();
+  const api = readNonEmptyString(message.api)?.toLowerCase();
+  if (
+    (provider === "ollama" || api === "ollama") &&
+    usage.cacheRead === 0 &&
+    usage.cacheWrite === 0
+  ) {
+    // Transcripts written before cacheTelemetry was added contain Ollama's
+    // required placeholder zeros. Explicit current provenance always wins.
+    delete usage.cacheRead;
+    delete usage.cacheWrite;
+  }
+  return usage;
 }
 
 function addUsage(target: RuntimeParityUsage, next: RuntimeParityUsage) {
@@ -1002,7 +1027,7 @@ function aggregateUsage(records: RuntimeParityTranscriptRecord[]): RuntimeParity
     if (record.role !== "assistant") {
       continue;
     }
-    const usage = readUsageTotals(record.message.usage ?? null);
+    const usage = readAssistantUsage(record.message);
     addUsage(totals, usage);
   }
   return totals;
@@ -1474,7 +1499,7 @@ export async function captureRuntimeParityCell(
     cacheDiagnostics: buildRuntimeParityCacheDiagnostics(
       transcriptRecords
         .filter((record) => record.role === "assistant")
-        .map((record) => readUsageTotals(record.message.usage ?? null)),
+        .map((record) => readAssistantUsage(record.message)),
     ),
     wallClockMs: params.wallClockMs,
     ...(params.bootstrapWallClockMs === undefined
