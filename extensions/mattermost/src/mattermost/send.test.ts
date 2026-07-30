@@ -1,6 +1,7 @@
+import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
 // Mattermost tests cover send plugin behavior.
-import { expectProvidedCfgSkipsRuntimeLoad } from "openclaw/plugin-sdk/channel-test-helpers";
-import { convertMarkdownTables } from "openclaw/plugin-sdk/text-chunking";
+import { expectProvidedCfgSkipsRuntimeLoad } from "astroclaw/plugin-sdk/channel-test-helpers";
+import { convertMarkdownTables } from "astroclaw/plugin-sdk/text-chunking";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let sendMessageMattermost: typeof import("./send.js").sendMessageMattermost;
@@ -117,7 +118,7 @@ vi.mock("./runtime-api.js", () => ({
   loadOutboundMediaFromUrl: mockState.loadOutboundMediaFromUrl,
 }));
 
-vi.mock("openclaw/plugin-sdk/plugin-config-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", () => ({
   requireRuntimeConfig: (cfg: unknown) => {
     if (cfg) {
       return cfg;
@@ -126,11 +127,11 @@ vi.mock("openclaw/plugin-sdk/plugin-config-runtime", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/markdown-table-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/markdown-table-runtime", () => ({
   resolveMarkdownTableMode: mockState.resolveMarkdownTableMode,
 }));
 
-vi.mock("openclaw/plugin-sdk/string-coerce-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", () => ({
   normalizeLowercaseStringOrEmpty: vi.fn((value: string | null | undefined) => {
     if (typeof value !== "string") {
       return "";
@@ -319,7 +320,84 @@ describe("sendMessageMattermost", () => {
     expect(result.receipt.parts).toHaveLength(1);
     expect(result.receipt.parts[0]?.platformMessageId).toBe("post-1");
     expect(result.receipt.parts[0]?.kind).toBe("text");
+    expect(result.content).toBe("hello");
     expect(mockState.loadConfig).not.toHaveBeenCalled();
+  });
+
+  it("preserves the provider post when outbound bookkeeping fails afterward", async () => {
+    const events: string[] = [];
+    const onDeliveryResult = vi.fn(() => {
+      events.push("delivery");
+    });
+    mockState.createMattermostPost.mockResolvedValueOnce({
+      id: "post-final",
+      message: "provider-final",
+    });
+    mockState.recordActivity.mockImplementationOnce(() => {
+      events.push("activity");
+      throw new Error("activity store unavailable");
+    });
+
+    let caught: unknown;
+    try {
+      await sendMessageMattermost("channel:town-square", "requested text", {
+        cfg: TEST_CFG,
+        onDeliveryResult,
+      });
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    expect(isChannelPartialDeliveryError(caught)).toBe(true);
+    if (!isChannelPartialDeliveryError(caught)) {
+      throw new Error("expected a partial Mattermost delivery error");
+    }
+    expect(caught.deliveryResult).toMatchObject({
+      messageIds: ["post-final"],
+      visibleReplySent: true,
+      content: "provider-final",
+    });
+    expect(onDeliveryResult).toHaveBeenCalledTimes(1);
+    expect(onDeliveryResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageId: "post-final",
+        channelId: "town-square",
+        content: "provider-final",
+      }),
+    );
+    expect(events).toStrictEqual(["delivery", "activity"]);
+  });
+
+  it("preserves the provider post when delivery reporting fails afterward", async () => {
+    const onDeliveryResult = vi.fn(async () => {
+      throw new Error("delivery store unavailable");
+    });
+    mockState.createMattermostPost.mockResolvedValueOnce({
+      id: "post-final",
+      message: "provider-final",
+    });
+
+    let caught: unknown;
+    try {
+      await sendMessageMattermost("channel:town-square", "requested text", {
+        cfg: TEST_CFG,
+        onDeliveryResult,
+      });
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    expect(isChannelPartialDeliveryError(caught)).toBe(true);
+    if (!isChannelPartialDeliveryError(caught)) {
+      throw new Error("expected a partial Mattermost delivery error");
+    }
+    expect(caught.deliveryResult).toMatchObject({
+      messageIds: ["post-final"],
+      visibleReplySent: true,
+      content: "provider-final",
+    });
+    expect(onDeliveryResult).toHaveBeenCalledTimes(1);
+    expect(mockState.recordActivity).not.toHaveBeenCalled();
   });
 
   it("loads outbound media with trusted local roots before upload", async () => {
