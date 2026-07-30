@@ -1,18 +1,18 @@
-// Telegram plugin module implements bot message context behavior.
-import type { ReactionTypeEmoji } from "grammy/types";
 import {
   resolveAckReaction,
   shouldAckReaction as shouldAckReactionGate,
-} from "openclaw/plugin-sdk/channel-feedback";
-import { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-feedback";
+import { logInboundDrop } from "astroclaw/plugin-sdk/channel-inbound";
 import type {
   TelegramDirectConfig,
   TelegramGroupConfig,
-} from "openclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { deriveLastRoutePolicy } from "openclaw/plugin-sdk/routing";
-import { normalizeAccountId, resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { deriveLastRoutePolicy } from "astroclaw/plugin-sdk/routing";
+import { normalizeAccountId, resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Telegram plugin module implements bot message context behavior.
+import type { ReactionTypeEmoji } from "grammy/types";
 import {
   expandTelegramAllowFromWithAccessGroups,
   resolveTelegramDmAllow,
@@ -545,7 +545,6 @@ export const buildTelegramMessageContext = async ({
       isDirect: !isGroup,
       isGroup,
       isMentionableGroup: isGroup,
-      requireMention: Boolean(requireMention),
       canDetectMention: bodyResult.canDetectMention,
       effectiveWasMentioned: bodyResult.effectiveWasMentioned,
       shouldBypassMention: bodyResult.shouldBypassMention,
