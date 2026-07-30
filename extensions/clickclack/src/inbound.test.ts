@@ -1,8 +1,8 @@
 // Clickclack tests cover inbound plugin behavior.
-import { createPluginRuntimeMock } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { PluginRuntime } from "openclaw/plugin-sdk/core";
-import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
-import { buildAgentSessionKey, resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/core";
+import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { buildAgentSessionKey, resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   recordPendingDiscussionOpen,
@@ -67,6 +67,10 @@ function createRuntime(): PluginRuntime {
         model: "gpt-5.4-mini",
         agentId: "service-bot",
         usage: {},
+        execution: {
+          mode: "direct-provider",
+          owner: { kind: "provider", id: "openai" },
+        },
         audit: {
           caller: { kind: "plugin", id: "clickclack" },
         },
@@ -291,6 +295,10 @@ describe("handleClickClackInbound", () => {
       model: "gpt-5.4-mini",
       agentId: "service-bot",
       usage: {},
+      execution: {
+        mode: "direct-provider",
+        owner: { kind: "provider", id: "openai" },
+      },
       audit: { caller: { kind: "plugin", id: "clickclack" } },
     });
     setClickClackRuntime(runtime);
