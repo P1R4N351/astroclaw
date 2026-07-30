@@ -1,4 +1,4 @@
-import { formatChannelProgressDraftText } from "openclaw/plugin-sdk/channel-outbound";
+import { formatChannelProgressDraftText } from "astroclaw/plugin-sdk/channel-outbound";
 // Slack tests cover progress blocks plugin behavior.
 import { describe, expect, it } from "vitest";
 import {
@@ -81,11 +81,11 @@ function expectTaskUpdate(task: unknown, fields: { id: unknown; title: string; s
 }
 
 describe("buildSlackProgressDraftBlocks", () => {
-  it("keeps a typed checklist below Slack status draft text", () => {
+  it("keeps a typed checklist below Slack status draft text and work lines", () => {
     expect(
       formatChannelProgressDraftText({
         entry: { streaming: { mode: "progress", progress: { label: "Shelling" } } },
-        lines: [toolLine("hidden while status exists")],
+        lines: [toolLine("read the config")],
         narration: "Implementing the change.",
         plan: [
           { step: "Inspect", status: "completed" },
@@ -93,7 +93,9 @@ describe("buildSlackProgressDraftBlocks", () => {
           { step: "Test", status: "pending" },
         ],
       }),
-    ).toBe("Shelling\n\nImplementing the change.\n\n✅ Inspect\n▸ Patch\n▢ Test");
+    ).toBe(
+      "Shelling\n\nImplementing the change.\n\n🛠️ read the config\n✅ Inspect\n▸ Patch\n▢ Test",
+    );
   });
 
   it("keeps legacy rich draft rendering as section field blocks", () => {
