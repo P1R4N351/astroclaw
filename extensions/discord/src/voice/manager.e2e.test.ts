@@ -1,10 +1,10 @@
 import { PassThrough, type Readable } from "node:stream";
 import { expectDefined } from "@openclaw/normalization-core";
-import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import type {
   RealtimeVoiceAgentControlResult,
   RealtimeVoiceSessionHarness,
-} from "openclaw/plugin-sdk/realtime-voice";
+} from "astroclaw/plugin-sdk/realtime-voice";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelType } from "../internal/discord.js";
 import { createVoiceCaptureState } from "./capture-state.js";
@@ -222,9 +222,9 @@ vi.mock("./sdk-runtime.js", () => ({
   }),
 }));
 
-vi.mock("openclaw/plugin-sdk/routing", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/routing")>(
-    "openclaw/plugin-sdk/routing",
+vi.mock("astroclaw/plugin-sdk/routing", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/routing")>(
+    "astroclaw/plugin-sdk/routing",
   );
   return {
     ...actual,
@@ -232,9 +232,9 @@ vi.mock("openclaw/plugin-sdk/routing", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/agent-runtime")>(
-    "openclaw/plugin-sdk/agent-runtime",
+vi.mock("astroclaw/plugin-sdk/agent-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/agent-runtime")>(
+    "astroclaw/plugin-sdk/agent-runtime",
   );
   return {
     ...actual,
@@ -243,19 +243,19 @@ vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/realtime-bootstrap-context", async () => {
+vi.mock("astroclaw/plugin-sdk/realtime-bootstrap-context", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/realtime-bootstrap-context")
-  >("openclaw/plugin-sdk/realtime-bootstrap-context");
+    typeof import("astroclaw/plugin-sdk/realtime-bootstrap-context")
+  >("astroclaw/plugin-sdk/realtime-bootstrap-context");
   return {
     ...actual,
     resolveRealtimeBootstrapContextInstructions: resolveRealtimeBootstrapContextInstructionsMock,
   };
 });
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
-    "openclaw/plugin-sdk/runtime-env",
+vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
+    "astroclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -263,13 +263,13 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: enqueueSystemEventMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/realtime-voice", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/realtime-voice")>(
-    "openclaw/plugin-sdk/realtime-voice",
+vi.mock("astroclaw/plugin-sdk/realtime-voice", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/realtime-voice")>(
+    "astroclaw/plugin-sdk/realtime-voice",
   );
   return {
     ...actual,
@@ -2953,6 +2953,101 @@ describe("DiscordVoiceManager", () => {
     expect(createAudioResourceMock).toHaveBeenCalledTimes(1);
     expect(player.play).toHaveBeenCalledTimes(1);
     bridgeParams?.onEvent?.({ direction: "server", type: "response.done" });
+  });
+
+  it("cancels realtime output when Discord playback backpressures", async () => {
+    const manager = createAgentProxyManager();
+
+    await manager.join({ guildId: "g1", channelId: "1001" });
+
+    const player = getLastAudioPlayer();
+    const entry = getSessionEntry(manager);
+    const bridgeParams = lastRealtimeBridgeParams();
+
+    for (let index = 0; index < 50; index += 1) {
+      bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
+    }
+
+    const realtime = entry.realtime as unknown as { outputStream?: PassThrough };
+    const stream = realtime.outputStream;
+    if (!stream) {
+      throw new Error("expected realtime output stream");
+    }
+    vi.spyOn(stream, "write").mockReturnValueOnce(false);
+
+    bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
+
+    expect(player.stop).toHaveBeenCalledWith(true);
+    await vi.waitFor(() =>
+      expect(realtimeSessionMock.handleBargeIn).toHaveBeenCalledWith({
+        audioPlaybackActive: true,
+        force: true,
+      }),
+    );
+
+    bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
+    expect(createAudioResourceMock).toHaveBeenCalledTimes(1);
+    expect(player.play).toHaveBeenCalledTimes(1);
+
+    bridgeParams?.onEvent?.({ direction: "server", type: "response.cancelled" });
+    for (let index = 0; index < 50; index += 1) {
+      bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
+    }
+
+    expect(createAudioResourceMock).toHaveBeenCalledTimes(2);
+    expect(player.play).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["response cancellation", { direction: "server", type: "response.cancelled" }],
+    [
+      "cancellation race",
+      {
+        direction: "server",
+        type: "error",
+        detail: "Cancellation failed: no active response found",
+      },
+    ],
+  ] as const)("does not let a deferred backpressure cancel cross %s", async (_label, terminal) => {
+    const manager = createAgentProxyManager();
+
+    await manager.join({ guildId: "g1", channelId: "1001" });
+
+    const player = getLastAudioPlayer();
+    const entry = getSessionEntry(manager);
+    const bridgeParams = lastRealtimeBridgeParams();
+
+    for (let index = 0; index < 50; index += 1) {
+      bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
+    }
+
+    const realtime = entry.realtime as unknown as { outputStream?: PassThrough };
+    const stream = realtime.outputStream;
+    if (!stream) {
+      throw new Error("expected realtime output stream");
+    }
+    vi.spyOn(stream, "write").mockReturnValueOnce(false);
+
+    bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
+    bridgeParams?.onEvent?.(terminal);
+    for (let index = 0; index < 50; index += 1) {
+      bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
+    }
+    await Promise.resolve();
+
+    const stopCallCount = player.stop.mock.calls.length;
+    bridgeParams?.onEvent?.({
+      direction: "server",
+      type: "error",
+      detail: "Cancellation failed: no active response found",
+    });
+    bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
+
+    expect(realtimeSessionMock.handleBargeIn).not.toHaveBeenCalled();
+    expect(player.stop).toHaveBeenCalledWith(true);
+    expect(player.stop).toHaveBeenCalledTimes(stopCallCount);
+    expect(createAudioResourceMock).toHaveBeenCalledTimes(2);
+    expect(player.play).toHaveBeenCalledTimes(2);
   });
 
   it("discards prebuffered realtime output when the response is cancelled", async () => {
