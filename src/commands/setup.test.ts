@@ -1,7 +1,7 @@
 // Setup command tests cover local setup initialization and next-step messaging.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { createConfigIO } from "../config/io.js";
@@ -115,6 +115,29 @@ describe("setupCommand", () => {
         "Next targeted changes: openclaw configure for models, channels, Gateway, plugins, skills, and health checks.",
         "Add a chat channel later: openclaw channels add.",
       ]);
+    });
+  });
+
+  it("emits one structured result for baseline JSON output", async () => {
+    await withTempHome(async (home) => {
+      const runtime = {
+        log: vi.fn(),
+        error: vi.fn(),
+        exit: vi.fn(),
+      };
+      const deps = createSetupDeps(home);
+      const workspace = path.join(home, ".openclaw", "workspace");
+
+      await setupCommand({ workspace, json: true }, runtime, deps);
+
+      expect(runtime.log).toHaveBeenCalledOnce();
+      expect(JSON.parse(String(runtime.log.mock.calls[0]?.[0]))).toEqual({
+        ok: true,
+        configPath: path.join(home, ".openclaw", "openclaw.json"),
+        configStatus: "created",
+        workspaceDir: workspace,
+        sessionsDir: path.join(home, ".openclaw", "sessions"),
+      });
     });
   });
 
