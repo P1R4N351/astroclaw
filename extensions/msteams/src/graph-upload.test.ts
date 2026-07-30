@@ -1,5 +1,5 @@
 // Msteams tests cover graph upload plugin behavior.
-import { withFetchPreconnect, withServer } from "openclaw/plugin-sdk/test-env";
+import { withFetchPreconnect, withServer } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildTeamsFileInfoCard } from "./graph-chat.js";
 import { requireMSTeamsSharePointSiteId, uploadAndShareSharePoint } from "./graph-upload.js";
@@ -287,9 +287,7 @@ describe("graph upload request timeouts", () => {
     const signal = fetchSignal(fetchFn);
     const assertion = expectMSTeamsTimeout(upload, "MS Teams SharePoint upload", timeoutMs);
 
-    await vi.advanceTimersByTimeAsync(timeoutMs);
-
-    await assertion;
+    await Promise.all([assertion, vi.advanceTimersByTimeAsync(timeoutMs)]);
     expect(signal.aborted).toBe(true);
   });
 
