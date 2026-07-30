@@ -5,7 +5,7 @@ import { createEmptyInstallChecks } from "./requirements-test-fixtures.js";
 import { formatSkillInfo, formatSkillsCheck, formatSkillsList } from "./skills-cli.format.js";
 
 // Unit tests: don't pay the runtime cost of loading/parsing the real skills loader.
-vi.mock("openclaw/plugin-sdk/agent-sessions", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-sessions", () => ({
   loadSkillsFromDir: () => ({ skills: [] }),
   formatSkillsForPrompt: () => "",
 }));
@@ -339,7 +339,7 @@ describe("skills-cli", () => {
       expect(output).toContain("not-assigned");
       expect(output).toContain("What this means");
       expect(output).toContain("the agent may still exclude it");
-      expect(output).toContain("people, scripts, or cron jobs can call the skill explicitly");
+      expect(output).toContain("people, scripts, or automations can call the skill explicitly");
       expect(output).toContain("kept out of normal chat");
       expect(output).toContain("commands/cron may still use it");
     });
