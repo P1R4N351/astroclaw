@@ -9,21 +9,21 @@
 
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
 import type {
   RealtimeTranscriptionProviderConfig,
   RealtimeTranscriptionProviderPlugin,
   RealtimeTranscriptionSession,
-} from "openclaw/plugin-sdk/realtime-transcription";
+} from "astroclaw/plugin-sdk/realtime-transcription";
 import {
   createTalkSessionController,
   recordTalkObservabilityEvent,
   type TalkEvent,
   type TalkEventInput,
   type TalkSessionController,
-} from "openclaw/plugin-sdk/realtime-voice";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/realtime-voice";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { type RawData, WebSocket, WebSocketServer } from "ws";
 import { canonicalizeVoiceCallMediaBase64 } from "./media-base64.js";
 
@@ -138,6 +138,8 @@ function parseTwilioMediaMessage(data: RawData): TwilioMediaMessage {
  */
 export class MediaStreamHandler {
   private wss: WebSocketServer | null = null;
+  private closePromise: Promise<void> | null = null;
+  private closing = false;
   private sessions = new Map<string, StreamSession>();
   private config: MediaStreamConfig;
   /** Pending sockets that have upgraded but not yet sent an accepted `start` frame. */
@@ -172,6 +174,11 @@ export class MediaStreamHandler {
    * Handle WebSocket upgrade for media stream connections.
    */
   handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): void {
+    if (this.closing) {
+      this.rejectUpgrade(socket, 503, "Media stream handler is shutting down");
+      return;
+    }
+
     if (!this.wss) {
       this.wss = new WebSocketServer({
         noServer: true,
@@ -221,6 +228,31 @@ export class MediaStreamHandler {
     }
   }
 
+  close(shutdownBarrier: Promise<unknown> = Promise.resolve()): Promise<void> {
+    if (this.closePromise) {
+      return this.closePromise;
+    }
+
+    this.closing = true;
+    const wss = this.wss;
+    this.wss = null;
+    this.closePromise = (async () => {
+      if (wss) {
+        await new Promise<void>((resolve) => {
+          wss.close(() => resolve());
+          for (const ws of wss.clients) {
+            ws.terminate();
+          }
+        });
+      }
+      await shutdownBarrier;
+    })().finally(() => {
+      this.closing = false;
+      this.closePromise = null;
+    });
+    return this.closePromise;
+  }
+
   /**
    * Handle new WebSocket connection from Twilio.
    */
@@ -244,6 +276,11 @@ export class MediaStreamHandler {
             break;
 
           case "start":
+            if (session) {
+              console.warn("[MediaStream] Rejecting duplicate start frame for active connection");
+              ws.close(1008, "Duplicate start");
+              break;
+            }
             session = this.handleStart(ws, message, streamToken);
             if (session) {
               this.clearPendingConnection(ws);
