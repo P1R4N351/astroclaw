@@ -37,9 +37,9 @@ const chunkMarkdownTextWithModeMock = vi.fn<
   (text: string, limit?: number, mode?: unknown) => string[]
 >((text) => (text ? [text] : []));
 
-vi.mock("openclaw/plugin-sdk/plugin-config-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-config-runtime")>(
-    "openclaw/plugin-sdk/plugin-config-runtime",
+vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-config-runtime")>(
+    "astroclaw/plugin-sdk/plugin-config-runtime",
   );
   return {
     ...actual,
@@ -870,6 +870,7 @@ describe("sendMessageMatrix threads", () => {
     expect(result.roomId).toBe("!room:example");
     expect(result.primaryMessageId).toBe("$m1");
     expect(result.messageId).toBe("$m3");
+    expect(result.content).toBe("part1\npart2\npart3");
     expect(result.receipt.primaryPlatformMessageId).toBe("$m1");
     expect(result.receipt.platformMessageIds).toEqual(["$m1", "$m2", "$m3"]);
     const parts = requireArray(result.receipt.parts, "receipt parts");
@@ -897,6 +898,7 @@ describe("sendMessageMatrix threads", () => {
     ).rejects.toThrow("second event failed");
 
     expect(onDeliveryResult.mock.calls.map((call) => call[0]?.messageId)).toEqual(["$m1"]);
+    expect(onDeliveryResult.mock.calls.map((call) => call[0]?.content)).toEqual(["part1"]);
   });
 
   it("merges extra content into only the first chunked text event", async () => {
@@ -1066,6 +1068,7 @@ describe("sendSingleTextMessageMatrix", () => {
     expect(result.receipt.primaryPlatformMessageId).toBe("evt1");
     expect(result.receipt.platformMessageIds).toEqual(["evt1"]);
     expectTextReceiptPart(result.receipt.parts[0], "evt1");
+    expect(result.content).toBe("done");
   });
 });
 
