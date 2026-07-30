@@ -1,8 +1,8 @@
-import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
 import {
   createChannelPartialDeliveryError,
   type ChannelInboundTurnPlan,
-} from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
 // Msteams plugin module implements reply dispatcher behavior.
 import {
   buildChannelProgressDraftLine,
@@ -12,11 +12,11 @@ import {
   resolveChannelStreamingBlockEnabled,
   resolveChannelStreamingPreviewToolProgress,
   resolveChannelStreamingSuppressDefaultToolProgressMessages,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
-import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
+import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   createChannelMessageReplyPipeline,
   logTypingFailure,
@@ -511,7 +511,11 @@ export function createMSTeamsReplyDispatcher(params: {
   // tools fire (instead of the rotating "Thinking..." label sitting unchanged
   // for the duration of a long tool chain). In other modes these calls are
   // no-ops on the controller side.
-  const previewToolProgressEnabled = resolveChannelStreamingPreviewToolProgress(msteamsCfg);
+  const previewToolProgressEnabled = resolveChannelStreamingPreviewToolProgress(
+    msteamsCfg,
+    true,
+    teamsStreamMode,
+  );
   const suppressDefaultToolProgressMessages =
     resolveChannelStreamingSuppressDefaultToolProgressMessages(msteamsCfg);
   const shouldSuppressDefaultToolProgressMessages =
