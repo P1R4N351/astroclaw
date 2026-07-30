@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
-import type { SessionCatalogProvider } from "openclaw/plugin-sdk/session-catalog";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+import type { SessionCatalogProvider } from "astroclaw/plugin-sdk/session-catalog";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { adoptedSourceKey } from "./session-catalog-adoption.js";
 import {
@@ -50,8 +50,8 @@ const nodeHostMocks = vi.hoisted(() => ({
   userShellPaths: new Map<string, string>(),
 }));
 
-vi.mock("openclaw/plugin-sdk/node-host", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/node-host")>();
+vi.mock("astroclaw/plugin-sdk/node-host", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/node-host")>();
   return {
     ...actual,
     runNodePtyCommand: nodeHostMocks.runNodePtyCommand,
@@ -2566,6 +2566,51 @@ describe("Claude session catalog", () => {
       expect.objectContaining({ hostId: "node:failed", error: expect.any(Object) }),
       expect.objectContaining({ hostId: "node:healthy", sessions: [] }),
     ]);
+  });
+
+  it("omits the Gateway's same-install node host from native discovery", async () => {
+    const home = await createHome();
+    process.env.HOME = home;
+    const invoke = vi.fn(async ({ nodeId }: { nodeId: string }) => ({
+      payloadJSON: JSON.stringify({
+        sessions: [
+          {
+            threadId: `remote-${nodeId}`,
+            status: "stored",
+            source: "claude-cli",
+            archived: false,
+          },
+        ],
+      }),
+    }));
+    const provider = captureCatalogProvider({
+      nodes: {
+        list: vi.fn().mockResolvedValue({
+          nodes: [
+            {
+              nodeId: "gateway-node",
+              displayName: "Gateway node",
+              gatewayLocal: true,
+              connected: true,
+              commands: [CLAUDE_SESSIONS_LIST_COMMAND],
+            },
+            {
+              nodeId: "remote-node",
+              displayName: "Remote node",
+              connected: true,
+              commands: [CLAUDE_SESSIONS_LIST_COMMAND],
+            },
+          ],
+        }),
+        invoke,
+      },
+    } as unknown as PluginRuntime);
+
+    const hosts = await provider.list({});
+
+    expect(hosts.map((host) => host.hostId)).toEqual(["gateway:local", "node:remote-node"]);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ nodeId: "remote-node" }));
   });
 
   it("bounds how long a hung paired-node catalog can delay the caller", async () => {
