@@ -1,10 +1,9 @@
 // Memory Core plugin module implements manager behavior.
 import type { DatabaseSync } from "node:sqlite";
-import type { FSWatcher } from "chokidar";
-import { resolveAgentConfig } from "openclaw/plugin-sdk/agent-runtime";
-import { formatErrorMessage, readErrorName } from "openclaw/plugin-sdk/error-runtime";
-import { listRegisteredMemoryEmbeddingProviderAdapters } from "openclaw/plugin-sdk/memory-core-host-embedding-registry";
-import { classifyMemoryMultimodalPath } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { resolveAgentConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { formatErrorMessage, readErrorName } from "astroclaw/plugin-sdk/error-runtime";
+import { listRegisteredMemoryEmbeddingProviderAdapters } from "astroclaw/plugin-sdk/memory-core-host-embedding-registry";
+import { classifyMemoryMultimodalPath } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   createSubsystemLogger,
   resolveGlobalSingleton,
@@ -13,8 +12,8 @@ import {
   resolveMemorySearchConfig,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { extractKeywords } from "openclaw/plugin-sdk/memory-core-host-engine-qmd";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { extractKeywords } from "astroclaw/plugin-sdk/memory-core-host-engine-qmd";
 import {
   readCuratedProjectMemoryCandidates,
   readMemoryFile,
@@ -32,10 +31,11 @@ import {
   type MemorySessionSyncTarget,
   type MemorySource,
   type MemorySyncParams,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
-import { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
-import { uniqueValues } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+import { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
+import { uniqueValues } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import type { FSWatcher } from "chokidar";
 import {
   resolveMemoryCoreLocalServiceHostIdentity,
   type MemoryCoreAcquireLocalService,
@@ -491,6 +491,8 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
   private syncing: Promise<void> | null = null;
   private queuedArchiveFiles = new Set<string>();
   private queuedSessions = new Map<string, MemorySessionSyncTarget>();
+  private queuedForce = false;
+  private queuedProgressCallbacks = new Set<NonNullable<MemorySyncParams["progress"]>>();
   private queuedSessionSync: Promise<void> | null = null;
   private readonlyRecoveryAttempts = 0;
   private readonlyRecoverySuccesses = 0;
@@ -1895,15 +1897,38 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
     if (this.closing || this.closed) {
       return;
     }
+    if (
+      hasTargetedSessionSyncParams(params) &&
+      (this.queuedSessionSync !== null ||
+        this.queuedArchiveFiles.size > 0 ||
+        this.queuedSessions.size > 0)
+    ) {
+      // A failed queued batch stays manager-owned. Route the next targeted
+      // call through the queue even while idle so it adopts that retained work.
+      return await this.enqueueTargetedSessionSync(params);
+    }
     return await this.syncAdmitted(params);
   }
 
   private async syncAdmitted(
     params?: MemorySyncParams,
-    options?: { allowEmbeddingBootstrapFallback?: boolean },
+    options?: {
+      allowEmbeddingBootstrapFallback?: boolean;
+      queuedSessionOwner?: boolean;
+    },
   ): Promise<void> {
     if (this.syncing) {
       if (hasTargetedSessionSyncParams(params)) {
+        if (options?.queuedSessionOwner) {
+          // Another caller claimed the sync slot after this queue owner was
+          // created. Wait for it, then retry admission instead of enqueueing
+          // into the promise that is already awaiting this call.
+          await this.syncing.catch(() => undefined);
+          if (this.closing || this.closed) {
+            return;
+          }
+          return await this.syncAdmitted(params, options);
+        }
         return this.enqueueTargetedSessionSync(params);
       }
       try {
@@ -1995,19 +2020,24 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
   }
 
   private enqueueTargetedSessionSync(
-    targets?: Pick<MemorySyncParams, "sessions" | "archiveFiles">,
+    targets?: Pick<MemorySyncParams, "sessions" | "archiveFiles" | "force" | "progress">,
   ): Promise<void> {
     return enqueueMemoryTargetedSessionSync(
       {
-        isClosed: () => this.closed,
+        isClosed: () => this.closing || this.closed,
         getSyncing: () => this.syncing,
         getQueuedArchiveFiles: () => this.queuedArchiveFiles,
         getQueuedSessions: () => this.queuedSessions,
+        getQueuedForce: () => this.queuedForce,
+        setQueuedForce: (value) => {
+          this.queuedForce = value;
+        },
+        getQueuedProgressCallbacks: () => this.queuedProgressCallbacks,
         getQueuedSessionSync: () => this.queuedSessionSync,
         setQueuedSessionSync: (value) => {
           this.queuedSessionSync = value;
         },
-        sync: async (params) => await this.syncAdmitted(params),
+        sync: async (params) => await this.syncAdmitted(params, { queuedSessionOwner: true }),
       },
       targets,
     );
@@ -2314,6 +2344,10 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
 
   private async closeOnce(): Promise<void> {
     this.closing = true;
+    this.queuedArchiveFiles.clear();
+    this.queuedSessions.clear();
+    this.queuedForce = false;
+    this.queuedProgressCallbacks.clear();
     await this.awaitManagerIdle();
     this.closed = true;
     const pendingProviderInit = this.providerInitPromise;
