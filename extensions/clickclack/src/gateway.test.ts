@@ -1,6 +1,6 @@
 // Clickclack tests cover gateway plugin behavior.
 import { EventEmitter } from "node:events";
-import type { ChannelGatewayContext } from "openclaw/plugin-sdk/channel-contract";
+import type { ChannelGatewayContext } from "astroclaw/plugin-sdk/channel-contract";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedClickClackAccount } from "./types.js";
 
@@ -50,7 +50,7 @@ vi.mock("./inbound.js", () => ({
   handleClickClackInbound: mocks.handleClickClackInbound,
 }));
 
-vi.mock("openclaw/plugin-sdk/native-command-registry", () => ({
+vi.mock("astroclaw/plugin-sdk/native-command-registry", () => ({
   listNativeCommandSpecsForConfig: () => [],
 }));
 
@@ -473,6 +473,11 @@ describe("ClickClack gateway", () => {
     mocks.resolveClickClackInboundAccess.mockResolvedValue({
       shouldDispatch: false,
       commandAuthorized: false,
+      mentionFacts: {
+        canDetectMention: true,
+        wasMentioned: false,
+        hasAnyMention: false,
+      },
     });
     const abort = new AbortController();
     const ctx = createGatewayContext(abort.signal);
@@ -485,7 +490,18 @@ describe("ClickClack gateway", () => {
     await waitForGatewayState(() =>
       expect(mocks.resolveClickClackInboundAccess).toHaveBeenCalledTimes(1),
     );
+    expect(mocks.resolveClickClackInboundAccess).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: expect.objectContaining({
+          botHandle: "bot",
+          botUserId: "bot-user",
+        }),
+      }),
+    );
     expect(mocks.handleClickClackInbound).not.toHaveBeenCalled();
+    expect(ctx.log?.info).toHaveBeenCalledWith(
+      expect.stringContaining("skipped ClickClack message before agent dispatch"),
+    );
     abort.abort();
     await run;
   });
