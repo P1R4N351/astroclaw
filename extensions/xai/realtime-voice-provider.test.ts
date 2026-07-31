@@ -1,5 +1,5 @@
 // Xai tests cover realtime voice provider plugin behavior.
-import { REALTIME_VOICE_AUDIO_FORMAT_PCM16_24KHZ } from "openclaw/plugin-sdk/realtime-voice";
+import { REALTIME_VOICE_AUDIO_FORMAT_PCM16_24KHZ } from "astroclaw/plugin-sdk/realtime-voice";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildXaiRealtimeVoiceProvider } from "./realtime-voice-provider.js";
 
@@ -66,11 +66,11 @@ vi.mock("ws", () => ({
   default: FakeWebSocket,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
   isProviderAuthProfileConfigured: isProviderAuthProfileConfiguredMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
@@ -258,6 +258,82 @@ describe("buildXaiRealtimeVoiceProvider", () => {
     bridge.close();
 
     expect(requireSession(socket).resumption).toBeUndefined();
+  });
+
+  it("bounds pending realtime audio by aggregate bytes before session setup", async () => {
+    vi.stubEnv("XAI_API_KEY", "xai-env"); // pragma: allowlist secret
+    const provider = buildXaiRealtimeVoiceProvider();
+    const bridge = provider.createBridge({
+      providerConfig: { apiKey: "xai-test" }, // pragma: allowlist secret
+      onAudio: vi.fn(),
+      onClearAudio: vi.fn(),
+    });
+
+    bridge.sendAudio(Buffer.alloc(512 * 1024, 0x7f));
+    bridge.sendAudio(Buffer.alloc(512 * 1024, 0x7f));
+    bridge.sendAudio(Buffer.alloc(1, 0x7f));
+
+    const { connecting, socket } = await openRealtimeBridge(bridge);
+    await connecting;
+
+    expect(
+      parseSent(socket).filter((event) => event.type === "input_audio_buffer.append"),
+    ).toHaveLength(2);
+    bridge.close();
+  });
+
+  it("copies pending realtime audio views without retaining their backing allocation", async () => {
+    vi.stubEnv("XAI_API_KEY", "xai-env"); // pragma: allowlist secret
+    const provider = buildXaiRealtimeVoiceProvider();
+    const bridge = provider.createBridge({
+      providerConfig: { apiKey: "xai-test" }, // pragma: allowlist secret
+      onAudio: vi.fn(),
+      onClearAudio: vi.fn(),
+    });
+    const backing = Buffer.alloc(2 * 1024 * 1024, 0x7f);
+    const view = backing.subarray(0, 1);
+
+    bridge.sendAudio(view);
+    backing[0] = 0;
+
+    const { connecting, socket } = await openRealtimeBridge(bridge);
+    await connecting;
+
+    expect(parseSent(socket).filter((event) => event.type === "input_audio_buffer.append")).toEqual(
+      [{ type: "input_audio_buffer.append", audio: "fw==" }],
+    );
+    bridge.close();
+  });
+
+  it("drops queued realtime input on close and ignores late input until reconnect", async () => {
+    vi.stubEnv("XAI_API_KEY", "xai-env"); // pragma: allowlist secret
+    const provider = buildXaiRealtimeVoiceProvider();
+    const bridge = provider.createBridge({
+      providerConfig: { apiKey: "xai-test" }, // pragma: allowlist secret
+      onAudio: vi.fn(),
+      onClearAudio: vi.fn(),
+    });
+
+    bridge.sendAudio(Buffer.from([0x01]));
+    bridge.sendUserMessage?.("queued before close");
+    void bridge.submitToolResult("call-before-close", { ok: true });
+    bridge.close();
+    bridge.sendAudio(Buffer.from([0x02]));
+    bridge.sendUserMessage?.("late after close");
+    void bridge.submitToolResult("call-after-close", { ok: true });
+
+    const { connecting, socket } = await openRealtimeBridge(bridge);
+    await connecting;
+
+    expect(
+      parseSent(socket).filter(
+        (event) =>
+          event.type === "input_audio_buffer.append" ||
+          event.type === "conversation.item.create" ||
+          event.type === "response.create",
+      ),
+    ).toEqual([]);
+    bridge.close();
   });
 
   it("rejects generic response modes that xAI server VAD cannot disable", () => {
@@ -1331,6 +1407,7 @@ describe("buildXaiRealtimeVoiceProvider", () => {
     const reconnecting = bridge.connect();
     await waitForRealtimeState(() => expect(FakeWebSocket.instances.length).toBe(2));
     const reconnectedSocket = requireSocket(1);
+    expect(String(reconnectedSocket.args[0])).not.toContain("conversation_id=");
     reconnectedSocket.readyState = FakeWebSocket.OPEN;
     reconnectedSocket.emit("open");
     reconnectedSocket.emit("message", Buffer.from(JSON.stringify({ type: "session.updated" })));
