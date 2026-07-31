@@ -12,20 +12,21 @@ import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { finished } from "node:stream/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   isRecord,
   normalizeOptionalString,
   normalizeStringEntries,
   uniqueStrings,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -86,6 +87,7 @@ const QA_GATEWAY_CHILD_RESTART_BOUNDARY_TIMEOUT_MS = 90_000;
 const QA_GATEWAY_CHILD_GRACEFUL_SHUTDOWN_TIMEOUT_MS = 30_000;
 // Loaded Docker runners can take several seconds to reap a force-killed process group.
 const QA_GATEWAY_CHILD_FORCE_SHUTDOWN_TIMEOUT_MS = 10_000;
+const QA_GATEWAY_LOG_CLOSE_TIMEOUT_MS = 5_000;
 const QA_MOCK_OPENAI_API_KEY = ["qa", "mock", "openai", "key"].join("-");
 const QA_GATEWAY_CHILD_BLOCKED_SECRET_ENV_VARS = Object.freeze([
   "OPENCLAW_QA_CONVEX_SECRET_CI",
@@ -250,10 +252,29 @@ async function getFreePort() {
   });
 }
 
-async function closeWriteStream(stream: WriteStream) {
-  await new Promise<void>((resolve) => {
-    stream.end(() => resolve());
-  });
+async function closeWriteStream(
+  stream: WriteStream,
+  label: "stderr" | "stdout",
+  timeoutMs = QA_GATEWAY_LOG_CLOSE_TIMEOUT_MS,
+) {
+  if (stream.destroyed) {
+    return;
+  }
+  stream.end();
+  const signal = AbortSignal.timeout(timeoutMs);
+  try {
+    await finished(stream, { cleanup: true, signal });
+  } catch (error) {
+    if (!signal.aborted) {
+      throw error;
+    }
+    // Gateway logs are diagnostic only. Never let a stuck filesystem flush
+    // retain the stopped child runtime and its live transport credentials.
+    process.stderr.write(
+      `[qa-suite] ${label} gateway log flush exceeded ${timeoutMs}ms; forcing close\n`,
+    );
+    stream.destroy();
+  }
 }
 
 async function writeSanitizedQaGatewayDebugLog(params: { sourcePath: string; targetPath: string }) {
@@ -666,6 +687,7 @@ export const testing = {
   resolveQaGatewayChildStopTimeouts,
   stopQaGatewayChildProcessTree,
   classifyLinuxProcessGroupStats,
+  closeWriteStream,
 };
 
 function hasChildExited(child: ChildProcess) {
@@ -1055,7 +1077,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
   const tempRoot = await fs.mkdtemp(path.join(tempParentDir, "openclaw-qa-suite-"));
   const runtimeCwd = tempRoot;
   const distEntryPath = path.join(params.repoRoot, "dist", "index.js");
@@ -1718,9 +1740,12 @@ export async function startQaGatewayChild(params: {
           processStopped = false;
           cleanupErrors.push(error);
         }
-        for (const stream of [stdoutLog, stderrLog]) {
+        for (const [label, stream] of [
+          ["stdout", stdoutLog],
+          ["stderr", stderrLog],
+        ] as const) {
           try {
-            await closeWriteStream(stream);
+            await closeWriteStream(stream, label);
           } catch (error) {
             cleanupErrors.push(error);
           }
@@ -1786,9 +1811,12 @@ export async function startQaGatewayChild(params: {
         cleanupErrors.push(cleanupError);
       }
     }
-    for (const stream of [stdoutLog, stderrLog]) {
+    for (const [label, stream] of [
+      ["stdout", stdoutLog],
+      ["stderr", stderrLog],
+    ] as const) {
       try {
-        await closeWriteStream(stream);
+        await closeWriteStream(stream, label);
       } catch (cleanupError) {
         cleanupErrors.push(cleanupError);
       }
