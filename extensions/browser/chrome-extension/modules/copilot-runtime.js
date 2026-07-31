@@ -126,8 +126,11 @@ var GatewayBrowserDeviceAuthLifecycle = class {
         scopes,
         auth: buildGatewayConnectAuth(selectedAuth),
       };
-    let signedAtMs = this.deps.nowMs?.() ?? Date.now(),
-      nonce = params.nonce ?? "",
+    let signedAtMs =
+      params.challengeTs === void 0 ? (this.deps.nowMs?.() ?? Date.now()) : params.challengeTs;
+    if (typeof signedAtMs != "number" || !Number.isSafeInteger(signedAtMs) || signedAtMs < 0)
+      throw new Error("gateway connect challenge timestamp invalid");
+    let nonce = params.nonce ?? "",
       { authBootstrapToken: primary, signatureToken: signed } = selectedAuth,
       token = null;
     primary ? (token = primary) : signed && (token = signed);
@@ -432,6 +435,17 @@ var GatewayEventListeners = class {
     return this.listeners.get(listener) === subscription;
   }
 };
+var GatewayProtocolRequestError = class extends Error {
+  constructor(error) {
+    (super(error.message ?? "request failed"),
+      (this.name = "GatewayProtocolRequestError"),
+      (this.code = error.code ?? "UNAVAILABLE"),
+      (this.gatewayCode = this.code),
+      (this.details = error.details),
+      (this.retryable = error.retryable === !0),
+      (this.retryAfterMs = error.retryAfterMs));
+  }
+};
 var DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS = 15e3;
 function startGatewayConnectTimeout(onTimeout) {
   let timer = setTimeout(onTimeout, DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS);
@@ -440,478 +454,477 @@ function startGatewayConnectTimeout(onTimeout) {
 function clearGatewayConnectTimeout(timer) {
   return (timer !== null && clearTimeout(timer), null);
 }
-var GatewayProtocolRequestError = class extends Error {
-    constructor(error) {
-      (super(error.message ?? "request failed"),
-        (this.name = "GatewayProtocolRequestError"),
-        (this.code = error.code ?? "UNAVAILABLE"),
-        (this.gatewayCode = this.code),
-        (this.details = error.details),
-        (this.retryable = error.retryable === !0),
-        (this.retryAfterMs = error.retryAfterMs));
-    }
-  },
-  GatewayProtocolClient = class {
-    constructor(opts) {
-      this.opts = opts;
-      this.socket = null;
-      this.pending = new Map();
-      this.listeners = new GatewayEventListeners();
-      this.stopped = !0;
-      this.generation = 0;
-      this.lastSeq = null;
-      this.connectNonce = null;
-      this.connectSent = !1;
-      this.connectRequestSent = !1;
-      this.handshakeTimer = null;
-      this.reconnectSignal = null;
-      this.socketOpened = !1;
-      this.helloReceived = !1;
-      this.connectTiming = null;
-      this.reconnectSupervisor = new RetrySupervisor({
-        initialMs: opts.reconnect.initialMs,
-        maxMs: opts.reconnect.maxMs,
-        factor: opts.reconnect.multiplier,
-        jitter: 0,
-      });
-    }
-    get connected() {
-      return this.socket?.isOpen() ?? !1;
-    }
-    get hasPendingRequests() {
-      return this.pending.size > 0;
-    }
-    get connecting() {
-      return this.connectSent && !this.helloReceived;
-    }
-    get hasUnboundedPendingRequests() {
-      return [...this.pending.values()].some((pending) => pending.unbounded);
-    }
-    start() {
-      this.socket ||
-        this.reconnectSignal ||
-        ((this.stopped = !1), this.reconnectSupervisor.cancel(), this.connect());
-    }
-    stop() {
-      ((this.stopped = !0),
-        this.clearHandshakeTimer(),
-        (this.reconnectSignal = null),
-        this.reconnectSupervisor.reset());
-      let socket = this.socket;
-      (socket &&
-        this.opts.notifyStoppedClose &&
-        (this.stoppedSocket = { socket, context: this.closeContext() }),
-        (this.socket = null),
-        (this.connectFailure = void 0),
-        (this.connectTiming = null),
-        this.flushRequests(new Error("gateway client stopped")),
-        socket?.close());
-    }
-    request(method, params, options) {
-      let socket = this.socket;
-      if (!socket?.isOpen()) return Promise.reject(new Error("gateway not connected"));
-      if (typeof method != "string" || method.length === 0)
-        return Promise.reject(
-          new Error("invalid request frame: method must be a non-empty string"),
-        );
-      let id = this.opts.createRequestId(),
-        timeoutMs =
-          options?.timeoutMs === null ? void 0 : (options?.timeoutMs ?? this.opts.requestTimeoutMs);
-      return new Promise((resolve, reject) => {
-        let timeout,
-          pending = {
-            resolve: (value) => resolve(value),
-            reject,
-            expectFinal: options?.expectFinal === !0,
-            acceptedNotified: !1,
-            onAccepted: options?.onAccepted,
-            unbounded: timeoutMs === void 0,
-            method,
-            startedAtMs: this.nowMs(),
-          },
-          onAbort = () => {
-            (this.pending.delete(id),
-              timeout && clearTimeout(timeout),
-              this.finishRequestTiming(id, pending, !1, "CLIENT_ABORTED"),
-              reject(
-                this.opts.createRequestAbortError?.(method) ??
-                  new Error(`gateway request aborted for ${method}`),
-              ));
-          },
-          cleanup = () => {
-            (timeout && clearTimeout(timeout),
-              options?.signal?.removeEventListener("abort", onAbort));
-          };
-        if (options?.signal?.aborted) {
-          reject(
-            this.opts.createRequestAbortError?.(method) ??
-              new Error(`gateway request aborted for ${method}`),
-          );
-          return;
-        }
-        ((pending.cleanup = cleanup),
-          timeoutMs !== void 0 &&
-            timeoutMs >= 0 &&
-            ((timeout = setTimeout(() => {
-              (this.pending.delete(id),
-                options?.signal?.removeEventListener("abort", onAbort),
-                this.finishRequestTiming(id, pending, !1, "CLIENT_TIMEOUT"),
-                reject(
-                  this.opts.createRequestTimeoutError?.(method, timeoutMs) ??
-                    new Error(`gateway request timed out after ${timeoutMs}ms: ${method}`),
-                ));
-            }, timeoutMs)),
-            timeout.unref?.()),
-          options?.signal?.addEventListener("abort", onAbort, { once: !0 }),
-          this.pending.set(id, pending));
-        try {
-          (socket.send(JSON.stringify({ type: "req", id, method, params })),
-            this.invoke("sent", () => options?.onSent?.()));
-        } catch (error) {
+var GatewayProtocolClient = class {
+  constructor(opts) {
+    this.opts = opts;
+    this.socket = null;
+    this.pending = new Map();
+    this.listeners = new GatewayEventListeners();
+    this.stopped = !0;
+    this.generation = 0;
+    this.lastSeq = null;
+    this.connectNonce = null;
+    this.connectSent = !1;
+    this.connectRequestSent = !1;
+    this.handshakeTimer = null;
+    this.reconnectSignal = null;
+    this.socketOpened = !1;
+    this.helloReceived = !1;
+    this.connectTiming = null;
+    this.reconnectSupervisor = new RetrySupervisor({
+      initialMs: opts.reconnect.initialMs,
+      maxMs: opts.reconnect.maxMs,
+      factor: opts.reconnect.multiplier,
+      jitter: 0,
+    });
+  }
+  get connected() {
+    return this.socket?.isOpen() ?? !1;
+  }
+  get hasPendingRequests() {
+    return this.pending.size > 0;
+  }
+  get connecting() {
+    return this.connectSent && !this.helloReceived;
+  }
+  get hasUnboundedPendingRequests() {
+    return [...this.pending.values()].some((pending) => pending.unbounded);
+  }
+  start() {
+    this.socket ||
+      this.reconnectSignal ||
+      ((this.stopped = !1), this.reconnectSupervisor.cancel(), this.connect());
+  }
+  stop() {
+    ((this.stopped = !0),
+      this.clearHandshakeTimer(),
+      (this.reconnectSignal = null),
+      this.reconnectSupervisor.reset());
+    let socket = this.socket;
+    (socket &&
+      this.opts.notifyStoppedClose &&
+      (this.stoppedSocket = { socket, context: this.closeContext() }),
+      (this.socket = null),
+      (this.connectFailure = void 0),
+      (this.connectTiming = null),
+      this.flushRequests(new Error("gateway client stopped")),
+      socket?.close());
+  }
+  request(method, params, options) {
+    let socket = this.socket;
+    if (!socket?.isOpen()) return Promise.reject(new Error("gateway not connected"));
+    if (typeof method != "string" || method.length === 0)
+      return Promise.reject(new Error("invalid request frame: method must be a non-empty string"));
+    let id = this.opts.createRequestId(),
+      timeoutMs =
+        options?.timeoutMs === null ? void 0 : (options?.timeoutMs ?? this.opts.requestTimeoutMs);
+    return new Promise((resolve, reject) => {
+      let timeout,
+        pending = {
+          resolve: (value) => resolve(value),
+          reject,
+          expectFinal: options?.expectFinal === !0,
+          acceptedNotified: !1,
+          onAccepted: options?.onAccepted,
+          unbounded: timeoutMs === void 0,
+          method,
+          startedAtMs: this.nowMs(),
+        },
+        onAbort = () => {
           (this.pending.delete(id),
-            cleanup(),
-            this.finishRequestTiming(id, pending, !1, "CLIENT_SEND_ERROR"),
-            reject(error instanceof Error ? error : new Error(String(error))));
-        }
-      });
-    }
-    addEventListener(listener) {
-      return this.listeners.add(listener);
-    }
-    closeSocket(code, reason) {
-      this.socket?.close(code, reason);
-    }
-    resetReconnectBackoff(initialMs) {
-      ((this.reconnectSignal = null), this.reconnectSupervisor.reset(initialMs));
-    }
-    recordTiming(phase, generation, plan, detail) {
-      let now = this.nowMs(),
-        state = this.connectTiming;
-      !state ||
-        state.generation !== generation ||
-        ((state.hasChallenge ||= phase === "challenge"),
-        (state.usedFallback ||= phase === "fallback"),
-        this.invoke("connect timing", () =>
-          this.opts.onTiming?.({
-            phase,
-            generation,
-            durationMs: Math.max(0, now - state.startedAtMs),
-            phaseDurationMs: Math.max(0, now - state.lastAtMs),
-            hasChallenge: state.hasChallenge,
-            usedFallback: state.usedFallback,
-            plan,
-            detail,
-          }),
-        ),
-        (state.lastAtMs = now),
-        (phase === "hello" || phase === "failed") && (this.connectTiming = null));
-    }
-    connect() {
-      if (this.stopped) return;
-      let generation = this.generation + 1;
-      ((this.lastSeq = null),
-        (this.connectNonce = null),
-        (this.connectSent = this.connectRequestSent = !1),
-        (this.socketOpened = !1),
-        (this.helloReceived = !1),
-        (this.connectFailure = void 0));
-      let socket;
-      try {
-        socket = this.opts.createSocket({
-          open: () => this.handleOpen(socket, generation),
-          message: (data) => this.handleMessage(socket, generation, data),
-          close: (code, reason) => this.handleClose(socket, generation, code, reason),
-          error: (error) => this.handleSocketError(socket, generation, error),
-        });
-      } catch (error) {
-        let normalized2 = error instanceof Error ? error : new Error(String(error));
-        if (
-          (this.opts.onSocketFactoryError?.(normalized2),
-          this.opts.onConnectError?.(normalized2),
-          this.opts.rethrowSocketFactoryError?.(normalized2))
-        )
-          throw normalized2;
-        this.opts.shouldRetrySocketFactoryError?.(normalized2) &&
-          !this.stopped &&
-          !this.socket &&
-          !this.reconnectSignal &&
-          this.scheduleReconnect();
-        return;
-      }
-      ((this.generation = generation), (this.socket = socket));
-      let now = this.nowMs();
-      this.connectTiming = {
-        generation,
-        startedAtMs: now,
-        lastAtMs: now,
-        hasChallenge: !1,
-        usedFallback: !1,
-      };
-    }
-    handleOpen(socket, generation) {
-      if (this.isActive(socket, generation)) {
-        if (
-          ((this.socketOpened = !0),
-          this.recordTiming("socket-open", generation),
-          this.connectNonce)
-        ) {
-          this.sendConnect(socket, generation);
-          return;
-        }
-        this.armHandshakeTimer(socket, generation);
-      }
-    }
-    armHandshakeTimer(socket, generation) {
-      this.clearHandshakeTimer();
-      let armedAt = Date.now();
-      ((this.handshakeTimer = setTimeout(() => {
-        if (
-          ((this.handshakeTimer = null),
-          !this.isActive(socket, generation) || this.connectSent || !socket.isOpen())
-        )
-          return;
-        if (this.opts.handshake.mode === "fallback") {
-          (this.recordTiming("fallback", generation), this.sendConnect(socket, generation));
-          return;
-        }
-        let elapsedMs = Date.now() - armedAt,
-          error = new Error(
-            this.opts.handshake.timeoutMessage?.(elapsedMs) ??
-              `gateway connect challenge timeout after ${elapsedMs}ms`,
-          );
-        (this.opts.onConnectError?.(error), socket.close(1008, "connect challenge timeout"));
-      }, this.opts.handshake.timeoutMs)),
-        this.handshakeTimer.unref?.());
-    }
-    sendConnect(socket, generation) {
-      if (!this.isActive(socket, generation) || !socket.isOpen() || this.connectSent) return;
-      ((this.connectSent = !0),
-        this.clearHandshakeTimer(),
-        (this.handshakeTimer = startGatewayConnectTimeout(() => {
-          this.isActive(socket, generation) &&
-            !this.helloReceived &&
-            socket.close(4e3, "connect timeout");
-        })));
-      let planOrPromise;
-      try {
-        planOrPromise = this.opts.buildConnectPlan({ nonce: this.connectNonce, generation });
-      } catch (error) {
-        this.handleConnectPlanError(socket, generation, error);
-        return;
-      }
-      if (planOrPromise instanceof Promise) {
-        planOrPromise
-          .then((plan) => this.sendConnectPlan(socket, generation, plan))
-          .catch((error) => this.handleConnectPlanError(socket, generation, error));
-        return;
-      }
-      this.sendConnectPlan(socket, generation, planOrPromise);
-    }
-    handleConnectPlanError(socket, generation, error) {
-      if (!this.isActive(socket, generation)) return;
-      let normalized2 = error instanceof Error ? error : new Error(String(error)),
-        outcome = this.opts.onConnectPlanError?.(normalized2) ?? {
-          closeCode: 1008,
-          closeReason: "connect failed",
+            timeout && clearTimeout(timeout),
+            this.finishRequestTiming(id, pending, !1, "CLIENT_ABORTED"),
+            reject(
+              this.opts.createRequestAbortError?.(method) ??
+                new Error(`gateway request aborted for ${method}`),
+            ));
+        },
+        cleanup = () => {
+          (timeout && clearTimeout(timeout),
+            options?.signal?.removeEventListener("abort", onAbort));
         };
-      (this.opts.onConnectError?.(outcome.error ?? normalized2),
-        outcome.stop && (this.stopped = !0),
-        socket.close(outcome.closeCode, outcome.closeReason));
-    }
-    sendConnectPlan(socket, generation, plan) {
-      if (!this.isActive(socket, generation) || !socket.isOpen()) return;
-      let context = { generation, nonce: this.connectNonce, plan };
-      (this.recordTiming("connect-plan-ready", generation, plan),
-        this.recordTiming("request-sent", generation, plan),
-        (this.connectRequestSent = !0),
-        this.request("connect", this.opts.buildConnectParams(plan))
-          .then((hello) => {
-            this.isActive(socket, generation) &&
-              ((this.helloReceived = !0),
-              this.clearHandshakeTimer(),
-              (this.connectFailure = void 0),
-              this.reconnectSupervisor.reset(),
-              this.recordTiming("hello", generation, plan),
-              this.opts.onConnectHello?.(hello, context),
-              this.invoke("hello", () => this.opts.onHello?.(hello)));
-          })
-          .catch((error) => {
-            if (!this.isActive(socket, generation)) return;
-            let requestError =
-                error instanceof GatewayProtocolRequestError
-                  ? error
-                  : new GatewayProtocolRequestError({ message: String(error) }),
-              outcome = this.opts.onConnectFailure?.(requestError, context) ?? {
-                closeCode: 1008,
-                closeReason: "connect failed",
-              };
-            ((this.connectFailure = {
-              error: requestError,
-              reconnectDelayMs: outcome.reconnectDelayMs,
-            }),
-              outcome.stop && (this.stopped = !0),
-              socket.close(outcome.closeCode, outcome.closeReason));
-          }));
-    }
-    handleMessage(socket, generation, raw) {
-      if (!this.isActive(socket, generation)) return;
-      let parsed;
-      try {
-        parsed = JSON.parse(raw);
-      } catch (error) {
-        this.opts.onParseError?.(error);
+      if (options?.signal?.aborted) {
+        reject(
+          this.opts.createRequestAbortError?.(method) ??
+            new Error(`gateway request aborted for ${method}`),
+        );
         return;
       }
-      if (isGatewayEventFrame(parsed)) {
-        if ((this.opts.onActivity?.(), parsed.event === "connect.challenge")) {
-          let payload = parsed.payload,
-            nonce = typeof payload?.nonce == "string" ? payload.nonce.trim() : "";
-          if (!nonce) {
-            if (this.opts.handshake.mode === "require-challenge") {
-              let error = new Error("gateway connect challenge missing nonce");
-              (this.opts.onConnectError?.(error),
-                socket.close(1008, "connect challenge missing nonce"));
-            }
-            return;
+      ((pending.cleanup = cleanup),
+        timeoutMs !== void 0 &&
+          timeoutMs >= 0 &&
+          ((timeout = setTimeout(() => {
+            (this.pending.delete(id),
+              options?.signal?.removeEventListener("abort", onAbort),
+              this.finishRequestTiming(id, pending, !1, "CLIENT_TIMEOUT"),
+              reject(
+                this.opts.createRequestTimeoutError?.(method, timeoutMs) ??
+                  new Error(`gateway request timed out after ${timeoutMs}ms: ${method}`),
+              ));
+          }, timeoutMs)),
+          timeout.unref?.()),
+        options?.signal?.addEventListener("abort", onAbort, { once: !0 }),
+        this.pending.set(id, pending));
+      try {
+        (socket.send(JSON.stringify({ type: "req", id, method, params })),
+          this.invoke("sent", () => options?.onSent?.()));
+      } catch (error) {
+        (this.pending.delete(id),
+          cleanup(),
+          this.finishRequestTiming(id, pending, !1, "CLIENT_SEND_ERROR"),
+          reject(error instanceof Error ? error : new Error(String(error))));
+      }
+    });
+  }
+  addEventListener(listener) {
+    return this.listeners.add(listener);
+  }
+  closeSocket(code, reason) {
+    this.socket?.close(code, reason);
+  }
+  resetReconnectBackoff(initialMs) {
+    ((this.reconnectSignal = null), this.reconnectSupervisor.reset(initialMs));
+  }
+  recordTiming(phase, generation, plan, detail) {
+    let now = this.nowMs(),
+      state = this.connectTiming;
+    !state ||
+      state.generation !== generation ||
+      ((state.hasChallenge ||= phase === "challenge"),
+      (state.usedFallback ||= phase === "fallback"),
+      this.invoke("connect timing", () =>
+        this.opts.onTiming?.({
+          phase,
+          generation,
+          durationMs: Math.max(0, now - state.startedAtMs),
+          phaseDurationMs: Math.max(0, now - state.lastAtMs),
+          hasChallenge: state.hasChallenge,
+          usedFallback: state.usedFallback,
+          plan,
+          detail,
+        }),
+      ),
+      (state.lastAtMs = now),
+      (phase === "hello" || phase === "failed") && (this.connectTiming = null));
+  }
+  connect() {
+    if (this.stopped) return;
+    let generation = this.generation + 1;
+    ((this.lastSeq = null),
+      (this.connectNonce = null),
+      (this.connectChallengeTs = void 0),
+      (this.connectSent = this.connectRequestSent = !1),
+      (this.socketOpened = !1),
+      (this.helloReceived = !1),
+      (this.connectFailure = void 0));
+    let socket;
+    try {
+      socket = this.opts.createSocket({
+        open: () => this.handleOpen(socket, generation),
+        message: (data) => this.handleMessage(socket, generation, data),
+        close: (code, reason) => this.handleClose(socket, generation, code, reason),
+        error: (error) => this.handleSocketError(socket, generation, error),
+      });
+    } catch (error) {
+      let normalized2 = error instanceof Error ? error : new Error(String(error));
+      if (
+        (this.opts.onSocketFactoryError?.(normalized2),
+        this.opts.onConnectError?.(normalized2),
+        this.opts.rethrowSocketFactoryError?.(normalized2))
+      )
+        throw normalized2;
+      this.opts.shouldRetrySocketFactoryError?.(normalized2) &&
+        !this.stopped &&
+        !this.socket &&
+        !this.reconnectSignal &&
+        this.scheduleReconnect();
+      return;
+    }
+    ((this.generation = generation), (this.socket = socket));
+    let now = this.nowMs();
+    this.connectTiming = {
+      generation,
+      startedAtMs: now,
+      lastAtMs: now,
+      hasChallenge: !1,
+      usedFallback: !1,
+    };
+  }
+  handleOpen(socket, generation) {
+    if (this.isActive(socket, generation)) {
+      if (
+        ((this.socketOpened = !0), this.recordTiming("socket-open", generation), this.connectNonce)
+      ) {
+        this.sendConnect(socket, generation);
+        return;
+      }
+      this.armHandshakeTimer(socket, generation);
+    }
+  }
+  armHandshakeTimer(socket, generation) {
+    this.clearHandshakeTimer();
+    let armedAt = Date.now();
+    ((this.handshakeTimer = setTimeout(() => {
+      if (
+        ((this.handshakeTimer = null),
+        !this.isActive(socket, generation) || this.connectSent || !socket.isOpen())
+      )
+        return;
+      if (this.opts.handshake.mode === "fallback") {
+        (this.recordTiming("fallback", generation), this.sendConnect(socket, generation));
+        return;
+      }
+      let elapsedMs = Date.now() - armedAt,
+        error = new Error(
+          this.opts.handshake.timeoutMessage?.(elapsedMs) ??
+            `gateway connect challenge timeout after ${elapsedMs}ms`,
+        );
+      (this.opts.onConnectError?.(error), socket.close(1008, "connect challenge timeout"));
+    }, this.opts.handshake.timeoutMs)),
+      this.handshakeTimer.unref?.());
+  }
+  sendConnect(socket, generation) {
+    if (!this.isActive(socket, generation) || !socket.isOpen() || this.connectSent) return;
+    ((this.connectSent = !0),
+      this.clearHandshakeTimer(),
+      (this.handshakeTimer = startGatewayConnectTimeout(() => {
+        this.isActive(socket, generation) &&
+          !this.helloReceived &&
+          socket.close(4e3, "connect timeout");
+      })));
+    let planOrPromise;
+    try {
+      planOrPromise = this.opts.buildConnectPlan({
+        nonce: this.connectNonce,
+        challengeTs: this.connectChallengeTs,
+        generation,
+      });
+    } catch (error) {
+      this.handleConnectPlanError(socket, generation, error);
+      return;
+    }
+    if (planOrPromise instanceof Promise) {
+      planOrPromise
+        .then((plan) => this.sendConnectPlan(socket, generation, plan))
+        .catch((error) => this.handleConnectPlanError(socket, generation, error));
+      return;
+    }
+    this.sendConnectPlan(socket, generation, planOrPromise);
+  }
+  handleConnectPlanError(socket, generation, error) {
+    if (!this.isActive(socket, generation)) return;
+    let normalized2 = error instanceof Error ? error : new Error(String(error)),
+      outcome = this.opts.onConnectPlanError?.(normalized2) ?? {
+        closeCode: 1008,
+        closeReason: "connect failed",
+      };
+    (this.opts.onConnectError?.(outcome.error ?? normalized2),
+      outcome.stop && (this.stopped = !0),
+      socket.close(outcome.closeCode, outcome.closeReason));
+  }
+  sendConnectPlan(socket, generation, plan) {
+    if (!this.isActive(socket, generation) || !socket.isOpen()) return;
+    let context = {
+      generation,
+      nonce: this.connectNonce,
+      challengeTs: this.connectChallengeTs,
+      plan,
+    };
+    (this.recordTiming("connect-plan-ready", generation, plan),
+      this.recordTiming("request-sent", generation, plan),
+      (this.connectRequestSent = !0),
+      this.request("connect", this.opts.buildConnectParams(plan))
+        .then((hello) => {
+          this.isActive(socket, generation) &&
+            ((this.helloReceived = !0),
+            this.clearHandshakeTimer(),
+            (this.connectFailure = void 0),
+            this.reconnectSupervisor.reset(),
+            this.recordTiming("hello", generation, plan),
+            this.opts.onConnectHello?.(hello, context),
+            this.invoke("hello", () => this.opts.onHello?.(hello)));
+        })
+        .catch((error) => {
+          if (!this.isActive(socket, generation)) return;
+          let requestError =
+              error instanceof GatewayProtocolRequestError
+                ? error
+                : new GatewayProtocolRequestError({ message: String(error) }),
+            outcome = this.opts.onConnectFailure?.(requestError, context) ?? {
+              closeCode: 1008,
+              closeReason: "connect failed",
+            };
+          ((this.connectFailure = {
+            error: requestError,
+            reconnectDelayMs: outcome.reconnectDelayMs,
+          }),
+            outcome.stop && (this.stopped = !0),
+            socket.close(outcome.closeCode, outcome.closeReason));
+        }));
+  }
+  handleMessage(socket, generation, raw) {
+    if (!this.isActive(socket, generation)) return;
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      this.opts.onParseError?.(error);
+      return;
+    }
+    if (isGatewayEventFrame(parsed)) {
+      if ((this.opts.onActivity?.(), parsed.event === "connect.challenge")) {
+        let payload = parsed.payload,
+          nonce = typeof payload?.nonce == "string" ? payload.nonce.trim() : "";
+        if (!nonce) {
+          if (this.opts.handshake.mode === "require-challenge") {
+            let error = new Error("gateway connect challenge missing nonce");
+            (this.opts.onConnectError?.(error),
+              socket.close(1008, "connect challenge missing nonce"));
           }
-          ((this.connectNonce = nonce),
-            this.recordTiming("challenge", generation),
-            this.sendConnect(socket, generation));
           return;
         }
-        let seq = typeof parsed.seq == "number" ? parsed.seq : null;
-        if (seq !== null) {
-          if (this.lastSeq !== null && seq > this.lastSeq + 1) {
-            let expected = this.lastSeq + 1;
-            if (
-              (this.invoke("gap", () => this.opts.onGap?.({ expected, received: seq })),
-              !this.isActive(socket, generation))
-            )
-              return;
-          }
-          this.lastSeq = seq;
-        }
-        let listeners = this.listeners.snapshot();
-        this.invoke("event", () => this.opts.onEvent?.(parsed));
-        for (let [listener, subscription] of listeners) {
-          if (!this.isActive(socket, generation)) return;
-          this.listeners.isCurrent(listener, subscription) &&
-            this.invoke("event listener", () => listener(parsed));
-        }
+        this.connectNonce = nonce;
+        let challengeTs = payload?.ts;
+        ((this.connectChallengeTs =
+          typeof challengeTs == "number" && Number.isSafeInteger(challengeTs) && challengeTs >= 0
+            ? challengeTs
+            : null),
+          this.recordTiming("challenge", generation),
+          this.sendConnect(socket, generation));
         return;
       }
-      isGatewayResponseFrame(parsed) && (this.opts.onActivity?.(), this.handleResponse(parsed));
+      let seq = typeof parsed.seq == "number" ? parsed.seq : null;
+      if (seq !== null) {
+        if (this.lastSeq !== null && seq > this.lastSeq + 1) {
+          let expected = this.lastSeq + 1;
+          if (
+            (this.invoke("gap", () => this.opts.onGap?.({ expected, received: seq })),
+            !this.isActive(socket, generation))
+          )
+            return;
+        }
+        this.lastSeq = seq;
+      }
+      let listeners = this.listeners.snapshot();
+      this.invoke("event", () => this.opts.onEvent?.(parsed));
+      for (let [listener, subscription] of listeners) {
+        if (!this.isActive(socket, generation)) return;
+        this.listeners.isCurrent(listener, subscription) &&
+          this.invoke("event listener", () => listener(parsed));
+      }
+      return;
     }
-    handleResponse(frame) {
-      let pending = this.pending.get(frame.id);
-      if (!pending) return;
-      let status = frame.payload?.status;
-      if (pending.expectFinal && status === "accepted") {
-        pending.acceptedNotified ||
-          ((pending.acceptedNotified = !0),
-          this.invoke("accepted", () => pending.onAccepted?.(frame.payload)));
-        return;
+    isGatewayResponseFrame(parsed) && (this.opts.onActivity?.(), this.handleResponse(parsed));
+  }
+  handleResponse(frame) {
+    let pending = this.pending.get(frame.id);
+    if (!pending) return;
+    let status = frame.payload?.status;
+    if (pending.expectFinal && status === "accepted") {
+      pending.acceptedNotified ||
+        ((pending.acceptedNotified = !0),
+        this.invoke("accepted", () => pending.onAccepted?.(frame.payload)));
+      return;
+    }
+    if ((this.pending.delete(frame.id), pending.cleanup?.(), frame.ok)) {
+      (this.finishRequestTiming(frame.id, pending, !0), pending.resolve(frame.payload));
+      return;
+    }
+    (this.finishRequestTiming(frame.id, pending, !1, frame.error?.code),
+      pending.reject(
+        this.opts.createRequestError?.(frame.error ?? {}) ??
+          new GatewayProtocolRequestError(frame.error ?? {}),
+      ));
+  }
+  handleClose(socket, generation, code, reason) {
+    if (this.socket !== socket) {
+      if (this.stoppedSocket?.socket === socket) {
+        let context2 = { ...this.stoppedSocket.context, code, reason };
+        ((this.stoppedSocket = void 0),
+          this.invoke("close", () => this.opts.onClose?.(context2, { retry: !1, notify: !0 })));
       }
-      if ((this.pending.delete(frame.id), pending.cleanup?.(), frame.ok)) {
-        (this.finishRequestTiming(frame.id, pending, !0), pending.resolve(frame.payload));
-        return;
-      }
-      (this.finishRequestTiming(frame.id, pending, !1, frame.error?.code),
-        pending.reject(
-          this.opts.createRequestError?.(frame.error ?? {}) ??
-            new GatewayProtocolRequestError(frame.error ?? {}),
+      return;
+    }
+    ((this.socket = null), this.clearHandshakeTimer());
+    let context = { ...this.closeContext(), code, reason, generation };
+    this.connectFailure = void 0;
+    let decision = this.opts.resolveClose(context);
+    (this.flushRequests(
+      decision.pendingError ??
+        context.connectFailure?.error ??
+        new Error(`gateway closed (${code}): ${reason}`),
+    ),
+      this.invoke("close", () => this.opts.onClose?.(context, decision)),
+      decision.retry &&
+        !this.stopped &&
+        this.scheduleReconnect(
+          decision.reconnectDelayMs ?? context.connectFailure?.reconnectDelayMs,
         ));
+  }
+  handleSocketError(socket, generation, error) {
+    !this.isActive(socket, generation) || this.connectSent || this.opts.onConnectError?.(error);
+  }
+  flushRequests(error) {
+    for (let [id, pending] of this.pending)
+      (this.finishRequestTiming(id, pending, !1, "CLIENT_CLOSED"),
+        pending.cleanup?.(),
+        pending.reject(error));
+    this.pending.clear();
+  }
+  finishRequestTiming(id, pending, ok, errorCode) {
+    let endedAtMs = this.nowMs();
+    this.invoke("request timing", () =>
+      this.opts.onRequestTiming?.({
+        id,
+        method: pending.method,
+        ok,
+        durationMs: Math.max(0, endedAtMs - pending.startedAtMs),
+        startedAtMs: pending.startedAtMs,
+        endedAtMs,
+        errorCode,
+      }),
+    );
+  }
+  scheduleReconnect(overrideMs) {
+    overrideMs !== void 0 && (this.reconnectSupervisor.nextDelayOverrideMs = overrideMs);
+    let retry = this.reconnectSupervisor.next();
+    retry &&
+      ((this.reconnectSignal = retry.signal),
+      sleepWithAbort(retry.delayMs, retry.signal).then(
+        () => {
+          this.reconnectSignal === retry.signal && ((this.reconnectSignal = null), this.connect());
+        },
+        () => {
+          this.reconnectSignal === retry.signal && (this.reconnectSignal = null);
+        },
+      ));
+  }
+  closeContext() {
+    return {
+      generation: this.generation,
+      socketOpened: this.socketOpened,
+      helloReceived: this.helloReceived,
+      connectRequestSent: this.connectRequestSent,
+      connectFailure: this.connectFailure,
+    };
+  }
+  isActive(socket, generation) {
+    return !this.stopped && this.socket === socket && this.generation === generation;
+  }
+  nowMs() {
+    return this.opts.nowMs?.() ?? Date.now();
+  }
+  clearHandshakeTimer() {
+    this.handshakeTimer = clearGatewayConnectTimeout(this.handshakeTimer);
+  }
+  invoke(label, callback) {
+    try {
+      callback();
+    } catch (error) {
+      this.opts.onCallbackError?.(label, error);
     }
-    handleClose(socket, generation, code, reason) {
-      if (this.socket !== socket) {
-        if (this.stoppedSocket?.socket === socket) {
-          let context2 = { ...this.stoppedSocket.context, code, reason };
-          ((this.stoppedSocket = void 0),
-            this.invoke("close", () => this.opts.onClose?.(context2, { retry: !1, notify: !0 })));
-        }
-        return;
-      }
-      ((this.socket = null), this.clearHandshakeTimer());
-      let context = { ...this.closeContext(), code, reason, generation };
-      this.connectFailure = void 0;
-      let decision = this.opts.resolveClose(context);
-      (this.flushRequests(
-        decision.pendingError ??
-          context.connectFailure?.error ??
-          new Error(`gateway closed (${code}): ${reason}`),
-      ),
-        this.invoke("close", () => this.opts.onClose?.(context, decision)),
-        decision.retry &&
-          !this.stopped &&
-          this.scheduleReconnect(
-            decision.reconnectDelayMs ?? context.connectFailure?.reconnectDelayMs,
-          ));
-    }
-    handleSocketError(socket, generation, error) {
-      !this.isActive(socket, generation) || this.connectSent || this.opts.onConnectError?.(error);
-    }
-    flushRequests(error) {
-      for (let [id, pending] of this.pending)
-        (this.finishRequestTiming(id, pending, !1, "CLIENT_CLOSED"),
-          pending.cleanup?.(),
-          pending.reject(error));
-      this.pending.clear();
-    }
-    finishRequestTiming(id, pending, ok, errorCode) {
-      let endedAtMs = this.nowMs();
-      this.invoke("request timing", () =>
-        this.opts.onRequestTiming?.({
-          id,
-          method: pending.method,
-          ok,
-          durationMs: Math.max(0, endedAtMs - pending.startedAtMs),
-          startedAtMs: pending.startedAtMs,
-          endedAtMs,
-          errorCode,
-        }),
-      );
-    }
-    scheduleReconnect(overrideMs) {
-      overrideMs !== void 0 && (this.reconnectSupervisor.nextDelayOverrideMs = overrideMs);
-      let retry = this.reconnectSupervisor.next();
-      retry &&
-        ((this.reconnectSignal = retry.signal),
-        sleepWithAbort(retry.delayMs, retry.signal).then(
-          () => {
-            this.reconnectSignal === retry.signal &&
-              ((this.reconnectSignal = null), this.connect());
-          },
-          () => {
-            this.reconnectSignal === retry.signal && (this.reconnectSignal = null);
-          },
-        ));
-    }
-    closeContext() {
-      return {
-        generation: this.generation,
-        socketOpened: this.socketOpened,
-        helloReceived: this.helloReceived,
-        connectRequestSent: this.connectRequestSent,
-        connectFailure: this.connectFailure,
-      };
-    }
-    isActive(socket, generation) {
-      return !this.stopped && this.socket === socket && this.generation === generation;
-    }
-    nowMs() {
-      return this.opts.nowMs?.() ?? Date.now();
-    }
-    clearHandshakeTimer() {
-      this.handshakeTimer = clearGatewayConnectTimeout(this.handshakeTimer);
-    }
-    invoke(label, callback) {
-      try {
-        callback();
-      } catch (error) {
-        this.opts.onCallbackError?.(label, error);
-      }
-    }
-  };
+  }
+};
 var GATEWAY_CLIENT_IDS = {
   WEBCHAT_UI: "webchat-ui",
   CONTROL_UI: "openclaw-control-ui",
