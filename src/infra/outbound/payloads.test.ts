@@ -1,6 +1,6 @@
 // Covers outbound payload normalization across text, media, presentation,
 // interactive blocks, mirror text, and suppressed relay status payloads.
-import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
+import { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
 import { describe, expect, it } from "vitest";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import { typedCases } from "../../test-utils/typed-cases.js";
@@ -690,6 +690,51 @@ describe("OutboundPayloadPlan projections", () => {
         audioAsVoice: false,
       },
     ]);
+  });
+
+  it.each([
+    {
+      name: "a MEDIA directive",
+      attachment: "MEDIA:https://example.com/config.png",
+      extractMarkdownImages: false,
+    },
+    {
+      name: "an extracted Markdown image",
+      attachment: "![chart](https://example.com/config.png)",
+      extractMarkdownImages: true,
+    },
+  ])("preserves formatted reply text when extracting $name", (testCase) => {
+    const visibleText = [
+      "Here is the config.",
+      "",
+      "```yaml",
+      "server:",
+      "  host: 0.0.0.0",
+      "  ports:",
+      "    - 80",
+      "```",
+      "",
+      "The service is ready.",
+    ].join("\n");
+    const [planned] = createOutboundPayloadPlan(
+      [{ text: `${visibleText}\n\n${testCase.attachment}` }],
+      { extractMarkdownImages: testCase.extractMarkdownImages },
+    );
+
+    expect(planned?.payload.text).toBe(visibleText);
+    expect(planned?.payload.mediaUrls).toEqual(["https://example.com/config.png"]);
+  });
+
+  it("preserves canonical code fences when reply directives and media share a payload", () => {
+    const code = ["```python", "value = 'a  b'", "``` not a close", "other = 'c  d'", "```"].join(
+      "\n",
+    );
+    const [planned] = createOutboundPayloadPlan([
+      { text: `[[reply_to_current]]\n${code}\nMEDIA:https://example.com/config.png` },
+    ]);
+
+    expect(planned?.payload.text).toBe(code);
+    expect(planned?.payload.mediaUrls).toEqual(["https://example.com/config.png"]);
   });
 });
 
