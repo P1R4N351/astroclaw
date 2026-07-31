@@ -1,6 +1,6 @@
-import type { MarkdownTableMode } from "openclaw/plugin-sdk/config-contracts";
+import type { MarkdownTableMode } from "astroclaw/plugin-sdk/config-contracts";
 // Telegram helper module supports format behavior.
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   FILE_REF_EXTENSIONS_WITH_TLD,
   isAutoLinkedFileRef,
@@ -9,7 +9,7 @@ import {
   type MarkdownIR,
   renderMarkdownIRChunksWithinLimit,
   tokenizeHtmlTags,
-} from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/text-chunking";
 import {
   protectTelegramAssistantTranscriptRoleHeaders,
   TELEGRAM_ASSISTANT_TRANSCRIPT_PREFIX,
@@ -343,6 +343,15 @@ function stripTelegramHtmlForPlainText(html: string): string {
   return decodeTelegramHtmlEntities(
     html.replace(TELEGRAM_HTML_BREAK_PATTERN, "\n").replace(TELEGRAM_HTML_TAG_PATTERN, ""),
   );
+}
+
+export function countTelegramHtmlVisibleCharacters(html: string): number {
+  // Telegram limits UTF-16 caption characters after stripping markup and decoding entities.
+  return stripTelegramHtmlForPlainText(html).length;
+}
+
+export function resolveTelegramHtmlVisibleText(html: string): string {
+  return stripTelegramHtmlForPlainText(html);
 }
 
 function encodePlainTextForTelegramHtmlStrip(text: string): string {
