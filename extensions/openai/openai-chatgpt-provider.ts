@@ -1,25 +1,25 @@
 // Openai provider module implements model/runtime integration.
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import type {
   ProviderAuthContext,
   ProviderAuthMethod,
   ProviderAuthResult,
   ProviderResolveDynamicModelContext,
   ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
-import { CODEX_CLI_PROFILE_ID, type OAuthCredential } from "openclaw/plugin-sdk/provider-auth";
-import { buildOauthProviderAuthResult } from "openclaw/plugin-sdk/provider-auth";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import { CODEX_CLI_PROFILE_ID, type OAuthCredential } from "astroclaw/plugin-sdk/provider-auth";
+import { buildOauthProviderAuthResult } from "astroclaw/plugin-sdk/provider-auth";
 import {
   DEFAULT_CONTEXT_TOKENS,
   normalizeModelCompat,
   normalizeProviderId,
   type ProviderPlugin,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   normalizeLowercaseStringOrEmpty,
   readStringValue,
   uniqueValues,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   OPENAI_CHATGPT_DEVICE_PAIRING_HINT,
   OPENAI_CHATGPT_DEVICE_PAIRING_LABEL,
@@ -513,23 +513,37 @@ async function runOpenAICodexDeviceCode(ctx: ProviderAuthContext) {
       onProgress: (message) => spin.update(message),
       onVerification: async ({ verificationUrl, userCode, expiresInMs }) => {
         const expiresInMinutes = Math.max(1, Math.round(expiresInMs / 60_000));
+        const deviceCodeMessage = [
+          ctx.isRemote
+            ? "Open this URL in your LOCAL browser and enter the code below."
+            : "Open this URL in your browser and enter the code below.",
+          `URL: ${verificationUrl}`,
+        ].join("\n");
         if (ctx.isRemote) {
           await ctx.openUrl(verificationUrl);
         }
-        // The prompter note is the user-facing TTY surface, so remote/headless
-        // users need the code there; keep the persistent runtime log URL-only.
-        await ctx.prompter.note(
-          [
-            ctx.isRemote
-              ? "Open this URL in your LOCAL browser and enter the code below."
-              : "Open this URL in your browser and enter the code below.",
-            `URL: ${verificationUrl}`,
-            `Code: ${userCode}`,
-            `Code expires in ${expiresInMinutes} minutes. Never share it.`,
-          ].join("\n"),
-          "OpenAI Codex device code",
-        );
+        if (ctx.prompter.deviceCode) {
+          await ctx.prompter.deviceCode({
+            title: "OpenAI Codex device code",
+            code: userCode,
+            expiresInMinutes,
+            message: deviceCodeMessage,
+          });
+        } else {
+          // The prompter note is the user-facing TTY fallback, so
+          // remote/headless users need the code in its plain-text body.
+          await ctx.prompter.note(
+            [
+              deviceCodeMessage,
+              `Code: ${userCode}`,
+              `Code expires in ${expiresInMinutes} minutes. Never share it.`,
+            ].join("\n"),
+            "OpenAI Codex device code",
+          );
+        }
         if (ctx.isRemote) {
+          // Keep the persistent runtime log URL-only; the short-lived code
+          // belongs on the interactive surface that requested authorization.
           ctx.runtime.log(`\nOpen this URL in your LOCAL browser:\n\n${verificationUrl}\n`);
           return;
         }
