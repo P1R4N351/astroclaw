@@ -1,19 +1,19 @@
 // Openai provider module implements model/runtime integration.
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { resolveAgentDir } from "openclaw/plugin-sdk/agent-runtime";
-import { canonicalizeBase64 } from "openclaw/plugin-sdk/media-runtime";
-import type { PluginLogger } from "openclaw/plugin-sdk/plugin-entry";
+import { resolveAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
+import { canonicalizeBase64 } from "astroclaw/plugin-sdk/media-runtime";
+import type { PluginLogger } from "astroclaw/plugin-sdk/plugin-entry";
 import {
   isProviderAuthProfileConfigured,
   resolveProviderAuthProfileApiKey,
-} from "openclaw/plugin-sdk/provider-auth";
-import { resolveProviderRequestHeaders } from "openclaw/plugin-sdk/provider-http";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { resolveProviderRequestHeaders } from "astroclaw/plugin-sdk/provider-http";
 import {
   captureWsEvent,
   createDebugProxyWebSocketAgent,
   resolveDebugProxySettings,
-} from "openclaw/plugin-sdk/proxy-capture";
+} from "astroclaw/plugin-sdk/proxy-capture";
 import type {
   RealtimeVoiceAudioFormat,
   RealtimeVoiceBargeInOptions,
@@ -26,16 +26,16 @@ import type {
   RealtimeVoiceProviderPlugin,
   RealtimeVoiceTool,
   RealtimeVoiceToolResultOptions,
-} from "openclaw/plugin-sdk/realtime-voice";
+} from "astroclaw/plugin-sdk/realtime-voice";
 import {
   REALTIME_VOICE_AUDIO_FORMAT_G711_ULAW_8KHZ,
   REALTIME_VOICE_AUDIO_FORMAT_PCM16_24KHZ,
-} from "openclaw/plugin-sdk/realtime-voice";
-import { sleepWithAbort, warn } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/realtime-voice";
+import { sleepWithAbort, warn } from "astroclaw/plugin-sdk/runtime-env";
 import {
   normalizeResolvedSecretInputString,
   normalizeSecretInputString,
-} from "openclaw/plugin-sdk/secret-input";
+} from "astroclaw/plugin-sdk/secret-input";
 import WebSocket from "ws";
 import {
   asFiniteNumber,
@@ -305,6 +305,30 @@ const OPENAI_REALTIME_CONFIGURED_API_KEY_REJECTED =
 const KEYCHAIN_SECRET_REF_RE = /^keychain:([^:]+):([^:]+)$/;
 const KEYCHAIN_LOOKUP_TIMEOUT_MS = 5000;
 const resolvedKeychainSecretRefCache = new Map<string, string>();
+
+function isDirectOpenAIRealtimeWebSocketUrl(value: string): boolean {
+  try {
+    return new URL(value).hostname === "api.openai.com";
+  } catch {
+    return false;
+  }
+}
+
+function isOpenAIRealtimeStartupAuthFailure(error: unknown): boolean {
+  const record =
+    typeof error === "object" && error !== null ? (error as Record<string, unknown>) : undefined;
+  const status = record?.status ?? record?.statusCode;
+  const rawCode = record?.code ?? record?.errorCode;
+  const code = typeof rawCode === "string" ? rawCode.toLowerCase() : "";
+  const message = readRealtimeErrorDetail(error).toLowerCase();
+  return (
+    status === 401 ||
+    code === "invalid_api_key" ||
+    message.includes("invalid_api_key") ||
+    message.includes("incorrect api key provided") ||
+    message.includes("unexpected server response: 401")
+  );
+}
 
 function resolveKeychainSecretRef(value: string): string | undefined {
   const trimmed = value.trim();
@@ -880,7 +904,14 @@ class OpenAIRealtimeVoiceBridge implements RealtimeVoiceBridge {
           try {
             const event = JSON.parse(data.toString()) as RealtimeEvent;
             if (event.type === "error" && !reachedReady) {
-              rejectStartup(new Error(readRealtimeErrorDetail(event.error)));
+              // Only direct OpenAI auth failures get bounded remediation. Azure,
+              // custom endpoints, and non-auth startup details remain provider-owned.
+              rejectStartup(
+                isDirectOpenAIRealtimeWebSocketUrl(url) &&
+                  isOpenAIRealtimeStartupAuthFailure(event.error)
+                  ? new Error(OPENAI_REALTIME_CONFIGURED_API_KEY_REJECTED)
+                  : new Error(readRealtimeErrorDetail(event.error)),
+              );
               return;
             }
             this.handleEvent(event, lifecycleConnection);
@@ -914,7 +945,13 @@ class OpenAIRealtimeVoiceBridge implements RealtimeVoiceBridge {
             },
           });
           if (!reachedReady) {
-            rejectStartup(error instanceof Error ? error : new Error(String(error)));
+            const startupError = error instanceof Error ? error : new Error(String(error));
+            rejectStartup(
+              isDirectOpenAIRealtimeWebSocketUrl(url) &&
+                isOpenAIRealtimeStartupAuthFailure(startupError)
+                ? new Error(OPENAI_REALTIME_CONFIGURED_API_KEY_REJECTED)
+                : startupError,
+            );
             return;
           }
           this.config.onError?.(error instanceof Error ? error : new Error(String(error)));
