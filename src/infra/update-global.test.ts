@@ -2,7 +2,7 @@
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PACKAGE_INSTALL_GUARD_RELATIVE_PATH,
@@ -27,6 +27,7 @@ import {
   createGlobalInstallEnv,
   globalInstallArgs,
   globalInstallFallbackArgs,
+  resolveExpectedInstalledVersionFromSpec,
   resolveGlobalInstallTarget,
   resolveGlobalInstallSpec,
   resolveNpmGlobalPrefixLayoutFromGlobalRoot,
@@ -128,6 +129,41 @@ describe("update global helpers", () => {
         tag: "https://example.com/openclaw-main.tgz",
       }),
     ).toBe("https://example.com/openclaw-main.tgz");
+  });
+
+  it.each([
+    { packageName: "openclaw", spec: "openclaw@1.2.3", expected: "1.2.3" },
+    { packageName: "openclaw", spec: "openclaw@v1.2.3", expected: "1.2.3" },
+    { packageName: "openclaw", spec: "openclaw@=1.2.3", expected: "1.2.3" },
+    { packageName: "openclaw", spec: "openclaw@=v1.2.3", expected: "1.2.3" },
+    {
+      packageName: "@openclaw/core",
+      spec: "@openclaw/core@2026.7.30-beta.1",
+      expected: "2026.7.30-beta.1",
+    },
+    { packageName: "openclaw", spec: "openclaw@^1.2.3", expected: null },
+    { packageName: "openclaw", spec: "openclaw@~1.2.3", expected: null },
+    { packageName: "openclaw", spec: "openclaw@>=1.2.3", expected: null },
+    { packageName: "openclaw", spec: "openclaw@1.2.x", expected: null },
+    { packageName: "openclaw", spec: "openclaw@1.2", expected: null },
+    { packageName: "openclaw", spec: "openclaw@*", expected: null },
+    { packageName: "openclaw", spec: "openclaw@latest", expected: null },
+    { packageName: "openclaw", spec: "openclaw@beta", expected: null },
+    { packageName: "openclaw", spec: "openclaw@next", expected: null },
+    { packageName: "openclaw", spec: "openclaw@main", expected: null },
+    { packageName: "openclaw", spec: "openclaw@nightly", expected: null },
+    { packageName: "openclaw", spec: "openclaw@V1.2.3", expected: null },
+    { packageName: "openclaw", spec: "openclaw@npm:@vendor/openclaw@1.2.3", expected: null },
+    { packageName: "openclaw", spec: "openclaw@file:../candidate", expected: null },
+    { packageName: "openclaw", spec: "openclaw@../candidate", expected: null },
+    { packageName: "openclaw", spec: "openclaw@https://example.test/openclaw.tgz", expected: null },
+    { packageName: "openclaw", spec: "openclaw@github:openclaw/openclaw#main", expected: null },
+    { packageName: "openclaw", spec: "other@1.2.3", expected: null },
+    { packageName: "openclaw", spec: "1.2.3", expected: null },
+  ])("derives an expected installed version only for an exact npm spec: $spec", (testCase) => {
+    expect(resolveExpectedInstalledVersionFromSpec(testCase.packageName, testCase.spec)).toBe(
+      testCase.expected,
+    );
   });
 
   it("identifies package targets that support registry version resolution", () => {
