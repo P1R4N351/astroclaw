@@ -1,6 +1,6 @@
 // Agent runtime config tests cover agent-specific runtime config resolution from temp homes.
 import path from "node:path";
-import { withTempHome as withTempHomeBase } from "openclaw/plugin-sdk/test-env";
+import { withTempHome as withTempHomeBase } from "astroclaw/plugin-sdk/test-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveAgentRuntimeConfig } from "../agents/agent-runtime-config.js";
 import { resolveSession } from "../agents/command/session.js";
@@ -18,6 +18,7 @@ type ResolveCommandConfigParams = {
   commandName: string;
   targetIds: Set<string>;
   allowedPaths?: Set<string>;
+  optionalActivePaths?: Set<string>;
   runtime: RuntimeEnv;
 };
 
@@ -37,6 +38,8 @@ vi.mock("../cli/command-secret-targets.js", () => ({
       "models.providers.*.apiKey",
       ...(params?.includeChannelTargets === true ? ["channels.telegram.botToken"] : []),
     ]),
+  getAgentRuntimeOptionalCommandSecretPaths: () =>
+    new Set(["plugins.entries.firecrawl.config.webFetch.apiKey"]),
   getScopedChannelsCommandSecretTargets: (params: {
     config: OpenClawConfig;
     channel?: string;
@@ -248,6 +251,7 @@ describe("agentCommand runtime config", () => {
         config: loadedConfig,
         commandName: "agent",
         targetIds: new Set(["models.providers.*.apiKey"]),
+        optionalActivePaths: new Set(["plugins.entries.firecrawl.config.webFetch.apiKey"]),
         runtime,
       });
       const targetIds = requireResolveCommandConfigParams().targetIds;
