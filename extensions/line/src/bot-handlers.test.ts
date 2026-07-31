@@ -1,27 +1,54 @@
 // Line tests cover bot handlers plugin behavior.
 import type { webhook } from "@line/bot-sdk";
-import { MediaFetchError } from "openclaw/plugin-sdk/media-runtime";
-import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import { MediaFetchError } from "astroclaw/plugin-sdk/media-runtime";
+import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LineAccountConfig } from "./types.js";
 
 type MessageEvent = webhook.MessageEvent;
 
+const pairingDeliveryMocks = vi.hoisted(() => ({
+  invokePairingReply: false,
+  pushMessageLine: vi.fn(async () => {
+    throw new Error("pushMessageLine should not be called from bot-handlers tests");
+  }),
+  replyMessageLine: vi.fn(async () => {
+    throw new Error("replyMessageLine should not be called from bot-handlers tests");
+  }),
+}));
+
 // Avoid pulling in globals/pairing/media dependencies; this suite only asserts
 // allowlist/groupPolicy gating and message-context wiring.
-vi.mock("openclaw/plugin-sdk/channel-inbound", () => ({
+vi.mock("astroclaw/plugin-sdk/channel-inbound", () => ({
   buildMentionRegexes: () => [],
+  isChannelPartialDeliveryError: (error: unknown) =>
+    Boolean(
+      error &&
+      typeof error === "object" &&
+      (error as { code?: unknown }).code === "CHANNEL_PARTIAL_DELIVERY",
+    ),
   matchesMentionPatterns: () => false,
 }));
-vi.mock("openclaw/plugin-sdk/channel-pairing", () => ({
+vi.mock("astroclaw/plugin-sdk/channel-pairing", () => ({
   createChannelPairingChallengeIssuer:
     ({ upsertPairingRequest }: { upsertPairingRequest: (args: unknown) => Promise<unknown> }) =>
-    async ({ senderId, onCreated }: { senderId: string; onCreated?: () => void }) => {
+    async ({
+      senderId,
+      onCreated,
+      sendPairingReply,
+    }: {
+      senderId: string;
+      onCreated?: () => void;
+      sendPairingReply?: (text: string) => Promise<void>;
+    }) => {
       await upsertPairingRequest({ id: senderId, meta: {} });
       onCreated?.();
+      if (pairingDeliveryMocks.invokePairingReply) {
+        await sendPairingReply?.("Pairing challenge");
+      }
     },
 }));
-vi.mock("openclaw/plugin-sdk/command-auth-native", () => ({
+vi.mock("astroclaw/plugin-sdk/command-auth-native", () => ({
   hasControlCommand: (text: string) => {
     const body = text.trim().toLowerCase();
     return body === "/status" || body.startsWith("/status ");
@@ -37,7 +64,7 @@ vi.mock("openclaw/plugin-sdk/command-auth-native", () => ({
       hasControlCommand && authorizers.some((entry) => entry.allowed || !entry.configured),
   }),
 }));
-vi.mock("openclaw/plugin-sdk/runtime-group-policy", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-group-policy", () => ({
   resolveAllowlistProviderRuntimeGroupPolicy: ({
     groupPolicy,
     defaultGroupPolicy,
@@ -52,11 +79,11 @@ vi.mock("openclaw/plugin-sdk/runtime-group-policy", () => ({
     cfg.channels?.line?.groupPolicy ?? "open",
   warnMissingProviderGroupPolicyFallbackOnce: () => {},
 }));
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   danger: (text: string) => text,
   logVerbose: () => {},
 }));
-vi.mock("openclaw/plugin-sdk/reply-history", () => ({
+vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
   DEFAULT_GROUP_HISTORY_LIMIT: 20,
   createChannelHistoryWindow: ({ historyMap }: { historyMap: Map<string, HistoryEntry[]> }) => ({
     record: ({
@@ -119,7 +146,7 @@ vi.mock("openclaw/plugin-sdk/reply-history", () => ({
     historyMap.set(historyKey, [...existing, entry].slice(-limit));
   },
 }));
-vi.mock("openclaw/plugin-sdk/routing", () => ({
+vi.mock("astroclaw/plugin-sdk/routing", () => ({
   resolveAgentRoute: () => ({ agentId: "default" }),
 }));
 
@@ -129,7 +156,7 @@ const { readAllowFromStoreMock, upsertPairingRequestMock } = vi.hoisted(() => ({
 }));
 const downloadLineMediaMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", () => ({
   resolvePairingIdLabel: () => "lineUserId",
   readChannelAllowFromStore: readAllowFromStoreMock,
   upsertChannelPairingRequest: upsertPairingRequestMock,
@@ -141,12 +168,8 @@ vi.mock("./download.js", async (importActual) => ({
 }));
 
 vi.mock("./send.js", () => ({
-  pushMessageLine: async () => {
-    throw new Error("pushMessageLine should not be called from bot-handlers tests");
-  },
-  replyMessageLine: async () => {
-    throw new Error("replyMessageLine should not be called from bot-handlers tests");
-  },
+  pushMessageLine: pairingDeliveryMocks.pushMessageLine,
+  replyMessageLine: pairingDeliveryMocks.replyMessageLine,
 }));
 
 const { buildLineMessageContextMock, buildLinePostbackContextMock } = vi.hoisted(() => ({
@@ -292,14 +315,14 @@ describe("handleLineWebhookEvents", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("openclaw/plugin-sdk/channel-inbound");
-    vi.doUnmock("openclaw/plugin-sdk/channel-pairing");
-    vi.doUnmock("openclaw/plugin-sdk/command-auth-native");
-    vi.doUnmock("openclaw/plugin-sdk/runtime-group-policy");
-    vi.doUnmock("openclaw/plugin-sdk/runtime-env");
-    vi.doUnmock("openclaw/plugin-sdk/reply-history");
-    vi.doUnmock("openclaw/plugin-sdk/routing");
-    vi.doUnmock("openclaw/plugin-sdk/conversation-runtime");
+    vi.doUnmock("astroclaw/plugin-sdk/channel-inbound");
+    vi.doUnmock("astroclaw/plugin-sdk/channel-pairing");
+    vi.doUnmock("astroclaw/plugin-sdk/command-auth-native");
+    vi.doUnmock("astroclaw/plugin-sdk/runtime-group-policy");
+    vi.doUnmock("astroclaw/plugin-sdk/runtime-env");
+    vi.doUnmock("astroclaw/plugin-sdk/reply-history");
+    vi.doUnmock("astroclaw/plugin-sdk/routing");
+    vi.doUnmock("astroclaw/plugin-sdk/conversation-runtime");
     vi.doUnmock("./download.js");
     vi.doUnmock("./send.js");
     vi.doUnmock("./bot-message-context.js");
@@ -307,6 +330,9 @@ describe("handleLineWebhookEvents", () => {
   });
 
   beforeEach(() => {
+    pairingDeliveryMocks.invokePairingReply = false;
+    pairingDeliveryMocks.pushMessageLine.mockClear();
+    pairingDeliveryMocks.replyMessageLine.mockClear();
     buildLineMessageContextMock.mockReset();
     buildLineMessageContextMock.mockImplementation(async () => ({
       ctxPayload: { From: "line:group:group-1" },
@@ -727,6 +753,41 @@ describe("handleLineWebhookEvents", () => {
     expect(pairingRequest?.id).toBe("user-5");
     expect(pairingRequest?.accountId).toBe("default");
   });
+
+  it.each([
+    { name: "already accepted", delivered: true, fallbackPushCount: 0 },
+    { name: "not delivered", delivered: false, fallbackPushCount: 1 },
+  ])(
+    "avoids duplicate delivery when the pairing reply was $name",
+    async ({ delivered, fallbackPushCount }) => {
+      pairingDeliveryMocks.invokePairingReply = true;
+      const replyError = delivered
+        ? Object.assign(new Error("activity store unavailable"), {
+            code: "CHANNEL_PARTIAL_DELIVERY",
+            deliveryResult: { messageIds: ["line-final"], visibleReplySent: true },
+          })
+        : new Error("provider delivery rejected");
+      pairingDeliveryMocks.replyMessageLine.mockRejectedValueOnce(replyError);
+      const event = createTestMessageEvent({
+        message: {
+          id: "pairing-final",
+          type: "text",
+          text: "hello",
+          quoteToken: "pairing-final-quote",
+        },
+        source: { type: "user", userId: "pairing-user" },
+        webhookEventId: "pairing-final-event",
+      });
+
+      await handleLineWebhookEvents(
+        [event],
+        createLineWebhookTestContext({ processMessage: vi.fn(), dmPolicy: "pairing" }),
+      );
+
+      expect(pairingDeliveryMocks.replyMessageLine).toHaveBeenCalledOnce();
+      expect(pairingDeliveryMocks.pushMessageLine).toHaveBeenCalledTimes(fallbackPushCount);
+    },
+  );
 
   it("does not authorize DM senders from another account's pairing-store entries", async () => {
     const processMessage = vi.fn();
