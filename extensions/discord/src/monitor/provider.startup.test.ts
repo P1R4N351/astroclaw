@@ -25,15 +25,15 @@ vi.mock("../internal/voice.js", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/dangerous-name-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/dangerous-name-runtime", () => ({
   isDangerousNameMatchingEnabled: () => false,
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   danger: (value: string) => value,
 }));
 
-vi.mock("openclaw/plugin-sdk/string-coerce-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", () => ({
   normalizeOptionalString: (value: string | null | undefined) => {
     if (typeof value !== "string") {
       return undefined;
@@ -91,6 +91,9 @@ vi.mock("./listeners.js", () => ({
   },
   DiscordReactionRemoveListener: function DiscordReactionRemoveListener() {
     return { type: "reaction-remove" };
+  },
+  DiscordThreadDeleteListener: function DiscordThreadDeleteListener() {
+    return { type: "thread-delete" };
   },
   DiscordThreadUpdateListener: function DiscordThreadUpdateListener() {
     return { type: "thread-update" };
@@ -397,7 +400,12 @@ describe("registerDiscordMonitorListeners", () => {
   it("skips reaction listeners when every configured guild disables reactions and DMs are off", () => {
     registerDiscordMonitorListeners(createListenerParams());
 
-    expect(registeredListenerTypes()).toEqual(["interaction", "message", "thread-update"]);
+    expect(registeredListenerTypes()).toEqual([
+      "interaction",
+      "message",
+      "thread-update",
+      "thread-delete",
+    ]);
   });
 
   it("keeps reaction listeners when direct messages can emit reaction notifications", () => {
@@ -440,6 +448,7 @@ describe("registerDiscordMonitorListeners", () => {
       "interaction",
       "message",
       "thread-update",
+      "thread-delete",
       "presence",
       "presence-guild-create",
       "presence-guild-delete",
