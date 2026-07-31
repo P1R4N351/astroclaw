@@ -3,10 +3,10 @@ import crypto from "node:crypto";
 import fsSync from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
-import { redactIdentifier } from "openclaw/plugin-sdk/logging-core";
-import { MEDIA_FFMPEG_MAX_AUDIO_DURATION_SECS } from "openclaw/plugin-sdk/media-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
+import { redactIdentifier } from "astroclaw/plugin-sdk/logging-core";
+import { MEDIA_FFMPEG_MAX_AUDIO_DURATION_SECS } from "astroclaw/plugin-sdk/media-runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAcceptedWhatsAppSendResult } from "./inbound/send-result.test-helper.js";
 import type { ActiveWebListener } from "./inbound/types.js";
@@ -21,8 +21,8 @@ let sendMessageWhatsApp: typeof import("./send.js").sendMessageWhatsApp;
 let sendPollWhatsApp: typeof import("./send.js").sendPollWhatsApp;
 let sendReactionWhatsApp: typeof import("./send.js").sendReactionWhatsApp;
 let sendTypingWhatsApp: typeof import("./send.js").sendTypingWhatsApp;
-let resetLogger: typeof import("openclaw/plugin-sdk/runtime-env").resetLogger;
-let setLoggerOverride: typeof import("openclaw/plugin-sdk/runtime-env").setLoggerOverride;
+let resetLogger: typeof import("astroclaw/plugin-sdk/runtime-env").resetLogger;
+let setLoggerOverride: typeof import("astroclaw/plugin-sdk/runtime-env").setLoggerOverride;
 
 const WHATSAPP_TEST_CFG: OpenClawConfig = {
   channels: { whatsapp: {} },
@@ -45,9 +45,9 @@ vi.mock("./connection-controller-runtime-context.js", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/outbound-media", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/outbound-media")>(
-    "openclaw/plugin-sdk/outbound-media",
+vi.mock("astroclaw/plugin-sdk/outbound-media", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/outbound-media")>(
+    "astroclaw/plugin-sdk/outbound-media",
   );
   return {
     ...actual,
@@ -55,9 +55,9 @@ vi.mock("openclaw/plugin-sdk/outbound-media", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
-    "openclaw/plugin-sdk/media-runtime",
+vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
+    "astroclaw/plugin-sdk/media-runtime",
   );
   return {
     ...actual,
@@ -85,7 +85,7 @@ describe("web outbound", () => {
     ({ sendMessageWhatsApp, sendPollWhatsApp, sendReactionWhatsApp, sendTypingWhatsApp } =
       await import("./send.js"));
     const { resetLogger: loadedResetLogger, setLoggerOverride: loadedSetLoggerOverride } =
-      await import("openclaw/plugin-sdk/runtime-env");
+      await import("astroclaw/plugin-sdk/runtime-env");
     resetLogger = loadedResetLogger;
     setLoggerOverride = loadedSetLoggerOverride;
   });
@@ -140,6 +140,40 @@ describe("web outbound", () => {
     });
     expect(sendComposingTo).toHaveBeenCalledWith("+1555");
     expect(sendMessage).toHaveBeenCalledWith("+1555", "hi", undefined, undefined);
+  });
+
+  it.each([
+    { name: "text", mediaUrl: undefined },
+    { name: "media", mediaUrl: "/tmp/pic.jpg" },
+  ])("still sends $name when composing presence fails", async ({ mediaUrl }) => {
+    const mediaBuffer = Buffer.from("img");
+    if (mediaUrl) {
+      loadWebMediaMock.mockResolvedValueOnce({
+        buffer: mediaBuffer,
+        contentType: "image/jpeg",
+        kind: "image",
+      });
+    }
+    sendComposingTo.mockRejectedValueOnce(new Error("presence update unavailable"));
+
+    await expect(
+      sendMessageWhatsApp("+1555", "hi", {
+        verbose: false,
+        cfg: WHATSAPP_TEST_CFG,
+        ...(mediaUrl ? { mediaUrl } : {}),
+      }),
+    ).resolves.toEqual({
+      messageId: "msg123",
+      toJid: "1555@s.whatsapp.net",
+    });
+
+    expect(sendComposingTo).toHaveBeenCalledWith("+1555");
+    expect(sendMessage).toHaveBeenCalledWith(
+      "+1555",
+      "hi",
+      mediaUrl ? mediaBuffer : undefined,
+      mediaUrl ? "image/jpeg" : undefined,
+    );
   });
 
   it("re-chunks after WhatsApp marker expansion", async () => {
