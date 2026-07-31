@@ -2,18 +2,18 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { Context, Model } from "openclaw/plugin-sdk/llm";
+import type { Context, Model } from "astroclaw/plugin-sdk/llm";
 import type {
   ProviderReplaySessionEntry,
   ProviderSanitizeReplayHistoryContext,
-} from "openclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { createCapturedThinkingConfigStream } from "openclaw/plugin-sdk/provider-test-contracts";
-import type { RealtimeVoiceProviderPlugin } from "openclaw/plugin-sdk/realtime-voice";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { createCapturedThinkingConfigStream } from "astroclaw/plugin-sdk/provider-test-contracts";
+import type { RealtimeVoiceProviderPlugin } from "astroclaw/plugin-sdk/realtime-voice";
 import { describe, expect, it, vi } from "vitest";
 import { registerGoogleGeminiCliProvider } from "./gemini-cli-provider.js";
 import googlePlugin from "./index.js";
@@ -127,6 +127,21 @@ describe("google provider plugin hooks", () => {
         modelId: "gemini-2.5-pro",
       } as never),
     ).toBe("tagged");
+  });
+
+  it("keeps the Gemini CLI runtime without offering new OAuth setup", async () => {
+    const { providers } = await registerProviderPlugin({
+      plugin: googleProviderPlugin,
+      id: "google",
+      name: "Google Provider",
+    });
+    const cliProvider = requireRegisteredProvider(providers, "google-gemini-cli");
+
+    expect(cliProvider.label).toBe("Gemini CLI runtime");
+    expect(cliProvider.auth).toEqual([]);
+    expect(cliProvider.envVars).toEqual([]);
+    expect(cliProvider.wizard).toBeUndefined();
+    expect(cliProvider.refreshOAuth).toBeTypeOf("function");
   });
 
   it("keeps google-antigravity hook aliases on tagged reasoning mode", async () => {
