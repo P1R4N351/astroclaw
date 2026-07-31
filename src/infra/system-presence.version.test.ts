@@ -1,6 +1,6 @@
 // Tests system command version probing for presence checks.
 import os from "node:os";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withEnvAsync } from "../test-utils/env.js";
 import { VERSION as runtimeVersion } from "../version.js";
@@ -10,7 +10,7 @@ vi.unmock("../version.js");
 const spawnSyncMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeChildProcessSpawnSync } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeChildProcessSpawnSync } = await import("astroclaw/plugin-sdk/test-node-mocks");
   return mockNodeChildProcessSpawnSync(spawnSyncMock, () =>
     vi.importActual<typeof import("node:child_process")>("node:child_process"),
   );
@@ -98,18 +98,7 @@ describe("system-presence version fallback", () => {
     );
   });
 
-  it("still prefers runtime VERSION over npm_package_version when service markers are blank", async () => {
-    await expectSelfVersion(
-      {
-        OPENCLAW_VERSION: " ",
-        OPENCLAW_SERVICE_VERSION: "\t",
-        npm_package_version: "1.0.0-package",
-      },
-      runtimeVersion,
-    );
-  });
-
-  it("uses runtime VERSION when OPENCLAW_VERSION and OPENCLAW_SERVICE_VERSION are blank", async () => {
+  it("uses runtime VERSION when service markers are blank despite npm_package_version", async () => {
     await expectSelfVersion(
       {
         OPENCLAW_VERSION: " ",
