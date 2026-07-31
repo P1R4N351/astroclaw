@@ -6,9 +6,9 @@ import {
   OPENCLAW_CRABLINE_DEFAULT_CHANNEL,
   resolveOpenClawCrablineChannelDriverSelection,
 } from "@openclaw/crabline";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
-import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
+import { uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   buildQaAgenticParityComparison,
   buildQaRuntimeParityReport,
@@ -160,6 +160,7 @@ export type QaSuiteCommandOptions = QaScenarioRunCommandOptions & {
   runtimePair?: string;
   runtimePairLane?: string[];
   sutAccountId?: string;
+  credentialFile?: string;
   credentialSource?: string;
   credentialRole?: string;
   explicitScenarioSelection?: boolean;
@@ -1019,6 +1020,7 @@ export async function runQaSuiteCommand(opts: QaSuiteCommandOptions) {
           adapterOptions: {
             repoRoot,
             sutAccountId: opts.sutAccountId,
+            credentialFile: opts.credentialFile,
             credentialSource: opts.credentialSource,
             credentialRole: opts.credentialRole,
             explicitScenarioSelection:
