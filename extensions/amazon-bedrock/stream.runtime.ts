@@ -27,7 +27,7 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import type { DocumentType } from "@smithy/types";
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
 import {
   adjustMaxTokensForThinking,
   AssistantMessageEventStream,
@@ -53,8 +53,8 @@ import {
   type Tool,
   type ToolCall,
   type ToolResultMessage,
-} from "openclaw/plugin-sdk/llm";
-import { canonicalizeBase64 } from "openclaw/plugin-sdk/media-runtime";
+} from "astroclaw/plugin-sdk/llm";
+import { canonicalizeBase64 } from "astroclaw/plugin-sdk/media-runtime";
 import {
   resolveClaudeFable5ModelIdentity,
   resolveClaudeModelIdentity,
@@ -64,14 +64,14 @@ import {
   requiresClaudeMandatoryAdaptiveThinking,
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeXhighEffort,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   applyAnthropicRefusal,
   createDeferredEventBuffer,
   notifyLlmRequestActivity,
-} from "openclaw/plugin-sdk/provider-stream-shared";
-import { describeToolResultMediaPlaceholder } from "openclaw/plugin-sdk/provider-transport-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/provider-stream-shared";
+import { describeToolResultMediaPlaceholder } from "astroclaw/plugin-sdk/provider-transport-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { supportsBedrockPromptCaching, type BedrockOptions } from "./bedrock-options.js";
 import { supportsBedrockNativeMaxEffort } from "./thinking-policy.js";
 
@@ -332,7 +332,7 @@ const streamBedrock: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
         }
       }
 
-      if (refusalBuffer && !sawMessageStop) {
+      if (!sawMessageStop) {
         throw new Error("Bedrock stream ended before messageStop");
       }
       if (options.signal?.aborted) {
@@ -812,7 +812,7 @@ function createBedrockToolResult(message: ToolResultMessage): ContentBlock.ToolR
       content.push({ text: sanitizeSurrogates(block.text) });
       continue;
     }
-    if (describeToolResultMediaPlaceholder([block])) {
+    if (block.type === "image" && describeToolResultMediaPlaceholder([block])) {
       content.push({ image: createImageBlock(block.mimeType, block.data) });
     }
   }
@@ -820,7 +820,10 @@ function createBedrockToolResult(message: ToolResultMessage): ContentBlock.ToolR
   return {
     toolResult: {
       toolUseId: message.toolCallId,
-      content: content.length > 0 ? content : [{ text: "(no output)" }],
+      content:
+        content.length > 0
+          ? content
+          : [{ text: describeToolResultMediaPlaceholder(message.content) ?? "(no output)" }],
       status: message.isError ? ToolResultStatus.ERROR : ToolResultStatus.SUCCESS,
     },
   };
