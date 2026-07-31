@@ -1,15 +1,16 @@
 // Telegram plugin module implements bot native commands behavior.
 import { randomUUID } from "node:crypto";
+import type { Bot, Context } from "grammy";
 import {
   loadPreparedModelCatalog,
   resolveAgentConfig,
   resolveAgentDir,
   resolveDefaultModelForAgent,
   resolveThinkingDefaultWithRuntimeCatalog,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import type { ChannelInboundTurnPlan } from "astroclaw/plugin-sdk/channel-inbound";
-import { resolveChannelStreamingBlockEnabled } from "astroclaw/plugin-sdk/channel-outbound";
-import { resolveNativeCommandSessionTargets } from "astroclaw/plugin-sdk/command-auth-native";
+} from "openclaw/plugin-sdk/agent-runtime";
+import type { ChannelInboundTurnPlan } from "openclaw/plugin-sdk/channel-inbound";
+import { resolveChannelStreamingBlockEnabled } from "openclaw/plugin-sdk/channel-outbound";
+import { resolveNativeCommandSessionTargets } from "openclaw/plugin-sdk/command-auth-native";
 import {
   buildCommandTextFromArgs,
   findCommandByNativeName,
@@ -23,37 +24,36 @@ import {
   resolveFastModeState,
   resolveStoredModelOverride,
   type CommandArgs,
-} from "astroclaw/plugin-sdk/command-auth-native";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { ChannelGroupPolicy } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelGroupPolicy } from "openclaw/plugin-sdk/config-contracts";
 import type {
   ReplyToMode,
   TelegramAccountConfig,
   TelegramDirectConfig,
   TelegramGroupConfig,
   TelegramTopicConfig,
-} from "astroclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
-import { codexChannelLoginRuntime } from "astroclaw/plugin-sdk/provider-auth-login-flow-runtime";
-import { hasOutboundReplyContent } from "astroclaw/plugin-sdk/reply-payload";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { getChildLogger } from "astroclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+import { codexChannelLoginRuntime } from "openclaw/plugin-sdk/provider-auth-login-flow-runtime";
+import { hasOutboundReplyContent } from "openclaw/plugin-sdk/reply-payload";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { getChildLogger } from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   formatSqliteSessionFileMarker,
   getSessionEntry,
   resolveStorePath,
   type SessionEntry,
   updateSessionStoreEntry,
-} from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/session-store-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { escapeHtml } from "astroclaw/plugin-sdk/text-utility-runtime";
-import type { Bot, Context } from "grammy";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { escapeHtml } from "openclaw/plugin-sdk/text-utility-runtime";
 import { expandTelegramAllowFromWithAccessGroups } from "./access-groups.js";
 import { resolveTelegramAccount } from "./accounts.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
@@ -75,10 +75,7 @@ import {
   syncTelegramMenuCommands as syncTelegramMenuCommandsRuntime,
   type TelegramMenuCommand,
 } from "./bot-native-command-menu.js";
-import {
-  recordTelegramMessageProcessingResult,
-  type TelegramMessageProcessingResult,
-} from "./bot-processing-outcome.js";
+import type { TelegramMessageProcessingResult } from "./bot-processing-outcome.js";
 import type { TelegramUpdateKeyContext } from "./bot-updates.js";
 import type { TelegramBotOptions } from "./bot.types.js";
 import {
@@ -126,23 +123,10 @@ const activeTelegramCodexLoginFlows = new Map<string, { expiresAt: number }>();
 
 type TelegramNativeCommandContext = Context & { match?: string };
 
-function registerTelegramNativeCommandHandler(
-  bot: Bot,
-  command: string,
-  handler: (ctx: TelegramNativeCommandContext) => Promise<void>,
-): void {
-  bot.command(command, async (ctx: TelegramNativeCommandContext) => {
-    await handler(ctx);
-    // Native commands bypass processMessage, so their terminal outcome must be
-    // recorded here for every built-in, plugin, and direct-delivery branch.
-    recordTelegramMessageProcessingResult({ kind: "completed" });
-  });
-}
-
 type TelegramChunkMode = ReturnType<
-  typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime").resolveChunkMode
+  typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").resolveChunkMode
 >;
-type TelegramNativeReplyPayload = import("astroclaw/plugin-sdk/plugin-entry").PluginCommandResult;
+type TelegramNativeReplyPayload = import("openclaw/plugin-sdk/plugin-entry").PluginCommandResult;
 type TelegramNativeReplyChannelData = {
   buttons?: TelegramInlineButtons;
   pin?: boolean;
@@ -1227,7 +1211,7 @@ export const registerTelegramNativeCommands = ({
   if (commandsToRegister.length > 0 || pluginCatalog.commands.length > 0) {
     for (const command of nativeCommands) {
       const normalizedCommandName = normalizeTelegramCommandName(command.name);
-      registerTelegramNativeCommandHandler(bot, normalizedCommandName, async (ctx) => {
+      bot.command(normalizedCommandName, async (ctx: TelegramNativeCommandContext) => {
         const msg = ctx.message;
         if (!msg) {
           return;
@@ -1817,7 +1801,7 @@ export const registerTelegramNativeCommands = ({
     }
 
     for (const pluginCommand of pluginCatalog.commands) {
-      registerTelegramNativeCommandHandler(bot, pluginCommand.command, async (ctx) => {
+      bot.command(pluginCommand.command, async (ctx: TelegramNativeCommandContext) => {
         const msg = ctx.message;
         if (!msg) {
           return;
