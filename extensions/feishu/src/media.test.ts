@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { withTempDir } from "openclaw/plugin-sdk/test-env";
+import { withTempDir } from "astroclaw/plugin-sdk/test-env";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "../runtime-api.js";
 
@@ -22,6 +22,10 @@ const messageReplyMock = vi.hoisted(() => vi.fn());
 
 const FEISHU_MEDIA_HTTP_TIMEOUT_MS = 120_000;
 const emptyConfig: ClawdbotConfig = {};
+const validPngImage = Buffer.from(
+  "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de",
+  "hex",
+);
 
 vi.mock("./client.js", () => ({
   createFeishuClient: createFeishuClientMock,
@@ -45,8 +49,8 @@ vi.mock("./runtime.js", () => ({
   }),
 }));
 
-vi.mock("openclaw/plugin-sdk/media-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/media-runtime")>();
+vi.mock("astroclaw/plugin-sdk/media-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/media-runtime")>();
   return {
     ...actual,
     runFfmpeg: runFfmpegMock,
@@ -126,7 +130,7 @@ describe("sendMediaFeishu msg_type routing", () => {
     vi.doUnmock("./accounts.js");
     vi.doUnmock("./targets.js");
     vi.doUnmock("./runtime.js");
-    vi.doUnmock("openclaw/plugin-sdk/media-runtime");
+    vi.doUnmock("astroclaw/plugin-sdk/media-runtime");
     vi.resetModules();
   });
 
@@ -447,7 +451,7 @@ describe("sendMediaFeishu msg_type routing", () => {
     await sendMediaFeishu({
       cfg: emptyConfig,
       to: "user:ou_target",
-      mediaBuffer: Buffer.from("image"),
+      mediaBuffer: validPngImage,
       fileName: "photo.png",
     });
 
@@ -475,7 +479,7 @@ describe("sendMediaFeishu msg_type routing", () => {
     const send = sendMediaFeishu({
       cfg: emptyConfig,
       to: "user:ou_target",
-      mediaBuffer: Buffer.from("image"),
+      mediaBuffer: validPngImage,
       fileName: "photo.png",
     });
 
@@ -534,7 +538,7 @@ describe("sendMediaFeishu msg_type routing", () => {
     const result = await sendMediaFeishu({
       cfg: emptyConfig,
       to: "user:ou_target",
-      mediaBuffer: Buffer.from("image"),
+      mediaBuffer: validPngImage,
       fileName: "photo.png",
       replyToMessageId: "om_parent",
     });
