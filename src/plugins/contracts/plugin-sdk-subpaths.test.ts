@@ -15,17 +15,17 @@ import type {
   ChannelStatusIssue as ContractChannelStatusIssue,
   ChannelThreadingContext as ContractChannelThreadingContext,
   ChannelThreadingToolContext as ContractChannelThreadingToolContext,
-} from "openclaw/plugin-sdk/channel-contract";
+} from "astroclaw/plugin-sdk/channel-contract";
 import type {
   ChannelMessageActionContext as CoreChannelMessageActionContext,
   OpenClawPluginApi as CoreOpenClawPluginApi,
   PluginRuntime as CorePluginRuntime,
-} from "openclaw/plugin-sdk/core";
+} from "astroclaw/plugin-sdk/core";
 import type {
   GetReplyOptions as ReplyRuntimeGetReplyOptions,
   ReplyDispatchBeforeDeliverOptions as ReplyRuntimeBeforeDeliverOptions,
   ReplyDispatcher as ReplyRuntimeDispatcher,
-} from "openclaw/plugin-sdk/reply-runtime";
+} from "astroclaw/plugin-sdk/reply-runtime";
 import ts from "typescript";
 import { beforeAll, describe, expect, expectTypeOf, it } from "vitest";
 import type { ChannelMessageActionContext } from "../../channels/plugins/types.public.js";
@@ -1240,6 +1240,8 @@ describe("plugin-sdk subpath exports", () => {
     expectSourceOmitsSnippet("google-model-id", "./google.js");
     expectSourceOmitsSnippet("google-model-id", "./facade-runtime.js");
     expectSourceOmitsSnippet("google-model-id", "../../extensions/");
+    expectSourceMentions("xiaomi", ["./facade-runtime.js"]);
+    expectSourceOmitsSnippet("xiaomi", "./facade-loader.js");
     expectRepoSourceOmitsSnippet("extensions/xai/model-id.ts", "./xai.js");
     expectRepoSourceOmitsSnippet("extensions/xai/model-id.ts", "./facade-runtime.js");
     expectRepoSourceOmitsSnippet("extensions/xai/model-id.ts", "../../extensions/");
@@ -1329,19 +1331,21 @@ describe("plugin-sdk subpath exports", () => {
   });
 
   it("keeps runtime entry subpaths importable", async () => {
-    const coreSdk = await importResolvedPluginSdkSubpath("openclaw/plugin-sdk/core");
+    const coreSdk = await importResolvedPluginSdkSubpath("astroclaw/plugin-sdk/core");
     const channelActionsSdk = await importResolvedPluginSdkSubpath(
-      "openclaw/plugin-sdk/channel-actions",
+      "astroclaw/plugin-sdk/channel-actions",
     );
-    const pluginEntrySdk = await importResolvedPluginSdkSubpath("openclaw/plugin-sdk/plugin-entry");
+    const pluginEntrySdk = await importResolvedPluginSdkSubpath(
+      "astroclaw/plugin-sdk/plugin-entry",
+    );
     const channelLifecycleSdk = await importResolvedPluginSdkSubpath(
-      "openclaw/plugin-sdk/channel-lifecycle",
+      "astroclaw/plugin-sdk/channel-lifecycle",
     );
     const channelPairingSdk = await importResolvedPluginSdkSubpath(
-      "openclaw/plugin-sdk/channel-pairing",
+      "astroclaw/plugin-sdk/channel-pairing",
     );
     const channelReplyPipelineSdk = await importResolvedPluginSdkSubpath(
-      "openclaw/plugin-sdk/channel-reply-pipeline",
+      "astroclaw/plugin-sdk/channel-reply-pipeline",
     );
     const representativeModules = [];
     for (const id of representativeRuntimeSmokeSubpaths) {
@@ -1420,7 +1424,7 @@ describe("plugin-sdk subpath exports", () => {
 
   it("keeps repeated silent-token semantics visible through the reply-chunking subpath", async () => {
     const replyChunkingSdk = await importResolvedPluginSdkSubpath(
-      "openclaw/plugin-sdk/reply-chunking",
+      "astroclaw/plugin-sdk/reply-chunking",
     );
 
     expect(replyChunkingSdk.isSilentReplyText("NO_REPLY\n\nNO_REPLY")).toBe(true);
