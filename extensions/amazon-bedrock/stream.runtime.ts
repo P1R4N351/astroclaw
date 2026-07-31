@@ -27,7 +27,7 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import type { DocumentType } from "@smithy/types";
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
 import {
   adjustMaxTokensForThinking,
   AssistantMessageEventStream,
@@ -53,8 +53,8 @@ import {
   type Tool,
   type ToolCall,
   type ToolResultMessage,
-} from "astroclaw/plugin-sdk/llm";
-import { canonicalizeBase64 } from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/llm";
+import { canonicalizeBase64 } from "openclaw/plugin-sdk/media-runtime";
 import {
   resolveClaudeFable5ModelIdentity,
   resolveClaudeModelIdentity,
@@ -64,14 +64,14 @@ import {
   requiresClaudeMandatoryAdaptiveThinking,
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeXhighEffort,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 import {
   applyAnthropicRefusal,
   createDeferredEventBuffer,
   notifyLlmRequestActivity,
-} from "astroclaw/plugin-sdk/provider-stream-shared";
-import { describeToolResultMediaPlaceholder } from "astroclaw/plugin-sdk/provider-transport-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-stream-shared";
+import { describeToolResultMediaPlaceholder } from "openclaw/plugin-sdk/provider-transport-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { supportsBedrockPromptCaching, type BedrockOptions } from "./bedrock-options.js";
 import { supportsBedrockNativeMaxEffort } from "./thinking-policy.js";
 
@@ -239,8 +239,9 @@ const streamBedrock: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
       config.authSchemePreference = ["httpBearerAuth"];
     }
 
+    let client: BedrockRuntimeClient | undefined;
     try {
-      const client = new BedrockRuntimeClient(config);
+      client = new BedrockRuntimeClient(config);
       const cacheRetention = resolveCacheRetention(options.cacheRetention);
       const additionalModelRequestFields = buildAdditionalModelRequestFields(model, options);
       const thinking = (additionalModelRequestFields as Record<string, unknown> | undefined)
@@ -356,6 +357,18 @@ const streamBedrock: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
         throw new Error(output.errorMessage ?? "An unknown error occurred");
       }
 
+      // Some valid provider streams omit contentBlockStop; never persist their scratch state.
+      for (const block of blocks) {
+        if (block.index !== undefined) {
+          handleContentBlockStop(
+            { contentBlockIndex: block.index },
+            blocks,
+            output,
+            eventSink,
+            redactedReasoningChunks,
+          );
+        }
+      }
       refusalBuffer?.flush();
       stream.push({ type: "done", reason: output.stopReason, message: output });
       stream.end();
@@ -373,6 +386,9 @@ const streamBedrock: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
       output.errorMessage = formatBedrockError(error);
       stream.push({ type: "error", reason: output.stopReason, error: output });
       stream.end();
+    } finally {
+      // The SDK client owns pooled HTTP resources; release them only after its async stream settles.
+      client?.destroy();
     }
   })();
 
