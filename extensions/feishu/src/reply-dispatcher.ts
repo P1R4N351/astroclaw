@@ -1,25 +1,28 @@
 // Feishu plugin module implements reply dispatcher behavior.
-import { formatReasoningMessage, resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
-import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
+import {
+  formatReasoningMessage,
+  resolveHumanDelayConfig,
+} from "astroclaw/plugin-sdk/agent-runtime";
+import { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
 import {
   isChannelPartialDeliveryError,
   type ChannelInboundTurnPlan,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-outbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-outbound";
 import {
   formatChannelProgressDraftLineForEntry,
   isChannelProgressDraftWorkToolName,
   resolveChannelPreviewStreamMode,
   resolveChannelStreamingBlockEnabled,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
 import {
   getReplyPayloadTtsSupplement,
   resolveSendableOutboundReplyParts,
   resolveTextChunksWithFallback,
   sendMediaWithLeadingCaption,
-} from "openclaw/plugin-sdk/reply-payload";
-import { stripReasoningTagsFromText } from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/reply-payload";
+import { stripReasoningTagsFromText } from "astroclaw/plugin-sdk/text-chunking";
 import { resolveFeishuRuntimeAccount } from "./accounts.js";
 import { resolveConfiguredHttpTimeoutMs } from "./client-timeout.js";
 import { createFeishuClient } from "./client.js";
@@ -765,6 +768,9 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         acceptedChunks.push(chunk);
         markVisibleReplySent();
       } catch (error: unknown) {
+        if (isChannelPartialDeliveryError(error)) {
+          markVisibleReplySent();
+        }
         throw createFeishuPartialReplyDeliveryError(
           error,
           createFeishuReplyDeliveryResult({
@@ -843,7 +849,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         onError:
           options?.fallbackText === undefined
             ? undefined
-            : async ({ mediaUrl }) => {
+            : async ({ error, mediaUrl }) => {
+                if (isChannelPartialDeliveryError(error)) {
+                  // The attachment is already visible; text recovery would duplicate delivery.
+                  markVisibleReplySent();
+                  throw toError(error);
+                }
                 const fallbackText = await buildFeishuMediaFallbackText({
                   text: sentFallbackText ? undefined : options.fallbackText,
                   mediaUrl,
@@ -858,6 +869,9 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
       }
     } catch (error: unknown) {
       const partial = isChannelPartialDeliveryError(error) ? error.deliveryResult : undefined;
+      if (partial) {
+        markVisibleReplySent();
+      }
       throw createFeishuPartialReplyDeliveryError(
         error,
         mergeFeishuReplyDeliveryResults([...results, ...(partial ? [partial] : [])]),
@@ -1215,6 +1229,11 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
     },
   };
   const handleDeliveryError = async (error: unknown, info: { kind: string }) => {
+    if (isChannelPartialDeliveryError(error)) {
+      // Core invokes this before no-visible recovery; keep accepted sends visible even
+      // when their normal success bookkeeping could not run.
+      markVisibleReplySent();
+    }
     params.runtime.error?.(
       `feishu[${account.accountId}] ${info.kind} reply failed: ${String(error)}`,
     );
