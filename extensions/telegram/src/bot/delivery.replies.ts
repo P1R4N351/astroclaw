@@ -1,11 +1,8 @@
-// Telegram plugin module implements delivery.replies behavior.
-import { type Bot, GrammyError, InputFile } from "grammy";
-import type { Message } from "grammy/types";
 import {
   createOutboundPayloadPlan,
   projectOutboundPayloadPlanForDelivery,
-} from "openclaw/plugin-sdk/channel-outbound";
-import type { MarkdownTableMode, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
 import {
   buildCanonicalSentMessageHookContext,
   createInternalHookEvent,
@@ -14,22 +11,25 @@ import {
   toPluginMessageContext,
   toPluginMessageSentEvent,
   triggerInternalHook,
-} from "openclaw/plugin-sdk/hook-runtime";
-import type { ReplyPayloadDelivery } from "openclaw/plugin-sdk/interactive-runtime";
-import { normalizeMessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import type { ReplyPayloadDelivery } from "astroclaw/plugin-sdk/interactive-runtime";
+import { normalizeMessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
 import {
   buildOutboundMediaLoadOptions,
   isGifMedia,
   kindFromMime,
   probeVideoDimensions,
-} from "openclaw/plugin-sdk/media-runtime";
-import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
-import { chunkMarkdownTextWithMode, type ChunkMode } from "openclaw/plugin-sdk/reply-chunking";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
-import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
+} from "astroclaw/plugin-sdk/media-runtime";
+import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
+import { chunkMarkdownTextWithMode, type ChunkMode } from "astroclaw/plugin-sdk/reply-chunking";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { loadWebMedia } from "astroclaw/plugin-sdk/web-media";
+// Telegram plugin module implements delivery.replies behavior.
+import { type Bot, GrammyError, InputFile } from "grammy";
+import type { Message } from "grammy/types";
 import { resolveTelegramInlineButtons, type TelegramInlineButtons } from "../button-types.js";
 import { resolveTelegramPlainCaption, splitTelegramCaption } from "../caption.js";
 import {
@@ -44,6 +44,7 @@ import {
   canonicalizeTelegramPresentationPayload,
   resolveTelegramInteractiveTextFallback,
 } from "../interactive-fallback.js";
+import { resolveTelegramOutboundMediaFilename } from "../outbound-media.js";
 import type { TelegramPromptContextProjectionSequence } from "../prompt-context-projection.js";
 import type { TelegramRichBlocksDegradationReason } from "../rich-block-model.js";
 import {
@@ -53,6 +54,7 @@ import {
   type TelegramInputRichMessage,
 } from "../rich-message.js";
 import { isTelegramHtmlParseError } from "../rich-plain-fallback.js";
+import { isTelegramPhotoLimitError } from "../send-error-predicates.js";
 import { buildInlineKeyboard, reactMessageTelegram } from "../send.js";
 import { resolveTelegramTargetChatType } from "../targets.js";
 import { resolveTelegramVoiceSend } from "../voice.js";
@@ -349,7 +351,7 @@ async function sendTelegramCaptionedMediaWithFallback<T>(params: {
       send: params.send,
     });
   if (!params.plainCaption) {
-    return await sendMedia(params.requestParams);
+    return await sendMedia(params.requestParams, params.shouldLog);
   }
   try {
     return await sendMedia(
@@ -368,7 +370,10 @@ async function sendTelegramCaptionedMediaWithFallback<T>(params: {
         err,
       )}`,
     );
-    return await sendMedia(buildPlainCaptionParams(params.requestParams, params.plainCaption));
+    return await sendMedia(
+      buildPlainCaptionParams(params.requestParams, params.plainCaption),
+      params.shouldLog,
+    );
   }
 }
 
@@ -447,7 +452,12 @@ async function deliverMediaReply(params: {
       contentType: media.contentType,
       fileName: media.fileName,
     });
-    const fileName = media.fileName ?? (isGif ? "animation.gif" : "file");
+    const fileName = resolveTelegramOutboundMediaFilename({
+      fileName: media.fileName,
+      contentType: media.contentType,
+      kind,
+      isGif,
+    });
     const file = new InputFile(media.buffer, fileName);
     const captionText = isFirstMedia ? (params.reply.text ?? undefined) : undefined;
     const trimmedCaption = captionText?.trim();
@@ -498,14 +508,34 @@ async function deliverMediaReply(params: {
           params.bot.api.sendAnimation(params.chatId, file, { ...effectiveParams }),
       });
     } else if (kind === "image") {
-      await deliverAcceptedMedia({
-        operation: "sendPhoto",
-        requestParams: mediaParams,
-        plainCaption,
-        text: plainCaption,
-        send: (effectiveParams) =>
-          params.bot.api.sendPhoto(params.chatId, file, { ...effectiveParams }),
-      });
+      try {
+        await deliverAcceptedMedia({
+          operation: "sendPhoto",
+          requestParams: mediaParams,
+          plainCaption,
+          text: plainCaption,
+          shouldLog: (error) => !isTelegramPhotoLimitError(error),
+          send: (effectiveParams) =>
+            params.bot.api.sendPhoto(params.chatId, file, { ...effectiveParams }),
+        });
+      } catch (error) {
+        if (!isTelegramPhotoLimitError(error)) {
+          throw error;
+        }
+        // Let Telegram validate photo limits without decoding image buffers;
+        // retry the same accepted caption, topic, quote, and markup as a file.
+        logVerbose(
+          `telegram sendPhoto exceeded photo limits; retrying as document: ${formatErrorMessage(error)}`,
+        );
+        await deliverAcceptedMedia({
+          operation: "sendDocument",
+          requestParams: mediaParams,
+          plainCaption,
+          text: plainCaption,
+          send: (effectiveParams) =>
+            params.bot.api.sendDocument(params.chatId, file, { ...effectiveParams }),
+        });
+      }
     } else if (kind === "video") {
       await deliverAcceptedMedia({
         operation: "sendVideo",
@@ -765,7 +795,7 @@ export function emitTelegramMessageSentHooks(params: EmitMessageSentHookParams):
 
 export async function deliverReplies(params: {
   replies: ReplyPayload[];
-  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  cfg?: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
   chatId: string;
   accountId?: string;
   sessionKeyForInternalHooks?: string;
