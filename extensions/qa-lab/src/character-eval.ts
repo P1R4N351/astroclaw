@@ -1,8 +1,8 @@
 // Qa Lab plugin module implements character eval behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { normalizeStringEntries, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { normalizeStringEntries, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import pMap from "p-map";
 import prettyMilliseconds from "pretty-ms";
 import { createQaArtifactRunId } from "./artifact-run-id.js";
@@ -543,7 +543,14 @@ export async function runQaCharacterEval(params: QaCharacterEvalParams) {
           scenarioIds: [scenarioId],
         });
         const transcript = extractTranscript(result);
-        const transcriptFailure = detectTranscriptFailure(transcript);
+        const stats = collectTranscriptStats(transcript);
+        // Character capture tolerates missed turns, so a passing scenario alone
+        // cannot prove this candidate ever delivered an assistant reply.
+        const transcriptFailure =
+          detectTranscriptFailure(transcript) ??
+          (stats.assistantTurns === 0
+            ? "candidate transcript did not contain an assistant reply"
+            : undefined);
         const failedScenarioCount = await readQaSuiteFailedScenarioCountFromFile(
           result.summaryPath,
         );
@@ -558,7 +565,7 @@ export async function runQaCharacterEval(params: QaCharacterEvalParams) {
           reportPath: result.reportPath,
           summaryPath: result.summaryPath,
           transcript,
-          stats: collectTranscriptStats(transcript),
+          stats,
           ...(transcriptFailure ? { error: transcriptFailure } : {}),
         } satisfies QaCharacterEvalRun;
         logCharacterEvalProgress(
