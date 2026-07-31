@@ -1,8 +1,8 @@
 // Signal tests cover monitor.tool result.sends tool summaries responseprefix plugin behavior.
-import { expectPairingReplyText } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
-import { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
+import { expectPairingReplyText } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
+import { normalizeE164 } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { describe, expect, it, vi } from "vitest";
 import {
   createSignalToolResultConfig,
@@ -922,6 +922,43 @@ describe("monitorSignalProvider tool results", () => {
     });
 
     expect(hasQueuedReactionEventFor("+15550001111")).toBe(true);
+  });
+
+  it("notifies on own UUID-only reactions using the configured account UUID", async () => {
+    const accountUuid = "123e4567-e89b-12d3-a456-426614174000";
+    setReactionNotificationConfig("own", {
+      account: "+15550002222",
+      accountUuid,
+    });
+
+    await receiveSingleEnvelope({
+      ...makeBaseEnvelope(),
+      reactionMessage: {
+        emoji: "✅",
+        targetAuthorUuid: accountUuid,
+        targetSentTimestamp: 2,
+      },
+    });
+
+    expect(hasQueuedReactionEventFor("+15550001111")).toBe(true);
+  });
+
+  it("does not classify a different account UUID as an own reaction", async () => {
+    setReactionNotificationConfig("own", {
+      account: "+15550002222",
+      accountUuid: "123e4567-e89b-12d3-a456-426614174000",
+    });
+
+    await receiveSingleEnvelope({
+      ...makeBaseEnvelope(),
+      reactionMessage: {
+        emoji: "✅",
+        targetAuthorUuid: "00000000-0000-4000-8000-000000000001",
+        targetSentTimestamp: 2,
+      },
+    });
+
+    expect(hasQueuedReactionEventFor("+15550001111")).toBe(false);
   });
 
   it("processes messages when reaction metadata is present", async () => {
