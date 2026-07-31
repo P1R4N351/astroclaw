@@ -63,14 +63,14 @@ vi.mock("../internal/gateway.js", () => ({
   GatewayPlugin,
 }));
 
-vi.mock("openclaw/plugin-sdk/proxy-capture", () => ({
+vi.mock("astroclaw/plugin-sdk/proxy-capture", () => ({
   captureHttpExchange: vi.fn(),
   captureWsEvent: vi.fn(),
   resolveEffectiveDebugProxyUrl: () => undefined,
   resolveDebugProxySettings: () => ({ enabled: false }),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   danger: (value: string) => value,
   warn: (value: string) => value,
 }));
@@ -114,6 +114,16 @@ describe("createDiscordGatewayPlugin", () => {
     const intents = resolveDiscordGatewayIntents({ voiceEnabled: false });
 
     expect(intents & GatewayIntents.GuildVoiceStates).toBe(0);
+  });
+
+  it("omits MessageContent only when explicitly disabled", () => {
+    const defaultIntents = resolveDiscordGatewayIntents();
+    const mentionOnlyIntents = resolveDiscordGatewayIntents({
+      intentsConfig: { messageContent: false },
+    });
+
+    expect(defaultIntents & GatewayIntents.MessageContent).toBe(GatewayIntents.MessageContent);
+    expect(mentionOnlyIntents & GatewayIntents.MessageContent).toBe(0);
   });
 
   it("lets intents.voiceStates override voice enablement", () => {
