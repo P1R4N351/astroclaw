@@ -1,6 +1,6 @@
 // Discord tests cover monitor plugin behavior.
-import { danger } from "openclaw/plugin-sdk/runtime-env";
-import { typedCases } from "openclaw/plugin-sdk/test-fixtures";
+import { danger } from "astroclaw/plugin-sdk/runtime-env";
+import { typedCases } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelType, type Guild } from "./internal/discord.js";
 import {
@@ -27,9 +27,9 @@ type DiscordReactionClient = Parameters<
 
 const readAllowFromStoreMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
-    "openclaw/plugin-sdk/conversation-runtime",
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
+    "astroclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
@@ -188,7 +188,7 @@ describe("DiscordMessageListener", () => {
       warn: vi.fn(),
       error: vi.fn(),
     } as unknown as ReturnType<
-      typeof import("openclaw/plugin-sdk/logging-core").createSubsystemLogger
+      typeof import("astroclaw/plugin-sdk/logging-core").createSubsystemLogger
     >;
     const handler = vi.fn(async () => {
       throw new Error("boom");
@@ -212,7 +212,7 @@ describe("DiscordMessageListener", () => {
       warn: vi.fn(),
       error: vi.fn(),
     } as unknown as ReturnType<
-      typeof import("openclaw/plugin-sdk/logging-core").createSubsystemLogger
+      typeof import("astroclaw/plugin-sdk/logging-core").createSubsystemLogger
     >;
     const listener = new DiscordMessageListener(handler, logger);
 
@@ -922,14 +922,18 @@ const { enqueueSystemEventSpy, resolveAgentRouteMock } = vi.hoisted(() => ({
   })),
 }));
 
-const channelRuntimeModule = await import("openclaw/plugin-sdk/system-event-runtime");
+const channelRuntimeModule = await import("astroclaw/plugin-sdk/system-event-runtime");
 vi.spyOn(channelRuntimeModule, "enqueueSystemEvent").mockImplementation(enqueueSystemEventSpy);
 
-const routingModule = await import("openclaw/plugin-sdk/routing");
+const routingModule = await import("astroclaw/plugin-sdk/routing");
 vi.spyOn(routingModule, "resolveAgentRoute").mockImplementation(resolveAgentRouteMock);
 
-const { DiscordMessageListener, DiscordReactionListener, registerDiscordListener } =
-  await import("./monitor/listeners.js");
+const {
+  DiscordMessageListener,
+  DiscordReactionListener,
+  DiscordReactionRemoveListener,
+  registerDiscordListener,
+} = await import("./monitor/listeners.js");
 
 type MockWithCalls = { mock: { calls: unknown[][] } };
 
@@ -956,6 +960,7 @@ function makeReactionEvent(overrides?: {
   guildId?: string;
   channelId?: string;
   userId?: string;
+  username?: string;
   messageId?: string;
   emojiName?: string;
   botAsAuthor?: boolean;
@@ -986,7 +991,7 @@ function makeReactionEvent(overrides?: {
     user: {
       id: userId,
       bot: false,
-      username: "testuser",
+      username: overrides?.username ?? "testuser",
       discriminator: "0",
     },
     message: {
@@ -1033,9 +1038,9 @@ function makeReactionListenerParams(overrides?: {
   guildEntries?: Record<string, DiscordGuildEntryResolved>;
 }) {
   return {
-    cfg: {} as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
+    cfg: {} as import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig,
     accountId: "acc-1",
-    runtime: {} as import("openclaw/plugin-sdk/runtime-env").RuntimeEnv,
+    runtime: {} as import("astroclaw/plugin-sdk/runtime-env").RuntimeEnv,
     botUserId: overrides?.botUserId ?? "bot-1",
     dmEnabled: overrides?.dmEnabled ?? true,
     groupDmEnabled: overrides?.groupDmEnabled ?? true,
@@ -1051,7 +1056,7 @@ function makeReactionListenerParams(overrides?: {
       error: vi.fn(),
       debug: vi.fn(),
     } as unknown as ReturnType<
-      typeof import("openclaw/plugin-sdk/logging-core").createSubsystemLogger
+      typeof import("astroclaw/plugin-sdk/logging-core").createSubsystemLogger
     >,
   };
 }
@@ -1096,6 +1101,18 @@ describe("discord DM reaction handling", () => {
         "discord:acc-1:dm:user-1",
       );
     }
+  });
+
+  it("keeps the actor id when a reaction removal does not include a Discord username", async () => {
+    const data = makeReactionEvent({ userId: "user-42", username: "", botAsAuthor: true });
+    const client = makeReactionClient({ channelType: ChannelType.DM });
+    const listener = new DiscordReactionRemoveListener(makeReactionListenerParams());
+
+    await listener.handle(data, client);
+
+    expect(enqueueSystemEventSpy).toHaveBeenCalledOnce();
+    const text = firstMockArg(enqueueSystemEventSpy, "enqueueSystemEvent");
+    expect(text).toContain("Discord reaction removed: 👍 by user-42 on");
   });
 
   it("blocks DM reactions when dmPolicy is disabled", async () => {
