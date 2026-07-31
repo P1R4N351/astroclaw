@@ -1,8 +1,8 @@
 // Ollama plugin entrypoint registers its OpenClaw integration.
 import { createHash } from "node:crypto";
 import { collectConfiguredModelRefValues } from "@openclaw/model-catalog-core/configured-model-refs";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type OpenClawPluginApi,
@@ -16,23 +16,23 @@ import {
   type ProviderPlugin,
   type ProviderReplayPolicy,
   type ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import {
   buildApiKeyCredential,
   coerceSecretRef,
   isNonSecretApiKeyMarker,
-} from "openclaw/plugin-sdk/provider-auth";
-import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   buildOpenAICompatibleReplayPolicy,
   selectPreferredLocalModelId,
-} from "openclaw/plugin-sdk/provider-model-shared";
-import { buildProviderToolCompatFamilyHooks } from "openclaw/plugin-sdk/provider-tools";
-import { resolveConfiguredSecretInputString } from "openclaw/plugin-sdk/secret-input-runtime";
+} from "astroclaw/plugin-sdk/provider-model-shared";
+import { buildProviderToolCompatFamilyHooks } from "astroclaw/plugin-sdk/provider-tools";
+import { resolveConfiguredSecretInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
 import {
   buildOllamaModelDefinition,
   buildOllamaProvider,
@@ -863,7 +863,7 @@ export default definePluginEntry({
         {
           id: "local",
           label: "Ollama",
-          hint: "Cloud and local open models",
+          hint: "Connect to an Ollama server and select a cloud or local model",
           kind: "custom",
           appGuidedSetup: {
             detect: async (ctx) => {
@@ -966,7 +966,7 @@ export default definePluginEntry({
         setup: {
           choiceId: "ollama",
           choiceLabel: "Ollama",
-          choiceHint: "Cloud and local open models",
+          choiceHint: "Connect to an Ollama server and select a cloud or local model",
           groupId: "ollama",
           groupLabel: "Ollama",
           groupHint: "Cloud and local open models",
