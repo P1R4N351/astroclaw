@@ -2,10 +2,10 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-shared";
-import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-onboard";
-import { withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-shared";
+import type { ModelDefinitionConfig } from "astroclaw/plugin-sdk/provider-onboard";
+import { withFetchPreconnect } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ollamaProviderDiscovery } from "./provider-discovery.js";
 
@@ -323,7 +323,7 @@ describe("Ollama provider", () => {
     const fetchMock = vi.fn(async (input: unknown) => {
       const url = String(input);
       if (url.endsWith("/api/tags")) {
-        return tagsResponse(["qwen3:32b"]);
+        return tagsResponse(["deepseek-r1:14b"]);
       }
       if (url.endsWith("/api/show")) {
         return jsonResponse({}, 500);
@@ -335,8 +335,10 @@ describe("Ollama provider", () => {
     const provider = await runOllamaCatalog({
       env: { OLLAMA_API_KEY: "test-key", VITEST: "", NODE_ENV: "development" },
     });
-    const model = provider?.models?.find((entry) => entry.id === "qwen3:32b");
+    const model = provider?.models?.find((entry) => entry.id === "deepseek-r1:14b");
     expect(model?.contextWindow).toBe(128000);
+    expect(model?.compat?.supportsTools).toBe(false);
+    expect(model?.reasoning).toBe(true);
     expectDiscoveryCallCounts(fetchMock, { tags: 1, show: 1 });
   });
 
