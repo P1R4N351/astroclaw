@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { createAssistantMessageEventStream, type Model } from "openclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream, type Model } from "astroclaw/plugin-sdk/llm";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { AnthropicVertexStreamDeps } from "./stream-runtime.js";
 
@@ -589,6 +589,24 @@ describe("createAnthropicVertexStreamFn", () => {
 });
 
 describe("createAnthropicVertexStreamFnForModel", () => {
+  it.each(["us", "eu"])("preserves the %s multi-region SDK endpoint", (region) => {
+    const { deps, anthropicVertexCtorMock, googleAuthClient } = createStreamDeps();
+    const streamFn = createAnthropicVertexStreamFnForModel(
+      { baseUrl: `https://aiplatform.${region}.rep.googleapis.com` },
+      { GOOGLE_CLOUD_PROJECT_ID: "vertex-project" } as NodeJS.ProcessEnv,
+      deps,
+    );
+
+    void streamFn(makeModel({ id: "claude-sonnet-5", maxTokens: 128_000 }), { messages: [] }, {});
+
+    expect(anthropicVertexCtorMock).toHaveBeenCalledWith({
+      googleAuth: googleAuthClient,
+      projectId: "vertex-project",
+      region,
+      baseURL: `https://aiplatform.${region}.rep.googleapis.com/v1`,
+    });
+  });
+
   it("derives project and region from the model and env", () => {
     const { deps, anthropicVertexCtorMock, googleAuthClient } = createStreamDeps();
     const streamFn = createAnthropicVertexStreamFnForModel(
