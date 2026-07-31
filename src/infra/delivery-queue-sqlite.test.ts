@@ -7,9 +7,9 @@ import {
   claimDeliveryQueueEntryPlatformSend,
   promoteDeliveryQueueEntryPlatformSend,
 } from "./delivery-queue-sqlite-claim.js";
+import { commitStagedDeliveryQueueEntryOnceAcrossNamespaces } from "./delivery-queue-sqlite-namespace.js";
 import {
   commitStagedDeliveryQueueEntry,
-  commitStagedDeliveryQueueEntryOnce,
   completeDeliveryQueueEntry,
   countFailedDeliveryQueueEntries,
   deleteDeliveryQueueEntry,
@@ -20,7 +20,7 @@ import {
   updateDeliveryQueueEntry,
   upsertDeliveryQueueEntry,
 } from "./delivery-queue-sqlite.js";
-import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
 
 describe("delivery-queue-sqlite corrupt JSON resilience", () => {
   let stateDir: string;
@@ -33,7 +33,7 @@ describe("delivery-queue-sqlite corrupt JSON resilience", () => {
   } as const;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-dq-case-"));
+    tmpDir = fs.mkdtempSync(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-dq-case-"));
     stateDir = path.join(tmpDir, "state");
     fs.mkdirSync(stateDir, { recursive: true });
   });
@@ -242,7 +242,15 @@ describe("delivery-queue-sqlite corrupt JSON resilience", () => {
 
     it.each([
       { name: "ordinary", commit: commitStagedDeliveryQueueEntry, expected: true },
-      { name: "insert-only", commit: commitStagedDeliveryQueueEntryOnce, expected: "created" },
+      {
+        name: "insert-only",
+        commit: (params: Parameters<typeof commitStagedDeliveryQueueEntry>[0]) =>
+          commitStagedDeliveryQueueEntryOnceAcrossNamespaces({
+            ...params,
+            conflictQueueNames: ["outbound-legacy"],
+          }),
+        expected: "created",
+      },
     ])("indexes $name staged outbound commits", ({ commit, expected }) => {
       const stagingQueueName = "outbound-media-staging";
       const stagingId = "metadata-staged-media";
@@ -846,7 +854,7 @@ describe("countFailedDeliveryQueueEntries", () => {
   let stateDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-dq-count-"));
+    tmpDir = fs.mkdtempSync(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-dq-count-"));
     stateDir = path.join(tmpDir, "state");
     fs.mkdirSync(stateDir, { recursive: true });
   });
