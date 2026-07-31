@@ -1,9 +1,9 @@
 // Signal tests cover event handler.mention gating plugin behavior.
 import { expectDefined } from "@openclaw/normalization-core";
-import { buildDispatchInboundCaptureMock } from "openclaw/plugin-sdk/channel-contract-testing";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { HistoryMediaEntry } from "openclaw/plugin-sdk/reply-history";
-import type { MsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { buildDispatchInboundCaptureMock } from "astroclaw/plugin-sdk/channel-contract-testing";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { HistoryMediaEntry } from "astroclaw/plugin-sdk/reply-history";
+import type { MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { formatSignalMediaText } from "../media-text.js";
 
@@ -24,7 +24,13 @@ function getCapturedCtx() {
 function getGroupHistoryEntries(
   groupHistories: Map<
     string,
-    Array<{ sender?: string; body?: string; media?: HistoryMediaEntry[] }>
+    Array<{
+      sender?: string;
+      body?: string;
+      media?: HistoryMediaEntry[];
+      timestamp?: number;
+      messageId?: string;
+    }>
   >,
   groupId = "g1",
 ) {
@@ -35,18 +41,18 @@ function getGroupHistoryEntries(
   return entries;
 }
 
-vi.mock("openclaw/plugin-sdk/reply-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/reply-runtime")>(
-    "openclaw/plugin-sdk/reply-runtime",
+vi.mock("astroclaw/plugin-sdk/reply-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/reply-runtime")>(
+    "astroclaw/plugin-sdk/reply-runtime",
   );
   return buildDispatchInboundCaptureMock(actual, (ctx) => {
     capturedCtx = ctx as SignalMsgContext;
   });
 });
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-inbound")>(
-    "openclaw/plugin-sdk/channel-inbound",
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-inbound")>(
+    "astroclaw/plugin-sdk/channel-inbound",
   );
   type RunParams = Parameters<typeof actual.runChannelInboundEvent>[0];
   return {
@@ -249,6 +255,27 @@ describe("signal mention gating", () => {
     const entry = expectDefined(entries[0], "Signal group history entry");
     expect(entry.sender).toBe("Alice");
     expect(entry.body).toBe("hello from alice");
+  });
+
+  it("keeps the canonical data-message timestamp in skipped group history", async () => {
+    const { handler, groupHistories } = createMentionGatedHistoryHandler();
+    const timestamp = 1700000000123;
+
+    await handler(
+      createSignalReceiveEvent({
+        timestamp: undefined,
+        dataMessage: {
+          timestamp,
+          message: "history without a mention",
+          attachments: [],
+          groupInfo: { groupId: "g1", groupName: "Test Group" },
+        },
+      }),
+    );
+
+    const entry = expectDefined(getGroupHistoryEntries(groupHistories)[0], "Signal history entry");
+    expect(entry.timestamp).toBe(timestamp);
+    expect(entry.messageId).toBe(String(timestamp));
   });
 
   it("records edited target reply authors for skipped group messages", async () => {
