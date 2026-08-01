@@ -1,5 +1,5 @@
 // Covers user-facing formatting and sanitization of assistant/provider errors.
-import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
+import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { MALFORMED_STREAMING_FRAGMENT_ERROR_MESSAGE } from "../shared/assistant-error-format.js";
 import {
@@ -112,6 +112,17 @@ describe("formatAssistantErrorText", () => {
     const result = formatAssistantErrorText(msg);
     expect(result).toContain("Session history or replay state is invalid");
     expect(result).toContain("/new");
+  });
+  it("prioritizes thinking-signature replay recovery over invalid-request formatting", () => {
+    // Thinking-signature failures are also invalid_request_error, so the
+    // replay-invalid copy must win before the generic invalid-request path.
+    const msg = makeAssistantError(
+      '{"type":"error","error":{"type":"invalid_request_error","message":"messages.1.content.1: Invalid `signature` in `thinking` block"}}',
+    );
+    const replayCopy =
+      "Session history or replay state is invalid. Use /new to start a fresh session and try again.";
+    expect(formatAssistantErrorText(msg)).toBe(replayCopy);
+    expect(formatUserFacingAssistantErrorText(msg)).toBe(replayCopy);
   });
   it("handles JSON-wrapped role errors", () => {
     const msg = makeAssistantError('{"error":{"message":"400 Incorrect role information"}}');
