@@ -1,26 +1,26 @@
 // Slack plugin module implements context behavior.
 import type { App } from "@slack/bolt";
-import { resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
-import { formatAllowlistMatchMeta } from "openclaw/plugin-sdk/allow-from";
-import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
+import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
+import { formatAllowlistMatchMeta } from "astroclaw/plugin-sdk/allow-from";
+import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
 import type {
   OpenClawConfig,
   SlackReactionNotificationMode,
-} from "openclaw/plugin-sdk/config-contracts";
-import type { SessionScope } from "openclaw/plugin-sdk/config-contracts";
-import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/config-contracts";
-import { resolveRuntimeConversationBindingRoute } from "openclaw/plugin-sdk/conversation-runtime";
-import { createDedupeCache } from "openclaw/plugin-sdk/dedupe-runtime";
-import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
-import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
-import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { getChildLogger } from "openclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/config-contracts";
+import type { SessionScope } from "astroclaw/plugin-sdk/config-contracts";
+import type { DmPolicy, GroupPolicy } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveRuntimeConversationBindingRoute } from "astroclaw/plugin-sdk/conversation-runtime";
+import { createDedupeCache } from "astroclaw/plugin-sdk/dedupe-runtime";
+import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
+import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { getChildLogger } from "astroclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { formatSlackError } from "../errors.js";
 import type { SlackMessageEvent } from "../types.js";
 import { createSlackAgentViewState } from "./agent-view-state.js";
@@ -29,7 +29,7 @@ import type { SlackChannelConfigEntries } from "./channel-config.js";
 import { resolveSlackChannelConfig } from "./channel-config.js";
 import { normalizeSlackChannelType } from "./channel-type.js";
 import { resolveSessionKey } from "./config.runtime.js";
-import type { SlackInstallationIdentity } from "./enterprise-install.js";
+import type { SlackIdentityHealth, SlackInstallationIdentity } from "./enterprise-install.js";
 import type { SlackEventScope } from "./event-scope.js";
 import { readLruMapEntry, writeLruMapEntry } from "./lru-map-cache.js";
 import { isSlackChannelAllowedByPolicy } from "./policy.js";
@@ -122,6 +122,7 @@ export type SlackMonitorContext = {
 
   botUserId: string;
   botId?: string;
+  identityHealth: SlackIdentityHealth;
   teamId: string;
   apiAppId: string;
   installationIdentity: SlackInstallationIdentity;
@@ -148,7 +149,7 @@ export type SlackMonitorContext = {
   replyToMode: "off" | "first" | "all" | "batched";
   threadHistoryScope: "thread" | "channel";
   threadInheritParent: boolean;
-  slashCommand: Required<import("openclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
+  slashCommand: Required<import("astroclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
   textLimit: number;
   ackReactionScope: string;
   typingReaction: string;
@@ -219,6 +220,7 @@ export function createSlackMonitorContext(params: {
 
   botUserId: string;
   botId?: string;
+  identityHealth: SlackIdentityHealth;
   teamId: string;
   apiAppId: string;
   installationIdentity?: SlackInstallationIdentity;
@@ -683,6 +685,7 @@ export function createSlackMonitorContext(params: {
     channelRuntime: params.channelRuntime,
     botUserId: params.botUserId,
     botId: params.botId,
+    identityHealth: params.identityHealth,
     teamId: params.teamId,
     apiAppId: params.apiAppId,
     installationIdentity: params.installationIdentity ?? {
