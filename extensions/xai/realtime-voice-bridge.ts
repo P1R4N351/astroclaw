@@ -3,12 +3,12 @@ import {
   captureWsEvent,
   createDebugProxyWebSocketAgent,
   resolveDebugProxySettings,
-} from "openclaw/plugin-sdk/proxy-capture";
+} from "astroclaw/plugin-sdk/proxy-capture";
 import type {
   RealtimeVoiceBridge,
   RealtimeVoiceToolResultOptions,
-} from "openclaw/plugin-sdk/realtime-voice";
-import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/realtime-voice";
+import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
 import WebSocket from "ws";
 import {
   XAI_REALTIME_BASE_RECONNECT_DELAY_MS,
@@ -124,7 +124,7 @@ export class XaiRealtimeVoiceBridge extends XaiRealtimeVoiceEvents implements Re
     if (this.lifecycle.phase() === "terminal") {
       return;
     }
-    if (!this.canSubmitToolResult()) {
+    if (!this.canSubmitInput()) {
       if (this.pendingToolResults.length < XAI_REALTIME_MAX_PENDING_TOOL_RESULTS) {
         this.pendingToolResults.push({ callId, result, ...(options ? { options } : {}) });
       } else {
@@ -536,10 +536,6 @@ export class XaiRealtimeVoiceBridge extends XaiRealtimeVoiceEvents implements Re
       meta: { provider: "xai", capability: "realtime-voice" },
     });
     ws.send(payload);
-  }
-
-  private canSubmitToolResult(): boolean {
-    return this.isConnected();
   }
 
   private canSubmitInput(): boolean {
