@@ -1,19 +1,19 @@
 // Openai provider module implements model/runtime integration.
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { resolveAgentDir } from "openclaw/plugin-sdk/agent-runtime";
-import { canonicalizeBase64 } from "openclaw/plugin-sdk/media-runtime";
-import type { PluginLogger } from "openclaw/plugin-sdk/plugin-entry";
+import { resolveAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
+import { canonicalizeBase64 } from "astroclaw/plugin-sdk/media-runtime";
+import type { PluginLogger } from "astroclaw/plugin-sdk/plugin-entry";
 import {
   isProviderAuthProfileConfigured,
   resolveProviderAuthProfileApiKey,
-} from "openclaw/plugin-sdk/provider-auth";
-import { resolveProviderRequestHeaders } from "openclaw/plugin-sdk/provider-http";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { resolveProviderRequestHeaders } from "astroclaw/plugin-sdk/provider-http";
 import {
   captureWsEvent,
   createDebugProxyWebSocketAgent,
   resolveDebugProxySettings,
-} from "openclaw/plugin-sdk/proxy-capture";
+} from "astroclaw/plugin-sdk/proxy-capture";
 import type {
   RealtimeVoiceAudioFormat,
   RealtimeVoiceBargeInOptions,
@@ -26,16 +26,16 @@ import type {
   RealtimeVoiceProviderPlugin,
   RealtimeVoiceTool,
   RealtimeVoiceToolResultOptions,
-} from "openclaw/plugin-sdk/realtime-voice";
+} from "astroclaw/plugin-sdk/realtime-voice";
 import {
   REALTIME_VOICE_AUDIO_FORMAT_G711_ULAW_8KHZ,
   REALTIME_VOICE_AUDIO_FORMAT_PCM16_24KHZ,
-} from "openclaw/plugin-sdk/realtime-voice";
-import { sleepWithAbort, warn } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/realtime-voice";
+import { sleepWithAbort, warn } from "astroclaw/plugin-sdk/runtime-env";
 import {
   normalizeResolvedSecretInputString,
   normalizeSecretInputString,
-} from "openclaw/plugin-sdk/secret-input";
+} from "astroclaw/plugin-sdk/secret-input";
 import WebSocket from "ws";
 import {
   asFiniteNumber,
@@ -1684,8 +1684,10 @@ class OpenAIRealtimeVoiceBridge implements RealtimeVoiceBridge {
     ) {
       return;
     }
-    this.pendingAudio.push(audio);
-    this.pendingAudioBytes += audio.byteLength;
+    // Capture transports can recycle caller-owned views before the provider becomes ready.
+    const queuedAudio = Buffer.from(audio);
+    this.pendingAudio.push(queuedAudio);
+    this.pendingAudioBytes += queuedAudio.byteLength;
   }
 
   private clearPendingAudio(): void {
