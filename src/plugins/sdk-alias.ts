@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { resolveRequiredHomeDir } from "../infra/home-dir.js";
 import { tryReadJsonSync } from "../infra/json-files.js";
 import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
 import { resolveOpenClawDevSourceRoot } from "./dev-source-root.js";
@@ -51,18 +52,21 @@ function sanitizeJitiCachePathSegment(value: string): string {
   return normalized.length > 0 ? normalized : "unknown";
 }
 
-function resolveJitiFsCacheTmpDir(): string {
-  let tmpDir = os.tmpdir();
-  if (process.env.TMPDIR && tmpDir === process.cwd() && !process.env.JITI_RESPECT_TMPDIR_ENV) {
-    const originalTmpDir = process.env.TMPDIR;
-    delete process.env.TMPDIR;
-    try {
-      tmpDir = os.tmpdir();
-    } finally {
-      process.env.TMPDIR = originalTmpDir;
-    }
+function resolveJitiFsCacheRoot(): string {
+  const xdgCacheHome = process.env.XDG_CACHE_HOME?.trim();
+  if (xdgCacheHome && path.isAbsolute(xdgCacheHome)) {
+    return xdgCacheHome;
   }
-  return tmpDir;
+  const homeDir = resolveRequiredHomeDir(process.env, os.homedir);
+  if (process.platform === "win32") {
+    const localAppData = process.env.LOCALAPPDATA?.trim();
+    return localAppData && path.isAbsolute(localAppData)
+      ? localAppData
+      : path.join(homeDir, "AppData", "Local");
+  }
+  return process.platform === "darwin"
+    ? path.join(homeDir, "Library", "Caches")
+    : path.join(homeDir, ".cache");
 }
 
 function readJitiBooleanEnv(name: string, defaultValue: boolean): boolean {
@@ -141,9 +145,9 @@ function resolvePluginLoaderJitiFsCacheDir(params: LoaderModuleResolveParams = {
     // Package installs should have package.json; keep cache setup best-effort.
   }
   return path.join(
-    resolveJitiFsCacheTmpDir(),
-    "jiti",
+    resolveJitiFsCacheRoot(),
     "openclaw",
+    "jiti",
     version,
     sanitizeJitiCachePathSegment(installMarker),
   );
@@ -415,7 +419,7 @@ const cachedBundledPluginPublicSurfaceAliasMaps = new PluginLruCache<Record<stri
 const cachedWorkspacePackageAliasMaps = new PluginLruCache<Record<string, string>>(
   MAX_PLUGIN_LOADER_ALIAS_CACHE_ENTRIES,
 );
-const PLUGIN_SDK_PACKAGE_NAMES = ["openclaw/plugin-sdk", "@openclaw/plugin-sdk"] as const;
+const PLUGIN_SDK_PACKAGE_NAMES = ["astroclaw/plugin-sdk", "@openclaw/plugin-sdk"] as const;
 const CODEX_MCP_PROJECTION_PLUGIN_SDK_SUBPATH = "codex-mcp-projection";
 const CODEX_SESSION_TRANSCRIPT_PLUGIN_SDK_SUBPATH = "codex-session-transcript-runtime";
 const OLLAMA_CONFIGURED_LOCAL_ORIGIN_RUNTIME_PLUGIN_SDK_SUBPATH = "ssrf-runtime-internal";
