@@ -3,7 +3,7 @@ import {
   verifyChannelMessageAdapterCapabilityProofs,
   verifyChannelMessageLiveCapabilityAdapterProofs,
   verifyChannelMessageLiveFinalizerProofs,
-} from "openclaw/plugin-sdk/channel-outbound";
+} from "astroclaw/plugin-sdk/channel-outbound";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../runtime-api.js";
 
@@ -223,6 +223,41 @@ describe("msteams channel message adapter", () => {
           expect(adapter.live?.capabilities?.nativeStreaming).toBe(true);
         },
       },
+    });
+  });
+
+  it("exposes the resolved conversation for message-tool route reconciliation", async () => {
+    const adapter = requireMSTeamsMessageAdapter();
+    const sendText = requireTextSender(adapter);
+    const extractToolSendResult = msteamsPlugin.actions?.extractToolSendResult;
+    if (!extractToolSendResult) {
+      throw new Error("Expected msteams tool send result extractor");
+    }
+
+    const delivery = await sendText({
+      cfg,
+      to: "team-aad/19:channel@thread.tacv2",
+      text: "threaded",
+      threadId: "thread-root",
+      accountId: "default",
+    });
+
+    expect(
+      extractToolSendResult({
+        result: {
+          details: {
+            result: {
+              receipt: delivery.receipt,
+            },
+          },
+        },
+        send: {
+          to: "team-aad/19:channel@thread.tacv2",
+          threadId: "thread-root",
+        },
+      }),
+    ).toEqual({
+      to: "conversation:conv-1",
     });
   });
 });
