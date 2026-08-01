@@ -1,52 +1,49 @@
 // Matrix plugin module implements channel behavior.
-import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
 import {
   adaptScopedAccountAccessor,
   createScopedDmSecurityResolver,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
+} from "openclaw/plugin-sdk/channel-config-helpers";
 import type {
   ChannelDoctorAdapter,
   ChannelThreadingToolContext,
-} from "astroclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin, type ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-import {
-  createChannelMessageAdapterFromOutbound,
-  createRuntimeOutboundDelegates,
-} from "astroclaw/plugin-sdk/channel-outbound";
+} from "openclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin, type ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import { createRuntimeOutboundDelegates } from "openclaw/plugin-sdk/channel-outbound";
 import {
   createAllowlistProviderOpenWarningCollector,
   projectAccountConfigWarningCollector,
-} from "astroclaw/plugin-sdk/channel-policy";
-import type { ChannelOutboundAdapter } from "astroclaw/plugin-sdk/channel-send-result";
-import { createScopedAccountReplyToModeResolver } from "astroclaw/plugin-sdk/conversation-runtime";
+} from "openclaw/plugin-sdk/channel-policy";
+import type { ChannelOutboundAdapter } from "openclaw/plugin-sdk/channel-send-result";
+import { createScopedAccountReplyToModeResolver } from "openclaw/plugin-sdk/conversation-runtime";
 import {
   createChannelDirectoryAdapter,
   createResolvedDirectoryEntriesLister,
   createRuntimeDirectoryLiveAdapter,
-} from "astroclaw/plugin-sdk/directory-runtime";
+} from "openclaw/plugin-sdk/directory-runtime";
 import {
   createLazyRuntimeNamedExport,
   createLazyRuntimeModule,
-} from "astroclaw/plugin-sdk/lazy-runtime";
+} from "openclaw/plugin-sdk/lazy-runtime";
 import {
   buildProbeChannelStatusSummary,
   collectStatusIssuesFromLastError,
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   chunkTextForOutbound,
   sanitizeAssistantVisibleText,
-} from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/text-chunking";
 import { matrixMessageActions } from "./actions.js";
 import { matrixApprovalCapability } from "./approval-native.js";
 import { createMatrixPairingText, createMatrixProbeAccount } from "./channel-account-paths.js";
-import { DEFAULT_ACCOUNT_ID, matrixConfigAdapter } from "./config-adapter.js";
-import { MatrixChannelConfigSchema } from "./config-schema.js";
+import { createMatrixMessageAdapter } from "./channel-message-adapter.js";
+import { matrixPluginBase } from "./channel.setup.js";
+import { DEFAULT_ACCOUNT_ID } from "./config-adapter.js";
 import {
   legacyConfigRules as MATRIX_LEGACY_CONFIG_RULES,
   normalizeCompatibilityConfig as normalizeMatrixCompatibilityConfig,
@@ -76,12 +73,6 @@ import { matrixResolverAdapter } from "./resolver.js";
 import { collectRuntimeConfigAssignments, secretTargetRegistryEntries } from "./secret-contract.js";
 import { resolveMatrixOutboundSessionRoute } from "./session-route.js";
 import {
-  namedAccountPromotionKeys,
-  resolveSingleAccountPromotionTarget,
-  singleAccountKeysToMove,
-} from "./setup-contract.js";
-import { createMatrixSetupWizardProxy, matrixSetupContract } from "./setup-core.js";
-import {
   defaultTopLevelPlacement,
   resolveMatrixInboundConversation,
 } from "./thread-binding-api.js";
@@ -89,28 +80,12 @@ import type { CoreConfig } from "./types.js";
 // Mutex for serializing account startup (workaround for concurrent dynamic import race condition)
 let matrixStartupLock: Promise<void> = Promise.resolve();
 
-const loadMatrixSetupWizard = createLazyRuntimeNamedExport(
-  () => import("./setup-surface.js"),
-  "matrixSetupWizard",
-);
 const loadMatrixChannelRuntime = createLazyRuntimeNamedExport(
   () => import("./channel.runtime.js"),
   "matrixChannelRuntime",
 );
 
 const loadMatrixDoctorModule = createLazyRuntimeModule(() => import("./doctor.js"));
-
-const meta = {
-  id: "matrix",
-  label: "Matrix",
-  selectionLabel: "Matrix (plugin)",
-  docsPath: "/channels/matrix",
-  docsLabel: "matrix",
-  blurb: "open protocol; configure a homeserver + access token.",
-  order: 70,
-  markdownCapable: true,
-  quickstartAllowFrom: true,
-};
 
 function buildMatrixTrafficStatusSummary(
   snapshot?: {
@@ -369,6 +344,8 @@ const matrixChannelOutbound: ChannelOutboundAdapter = {
       replyTo: true,
       thread: true,
       messageSendingHooks: true,
+      afterCommit: true,
+      reconcileUnknownSend: true,
     },
   },
   presentationCapabilities: {
@@ -415,60 +392,23 @@ const matrixChannelOutbound: ChannelOutboundAdapter = {
   }),
 };
 
-const matrixMessageAdapter = createChannelMessageAdapterFromOutbound({
-  id: "matrix",
+const matrixMessageAdapter = createMatrixMessageAdapter({
   outbound: matrixChannelOutbound,
-  live: {
-    capabilities: {
-      draftPreview: true,
-      previewFinalization: true,
-      progressUpdates: true,
-      quietFinalization: true,
-    },
-    finalizer: {
-      capabilities: {
-        finalEdit: true,
-        normalFallback: true,
-        discardPending: true,
-        previewReceipt: true,
-      },
-    },
-  },
+  getRuntime: loadMatrixChannelRuntime,
 });
 
 export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount, MatrixProbe> =
   createChatChannelPlugin<ResolvedMatrixAccount, MatrixProbe>({
     base: {
-      id: "matrix",
-      meta,
-      setupWizard: createMatrixSetupWizardProxy(async () => ({
-        matrixSetupWizard: await loadMatrixSetupWizard(),
-      })),
+      ...matrixPluginBase,
+      meta: { ...matrixPluginBase.meta, markdownCapable: true },
       capabilities: {
-        chatTypes: ["direct", "group", "thread"],
-        polls: true,
-        reactions: true,
-        threads: true,
-        media: true,
+        ...matrixPluginBase.capabilities,
         tts: {
           voice: {
             synthesisTarget: "voice-note",
           },
         },
-      },
-      reload: { configPrefixes: ["channels.matrix"] },
-      configSchema: MatrixChannelConfigSchema,
-      config: {
-        ...matrixConfigAdapter,
-        isConfigured: (account) => account.configured,
-        describeAccount: (account) =>
-          describeAccountSnapshot({
-            account,
-            configured: account.configured,
-            extra: {
-              baseUrl: account.homeserver,
-            },
-          }),
       },
       approvalCapability: matrixApprovalCapability,
       groups: {
@@ -539,12 +479,6 @@ export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount, MatrixProbe> =
       secrets: {
         secretTargetRegistryEntries,
         collectRuntimeConfigAssignments,
-      },
-      setupContract: {
-        ...matrixSetupContract,
-        singleAccountKeysToMove,
-        namedAccountPromotionKeys,
-        resolveSingleAccountPromotionTarget,
       },
       bindings: {
         compileConfiguredBinding: ({ conversationId }) =>
