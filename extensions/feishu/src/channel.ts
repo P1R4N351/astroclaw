@@ -1,48 +1,48 @@
 // Feishu plugin module implements channel behavior.
-import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
-import { formatAllowFromLowercase } from "openclaw/plugin-sdk/allow-from";
-import { ToolAuthorizationError } from "openclaw/plugin-sdk/channel-actions";
+import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
+import { formatAllowFromLowercase } from "astroclaw/plugin-sdk/allow-from";
+import { ToolAuthorizationError } from "astroclaw/plugin-sdk/channel-actions";
 import {
   adaptScopedAccountAccessor,
   createHybridChannelConfigAdapter,
-} from "openclaw/plugin-sdk/channel-config-helpers";
+} from "astroclaw/plugin-sdk/channel-config-helpers";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionContext,
   ChannelMessageToolDiscovery,
-} from "openclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+} from "astroclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
 import {
   defineChannelMessageAdapter,
   createRuntimeOutboundDelegates,
   createAccountStatusSink,
   type ChannelMessageSendResult,
   type MessageReceiptPartKind,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
 import {
   createAllowlistProviderGroupPolicyWarningCollector,
   projectConfigAccountIdWarningCollector,
-} from "openclaw/plugin-sdk/channel-policy";
-import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-runtime";
+} from "astroclaw/plugin-sdk/channel-policy";
+import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-runtime";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "openclaw/plugin-sdk/directory-runtime";
+} from "astroclaw/plugin-sdk/directory-runtime";
 import {
   legacyInteractiveReplyToPresentation,
   normalizeLegacyInteractiveReply,
   normalizeMessagePresentation,
   resolveLegacyInteractiveTextFallback,
-} from "openclaw/plugin-sdk/interactive-runtime";
-import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
-import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
-import { createComputedAccountStatusAdapter } from "openclaw/plugin-sdk/status-helpers";
+} from "astroclaw/plugin-sdk/interactive-runtime";
+import { createLazyRuntimeNamedExport } from "astroclaw/plugin-sdk/lazy-runtime";
+import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
+import { createComputedAccountStatusAdapter } from "astroclaw/plugin-sdk/status-helpers";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
 import type { PluginRuntime } from "../runtime-api.js";
 import {
   inspectFeishuCredentials,
@@ -107,7 +107,7 @@ import { collectFeishuSecurityAuditFindings } from "./security-audit.js";
 import { createFeishuSendReceipt } from "./send-result.js";
 import { resolveFeishuSessionConversation } from "./session-conversation.js";
 import { resolveFeishuOutboundSessionRoute } from "./session-route.js";
-import { feishuSetupAdapter, feishuSetupContract } from "./setup-core.js";
+import { feishuSetupContract } from "./setup-core.js";
 import { feishuSetupWizard, runFeishuLogin } from "./setup-surface.js";
 import { looksLikeFeishuId, normalizeFeishuTarget } from "./targets.js";
 import type { FeishuConfig, FeishuProbeResult, ResolvedFeishuAccount } from "./types.js";
@@ -1636,8 +1636,8 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
       },
       auth: {
         login: async ({ cfg }) => {
-          const { createClackPrompter } = await import("openclaw/plugin-sdk/setup-runtime");
-          const { replaceConfigFile } = await import("openclaw/plugin-sdk/config-mutation");
+          const { createClackPrompter } = await import("astroclaw/plugin-sdk/setup-runtime");
+          const { replaceConfigFile } = await import("astroclaw/plugin-sdk/config-mutation");
           const prompter = createClackPrompter();
           const nextCfg = await runFeishuLogin({ cfg, prompter });
           if (nextCfg !== cfg) {
@@ -1648,7 +1648,6 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
           }
         },
       },
-      setup: feishuSetupAdapter,
       setupContract: feishuSetupContract,
       setupWizard: feishuSetupWizard,
       messaging: {
