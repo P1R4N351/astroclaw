@@ -1,13 +1,13 @@
 // Memory Wiki plugin module implements markdown behavior.
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { fromMarkdown } from "mdast-util-from-markdown";
 import {
   asFiniteNumber,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeSingleOrTrimmedStringList,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { fromMarkdown } from "mdast-util-from-markdown";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import YAML from "yaml";
 
 const WIKI_PAGE_KINDS = ["entity", "concept", "source", "synthesis", "report"] as const;
@@ -530,12 +530,15 @@ function afterSourceContentFence(page: string): number {
 function findNotesHumanBlock(page: string): { start: number; end: number } | null {
   const searchFrom = afterSourceContentFence(page);
   const start = page.indexOf(HUMAN_START_MARKER, searchFrom);
-  if (start === -1) {
+  const endMarker = page.lastIndexOf(HUMAN_END_MARKER);
+  if (start === -1 && endMarker < searchFrom) {
     return null;
   }
-  const endMarker = page.lastIndexOf(HUMAN_END_MARKER);
-  if (endMarker < start) {
-    return null;
+  if (start === -1 || endMarker < start) {
+    const missingMarker = start === -1 ? HUMAN_START_MARKER : HUMAN_END_MARKER;
+    throw new Error(
+      `Memory Wiki human Notes are missing ${missingMarker}; restore the missing marker before updating or removing this page`,
+    );
   }
   return { start, end: endMarker + HUMAN_END_MARKER.length };
 }
