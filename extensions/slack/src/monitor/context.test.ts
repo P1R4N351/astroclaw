@@ -1,7 +1,7 @@
 // Slack tests cover context plugin behavior.
 import type { App } from "@slack/bolt";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setSlackRuntime } from "../runtime.js";
 import { createSlackMonitorContext } from "./context.js";
@@ -25,6 +25,7 @@ function createTestContext(params?: {
     runtime: {} as RuntimeEnv,
     botUserId: "U_BOT",
     botId: "B_BOT",
+    identityHealth: { healthState: "healthy", lastError: null },
     teamId: "T_EXPECTED",
     apiAppId: params?.apiAppId ?? "A_EXPECTED",
     historyLimit: 0,
