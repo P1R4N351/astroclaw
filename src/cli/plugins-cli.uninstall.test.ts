@@ -1,4 +1,4 @@
-import { installedPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
+import { installedPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 // Plugins CLI uninstall tests cover plugin removal selection and uninstall output.
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -215,6 +215,98 @@ describe("plugins cli uninstall", () => {
       installRecords: {},
       reason: "source-changed",
     });
+  });
+
+  it("uninstalls the exact plugin id when an earlier plugin uses it as a display name", async () => {
+    const baseConfig = {
+      plugins: {
+        entries: {
+          "unrelated-plugin": { enabled: true },
+          calendar: { enabled: true },
+        },
+        installs: {
+          "unrelated-plugin": { source: "npm", spec: "unrelated-plugin@1.0.0" },
+          calendar: { source: "npm", spec: "calendar@1.0.0" },
+        },
+      },
+    } as OpenClawConfig;
+    const nextConfig = {
+      plugins: {
+        entries: { "unrelated-plugin": { enabled: true } },
+        installs: {
+          "unrelated-plugin": { source: "npm", spec: "unrelated-plugin@1.0.0" },
+        },
+      },
+    } as OpenClawConfig;
+
+    loadConfig.mockReturnValue(baseConfig);
+    setInstalledPluginIndexInstallRecords(baseConfig.plugins?.installs ?? {});
+    buildPluginSnapshotReport.mockReturnValue({
+      plugins: [
+        { id: "unrelated-plugin", name: "calendar" },
+        { id: "calendar", name: "Real Calendar" },
+      ],
+      diagnostics: [],
+    });
+    planPluginUninstall.mockReturnValue({
+      ok: true,
+      config: nextConfig,
+      actions: {
+        entry: true,
+        install: true,
+        allowlist: false,
+        denylist: false,
+        loadPath: false,
+        memorySlot: false,
+        contextEngineSlot: false,
+        directory: false,
+      },
+      directoryRemoval: null,
+    });
+
+    await runPluginsCommand(["plugins", "uninstall", "calendar", "--force", "--keep-files"]);
+
+    expectLatestUninstallPlanParams({ pluginId: "calendar", deleteFiles: false });
+    expect(writePersistedInstalledPluginIndexInstallRecords).toHaveBeenCalledWith({
+      "unrelated-plugin": { source: "npm", spec: "unrelated-plugin@1.0.0" },
+    });
+  });
+
+  it("rejects an ambiguous display name before planning or mutating installed plugins", async () => {
+    const baseConfig = {
+      plugins: {
+        entries: {
+          "calendar-one": { enabled: true },
+          "calendar-two": { enabled: true },
+        },
+        installs: {
+          "calendar-one": { source: "npm", spec: "calendar-one@1.0.0" },
+          "calendar-two": { source: "npm", spec: "calendar-two@1.0.0" },
+        },
+      },
+    } as OpenClawConfig;
+
+    loadConfig.mockReturnValue(baseConfig);
+    setInstalledPluginIndexInstallRecords(baseConfig.plugins?.installs ?? {});
+    buildPluginSnapshotReport.mockReturnValue({
+      plugins: [
+        { id: "calendar-one", name: "calendar" },
+        { id: "calendar-two", name: "calendar" },
+      ],
+      diagnostics: [],
+    });
+
+    await expect(
+      runPluginsCommand(["plugins", "uninstall", "calendar", "--force"]),
+    ).rejects.toThrow("__exit__:1");
+
+    expect(runtimeErrors.at(-1)).toContain('Plugin uninstall target "calendar" is ambiguous');
+    expect(planPluginUninstall).not.toHaveBeenCalled();
+    expect(promptYesNo).not.toHaveBeenCalled();
+    expect(applyPluginUninstallDirectoryRemoval).not.toHaveBeenCalled();
+    expect(writePersistedInstalledPluginIndexInstallRecords).not.toHaveBeenCalled();
+    expect(writeConfigFile).not.toHaveBeenCalled();
+    expect(refreshPluginRegistry).not.toHaveBeenCalled();
   });
 
   it("warns but proceeds when a shared plugin has an uncertain Claw reference", async () => {
