@@ -1,5 +1,5 @@
 // Zalouser tests cover channel plugin behavior.
-import { createNonExitingRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { createNonExitingRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "./zalo-js.test-mocks.js";
 import {
@@ -96,6 +96,23 @@ describe("zalouser outbound", () => {
         },
       },
     } as never);
+  });
+
+  it("removes internal tool text while preserving user-visible examples", () => {
+    const sanitizeText = zalouserOutboundAdapter.sanitizeText;
+    if (!sanitizeText) {
+      throw new Error("expected Zalo Personal outbound sanitizeText hook");
+    }
+    const sanitize = (text: string) => sanitizeText({ text, payload: { text } });
+    const fenced = ["```xml", '<tool_call>{"name":"exec"}</tool_call>', "```"].join("\n");
+
+    expect(sanitize("Done.\n⚠️ 🛠️ `search repos (agent)` failed")).toBe("Done.");
+    expect(sanitize('<tool_call>{"name":"exec"}</tool_call>Message sent.')).toBe("Message sent.");
+    expect(sanitize("The personal message was delivered.")).toBe(
+      "The personal message was delivered.",
+    );
+    expect(sanitize(fenced)).toBe(fenced);
+    expect(sanitize("⚠️ 🛠️ `search repos (agent)` failed")).toBe("");
   });
 
   it("passes markdown chunk settings through sendText", async () => {
