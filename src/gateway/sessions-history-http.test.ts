@@ -3,7 +3,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
+import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { replaceTranscriptEvents } from "../config/sessions/session-accessor.js";
 import { resolveSqliteTargetFromSessionStorePath } from "../config/sessions/session-sqlite-target.js";
@@ -300,14 +300,6 @@ async function readSessionHistoryBody(
   const res = await fetchSessionHistory(port, sessionKey, params);
   expect(res.status).toBe(200);
   return (await res.json()) as SessionHistoryBody;
-}
-
-async function expectSessionHistoryText(params: { sessionKey: string; expectedText: string }) {
-  await withGatewayHarness(async (harness) => {
-    const body = await readSessionHistoryBody(harness.port, params.sessionKey);
-    expect(body.sessionKey).toBe(params.sessionKey);
-    expect(body.messages?.[0]?.content?.[0]?.text).toBe(params.expectedText);
-  });
 }
 
 async function readSseEvent(
@@ -801,7 +793,7 @@ describe("session history HTTP endpoints", () => {
     });
   });
 
-  test("prefers the freshest duplicate row for direct history reads", async () => {
+  test("rejects duplicate canonical rows with an actionable migration error", async () => {
     testState.sessionConfig = { mainKey: "work" };
     const storePath = await createSessionStoreFile();
     await replaceTranscriptEvents(
@@ -848,9 +840,14 @@ describe("session history HTTP endpoints", () => {
       ],
     });
 
-    await expectSessionHistoryText({
-      sessionKey: "agent:main:work",
-      expectedText: "fresh history",
+    await withGatewayHarness(async (harness) => {
+      const res = await fetchSessionHistory(harness.port, "agent:main:work");
+      expect(res.status).toBe(409);
+      expectErrorResponse(await res.json(), {
+        type: "migration_required",
+        message:
+          "duplicate rows resolve to canonical session key agent:main:work; stop the Gateway and run openclaw doctor --fix",
+      });
     });
   });
 
