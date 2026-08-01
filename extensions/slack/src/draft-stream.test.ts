@@ -1,5 +1,5 @@
 // Slack tests cover draft stream plugin behavior.
-import { createMessageReceiptFromOutboundResults } from "openclaw/plugin-sdk/channel-outbound";
+import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
 import { describe, expect, it, vi } from "vitest";
 import { createSlackDraftStream } from "./draft-stream.js";
 
@@ -124,6 +124,21 @@ describe("createSlackDraftStream", () => {
     expect(editCall?.[1]).toBe("111.222");
     expect(editCall?.[2]).toBe("updated fallback");
     expect((editCall?.[3] as { blocks?: unknown } | undefined)?.blocks).toEqual([...blocks]);
+  });
+
+  it("edits changed blocks even when fallback text is unchanged", async () => {
+    const { stream, edit } = createDraftStreamHarness();
+    const firstBlocks = [{ type: "divider" }] as const;
+    const latestBlocks = [{ type: "section", text: { type: "mrkdwn", text: "latest" } }] as const;
+
+    stream.update({ text: "same fallback", blocks: [...firstBlocks] });
+    await stream.flush();
+    stream.update({ text: "same fallback", blocks: [...latestBlocks] });
+    await stream.flush();
+
+    const editCall = mockCalls<Parameters<DraftEditFn>>(edit)[0];
+    expect(editCall?.[2]).toBe("same fallback");
+    expect((editCall?.[3] as { blocks?: unknown } | undefined)?.blocks).toEqual([...latestBlocks]);
   });
 
   it("forwards identity to the initial send call", async () => {
