@@ -1,14 +1,13 @@
 // Memory Core plugin module owns shared manager synchronization state.
 import type { DatabaseSync } from "node:sqlite";
-import type { FSWatcher } from "chokidar";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentDir,
   resolveUserPath,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   ensureMemoryIndexSchema,
   loadSqliteVecExtension,
@@ -19,8 +18,9 @@ import {
   type MemorySource,
   type MemorySyncParams,
   type MemorySyncProgressUpdate,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { runSqliteImmediateTransactionSync } from "openclaw/plugin-sdk/sqlite-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { runSqliteImmediateTransactionSync } from "astroclaw/plugin-sdk/sqlite-runtime";
+import type { FSWatcher } from "chokidar";
 import type { MemoryCoreAcquireLocalService } from "./embedding-local-service.js";
 import {
   resolveEmbeddingProviderAdapterId,
@@ -81,19 +81,12 @@ export type MemorySourceSyncPlan = {
   finalize: () => Promise<void> | void;
 };
 
-type MemorySessionDeltaState = {
-  lastSize: number;
-  pendingBytes: number;
-  pendingMessages: number;
-};
-
 type MemoryReindexRetryState = {
   dirty: boolean;
   memoryFullRetryDirty: boolean;
   sessionsDirty: boolean;
   sessionsFullRetryDirty: boolean;
   sessionsDirtyFiles: Set<string>;
-  sessionDeltas: Map<string, MemorySessionDeltaState>;
 };
 
 export const MEMORY_INDEX_META_KEY = "memory_index_meta_v1";
@@ -164,7 +157,6 @@ export abstract class MemoryManagerSyncBase {
   protected sessionsDirtyFiles = new Set<string>();
   protected sessionPendingFiles = new Set<string>();
   protected sessionPendingTargets = new Map<string, MemorySessionSyncTarget>();
-  protected sessionDeltas = new Map<string, MemorySessionDeltaState>();
   protected vectorDegradedWriteWarningShown = false;
   protected lastMetaSerialized: string | null = null;
 
@@ -215,9 +207,6 @@ export abstract class MemoryManagerSyncBase {
       sessionsDirty: this.sessionsDirty,
       sessionsFullRetryDirty: this.sessionsFullRetryDirty,
       sessionsDirtyFiles: new Set(this.sessionsDirtyFiles),
-      sessionDeltas: new Map(
-        Array.from(this.sessionDeltas, ([file, state]) => [file, { ...state }]),
-      ),
     };
   }
 
@@ -226,13 +215,6 @@ export abstract class MemoryManagerSyncBase {
     this.memoryFullRetryDirty = snapshot.memoryFullRetryDirty || this.memoryFullRetryDirty;
     this.sessionsFullRetryDirty = snapshot.sessionsFullRetryDirty || this.sessionsFullRetryDirty;
     this.sessionsDirtyFiles = new Set([...snapshot.sessionsDirtyFiles, ...this.sessionsDirtyFiles]);
-    const currentDeltas = this.sessionDeltas;
-    this.sessionDeltas = new Map(
-      Array.from(currentDeltas, ([file, state]) => [file, { ...state }]),
-    );
-    for (const [file, state] of snapshot.sessionDeltas) {
-      this.sessionDeltas.set(file, { ...state });
-    }
     this.sessionsDirty =
       snapshot.sessionsDirty ||
       this.sessionsDirty ||
