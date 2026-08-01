@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { MAX_DATE_TIMESTAMP_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_DATE_TIMESTAMP_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { describe, expect, it, vi } from "vitest";
 import type {
   PersistedWorkboardAttachment,
@@ -1008,6 +1008,24 @@ describe("WorkboardStore", () => {
     const restored = await store.archive(card.id, false);
     expect(restored.metadata?.archivedAt).toBeUndefined();
     expect(restored.events?.at(-1)).toMatchObject({ kind: "unarchived" });
+  });
+
+  it("ignores caller-supplied archivedAt on create so no card is born archived", async () => {
+    const store = new WorkboardStore(createMemoryStore());
+    const card = await store.create({
+      title: "Injected archive",
+      metadata: { archivedAt: Date.now() },
+    });
+
+    // Archival is a transition owned by archive(), which appends the matching
+    // event. Honouring it here would exclude the card from dispatch from birth
+    // with an event log recording only "created".
+    expect(card.metadata?.archivedAt).toBeUndefined();
+    expect(card.events?.map((event) => event.kind)).toEqual(["created"]);
+
+    const archived = await store.archive(card.id, true);
+    expect(archived.metadata?.archivedAt).toBeGreaterThan(0);
+    expect(archived.events?.at(-1)).toMatchObject({ kind: "archived" });
   });
 
   it("resolves matching unknown proof on completion without duplicating it", async () => {
