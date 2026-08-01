@@ -861,7 +861,7 @@ function resolveInfraShardName(file) {
     name.startsWith("json") ||
     name.startsWith("path") ||
     name.startsWith("shell") ||
-    name.startsWith("tmp-astroclaw-dir")
+    name.startsWith("tmp-openclaw-dir")
   ) {
     return "core-runtime-infra-files-commands";
   }
@@ -1158,8 +1158,9 @@ const SPLIT_NODE_SHARDS = new Map([
         configs: ["test/vitest/vitest.tui-pty.config.ts"],
         env: {
           OPENCLAW_TUI_PTY_INCLUDE_LOCAL: "1",
+          OPENCLAW_TUI_PTY_USE_BUILT_CLI: "1",
         },
-        requiresDist: false,
+        requiresDist: true,
         runner: "blacksmith-4vcpu-ubuntu-2404",
       },
       {
