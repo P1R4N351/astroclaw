@@ -1,6 +1,6 @@
 // Synology Chat tests cover channel plugin behavior.
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-outbound";
-import { createPluginSetupWizardStatus } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
+import { createPluginSetupWizardStatus } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedSynologyChatAccount } from "./types.js";
 
@@ -452,6 +452,13 @@ describe("createSynologyChatPlugin", () => {
   });
 
   describe("outbound", () => {
+    it("declares bounded Markdown chunking for gateway text delivery", () => {
+      const plugin = synologyChatPlugin;
+      expect(plugin.outbound.chunkerMode).toBe("markdown");
+      expect(plugin.outbound.textChunkLimit).toBe(2_000);
+      expect(plugin.outbound.chunker("x".repeat(2_001), 2_000)).toEqual(["x".repeat(2_000), "x"]);
+    });
+
     it("declares message adapter durable text and media with receipt proofs", async () => {
       const plugin = synologyChatPlugin;
       const cfg = {
