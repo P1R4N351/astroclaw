@@ -2,14 +2,14 @@
 import type {
   ProviderResolveDynamicModelContext,
   ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
-import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
 import {
   getCachedLiveProviderModelRows,
   LiveModelCatalogHttpError,
   type LiveModelCatalogFetchGuard,
-} from "openclaw/plugin-sdk/provider-catalog-live-runtime";
-import { buildManifestModelProviderConfig } from "openclaw/plugin-sdk/provider-catalog-shared";
+} from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+import { buildManifestModelProviderConfig } from "astroclaw/plugin-sdk/provider-catalog-shared";
 import {
   DEFAULT_CONTEXT_TOKENS,
   normalizeProviderId,
@@ -17,11 +17,11 @@ import {
   type ModelDefinitionConfig,
   type ModelProviderConfig,
   type ProviderPlugin,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { OPENAI_ACCOUNT_WIZARD_GROUP, OPENAI_API_KEY_LABEL } from "./auth-choice-copy.js";
 import {
   OPENAI_CODEX_RESPONSES_BASE_URL,
@@ -58,6 +58,7 @@ import {
   buildOpenAICodexProviderHooks,
 } from "./openai-chatgpt-provider.js";
 import manifest from "./openclaw.plugin.json" with { type: "json" };
+import { resolveAuthoredOpenAIProviderConfig } from "./provider-policy-api.js";
 import {
   buildOpenAIResponsesProviderHooks,
   buildOpenAISyntheticCatalogEntry,
@@ -664,27 +665,7 @@ function resolveAuthoredOpenAIConfigRoute(params: {
 }):
   | { configuredModel?: ModelDefinitionConfig; configuredProvider: ModelProviderConfig }
   | undefined {
-  if (normalizeProviderId(params.provider) !== PROVIDER_ID) {
-    return undefined;
-  }
-  const providers = Object.entries(params.config?.models?.providers ?? {});
-  const requestedProvider = params.provider.trim();
-  const providerKey =
-    providers.find(([providerId]) => providerId.trim() === requestedProvider)?.[0].trim() ??
-    providers.find(([providerId]) => normalizeProviderId(providerId) === PROVIDER_ID)?.[0].trim();
-  let providerConfig: ModelProviderConfig | undefined;
-  for (const [providerId, candidate] of providers) {
-    if (providerId.trim() !== providerKey || !candidate) {
-      continue;
-    }
-    providerConfig = providerConfig
-      ? {
-          ...providerConfig,
-          ...candidate,
-          models: candidate.models ?? providerConfig.models,
-        }
-      : candidate;
-  }
+  const providerConfig = resolveAuthoredOpenAIProviderConfig(params);
   if (!providerConfig) {
     return undefined;
   }
@@ -945,7 +926,7 @@ export function buildOpenAIProvider(): ProviderPlugin {
         const auth = ctx.resolveProviderAuth(PROVIDER_ID);
         try {
           const { resolveApiKeyForProvider, resolveProviderAuthProfileMetadata } =
-            await import("openclaw/plugin-sdk/provider-auth-runtime");
+            await import("astroclaw/plugin-sdk/provider-auth-runtime");
           const runtimeAuth = await resolveApiKeyForProvider({
             provider: PROVIDER_ID,
             cfg: ctx.config,
