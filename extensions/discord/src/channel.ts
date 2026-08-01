@@ -3,26 +3,26 @@ import {
   buildLegacyDmAccountAllowlistAdapter,
   createAccountScopedAllowlistNameResolver,
   createNestedAllowlistOverrideResolver,
-} from "openclaw/plugin-sdk/allowlist-config-edit";
+} from "astroclaw/plugin-sdk/allowlist-config-edit";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageToolDiscovery,
-} from "openclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
-import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
+} from "astroclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
+import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "openclaw/plugin-sdk/directory-runtime";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/directory-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "openclaw/plugin-sdk/status-helpers";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolveTargetsWithOptionalToken } from "openclaw/plugin-sdk/target-resolver-runtime";
+} from "astroclaw/plugin-sdk/status-helpers";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolveTargetsWithOptionalToken } from "astroclaw/plugin-sdk/target-resolver-runtime";
 import {
   listEnabledDiscordAccounts,
   resolveDefaultDiscordAccountId,
@@ -81,7 +81,7 @@ import type { DiscordProbe } from "./probe.js";
 import { getDiscordRuntime } from "./runtime.js";
 import { discordSecurityAdapter } from "./security.js";
 import { normalizeExplicitDiscordSessionKey } from "./session-key-normalization.js";
-import { discordSetupAdapter, discordSetupContract } from "./setup-adapter.js";
+import { discordSetupContract } from "./setup-adapter.js";
 import { createDiscordPluginBase, discordConfigAdapter } from "./shared.js";
 import { collectDiscordStatusIssues } from "./status-issues.js";
 import { parseDiscordTarget } from "./target-parsing.js";
@@ -307,7 +307,6 @@ export const discordPlugin: ChannelPlugin<ResolvedDiscordAccount, DiscordProbe> 
   createChatChannelPlugin<ResolvedDiscordAccount, DiscordProbe>({
     base: {
       ...createDiscordPluginBase({
-        setup: discordSetupAdapter,
         setupContract: discordSetupContract,
       }),
       allowlist: {
