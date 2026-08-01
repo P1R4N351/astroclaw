@@ -1,5 +1,5 @@
 import path from "node:path";
-import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
   closeCodexStartupClientBestEffort,
@@ -12,6 +12,7 @@ import {
   isCodexAppServerConnectionClosedError,
   resolveCodexAppServerClientInstanceId,
 } from "./client.js";
+import { isMessageOnlyCodexSourceReply } from "./dynamic-tool-profile.js";
 import {
   applyCodexNativeSkillIsolation,
   type CodexNativeSkillIsolation,
@@ -224,7 +225,7 @@ export async function resumeExistingCodexThread(
         signal: params.signal,
       }),
     );
-    if (ringZeroActive) {
+    if (ringZeroActive || isMessageOnlyCodexSourceReply(params.params)) {
       try {
         await lifecycleTiming.measure("ring-zero-mcp-attestation", () =>
           attestCodexRingZeroThreadHasNoMcpServers(
@@ -502,7 +503,7 @@ export async function startFreshCodexThread(
     }
   }
   const rolloutPath = resolveCodexThreadRolloutPath(response.thread);
-  if (ringZeroActive) {
+  if (ringZeroActive || isMessageOnlyCodexSourceReply(params.params)) {
     try {
       await lifecycleTiming.measure("ring-zero-mcp-attestation", () =>
         attestCodexRingZeroThreadHasNoMcpServers(params.client, response.thread.id, params.signal),
