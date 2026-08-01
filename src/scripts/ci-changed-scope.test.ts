@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { bundledPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
 
 const {
@@ -838,7 +838,7 @@ describe("detectChangedScope", () => {
   });
 
   it("runs control-ui locale check only for control-ui i18n surfaces", () => {
-    expect(detectChangedScope(["ui/src/i18n/locales/en.ts"])).toEqual({
+    const expected = {
       runNode: true,
       runMacos: false,
       runIosBuild: false,
@@ -848,24 +848,17 @@ describe("detectChangedScope", () => {
       runChangedSmoke: false,
       runControlUiI18n: true,
       runUiTests: true,
-    });
+    };
+    expect(detectChangedScope(["ui/src/i18n/locales/en.ts"])).toEqual(expected);
 
     for (const scriptPath of [
       "scripts/control-ui-i18n.ts",
       "scripts/control-ui-i18n-verify.ts",
+      "scripts/lib/control-ui-i18n-catalog.ts",
       "scripts/lib/control-ui-i18n-raw-copy.ts",
+      "scripts/lib/control-ui-i18n-sync-plan.ts",
     ]) {
-      expect(detectChangedScope([scriptPath])).toEqual({
-        runNode: true,
-        runMacos: false,
-        runIosBuild: false,
-        runAndroid: false,
-        runWindows: false,
-        runSkillsPython: false,
-        runChangedSmoke: false,
-        runControlUiI18n: true,
-        runUiTests: false,
-      });
+      expect(detectChangedScope([scriptPath])).toEqual({ ...expected, runUiTests: false });
     }
   });
 
