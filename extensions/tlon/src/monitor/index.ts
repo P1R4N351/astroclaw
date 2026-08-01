@@ -1,14 +1,14 @@
-import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
-import { createChannelInboundEnvelopeBuilder } from "openclaw/plugin-sdk/channel-inbound";
+import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { createChannelInboundEnvelopeBuilder } from "astroclaw/plugin-sdk/channel-inbound";
 import {
   bindIngressLifecycleToReplyOptions,
   waitUntilAbort,
-} from "openclaw/plugin-sdk/channel-outbound";
-import type { GetReplyOptions, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
-import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
-import { asFiniteNumber } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import type { GetReplyOptions, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
+import { asFiniteNumber } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import type { OpenClawConfig } from "../../runtime-api.js";
 import { createLoggerBackedRuntime } from "../../runtime-api.js";
 import { getTlonRuntime } from "../runtime.js";
@@ -44,6 +44,7 @@ import { asRecord, formatErrorMessage, readString } from "./utils.js";
 import {
   extractMessageText,
   formatModelName,
+  formatSummarizationHistoryText,
   isBotMentioned,
   isDmAllowedWithIngress,
   isGroupInviteAllowed,
@@ -392,11 +393,7 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
           return;
         }
 
-        const historyText = history
-          .map(
-            (msg) => `[${new Date(msg.timestamp).toLocaleString()}] ${msg.author}: ${msg.content}`,
-          )
-          .join("\n");
+        const historyText = formatSummarizationHistoryText(history, cfg);
 
         messageText =
           `Please summarize this channel conversation (${history.length} recent messages):\n\n${historyText}\n\n` +
