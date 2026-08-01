@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
-import type { SessionCatalogProvider } from "astroclaw/plugin-sdk/session-catalog";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+import type { SessionCatalogProvider } from "openclaw/plugin-sdk/session-catalog";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { adoptedSourceKey } from "./session-catalog-adoption.js";
 import {
@@ -50,8 +50,8 @@ const nodeHostMocks = vi.hoisted(() => ({
   userShellPaths: new Map<string, string>(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/node-host", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/node-host")>();
+vi.mock("openclaw/plugin-sdk/node-host", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/node-host")>();
   return {
     ...actual,
     runNodePtyCommand: nodeHostMocks.runNodePtyCommand,
@@ -1709,12 +1709,13 @@ describe("Claude session catalog", () => {
       entries: [],
       transcripts: { [sessionId]: [sdkCliMessage(sessionId, "Recovered")] },
     });
+    const canonicalTranscriptPath = await fs.realpath(transcriptPath);
     const open = fs.open.bind(fs);
     let transcriptAttempts = 0;
     let now = 1_000;
     vi.spyOn(Date, "now").mockImplementation(() => now);
     vi.spyOn(fs, "open").mockImplementation(async (...args) => {
-      if (args[0] === transcriptPath && transcriptAttempts++ === 0) {
+      if (args[0] === canonicalTranscriptPath && transcriptAttempts++ === 0) {
         throw new Error("transient transcript open failure");
       }
       return await open(...args);
