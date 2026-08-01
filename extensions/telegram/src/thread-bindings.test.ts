@@ -1,13 +1,13 @@
 // Telegram tests cover thread bindings plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-runtime";
-import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-runtime";
+import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setTelegramRuntime } from "./runtime.js";
 import { clearTelegramRuntimeForTest } from "./runtime.test-support.js";
@@ -15,9 +15,9 @@ import type { TelegramRuntime } from "./runtime.types.js";
 
 const readAcpSessionEntryMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/acp-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/acp-runtime")>(
-    "openclaw/plugin-sdk/acp-runtime",
+vi.mock("astroclaw/plugin-sdk/acp-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/acp-runtime")>(
+    "astroclaw/plugin-sdk/acp-runtime",
   );
   readAcpSessionEntryMock.mockImplementation(actual.readAcpSessionEntry);
   return {
@@ -107,8 +107,8 @@ describe("telegram thread bindings", () => {
     installThreadBindingStore(createThreadBindingStore());
     threadBindingStore.clear();
     readAcpSessionEntryMock.mockReset();
-    const acpRuntime = await vi.importActual<typeof import("openclaw/plugin-sdk/acp-runtime")>(
-      "openclaw/plugin-sdk/acp-runtime",
+    const acpRuntime = await vi.importActual<typeof import("astroclaw/plugin-sdk/acp-runtime")>(
+      "astroclaw/plugin-sdk/acp-runtime",
     );
     readAcpSessionEntryMock.mockImplementation(acpRuntime.readAcpSessionEntry);
     await testing.resetTelegramThreadBindingsForTests();
@@ -363,6 +363,59 @@ describe("telegram thread bindings", () => {
     });
 
     expect(reloaded.getByConversationId("8460800771")).toBeUndefined();
+  });
+
+  it("persists only the changed binding without scanning or rewriting its siblings", async () => {
+    const manager = createTelegramThreadBindingManager({
+      accountId: "row-writes",
+      persist: true,
+      enableSweeper: false,
+    });
+    const entries = vi.spyOn(threadBindingStore, "entries");
+    const register = vi.spyOn(threadBindingStore, "register");
+    const remove = vi.spyOn(threadBindingStore, "delete");
+
+    const first = await getSessionBindingService().bind({
+      targetSessionKey: "agent:main:subagent:first-row",
+      targetKind: "subagent",
+      conversation: {
+        channel: "telegram",
+        accountId: "row-writes",
+        conversationId: "first-thread",
+      },
+    });
+    expect(register).toHaveBeenCalledTimes(1);
+    expect(entries).not.toHaveBeenCalled();
+
+    register.mockClear();
+    await getSessionBindingService().bind({
+      targetSessionKey: "agent:main:subagent:second-row",
+      targetKind: "subagent",
+      conversation: {
+        channel: "telegram",
+        accountId: "row-writes",
+        conversationId: "second-thread",
+      },
+    });
+    expect(register).toHaveBeenCalledTimes(1);
+    expect(register.mock.calls[0]?.[1].conversationId).toBe("second-thread");
+    expect(entries).not.toHaveBeenCalled();
+
+    register.mockClear();
+    manager.touchConversation("first-thread");
+    expect(register).toHaveBeenCalledTimes(1);
+    expect(register.mock.calls[0]?.[1].conversationId).toBe("first-thread");
+    expect(entries).not.toHaveBeenCalled();
+
+    register.mockClear();
+    await getSessionBindingService().unbind({
+      bindingId: first.bindingId,
+      reason: "test-row-delete",
+    });
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(register).not.toHaveBeenCalled();
+    expect(entries).not.toHaveBeenCalled();
+    expect(manager.getByConversationId("second-thread")).toBeDefined();
   });
 
   it("persists bindings with json-clean metadata", async () => {
