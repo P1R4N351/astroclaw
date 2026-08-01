@@ -419,7 +419,7 @@ const cachedBundledPluginPublicSurfaceAliasMaps = new PluginLruCache<Record<stri
 const cachedWorkspacePackageAliasMaps = new PluginLruCache<Record<string, string>>(
   MAX_PLUGIN_LOADER_ALIAS_CACHE_ENTRIES,
 );
-const PLUGIN_SDK_PACKAGE_NAMES = ["astroclaw/plugin-sdk", "@openclaw/plugin-sdk"] as const;
+const PLUGIN_SDK_PACKAGE_NAMES = ["openclaw/plugin-sdk", "@openclaw/plugin-sdk"] as const;
 const CODEX_MCP_PROJECTION_PLUGIN_SDK_SUBPATH = "codex-mcp-projection";
 const CODEX_SESSION_TRANSCRIPT_PLUGIN_SDK_SUBPATH = "codex-session-transcript-runtime";
 const OLLAMA_CONFIGURED_LOCAL_ORIGIN_RUNTIME_PLUGIN_SDK_SUBPATH = "ssrf-runtime-internal";
@@ -1608,7 +1608,7 @@ function isBundledPluginDistModulePath(modulePath: string): boolean {
   return modulePath.replace(/\\/g, "/").includes("/dist/extensions/");
 }
 
-export function shouldPreferNativeModuleLoad(modulePath: string): boolean {
+function shouldPreferNativeModuleLoad(modulePath: string): boolean {
   if (!supportsNativeModuleRuntime()) {
     return false;
   }
