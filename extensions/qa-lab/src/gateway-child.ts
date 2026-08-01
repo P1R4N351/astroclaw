@@ -14,19 +14,19 @@ import os from "node:os";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   isRecord,
   normalizeOptionalString,
   normalizeStringEntries,
   uniqueStrings,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
-import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -1069,6 +1069,7 @@ export async function startQaGatewayChild(params: {
   claudeCliAuthMode?: QaCliBackendAuthMode;
   controlUiEnabled?: boolean;
   enabledPluginIds?: string[];
+  allowUnhealthyStartup?: boolean;
   forwardHostHome?: boolean;
   mockAuthAgentIds?: readonly string[];
   onListening?: (context: QaGatewayChildListeningContext) => Promise<void> | void;
@@ -1077,7 +1078,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
   const tempRoot = await fs.mkdtemp(path.join(tempParentDir, "openclaw-qa-suite-"));
   const runtimeCwd = tempRoot;
   const distEntryPath = path.join(params.repoRoot, "dist", "index.js");
@@ -1423,13 +1424,15 @@ export async function startQaGatewayChild(params: {
           configPath,
           runtimeEnv: env,
         });
-        await waitForGatewayReady({
-          baseUrl,
-          logs,
-          child: attemptChild,
-          getChildFailure: getAttemptChildFailure,
-          timeoutMs: 120_000,
-        });
+        if (!params.allowUnhealthyStartup) {
+          await waitForGatewayReady({
+            baseUrl,
+            logs,
+            child: attemptChild,
+            getChildFailure: getAttemptChildFailure,
+            timeoutMs: 120_000,
+          });
+        }
         const attemptRpcClient = await startQaGatewayRpcClient({
           wsUrl,
           token: gatewayToken,
