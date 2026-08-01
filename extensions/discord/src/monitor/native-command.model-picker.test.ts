@@ -2,23 +2,23 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { ChannelType } from "discord-api-types/v10";
-import * as commandRegistryModule from "openclaw/plugin-sdk/command-auth-native";
+import * as commandRegistryModule from "astroclaw/plugin-sdk/command-auth-native";
 import type {
   ChatCommandDefinition,
   CommandArgsParsing,
-} from "openclaw/plugin-sdk/command-auth-native";
-import type { ModelsProviderData } from "openclaw/plugin-sdk/command-auth-native";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import * as runtimeConfigSnapshotModule from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/command-auth-native";
+import type { ModelsProviderData } from "astroclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import * as runtimeConfigSnapshotModule from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
 import {
   getSessionEntry,
   listSessionEntries,
   resolveStorePath,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import * as commandTextModule from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import * as commandTextModule from "astroclaw/plugin-sdk/text-utility-runtime";
+import { ChannelType } from "discord-api-types/v10";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineThrowingDiscordChannelGetter } from "../test-support/partial-channel.js";
 import { resolveDiscordChannelContext } from "./agent-components-context.js";
@@ -33,7 +33,7 @@ import {
 } from "./native-command-ui.js";
 import { createNoopThreadBindingManager, type ThreadBindingManager } from "./thread-bindings.js";
 
-vi.mock("openclaw/plugin-sdk/runtime-env", { spy: true });
+vi.mock("astroclaw/plugin-sdk/runtime-env", { spy: true });
 
 type ModelPickerContext = Parameters<typeof createDiscordModelPickerFallbackButton>[0]["ctx"];
 type PickerButton = ReturnType<typeof createDiscordModelPickerFallbackButton>;
@@ -360,6 +360,51 @@ describe("Discord model picker interactions", () => {
     expect(interaction.editReply).toHaveBeenCalledTimes(1);
     expect(interaction.update).not.toHaveBeenCalled();
   });
+
+  it.each(["back", "nav", "bucket"] as const)(
+    "preserves the selected provider bucket for %s interactions",
+    async (action) => {
+      const context = createModelPickerContext();
+      const providers = Object.fromEntries(
+        Array.from({ length: 30 }, (_, index) => [
+          `provider-${String(index + 1).padStart(2, "0")}`,
+          ["model"],
+        ]),
+      );
+      vi.spyOn(modelPickerModule, "loadDiscordModelPickerData").mockResolvedValue(
+        createModelsProviderData(providers),
+      );
+      const selectingBucket = action === "bucket";
+      const interaction = createInteraction({
+        userId: "owner",
+        ...(selectingBucket ? { values: ["21-30"] } : {}),
+      });
+      const data = {
+        cmd: "model",
+        act: action,
+        view: "providers",
+        u: "owner",
+        pg: "3",
+        pb: selectingBucket ? "1-20" : "21-30",
+      };
+
+      if (selectingBucket) {
+        await createModelPickerFallbackSelect(context).run(
+          interaction as unknown as PickerSelectInteraction,
+          data,
+        );
+      } else {
+        await createModelPickerFallbackButton(context).run(
+          interaction as unknown as PickerButtonInteraction,
+          data,
+        );
+      }
+
+      const rendered = JSON.stringify(firstMockArg(interaction.editReply, "interaction.editReply"));
+      expect(rendered).toContain('"value":"provider-21"');
+      expect(rendered).not.toContain('"value":"provider-01"');
+    },
+  );
 
   it("uses the hot-reloaded runtime config when old components reset to default", async () => {
     const context = createModelPickerContext();
