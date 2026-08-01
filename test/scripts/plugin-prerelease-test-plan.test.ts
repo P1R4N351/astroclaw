@@ -184,7 +184,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mjs", () => {
     );
     expect(assertionsScript).toContain("!INVALID_PROBE_DIAGNOSTIC_SURFACE_MODES.has(surfaceMode)");
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
-      'from "astroclaw/plugin-sdk/plugin-entry"',
+      'from "openclaw/plugin-sdk/plugin-entry"',
     );
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
       "X-ClawHub-Artifact-Sha256",
@@ -667,9 +667,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mjs", () => {
     expect(fullReleaseWorkflow.jobs.plugin_prerelease["timeout-minutes"]).toBe(
       "${{ inputs.release_profile == 'full' && 300 || inputs.release_profile == 'stable' && 240 || 60 }}",
     );
-    expect(fullReleaseWorkflow.jobs.release_checks["timeout-minutes"]).toBe(
-      "${{ inputs.release_profile != 'beta' && 240 || 60 }}",
-    );
+    expect(fullReleaseWorkflow.jobs.release_checks["timeout-minutes"]).toBe(240);
     const fullReleaseSource = readFileSync(".github/workflows/full-release-validation.yml", "utf8");
     expect(fullReleaseWorkflow.on.workflow_dispatch.inputs.fail_fast).toEqual({
       description:
