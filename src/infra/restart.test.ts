@@ -14,7 +14,7 @@ const resolveLsofCommandSyncMock = vi.hoisted(() => vi.fn());
 const resolveGatewayPortMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
   return mockNodeBuiltinModule(
     () => vi.importActual<typeof import("node:child_process")>("node:child_process"),
     {
@@ -102,7 +102,7 @@ describe.runIf(process.platform !== "win32")("findGatewayPidsOnPortSync", () => 
     expect((options as { encoding?: unknown; timeout?: unknown } | undefined)?.encoding).toBe(
       "utf8",
     );
-    expect((options as { encoding?: unknown; timeout?: unknown } | undefined)?.timeout).toBe(2000);
+    expect((options as { encoding?: unknown; timeout?: unknown } | undefined)?.timeout).toBe(5000);
   });
 
   it("returns empty when lsof fails", () => {
@@ -171,7 +171,7 @@ describe.runIf(process.platform !== "win32")("cleanStaleGatewayProcessesSync", (
     expect((options as { encoding?: unknown; timeout?: unknown } | undefined)?.encoding).toBe(
       "utf8",
     );
-    expect((options as { encoding?: unknown; timeout?: unknown } | undefined)?.timeout).toBe(2000);
+    expect((options as { encoding?: unknown; timeout?: unknown } | undefined)?.timeout).toBe(5000);
     expect(killSpy).toHaveBeenCalledWith(stalePid, "SIGTERM");
     expect(killSpy).toHaveBeenCalledWith(stalePid, "SIGKILL");
   });
