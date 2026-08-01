@@ -1,5 +1,5 @@
 // Minimax tests cover music generation provider plugin behavior.
-import { expectExplicitMusicGenerationCapabilities } from "astroclaw/plugin-sdk/provider-test-contracts";
+import { expectExplicitMusicGenerationCapabilities } from "openclaw/plugin-sdk/provider-test-contracts";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
   getMinimaxProviderHttpMocks,
@@ -156,6 +156,100 @@ describe("minimax music generation provider", () => {
     expect(result.tracks[0]?.mimeType).toBe("audio/mpeg");
     expect(result.metadata?.requestedLyrics).toBe(true);
     expect(result.metadata).not.toHaveProperty("requestedDurationSeconds");
+  });
+
+  it.each([
+    { provider: "minimax", contentType: "application/json", body: '{"error":"denied"}' },
+    {
+      provider: "minimax",
+      contentType: "application/problem+json",
+      body: '{"title":"denied"}',
+    },
+    { provider: "minimax", contentType: "text/html", body: "<html>sign in</html>" },
+    { provider: "minimax", contentType: "audio/mpeg", body: "" },
+    { provider: "minimax-portal", contentType: "application/json", body: '{"error":"denied"}' },
+    {
+      provider: "minimax-portal",
+      contentType: "application/problem+json",
+      body: '{"title":"denied"}',
+    },
+    { provider: "minimax-portal", contentType: "text/html", body: "<html>sign in</html>" },
+    { provider: "minimax-portal", contentType: "audio/mpeg", body: "" },
+  ])(
+    "rejects a successful $contentType download through $provider",
+    async ({ provider: providerId, contentType, body }) => {
+      postJsonRequestMock.mockResolvedValue({
+        response: new Response(
+          JSON.stringify({
+            data: { audio_url: "https://example.com/invalid.mp3" },
+            base_resp: { status_code: 0 },
+          }),
+          { headers: { "content-type": "application/json" } },
+        ),
+        release: vi.fn(async () => {}),
+      });
+      fetchWithTimeoutMock.mockResolvedValueOnce(
+        new Response(body, { headers: { "content-type": contentType } }),
+      );
+      const provider =
+        providerId === "minimax-portal"
+          ? buildMinimaxPortalMusicGenerationProvider()
+          : buildMinimaxMusicGenerationProvider();
+
+      await expect(
+        provider.generateMusic({
+          provider: providerId,
+          model: "music-2.6",
+          prompt: "invalid download",
+          cfg: {},
+        }),
+      ).rejects.toThrow("MiniMax generated music download: malformed audio response");
+
+      const [guarded] = fetchWithTimeoutGuardedMock.mock.results;
+      const result = guarded ? await guarded.value : undefined;
+      expect(result?.release).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("cancels invalid music responses before releasing their guarded dispatcher", async () => {
+    const cleanupOrder: string[] = [];
+    postJsonRequestMock.mockResolvedValue({
+      response: new Response(
+        JSON.stringify({
+          data: { audio_url: "https://example.com/invalid-open.mp3" },
+          base_resp: { status_code: 0 },
+        }),
+        { headers: { "content-type": "application/json" } },
+      ),
+      release: vi.fn(async () => {}),
+    });
+    fetchWithTimeoutGuardedMock.mockResolvedValueOnce({
+      response: new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"error":"still streaming"}'));
+          },
+          cancel() {
+            cleanupOrder.push("body canceled");
+          },
+        }),
+        { headers: { "content-type": "application/json" } },
+      ),
+      finalUrl: "https://example.com/invalid-open.mp3",
+      release: vi.fn(async () => {
+        cleanupOrder.push("dispatcher released");
+      }),
+    });
+
+    await expect(
+      buildMinimaxMusicGenerationProvider().generateMusic({
+        provider: "minimax",
+        model: "music-2.6",
+        prompt: "invalid download",
+        cfg: {},
+      }),
+    ).rejects.toThrow("MiniMax generated music download: malformed audio response");
+    expect(cleanupOrder).toEqual(["body canceled", "dispatcher released"]);
   });
 
   it.each([
