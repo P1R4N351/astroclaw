@@ -35,7 +35,7 @@ const mockReadWindowsProcessArgsResult = vi.hoisted(() =>
 const mockReadFileSync = vi.hoisted(() => vi.fn());
 
 vi.mock("node:fs", async () => {
-  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
   return mockNodeBuiltinModule(
     () => vi.importActual<typeof import("node:fs")>("node:fs"),
     (actual) => ({
@@ -52,7 +52,7 @@ vi.mock("node:fs", async () => {
 });
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
   return mockNodeBuiltinModule(
     () => vi.importActual<typeof import("node:child_process")>("node:child_process"),
     {
@@ -270,6 +270,24 @@ describe.skipIf(isWindows)("restart-stale-pids", () => {
       mockSpawnSync.mockReturnValue(createErrnoResult(code, message));
       expect(findGatewayPidsOnPortSync(18789)).toStrictEqual([]);
       expectWarningContaining(`lsof failed during initial stale-pid scan for port 18789: ${code}`);
+    });
+
+    it("finds stale pids when lsof needs seconds to answer", () => {
+      // macOS hosts with many mounted volumes need seconds per lsof call. When
+      // the default budget expires first, spawnSync reports ETIMEDOUT and the
+      // stale gateway is never killed, so the restart fails on the busy port.
+      const slowLsofMs = 3000;
+      const stalePid = process.pid + 105;
+      mockSpawnSync.mockImplementation((command: unknown, _args: unknown, options: unknown) => {
+        if (command !== "lsof") {
+          return createLsofResult();
+        }
+        const timeout = (options as { timeout?: number }).timeout ?? 0;
+        return timeout >= slowLsofMs
+          ? createOpenClawBusyResult(stalePid)
+          : createErrnoResult("ETIMEDOUT", "lsof timed out");
+      });
+      expect(findGatewayPidsOnPortSync(18789)).toStrictEqual([stalePid]);
     });
 
     it("parses openclaw-gateway pids and excludes the current process", () => {
@@ -525,7 +543,7 @@ describe.skipIf(isWindows)("restart-stale-pids", () => {
       expect(findGatewayPidsOnPortSync(18789)).toStrictEqual([]);
     });
 
-    it("forwards the spawnTimeoutMs argument to spawnSync", () => {
+    it("uses the explicit timeout for the lsof scan", () => {
       mockSpawnSync.mockReturnValue({ error: null, status: 0, stdout: "", stderr: "" });
       findGatewayPidsOnPortSync(18789, 400);
       const lsofCall = mockCall(mockSpawnSync);
@@ -534,7 +552,7 @@ describe.skipIf(isWindows)("restart-stale-pids", () => {
       expect(mockCallRecordArg(mockSpawnSync, 0, 2, "lsof options").timeout).toBe(400);
     });
 
-    it("uses the caller timeout for macOS ancestor ps probes", () => {
+    it("uses the explicit timeout for macOS ancestor ps probes", () => {
       const origDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
       const gatewayParentPid = process.pid + 3151;
       Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
@@ -1512,6 +1530,12 @@ describe.skipIf(isWindows)("restart-stale-pids", () => {
               call[0] === "ps" && Array.isArray(call[1]) && (call[1] as unknown[])[0] === "-o",
           )
           .map((call) => (call[2] as { timeout?: number } | undefined)?.timeout);
+        const initialLsofTimeout = (
+          mockSpawnSync.mock.calls.find((call) => call[0] === "lsof")?.[2] as
+            | { timeout?: number }
+            | undefined
+        )?.timeout;
+        expect(initialLsofTimeout).toBe(5000);
         expect(ancestorPsTimeouts).toContain(2000);
         expect(ancestorPsTimeouts).not.toContain(400);
         expect(lsofCall).toBe(3);
