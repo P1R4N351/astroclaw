@@ -520,6 +520,7 @@ var GatewayProtocolClient = class {
         options?.timeoutMs === null ? void 0 : (options?.timeoutMs ?? this.opts.requestTimeoutMs);
     return new Promise((resolve, reject) => {
       let timeout,
+        requestSent = !1,
         pending = {
           resolve: (value) => resolve(value),
           reject,
@@ -532,7 +533,7 @@ var GatewayProtocolClient = class {
         },
         onAbort = () => {
           (this.pending.delete(id),
-            timeout && clearTimeout(timeout),
+            pending.cleanup?.(),
             this.finishRequestTiming(id, pending, !1, "CLIENT_ABORTED"),
             reject(
               this.opts.createRequestAbortError?.(method) ??
@@ -554,11 +555,12 @@ var GatewayProtocolClient = class {
         timeoutMs !== void 0 &&
           timeoutMs >= 0 &&
           ((timeout = setTimeout(() => {
-            (this.pending.delete(id),
+            this.pending.get(id) === pending &&
+              (this.pending.delete(id),
               options?.signal?.removeEventListener("abort", onAbort),
               this.finishRequestTiming(id, pending, !1, "CLIENT_TIMEOUT"),
               reject(
-                this.opts.createRequestTimeoutError?.(method, timeoutMs) ??
+                this.opts.createRequestTimeoutError?.(method, timeoutMs, requestSent) ??
                   new Error(`gateway request timed out after ${timeoutMs}ms: ${method}`),
               ));
           }, timeoutMs)),
@@ -567,6 +569,7 @@ var GatewayProtocolClient = class {
         this.pending.set(id, pending));
       try {
         (socket.send(JSON.stringify({ type: "req", id, method, params })),
+          (requestSent = !0),
           this.invoke("sent", () => options?.onSent?.()));
       } catch (error) {
         (this.pending.delete(id),
