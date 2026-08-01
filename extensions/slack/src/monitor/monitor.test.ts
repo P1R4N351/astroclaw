@@ -1,7 +1,7 @@
 // Slack tests cover monitor plugin behavior.
 import type { App } from "@slack/bolt";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import { describe, expect, it, vi } from "vitest";
 import { resolveSlackChannelConfig } from "./channel-config.js";
 import { createSlackMonitorContext, normalizeSlackChannelType } from "./context.js";
@@ -197,6 +197,7 @@ const baseParams = () => ({
   runtime: {} as RuntimeEnv,
   botUserId: "B1",
   botId: "B1",
+  identityHealth: { healthState: "healthy" as const, lastError: null },
   teamId: "T1",
   apiAppId: "A1",
   historyLimit: 0,
