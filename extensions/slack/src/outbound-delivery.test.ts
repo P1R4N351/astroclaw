@@ -1,16 +1,16 @@
 // Slack tests cover outbound delivery plugin behavior.
-import { sendDurableMessageBatch } from "openclaw/plugin-sdk/channel-outbound";
+import { sendDurableMessageBatch } from "astroclaw/plugin-sdk/channel-outbound";
 import {
   addTestHook,
   createEmptyPluginRegistry,
   createOutboundTestPlugin,
   createTestRegistry,
   initializeGlobalHookRunner,
-  releasePinnedPluginChannelRegistry,
+  resetPluginRuntimeStateForTest,
   resetGlobalHookRunner,
   setActivePluginRegistry,
   type PluginHookRegistration,
-} from "openclaw/plugin-sdk/channel-test-helpers";
+} from "astroclaw/plugin-sdk/channel-test-helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { slackOutbound } from "./outbound-adapter.js";
 import type { OpenClawConfig } from "./runtime-api.js";
@@ -54,7 +54,7 @@ describe("slack outbound shared hook wiring", () => {
 
   afterEach(() => {
     resetGlobalHookRunner();
-    releasePinnedPluginChannelRegistry();
+    resetPluginRuntimeStateForTest();
   });
 
   it("fires message_sending once with shared routing fields", async () => {
