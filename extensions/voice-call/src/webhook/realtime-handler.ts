@@ -2,12 +2,12 @@
 import { randomUUID } from "node:crypto";
 import http from "node:http";
 import type { Duplex } from "node:stream";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   isFutureDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/number-runtime";
 import {
   buildRealtimeVoiceAgentConsultWorkingResponse,
   calculateMulawRms,
@@ -22,10 +22,10 @@ import {
   type RealtimeVoiceProviderPlugin,
   type RealtimeVoiceSessionHarness,
   type TalkEvent,
-} from "astroclaw/plugin-sdk/realtime-voice";
-import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
-import { sliceUtf16Safe, truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
-import { normalizeWebhookPath } from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/realtime-voice";
+import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+import { sliceUtf16Safe, truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+import { normalizeWebhookPath } from "openclaw/plugin-sdk/webhook-ingress";
 import WebSocket, { WebSocketServer } from "ws";
 import type { VoiceCallRealtimeConfig } from "../config.js";
 import type { CallManager } from "../manager.js";
@@ -771,6 +771,7 @@ export class RealtimeCallHandler {
       typeof this.providerConfig.interruptResponseOnInputAudio === "boolean"
         ? this.providerConfig.interruptResponseOnInputAudio
         : undefined;
+    const hadPredecessorOnAdmission = this.activeBridgesByCallId.has(callId);
     // Providers may close synchronously before createBridge returns; no consult can exist yet.
     const nativeConsultOwner: { current?: ActiveRealtimeVoiceBridge } = {};
     // Provisional ownership accepts callbacks fired during createBridge. Commit
@@ -1014,7 +1015,12 @@ export class RealtimeCallHandler {
         if (ws.readyState === WebSocket.OPEN) {
           ws.close(1011, "Bridge disconnected");
         }
-        if (owner && !ownsCallState) {
+        // A provisional replacement may fail before its bridge owner is assigned.
+        // The active predecessor still owns call termination until creation succeeds.
+        if (
+          (owner && !ownsCallState) ||
+          (!owner && hadPredecessorOnAdmission && this.activeBridgesByCallId.has(callId))
+        ) {
           return;
         }
         emitCallEnd("error");
