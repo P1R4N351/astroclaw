@@ -6,7 +6,7 @@ const noteMock = vi.hoisted(() => vi.fn());
 const spawnSyncMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeChildProcessSpawnSync } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeChildProcessSpawnSync } = await import("astroclaw/plugin-sdk/test-node-mocks");
   return mockNodeChildProcessSpawnSync(spawnSyncMock, () =>
     vi.importActual<typeof import("node:child_process")>("node:child_process"),
   );
@@ -102,6 +102,7 @@ describe("doctor WhatsApp responsiveness", () => {
       status: {
         eventLoop: {
           degraded: true,
+          degradedSinceMs: 61_000,
           reasons: ["event_loop_delay"],
           intervalMs: 30_000,
           delayP99Ms: 42,
@@ -138,6 +139,7 @@ describe("doctor WhatsApp responsiveness", () => {
       status: {
         eventLoop: {
           degraded: true,
+          degradedSinceMs: 61_000,
           reasons: ["event_loop_delay"],
           intervalMs: 30_000,
           delayP99Ms: 42,
@@ -170,6 +172,7 @@ describe("doctor WhatsApp responsiveness", () => {
         status: {
           eventLoop: {
             degraded: false,
+            degradedSinceMs: null,
             reasons: [],
             intervalMs: 1,
             delayP99Ms: 0,
@@ -187,6 +190,7 @@ describe("doctor WhatsApp responsiveness", () => {
         status: {
           eventLoop: {
             degraded: true,
+            degradedSinceMs: 61_000,
             reasons: ["event_loop_delay"],
             intervalMs: 30_000,
             delayP99Ms: 42,
@@ -204,6 +208,7 @@ describe("doctor WhatsApp responsiveness", () => {
         status: {
           eventLoop: {
             degraded: true,
+            degradedSinceMs: 61_000,
             reasons: ["event_loop_delay"],
             intervalMs: 30_000,
             delayP99Ms: 42,
@@ -228,6 +233,7 @@ describe("doctor WhatsApp responsiveness", () => {
       status: {
         eventLoop: {
           degraded: false,
+          degradedSinceMs: null,
           reasons: [],
           intervalMs: 1,
           delayP99Ms: 0,
