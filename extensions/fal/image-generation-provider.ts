@@ -3,13 +3,13 @@ import type {
   GeneratedImageAsset,
   ImageGenerationProvider,
   ImageGenerationSourceImage,
-} from "astroclaw/plugin-sdk/image-generation";
+} from "openclaw/plugin-sdk/image-generation";
 import {
   imageFileExtensionForMimeType,
   toImageDataUrl,
-} from "astroclaw/plugin-sdk/image-generation";
-import { resolveGeneratedMediaMaxBytes } from "astroclaw/plugin-sdk/media-generation-runtime";
-import { isProviderApiKeyConfigured } from "astroclaw/plugin-sdk/provider-auth";
+} from "openclaw/plugin-sdk/image-generation";
+import { resolveGeneratedMediaMaxBytes } from "openclaw/plugin-sdk/media-generation-runtime";
+import { isProviderApiKeyConfigured } from "openclaw/plugin-sdk/provider-auth";
 import {
   assertOkOrThrowHttpError,
   assertOkOrThrowProviderError,
@@ -17,20 +17,20 @@ import {
   readProviderJsonResponse,
   resolveProviderOperationTimeoutMs,
   type ProviderOperationDeadline,
-} from "astroclaw/plugin-sdk/provider-http";
-import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
+} from "openclaw/plugin-sdk/provider-http";
+import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
 import {
   buildHostnameAllowlistPolicyFromSuffixAllowlist,
   fetchWithSsrFGuard,
   mergeSsrFPolicies,
   type SsrFPolicy,
   ssrfPolicyFromDangerouslyAllowPrivateNetwork,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   isRecord,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveFalHttpRequestConfig } from "./http-config.js";
 
 const DEFAULT_FAL_IMAGE_MODEL = "fal-ai/flux/dev";
@@ -682,16 +682,25 @@ export function buildFalImageGenerationProvider(): ImageGenerationProvider {
           [FAL_KREA_2_LARGE_MODEL]: [],
         },
         aspectRatios: [...FAL_SUPPORTED_ASPECT_RATIOS],
-        aspectRatiosByModel: {
-          [FAL_NANO_BANANA_MODEL]: [...NANO_BANANA_LEGACY_SUPPORTED_ASPECT_RATIOS],
-          [`${FAL_NANO_BANANA_MODEL}/edit`]: [...NANO_BANANA_LEGACY_SUPPORTED_ASPECT_RATIOS],
-          [FAL_NANO_BANANA_2_LITE_MODEL]: [...NANO_BANANA_SUPPORTED_ASPECT_RATIOS],
-          [`${FAL_NANO_BANANA_2_LITE_MODEL}/edit`]: [...NANO_BANANA_SUPPORTED_ASPECT_RATIOS],
-          [FAL_GROK_IMAGINE_MODEL]: [...GROK_IMAGINE_SUPPORTED_ASPECT_RATIOS],
-          [`${FAL_GROK_IMAGINE_MODEL}/edit`]: [...GROK_IMAGINE_SUPPORTED_ASPECT_RATIOS],
-          [`${FAL_GROK_IMAGINE_MODEL}/quality`]: [...GROK_IMAGINE_SUPPORTED_ASPECT_RATIOS],
-          [`${FAL_GROK_IMAGINE_MODEL}/quality/edit`]: [...GROK_IMAGINE_SUPPORTED_ASPECT_RATIOS],
-        },
+        aspectRatiosByModel: Object.fromEntries(
+          [
+            FAL_NANO_BANANA_MODEL,
+            `${FAL_NANO_BANANA_MODEL}/edit`,
+            FAL_NANO_BANANA_2_LITE_MODEL,
+            `${FAL_NANO_BANANA_2_LITE_MODEL}/edit`,
+            FAL_GROK_IMAGINE_MODEL,
+            `${FAL_GROK_IMAGINE_MODEL}/edit`,
+            `${FAL_GROK_IMAGINE_MODEL}/quality`,
+            `${FAL_GROK_IMAGINE_MODEL}/quality/edit`,
+            FAL_KREA_2_MEDIUM_MODEL,
+            FAL_KREA_2_LARGE_MODEL,
+            `${FAL_NANO_BANANA_MODEL}-2`,
+            `${FAL_NANO_BANANA_MODEL}-2/edit`,
+          ].flatMap((model) => {
+            const aspectRatios = resolveFalImageModelSchema(model).aspectRatios;
+            return aspectRatios ? [[model, [...aspectRatios]] as const] : [];
+          }),
+        ),
         resolutions: ["1K", "2K", "4K"],
         resolutionsByModel: {
           [FAL_KREA_2_MEDIUM_MODEL]: [],
