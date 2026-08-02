@@ -8,7 +8,7 @@ import {
   isToolWrappedWithBeforeToolCallHook,
   type EmbeddedRunAttemptParams,
   wrapToolWithBeforeToolCallHook,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dynamicToolBuildState } from "./dynamic-tool-build-state.js";
 import {
@@ -17,6 +17,7 @@ import {
   resolveCodexAppServerExecutionCwd,
   resolveCodexExternalSandboxPolicyForOpenClawSandbox,
   resolveCodexMessageToolProvider,
+  resolveCodexSandboxEnvironmentSelection,
   shouldEnableCodexAppServerNativeToolSurface,
 } from "./dynamic-tool-build.js";
 import {
@@ -32,8 +33,8 @@ const hoisted = vi.hoisted(() => ({
   resolveWebSearchToolPolicy: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness")>();
 
   return {
     ...actual,
@@ -186,6 +187,42 @@ describe("Codex app-server dynamic tool build", () => {
         messageProvider: "discord-voice",
       }),
     ).toBe("discord");
+  });
+
+  const sandboxEnvironment = { environmentId: "sandbox-1", cwd: "/workspace" };
+
+  it.each([
+    {
+      name: "restricted without a sandbox",
+      environment: undefined,
+      nativeToolSurfaceEnabled: false,
+      expected: [],
+    },
+    {
+      name: "restricted with a sandbox",
+      environment: sandboxEnvironment,
+      nativeToolSurfaceEnabled: false,
+      expected: [],
+    },
+    {
+      name: "native without a sandbox",
+      environment: undefined,
+      nativeToolSurfaceEnabled: true,
+      expected: undefined,
+    },
+    {
+      name: "native with a sandbox",
+      environment: sandboxEnvironment,
+      nativeToolSurfaceEnabled: true,
+      expected: [sandboxEnvironment],
+    },
+  ])("preserves the explicit Codex environment selection when $name", (testCase) => {
+    expect(
+      resolveCodexSandboxEnvironmentSelection(
+        testCase.environment,
+        testCase.nativeToolSurfaceEnabled,
+      ),
+    ).toEqual(testCase.expected);
   });
 
   it("maps sandbox exec-server cwd through the remote workspace mapping", () => {
