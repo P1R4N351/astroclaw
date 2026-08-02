@@ -148,7 +148,7 @@ async function main() {
   for (const variant of releaseVariants) {
     const outputPath = join(
       releaseOutputDir,
-      `openclaw-${nextVersion.versionName}-${variant.flavorName}-release.aab`,
+      `astroclaw-${nextVersion.versionName}-${variant.flavorName}-release.aab`,
     );
 
     await copyBundle(variant.bundlePath, outputPath);
