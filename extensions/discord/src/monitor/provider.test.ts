@@ -1,8 +1,8 @@
 // Discord tests cover provider plugin behavior.
 import { EventEmitter } from "node:events";
-import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
-import { createPluginRuntimeMock } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { RateLimitError } from "../internal/discord.js";
 import {
@@ -208,7 +208,7 @@ describe("monitorDiscordProvider", () => {
   };
 
   beforeAll(async () => {
-    vi.doMock("openclaw/plugin-sdk/plugin-runtime", () => ({
+    vi.doMock("astroclaw/plugin-sdk/plugin-runtime", () => ({
       getPluginCommandSpecs: getPluginCommandSpecsMock,
     }));
     vi.doMock("../accounts.js", () => ({
@@ -1172,8 +1172,12 @@ describe("monitorDiscordProvider", () => {
       setStatus,
     });
 
-    const statuses = setStatus.mock.calls.map((call) => call[0] as { connected?: boolean });
-    expect(statuses.some((status) => status.connected === true)).toBe(true);
+    const statuses = setStatus.mock.calls.map(
+      (call) => call[0] as { connected?: boolean; lifecycle?: string },
+    );
+    expect(
+      statuses.some((status) => status.connected === true && status.lifecycle === "ready"),
+    ).toBe(true);
     expect(statuses.some((status) => status.connected === false)).toBe(true);
   });
 
