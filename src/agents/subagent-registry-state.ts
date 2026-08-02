@@ -224,6 +224,15 @@ export function restoreSubagentRunsFromDisk(params: {
     if (params.mergeOnly && params.runs.has(runId)) {
       continue;
     }
+    if (entry.cleanupHandled && typeof entry.cleanupCompletedAt !== "number") {
+      // cleanupHandled is a transient in-flight guard; cleanupCompletedAt is
+      // the terminal marker. A persisted in-flight flag without completion
+      // belongs to a process that died mid-cleanup (e.g. gateway restart
+      // during the completion announce). Leaving it set wedges the run:
+      // resume treats cleanup as already owned, skips the announce flow
+      // forever, and the requester never receives the result.
+      entry.cleanupHandled = false;
+    }
     params.runs.set(runId, entry);
     added += 1;
   }
