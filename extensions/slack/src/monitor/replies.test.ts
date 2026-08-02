@@ -12,16 +12,16 @@ const messageHookRunner = vi.hoisted(() => ({
   runMessageSent: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/hook-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/hook-runtime")>();
+vi.mock("openclaw/plugin-sdk/hook-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/hook-runtime")>();
   return {
     ...actual,
     triggerInternalHook,
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
   return {
     ...actual,
     getGlobalHookRunner: () => messageHookRunner,
@@ -753,6 +753,39 @@ describe("deliverSlackSlashReplies chunking", () => {
     expect(messages.every((message) => message.mrkdwn === false)).toBe(true);
     expect(messages.every((message) => message.text.length <= 40_000)).toBe(true);
     expect(messages.map((message) => message.text).join("")).toBe(
+      `${caption} (table)\nAccount\nAcme`,
+    );
+  });
+
+  it("keeps 4k native fallback chunks for uncapped Web API delivery", async () => {
+    const respond = vi
+      .fn(async () => undefined)
+      .mockRejectedValueOnce({ response: { data: { error: "invalid_blocks" } } });
+    const caption = "c".repeat(9_000);
+    const blocks = [
+      {
+        type: "data_table",
+        caption,
+        rows: [[{ type: "raw_text", text: "Account" }], [{ type: "raw_text", text: "Acme" }]],
+      },
+    ] as never;
+
+    await deliverSlackSlashReplies({
+      replies: [{ channelData: { slack: { blocks } } }],
+      respond,
+      responseBudget: {
+        respond,
+        remaining: () => undefined,
+      },
+      ephemeral: true,
+      textLimit: 8000,
+    });
+
+    expect(respond).toHaveBeenCalledTimes(4);
+    const fallback = [1, 2, 3].map((index) => requireSlashMessage(respond, index));
+    expect(fallback.every((message) => message.blocks === undefined)).toBe(true);
+    expect(fallback.every((message) => message.text.length <= 4_000)).toBe(true);
+    expect(fallback.map((message) => message.text).join("")).toBe(
       `${caption} (table)\nAccount\nAcme`,
     );
   });
