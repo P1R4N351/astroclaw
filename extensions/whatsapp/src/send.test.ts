@@ -3,9 +3,9 @@ import crypto from "node:crypto";
 import fsSync from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
-import { redactIdentifier } from "astroclaw/plugin-sdk/logging-core";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
+import { redactIdentifier } from "openclaw/plugin-sdk/logging-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAcceptedWhatsAppSendResult } from "./inbound/send-result.test-helper.js";
 import type { ActiveWebListener } from "./inbound/types.js";
@@ -20,8 +20,8 @@ let sendMessageWhatsApp: typeof import("./send.js").sendMessageWhatsApp;
 let sendPollWhatsApp: typeof import("./send.js").sendPollWhatsApp;
 let sendReactionWhatsApp: typeof import("./send.js").sendReactionWhatsApp;
 let sendTypingWhatsApp: typeof import("./send.js").sendTypingWhatsApp;
-let resetLogger: typeof import("astroclaw/plugin-sdk/runtime-env").resetLogger;
-let setLoggerOverride: typeof import("astroclaw/plugin-sdk/runtime-env").setLoggerOverride;
+let resetLogger: typeof import("openclaw/plugin-sdk/runtime-env").resetLogger;
+let setLoggerOverride: typeof import("openclaw/plugin-sdk/runtime-env").setLoggerOverride;
 
 const WHATSAPP_TEST_CFG: OpenClawConfig = {
   channels: { whatsapp: {} },
@@ -44,9 +44,9 @@ vi.mock("./connection-controller-runtime-context.js", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/outbound-media", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/outbound-media")>(
-    "astroclaw/plugin-sdk/outbound-media",
+vi.mock("openclaw/plugin-sdk/outbound-media", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/outbound-media")>(
+    "openclaw/plugin-sdk/outbound-media",
   );
   return {
     ...actual,
@@ -54,9 +54,9 @@ vi.mock("astroclaw/plugin-sdk/outbound-media", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
-    "astroclaw/plugin-sdk/media-runtime",
+vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
+    "openclaw/plugin-sdk/media-runtime",
   );
   return {
     ...actual,
@@ -84,7 +84,7 @@ describe("web outbound", () => {
     ({ sendMessageWhatsApp, sendPollWhatsApp, sendReactionWhatsApp, sendTypingWhatsApp } =
       await import("./send.js"));
     const { resetLogger: loadedResetLogger, setLoggerOverride: loadedSetLoggerOverride } =
-      await import("astroclaw/plugin-sdk/runtime-env");
+      await import("openclaw/plugin-sdk/runtime-env");
     resetLogger = loadedResetLogger;
     setLoggerOverride = loadedSetLoggerOverride;
   });
@@ -856,16 +856,19 @@ describe("web outbound", () => {
       { verbose: false, cfg: WHATSAPP_TEST_CFG },
     );
 
+    const redactedTarget = redactIdentifier("+1555");
+    const redactedJid = redactIdentifier("1555@s.whatsapp.net");
+    let content = "";
     await vi.waitFor(
       () => {
-        expect(fsSync.existsSync(logPath)).toBe(true);
+        content = fsSync.existsSync(logPath) ? fsSync.readFileSync(logPath, "utf-8") : "";
+        expect(content).toContain(redactedTarget);
+        expect(content).toContain(redactedJid);
+        expect(content).toContain("sent poll");
       },
       { timeout: 2_000, interval: 5 },
     );
 
-    const content = fsSync.readFileSync(logPath, "utf-8");
-    expect(content).toContain(redactIdentifier("+1555"));
-    expect(content).toContain(redactIdentifier("1555@s.whatsapp.net"));
     expect(content).not.toContain(`"to":"+1555"`);
     expect(content).not.toContain(`"jid":"1555@s.whatsapp.net"`);
     expect(content).not.toContain("Lunch?");
