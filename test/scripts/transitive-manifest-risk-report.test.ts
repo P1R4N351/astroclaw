@@ -143,7 +143,7 @@ describe("transitive-manifest-risk-report", () => {
   it("documents JSON completeness and renders grouped Markdown summaries", async () => {
     const report = await createTransitiveManifestRiskReport({
       packageVersions: [
-        { packageName: "openclaw/plugin-sdk/llm", version: "0.74.0" },
+        { packageName: "astroclaw/plugin-sdk/llm", version: "0.74.0" },
         { packageName: "aaa-package", version: "1.0.0" },
         { packageName: "recent-package", version: "1.0.0" },
       ],
@@ -154,7 +154,7 @@ describe("transitive-manifest-risk-report", () => {
         publishedAt:
           packageName === "recent-package" ? "2026-05-11T23:00:00Z" : "2026-04-01T00:00:00Z",
         manifest:
-          packageName === "openclaw/plugin-sdk/llm"
+          packageName === "astroclaw/plugin-sdk/llm"
             ? {
                 dependencies: {
                   "@mistralai/mistralai": "^2.2.0",
@@ -208,8 +208,9 @@ describe("transitive-manifest-risk-report", () => {
       version: "1.0.0",
       registryBaseUrl: "https://registry.example.test",
       fetchImpl: async (url, init) => {
+        const requestUrl = url instanceof Request ? url.url : url instanceof URL ? url.href : url;
         fetchCalls.push({
-          url: String(url),
+          url: requestUrl,
           accept: new Headers(init?.headers).get("accept"),
           signal: init?.signal instanceof AbortSignal ? init.signal : null,
         });
