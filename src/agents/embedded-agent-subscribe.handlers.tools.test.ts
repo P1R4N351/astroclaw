@@ -1,6 +1,6 @@
 // Tool handler tests cover tool lifecycle events, read-path diagnostics,
 // messaging tool capture, approvals, and emitted summaries.
-import type { AgentEvent } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentEvent } from "openclaw/plugin-sdk/agent-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   onAgentEvent as registerAgentEventListener,
@@ -387,6 +387,7 @@ describe("handleToolExecutionStart read path checks", () => {
       channelData: {
         askUser: {
           questionId,
+          optionValues: ["Staging (Recommended)", "Production"],
         },
       },
       presentationTextMode: "fallback",
@@ -571,6 +572,7 @@ describe("handleToolExecutionStart read path checks", () => {
         channelData: {
           askUser: {
             questionId: activation.questionId,
+            optionValues: ["Staging", "Production"],
           },
         },
       }),
