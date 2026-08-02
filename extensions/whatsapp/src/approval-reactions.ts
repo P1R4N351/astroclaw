@@ -1,3 +1,5 @@
+// Whatsapp plugin module implements approval reactions behavior.
+import type { WAMessage } from "baileys";
 import {
   approvalReactionDecisionSetsMatch,
   createApprovalReactionTargetStore,
@@ -9,15 +11,14 @@ import {
   type ApprovalReactionDecisionBinding,
   type ApprovalReactionDeliveryBinding,
   type ApprovalReactionTargetRecord,
-} from "astroclaw/plugin-sdk/approval-reaction-runtime";
-import type { ExecApprovalReplyDecision } from "astroclaw/plugin-sdk/approval-reply-runtime";
-import type { OutboundDeliveryResult } from "astroclaw/plugin-sdk/channel-send-result";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { MessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-// Whatsapp plugin module implements approval reactions behavior.
-import type { WAMessage } from "baileys";
+} from "openclaw/plugin-sdk/approval-reaction-runtime";
+import type { ExecApprovalReplyDecision } from "openclaw/plugin-sdk/approval-reply-runtime";
+import type { OutboundDeliveryResult } from "openclaw/plugin-sdk/channel-send-result";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { MessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { createPluginStateErrorReporter } from "openclaw/plugin-sdk/plugin-state-runtime";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import { resolveWhatsAppAccount } from "./accounts.js";
 import { getWhatsAppApprovalApprovers, whatsappApprovalAuth } from "./approval-auth.js";
 import { getOptionalWhatsAppRuntime } from "./runtime.js";
@@ -56,6 +57,13 @@ type ResolvedWhatsAppApprovalReactionTarget = WhatsAppApprovalReactionResolution
 
 const resolverRuntimeLoader = createLazyRuntimeModule(() => import("./approval-resolver.js"));
 
+const reportPersistentApprovalReactionError = createPluginStateErrorReporter(
+  getOptionalWhatsAppRuntime,
+  "whatsapp",
+  "approval-reaction-state",
+  "WhatsApp persistent approval reaction state failed",
+);
+
 const whatsappApprovalReactionTargets =
   createApprovalReactionTargetStore<WhatsAppApprovalReactionTarget>({
     namespace: PERSISTENT_NAMESPACE,
@@ -86,16 +94,6 @@ function addCandidateRemoteJid(target: string[], value: string | null | undefine
   const remoteJid = value?.trim();
   if (remoteJid && !target.includes(remoteJid)) {
     target.push(remoteJid);
-  }
-}
-
-function reportPersistentApprovalReactionError(error: unknown): void {
-  try {
-    getOptionalWhatsAppRuntime()
-      ?.logging.getChildLogger({ plugin: "whatsapp", feature: "approval-reaction-state" })
-      .warn("WhatsApp persistent approval reaction state failed", { error: String(error) });
-  } catch {
-    // Best effort only: persistent state must never break WhatsApp reactions.
   }
 }
 
