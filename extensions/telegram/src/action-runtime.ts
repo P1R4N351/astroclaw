@@ -1,6 +1,6 @@
 // Telegram plugin module implements action runtime behavior.
-import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
-import { readBooleanParam } from "astroclaw/plugin-sdk/boolean-param";
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import { readBooleanParam } from "openclaw/plugin-sdk/boolean-param";
 import {
   jsonResult,
   readPositiveIntegerParam,
@@ -10,29 +10,29 @@ import {
   readStringParam,
   resolvePollMaxSelections,
   resolveReactionMessageId,
-} from "astroclaw/plugin-sdk/channel-actions";
-import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
-import { normalizeOutboundLocation } from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-actions";
+import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
+import { normalizeOutboundLocation } from "openclaw/plugin-sdk/channel-inbound";
 import {
   buildOutboundSessionContext,
   sendDurableMessageBatch,
   type DurableMessageBatchSendResult,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   normalizeMessagePresentation,
   renderMessagePresentationFallbackText,
-} from "astroclaw/plugin-sdk/interactive-runtime";
-import type { MessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/interactive-runtime";
+import type { MessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   createTelegramActionGate,
   resolveDefaultTelegramAccountId,
   resolveTelegramPollActionGateState,
 } from "./accounts.js";
 import { resolveTelegramInlineButtons } from "./button-types.js";
-import { notifyTelegramInboundEventOutboundSuccess } from "./inbound-event-delivery.js";
+import { telegramInboundEventDelivery } from "./inbound-event-delivery.js";
 import {
   resolveTelegramInlineButtonsScope,
   resolveTelegramTargetChatType,
@@ -346,6 +346,7 @@ export async function handleTelegramAction(
   params: Record<string, unknown>,
   cfg: OpenClawConfig,
   options?: {
+    mediaAccess?: ChannelMessageActionContext["mediaAccess"];
     mediaLocalRoots?: readonly string[];
     mediaReadFile?: (filePath: string) => Promise<Buffer>;
     sessionKey?: string | null;
@@ -365,7 +366,7 @@ export async function handleTelegramAction(
     accountId,
   });
   const notifyVisibleOutboundSuccess = (to: string, messageThreadId?: number | null) => {
-    notifyTelegramInboundEventOutboundSuccess({
+    telegramInboundEventDelivery.notify({
       sessionKey: options?.sessionKey ?? undefined,
       to: formatTelegramDeliveryTarget(to, messageThreadId),
       accountId,
@@ -562,12 +563,13 @@ export async function handleTelegramAction(
       quoteText,
     });
     const mediaAccess =
-      options?.mediaLocalRoots || options?.mediaReadFile
+      options?.mediaAccess ??
+      (options?.mediaLocalRoots || options?.mediaReadFile
         ? {
             ...(options.mediaLocalRoots ? { localRoots: options.mediaLocalRoots } : {}),
             ...(options.mediaReadFile ? { readFile: options.mediaReadFile } : {}),
           }
-        : undefined;
+        : undefined);
     const outboundSession = buildOutboundSessionContext({
       cfg,
       sessionKey: options?.sessionKey,
