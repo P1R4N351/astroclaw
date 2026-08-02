@@ -3,7 +3,7 @@ import {
   claimPendingAgentQuestionAnswer,
   type AgentHarnessQuestionGatewayCall,
   type EmbeddedRunAttemptParams,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { createCodexUserInputBridge } from "./user-input-bridge.js";
 
@@ -99,7 +99,10 @@ describe("Codex app-server user input bridge", () => {
     });
     const payload = vi.mocked(params.onBlockReply!).mock.calls[0]![0];
     expect(payload.channelData).toEqual({
-      askUser: { questionId: (request.params as { id: string }).id },
+      askUser: {
+        questionId: (request.params as { id: string }).id,
+        optionValues: ["Fast", "Deep"],
+      },
     });
     expect(payload.presentationTextMode).toBe("fallback");
     expect(payload.text).toContain("Reply with the number or option text.");
