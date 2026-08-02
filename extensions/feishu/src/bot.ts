@@ -5,33 +5,33 @@ import {
   recordChannelBotPairLoopAndCheckSuppression,
   resolveEnvelopeFormatOptions,
   toInboundMediaFactsWithMetadata,
-} from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
 import {
   bindIngressLifecycleToReplyOptions,
   resolveAgentOutboundIdentity,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
 import {
   ensureConfiguredBindingRouteReady,
   resolveConfiguredBindingRoute,
   resolveRuntimeConversationBindingRoute,
-} from "openclaw/plugin-sdk/conversation-runtime";
-import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+import { parseStrictNonNegativeInteger } from "astroclaw/plugin-sdk/number-runtime";
 import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   createChannelHistoryWindow,
   type HistoryEntry,
-} from "openclaw/plugin-sdk/reply-history";
-import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/reply-history";
+import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
 import {
   resolveDefaultGroupPolicy,
   resolveOpenProviderRuntimeGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { normalizeOptionalString, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { normalizeOptionalString, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { resolveFeishuRuntimeAccount } from "./accounts.js";
 import { buildFeishuAgentBody } from "./bot-agent-body.js";
 import {
@@ -517,23 +517,26 @@ export async function handleFeishuMessage(params: {
     !effectiveThreadId &&
     isFeishuTopicSessionScope(groupSessionScope ?? "group")
   ) {
+    // Synthetic turns keep a local dedupe ID in messageId; their explicit reply target is
+    // the real Feishu message ID that topic hydration can send back to the provider.
+    const topicHydrationMessageId = ctx.replyTargetMessageId ?? ctx.messageId;
     try {
       const messageInfo = await getMessageFeishu({
         cfg,
         accountId: account.accountId,
-        messageId: ctx.messageId,
+        messageId: topicHydrationMessageId,
       });
       const hydratedThreadId = messageInfo?.threadId?.trim();
       if (hydratedThreadId) {
         ctx = { ...ctx, threadId: hydratedThreadId };
         effectiveThreadId = hydratedThreadId;
         log(
-          `feishu[${account.accountId}]: hydrated topic thread_id=${hydratedThreadId} for message=${ctx.messageId}`,
+          `feishu[${account.accountId}]: hydrated topic thread_id=${hydratedThreadId} for message=${topicHydrationMessageId}`,
         );
       }
     } catch (err) {
       log(
-        `feishu[${account.accountId}]: failed to hydrate topic thread_id for message=${ctx.messageId}: ${String(err)}`,
+        `feishu[${account.accountId}]: failed to hydrate topic thread_id for message=${topicHydrationMessageId}: ${String(err)}`,
       );
     }
   }
