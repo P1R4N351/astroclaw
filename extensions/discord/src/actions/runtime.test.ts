@@ -1,8 +1,8 @@
 import { expectDefined } from "@openclaw/normalization-core";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { DiscordActionConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Discord tests cover runtime plugin behavior.
 import { ChannelType, PermissionFlagsBits } from "discord-api-types/v10";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { DiscordActionConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearPresences, setPresence } from "../monitor/presence-cache.js";
 import { DiscordThreadInitialMessageError } from "../send.js";
@@ -2071,27 +2071,103 @@ describe("handleDiscordMessagingAction", () => {
     expect(searchMessagesDiscord).not.toHaveBeenCalled();
   });
 
-  it("sends voice messages from a local file path", async () => {
+  it("sends workspace-relative voice files with trusted host authority instead of forged action data", async () => {
     sendVoiceMessageDiscord.mockClear();
     sendMessageDiscord.mockClear();
+    const mediaReadFile = vi.fn(async () => Buffer.from("trusted voice"));
+    const mediaAccess = {
+      localRoots: ["/tmp/agent-workspace"],
+      readFile: mediaReadFile,
+      workspaceDir: "/tmp/agent-workspace",
+    };
+    const forgedMediaAccess = {
+      localRoots: ["/tmp/forged-root"],
+      readFile: vi.fn(async () => Buffer.from("forged voice")),
+      workspaceDir: "/tmp/forged-root",
+    };
 
     await handleMessagingAction(
       "sendMessage",
       {
         to: "channel:123",
-        path: "/tmp/voice.mp3",
+        path: "./voice.mp3",
         asVoice: true,
         silent: true,
+        mediaAccess: forgedMediaAccess,
       },
       enableAllActions,
+      DISCORD_TEST_CFG,
+      { mediaAccess, mediaLocalRoots: mediaAccess.localRoots, mediaReadFile },
     );
 
-    expect(sendVoiceMessageDiscord).toHaveBeenCalledWith("channel:123", "/tmp/voice.mp3", {
+    expect(sendVoiceMessageDiscord).toHaveBeenCalledWith("channel:123", "./voice.mp3", {
       cfg: DISCORD_TEST_CFG,
       reply: undefined,
       silent: true,
+      mediaAccess,
+      mediaLocalRoots: mediaAccess.localRoots,
+      mediaReadFile,
     });
+    const voiceOptions = mockObjectArg(sendVoiceMessageDiscord, "sendVoiceMessageDiscord", 0, 2);
+    expect(voiceOptions.mediaAccess).toBe(mediaAccess);
+    expect(voiceOptions.mediaLocalRoots).toBe(mediaAccess.localRoots);
+    expect(voiceOptions.mediaReadFile).toBe(mediaReadFile);
+    expect(forgedMediaAccess.readFile).not.toHaveBeenCalled();
     expect(sendMessageDiscord).not.toHaveBeenCalled();
+  });
+
+  it("preserves supported split-only host readers on action voice sends", async () => {
+    const mediaLocalRoots = ["/tmp/agent-workspace"];
+    const mediaReadFile = vi.fn(async () => Buffer.from("trusted voice"));
+
+    await handleMessagingAction(
+      "sendMessage",
+      { to: "channel:123", path: "/tmp/agent-workspace/voice.mp3", asVoice: true },
+      enableAllActions,
+      DISCORD_TEST_CFG,
+      { mediaLocalRoots, mediaReadFile },
+    );
+
+    const voiceOptions = mockObjectArg(sendVoiceMessageDiscord, "sendVoiceMessageDiscord", 0, 2);
+    expect(voiceOptions.mediaAccess).toBeUndefined();
+    expect(voiceOptions.mediaLocalRoots).toBe(mediaLocalRoots);
+    expect(voiceOptions.mediaReadFile).toBe(mediaReadFile);
+  });
+
+  it("preserves reader-free workspace authority for thread replies and ignores forged action data", async () => {
+    const mediaAccess = {
+      localRoots: ["/tmp/agent-workspace"],
+      workspaceDir: "/tmp/agent-workspace",
+    };
+    const forgedMediaAccess = {
+      localRoots: ["/tmp/forged-root"],
+      readFile: vi.fn(async () => Buffer.from("forged report")),
+      workspaceDir: "/tmp/forged-root",
+    };
+
+    await handleMessagingAction(
+      "threadReply",
+      {
+        channelId: "thread-123",
+        content: "thread update",
+        mediaUrl: "./report.md",
+        mediaAccess: forgedMediaAccess,
+      },
+      enableAllActions,
+      DISCORD_TEST_CFG,
+      { mediaAccess, mediaLocalRoots: mediaAccess.localRoots },
+    );
+
+    const call = mockCall(sendMessageDiscord, "sendMessageDiscord");
+    const sendOptions = mockObjectArg(sendMessageDiscord, "sendMessageDiscord", 0, 2);
+    expect(call[0]).toBe("channel:thread-123");
+    expect(call[1]).toBe("thread update");
+    expect(sendOptions.mediaUrl).toBe("./report.md");
+    expect(sendOptions.mediaAccess).toBe(mediaAccess);
+    expect(sendOptions.mediaLocalRoots).toBe(mediaAccess.localRoots);
+    expect(sendOptions.mediaReadFile).toBeUndefined();
+    expect(sendOptions.mediaAccess).not.toHaveProperty("readFile");
+    expect(forgedMediaAccess.readFile).not.toHaveBeenCalled();
   });
 
   it("forwards trusted mediaLocalRoots into sendMessageDiscord", async () => {
