@@ -112,7 +112,7 @@ function createInternalCoreAliasFixture(prefix: string): {
   root: string;
   sourcePath: string;
 } {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
   const { loaderModulePath } = writeFakeOpenClawPackage(root);
   const sourcePath = writeInternalCorePackageSource(root, "markdown-core", "code-spans.ts");
   const coreSourceParent = path.join(root, "src", "host-probe.js");
@@ -261,9 +261,9 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
         pluginModulePath: externalPluginEntry,
       });
 
-      expect(installedAliases).toContain("openclaw/plugin-sdk/agent-runtime");
+      expect(installedAliases).toContain("astroclaw/plugin-sdk/agent-runtime");
       const requireFromPlugin = createRequire(externalPluginEntry);
-      expect(fs.realpathSync(requireFromPlugin.resolve("openclaw/plugin-sdk/agent-runtime"))).toBe(
+      expect(fs.realpathSync(requireFromPlugin.resolve("astroclaw/plugin-sdk/agent-runtime"))).toBe(
         fs.realpathSync(path.join(devRoot, "dist", "plugin-sdk", "agent-runtime.js")),
       );
     } finally {
@@ -290,9 +290,9 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       devSourceRoot: devRoot,
     });
 
-    expect(installedAliases).toContain("openclaw/plugin-sdk/agent-runtime");
+    expect(installedAliases).toContain("astroclaw/plugin-sdk/agent-runtime");
     const requireFromPlugin = createRequire(externalPluginEntry);
-    expect(fs.realpathSync(requireFromPlugin.resolve("openclaw/plugin-sdk/agent-runtime"))).toBe(
+    expect(fs.realpathSync(requireFromPlugin.resolve("astroclaw/plugin-sdk/agent-runtime"))).toBe(
       fs.realpathSync(path.join(devRoot, "dist", "plugin-sdk", "agent-runtime.js")),
     );
   });
@@ -311,7 +311,7 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       modulePath: loaderModulePath,
       pluginModulePath: externalPluginEntry,
     });
-    expect(fs.realpathSync(requireFromPlugin.resolve("openclaw/plugin-sdk/agent-runtime"))).toBe(
+    expect(fs.realpathSync(requireFromPlugin.resolve("astroclaw/plugin-sdk/agent-runtime"))).toBe(
       fs.realpathSync(path.join(stableRoot, "dist", "plugin-sdk", "agent-runtime.js")),
     );
 
@@ -321,7 +321,7 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       devSourceRoot: devRoot,
     });
 
-    expect(fs.realpathSync(requireFromPlugin.resolve("openclaw/plugin-sdk/agent-runtime"))).toBe(
+    expect(fs.realpathSync(requireFromPlugin.resolve("astroclaw/plugin-sdk/agent-runtime"))).toBe(
       fs.realpathSync(path.join(devRoot, "dist", "plugin-sdk", "agent-runtime.js")),
     );
   });
@@ -341,7 +341,7 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       modulePath: loaderModulePath,
       pluginModulePath: externalPluginEntry,
     });
-    expect(fs.realpathSync(requireFromPlugin.resolve("openclaw/plugin-sdk/stable-extra"))).toBe(
+    expect(fs.realpathSync(requireFromPlugin.resolve("astroclaw/plugin-sdk/stable-extra"))).toBe(
       fs.realpathSync(stableExtraPath),
     );
 
@@ -351,7 +351,7 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       devSourceRoot: devRoot,
     });
 
-    expect(() => requireFromPlugin.resolve("openclaw/plugin-sdk/stable-extra")).toThrow();
+    expect(() => requireFromPlugin.resolve("astroclaw/plugin-sdk/stable-extra")).toThrow();
   });
 
   it("keeps native aliases on JS dist artifacts when source files exist", () => {
@@ -368,11 +368,11 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       pluginSdkResolution: "src",
     });
 
-    expect(installedAliases).toContain("openclaw/plugin-sdk/channel-outbound");
+    expect(installedAliases).toContain("astroclaw/plugin-sdk/channel-outbound");
     const requireFromPlugin = createRequire(externalPluginEntry);
-    expect(fs.realpathSync(requireFromPlugin.resolve("openclaw/plugin-sdk/channel-outbound"))).toBe(
-      fs.realpathSync(path.join(root, "dist", "plugin-sdk", "channel-outbound.js")),
-    );
+    expect(
+      fs.realpathSync(requireFromPlugin.resolve("astroclaw/plugin-sdk/channel-outbound")),
+    ).toBe(fs.realpathSync(path.join(root, "dist", "plugin-sdk", "channel-outbound.js")));
   });
 
   it("lets built external plugins resolve OpenClaw SDK subpaths with createRequire", () => {
@@ -392,13 +392,13 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
         pluginSdkResolution: "dist",
       });
 
-      expect(installedAliases).toContain("openclaw/plugin-sdk/channel-outbound");
+      expect(installedAliases).toContain("astroclaw/plugin-sdk/channel-outbound");
       expect(fs.existsSync(path.join(distRoot, "extensions"))).toBe(false);
       const requireFromPlugin = createRequire(externalPluginEntry);
       expect(
-        fs.realpathSync(requireFromPlugin.resolve("openclaw/plugin-sdk/channel-outbound")),
+        fs.realpathSync(requireFromPlugin.resolve("astroclaw/plugin-sdk/channel-outbound")),
       ).toBe(fs.realpathSync(path.join(root, "dist", "plugin-sdk", "channel-outbound.js")));
-      const sdk = requireFromPlugin("openclaw/plugin-sdk/channel-outbound") as {
+      const sdk = requireFromPlugin("astroclaw/plugin-sdk/channel-outbound") as {
         defineChannelMessageAdapter?: () => string;
       };
 
@@ -450,12 +450,12 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
         "fs.mkdirSync(path.dirname(entryPath), { recursive: true });",
         "fs.writeFileSync(",
         "  entryPath,",
-        '  "import { defineChannelMessageAdapter } from \\"openclaw/plugin-sdk/channel-outbound\\"; export const eager = defineChannelMessageAdapter(); export const loadLazy = () => import(\\"./lazy.js\\");\\n",',
+        '  "import { defineChannelMessageAdapter } from \\"astroclaw/plugin-sdk/channel-outbound\\"; export const eager = defineChannelMessageAdapter(); export const loadLazy = () => import(\\"./lazy.js\\");\\n",',
         '  "utf8",',
         ");",
         "fs.writeFileSync(",
         "  lazyPath,",
-        '  "import { defineChannelMessageAdapter } from \\"openclaw/plugin-sdk/channel-outbound\\"; export const lazy = defineChannelMessageAdapter();\\n",',
+        '  "import { defineChannelMessageAdapter } from \\"astroclaw/plugin-sdk/channel-outbound\\"; export const lazy = defineChannelMessageAdapter();\\n",',
         '  "utf8",',
         ");",
         "installOpenClawPluginSdkNativeResolver({",
@@ -506,8 +506,8 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
 
     const requireFromPlugin = createRequire(externalPluginEntry);
     const requireFromOutside = createRequire(unrelatedEntry);
-    expect(requireFromPlugin.resolve("openclaw/plugin-sdk/channel-outbound")).toBeTruthy();
-    expect(() => requireFromOutside.resolve("openclaw/plugin-sdk/channel-outbound")).toThrow();
+    expect(requireFromPlugin.resolve("astroclaw/plugin-sdk/channel-outbound")).toBeTruthy();
+    expect(() => requireFromOutside.resolve("astroclaw/plugin-sdk/channel-outbound")).toThrow();
   });
 
   it("resolves internal core packages only for OpenClaw-owned source parents", () => {
@@ -631,10 +631,10 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       pluginSdkResolution: "src",
     });
 
-    expect(installedAliases).toContain("openclaw/plugin-sdk/channel-outbound");
-    expect(installedAliases).not.toContain("openclaw/plugin-sdk/source-only");
+    expect(installedAliases).toContain("astroclaw/plugin-sdk/channel-outbound");
+    expect(installedAliases).not.toContain("astroclaw/plugin-sdk/source-only");
     const requireFromPlugin = createRequire(externalPluginEntry);
-    expect(() => requireFromPlugin.resolve("openclaw/plugin-sdk/source-only")).toThrow();
+    expect(() => requireFromPlugin.resolve("astroclaw/plugin-sdk/source-only")).toThrow();
   });
 
   it("scopes private SSRF SDK aliases to bundled local IPC native parents", () => {
@@ -690,32 +690,32 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       pluginSdkResolution: "dist",
     });
 
-    expect(installedAliases).toContain("openclaw/plugin-sdk/ssrf-runtime-internal");
+    expect(installedAliases).toContain("astroclaw/plugin-sdk/ssrf-runtime-internal");
     const requireFromOllama = createRequire(ollamaEntry);
     expect(
-      fs.realpathSync(requireFromOllama.resolve("openclaw/plugin-sdk/ssrf-runtime-internal")),
+      fs.realpathSync(requireFromOllama.resolve("astroclaw/plugin-sdk/ssrf-runtime-internal")),
     ).toBe(fs.realpathSync(internalPath));
 
     const requireFromRuntimeOllama = createRequire(runtimeOllamaEntry);
     expect(
       fs.realpathSync(
-        requireFromRuntimeOllama.resolve("openclaw/plugin-sdk/ssrf-runtime-internal"),
+        requireFromRuntimeOllama.resolve("astroclaw/plugin-sdk/ssrf-runtime-internal"),
       ),
     ).toBe(fs.realpathSync(internalPath));
 
     const requireFromBrowser = createRequire(browserEntry);
     expect(
-      fs.realpathSync(requireFromBrowser.resolve("openclaw/plugin-sdk/ssrf-runtime-internal")),
+      fs.realpathSync(requireFromBrowser.resolve("astroclaw/plugin-sdk/ssrf-runtime-internal")),
     ).toBe(fs.realpathSync(internalPath));
 
     const requireFromRuntimeBrowser = createRequire(runtimeBrowserEntry);
     expect(
       fs.realpathSync(
-        requireFromRuntimeBrowser.resolve("openclaw/plugin-sdk/ssrf-runtime-internal"),
+        requireFromRuntimeBrowser.resolve("astroclaw/plugin-sdk/ssrf-runtime-internal"),
       ),
     ).toBe(fs.realpathSync(internalPath));
 
     const requireFromOther = createRequire(otherEntry);
-    expect(() => requireFromOther.resolve("openclaw/plugin-sdk/ssrf-runtime-internal")).toThrow();
+    expect(() => requireFromOther.resolve("astroclaw/plugin-sdk/ssrf-runtime-internal")).toThrow();
   });
 });
