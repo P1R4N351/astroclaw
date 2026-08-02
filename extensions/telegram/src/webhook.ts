@@ -2,40 +2,40 @@
 import { createServer } from "node:http";
 import type { IncomingMessage } from "node:http";
 import net from "node:net";
-import { InputFile } from "grammy";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { isDiagnosticsEnabled } from "openclaw/plugin-sdk/diagnostic-runtime";
+import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { isDiagnosticsEnabled } from "astroclaw/plugin-sdk/diagnostic-runtime";
 import {
   logWebhookError,
   logWebhookProcessed,
   logWebhookReceived,
   startDiagnosticHeartbeat,
   stopDiagnosticHeartbeat,
-} from "openclaw/plugin-sdk/logging-core";
-import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
-import type { BackoffPolicy, RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/logging-core";
+import { parseStrictNonNegativeInteger } from "astroclaw/plugin-sdk/number-runtime";
+import type { BackoffPolicy, RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import {
   computeBackoff,
   defaultRuntime,
   formatDurationPrecise,
   sleepWithAbort,
-} from "openclaw/plugin-sdk/runtime-env";
-import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/runtime-env";
+import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   applyBasicWebhookRequestGuards,
   createFixedWindowRateLimiter,
   WEBHOOK_RATE_LIMIT_DEFAULTS,
-} from "openclaw/plugin-sdk/webhook-ingress";
-import { readJsonBodyWithLimit } from "openclaw/plugin-sdk/webhook-request-guards";
+} from "astroclaw/plugin-sdk/webhook-ingress";
+import { readJsonBodyWithLimit } from "astroclaw/plugin-sdk/webhook-request-guards";
+import { InputFile } from "grammy";
 import { mergeTelegramAccountConfig } from "./account-config.js";
 import { resolveTelegramAllowedUpdates } from "./allowed-updates.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
 import { createTelegramBot } from "./bot.js";
 import { resolveTelegramTransport } from "./fetch.js";
-import { isRetryableTelegramApiError } from "./network-errors.js";
+import { isRetryableTelegramApiError, isTelegramAuthenticationError } from "./network-errors.js";
 import { createTelegramTransportIngressMonitor } from "./telegram-ingress-drain-factory.js";
 import {
   resolveTelegramIngressSpoolDir,
@@ -130,6 +130,7 @@ async function initializeTelegramWebhookBotOnce(params: {
 async function initializeTelegramWebhookBot(params: {
   abortSignal?: AbortSignal;
   bot: ReturnType<typeof createTelegramBot>;
+  onRetry: () => void;
   retryPolicy: BackoffPolicy;
   runtime: RuntimeEnv;
 }) {
@@ -150,6 +151,7 @@ async function initializeTelegramWebhookBot(params: {
         throw err;
       }
       attempt += 1;
+      params.onRetry();
       const delayMs = computeBackoff(params.retryPolicy, attempt);
       params.runtime.log?.(
         `telegram getMe retry ${attempt} scheduled in ${formatDurationPrecise(delayMs)}`,
@@ -362,9 +364,16 @@ export async function startTelegramWebhook(opts: {
       bot,
       runtime,
       abortSignal: opts.abortSignal,
+      onRetry: () => status.noteWebhookRecovery(),
       retryPolicy: webhookRegistrationRetryPolicy,
     });
   } catch (err) {
+    if (!opts.abortSignal?.aborted) {
+      status.noteWebhookRegistrationFailure(
+        formatErrorMessage(err),
+        isTelegramAuthenticationError(err) ? "blocked" : undefined,
+      );
+    }
     botAbortController.abort();
     await bot.stop();
     await closeTransportOnce();
@@ -584,7 +593,14 @@ export async function startTelegramWebhook(opts: {
           }),
       });
     } catch (err) {
-      status.noteWebhookRegistrationFailure(formatErrorMessage(err));
+      status.noteWebhookRegistrationFailure(
+        formatErrorMessage(err),
+        isTelegramAuthenticationError(err)
+          ? "blocked"
+          : isRetryableTelegramApiError(err, { context: "webhook" })
+            ? "recovering"
+            : undefined,
+      );
       throw err;
     }
     if (shutDown) {
