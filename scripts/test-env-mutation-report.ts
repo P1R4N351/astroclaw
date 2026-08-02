@@ -68,7 +68,7 @@ const DEFAULT_ALLOWED_FILES = new Map([
   ["test/setup.extensions.ts", "global extension-test setup owns process env isolation"],
   ["test/setup.shared.ts", "global shared-test setup owns process env isolation"],
   ["test/setup.ts", "global test setup owns process env isolation"],
-  ["test/setup-openclaw-runtime.ts", "global runtime-test setup owns process env isolation"],
+  ["test/setup-astroclaw-runtime.ts", "global runtime-test setup owns process env isolation"],
   [
     "test/helpers/auto-reply/trigger-handling-test-harness.ts",
     "auto-reply harness owns a suite-scoped temporary home",
