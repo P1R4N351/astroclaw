@@ -1,6 +1,6 @@
 // Discord tests cover message handler.queue plugin behavior.
 import { getEventListeners } from "node:events";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiscordIngressLifecycle } from "./ingress.js";
 import { createDiscordMessageHandler as createDurableDiscordMessageHandler } from "./message-handler.js";
@@ -581,6 +581,70 @@ describe("createDiscordMessageHandler queue behavior", () => {
     await Promise.resolve();
 
     expect(processDiscordMessageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("continues queued durable cleanup after an earlier settlement failure", async () => {
+    preflightDiscordMessageMock.mockReset();
+    processDiscordMessageMock.mockReset();
+
+    const firstRun = createDeferred();
+    processDiscordMessageMock.mockImplementation(async () => {
+      await firstRun.promise;
+    });
+    preflightDiscordMessageMock.mockImplementation(
+      async (params: {
+        data: { channel_id: string };
+        abortSignal?: AbortSignal;
+        turnAdoptionLifecycle?: DiscordIngressLifecycle;
+      }) => ({
+        ...createPreflightContext(params.data.channel_id),
+        abortSignal: params.abortSignal,
+        turnAdoptionLifecycle: params.turnAdoptionLifecycle,
+      }),
+    );
+
+    const handlerParams = createDiscordHandlerParams();
+    const handler = createDiscordMessageHandler(handlerParams);
+    const activeIngress = createIngressLifecycle();
+    const failingQueuedIngress = createIngressLifecycle();
+    const laterQueuedIngress = createIngressLifecycle();
+    failingQueuedIngress.onAbandoned.mockRejectedValueOnce(
+      new Error("simulated durable release failure"),
+    );
+
+    await expect(
+      handler(createMessageData("m-1") as never, {} as never, {
+        turnAdoptionLifecycle: activeIngress,
+      }),
+    ).resolves.toEqual({ kind: "deferred" });
+    await flushQueueWork();
+    expect(processDiscordMessageMock).toHaveBeenCalledTimes(1);
+
+    await expect(
+      handler(createMessageData("m-2") as never, {} as never, {
+        turnAdoptionLifecycle: failingQueuedIngress,
+      }),
+    ).resolves.toEqual({ kind: "deferred" });
+    await expect(
+      handler(createMessageData("m-3") as never, {} as never, {
+        turnAdoptionLifecycle: laterQueuedIngress,
+      }),
+    ).resolves.toEqual({ kind: "deferred" });
+
+    const deactivation = handler.deactivate();
+    await vi.waitFor(() => expect(failingQueuedIngress.onAbandoned).toHaveBeenCalledTimes(1));
+    firstRun.resolve();
+
+    await expect(deactivation).resolves.toBeUndefined();
+    expect(processDiscordMessageMock).toHaveBeenCalledTimes(1);
+    expect(activeIngress.onAbandoned).toHaveBeenCalledTimes(1);
+    expect(laterQueuedIngress.onAbandoned).toHaveBeenCalledTimes(1);
+    const runtimeError = handlerParams.runtime.error as unknown as MockCallSource;
+    expect(
+      mockCalls(runtimeError).some(([message]) =>
+        String(message).includes("discord queued message cleanup failed"),
+      ),
+    ).toBe(true);
   });
 
   it("preserves non-debounced message ordering by awaiting debouncer enqueue", async () => {
