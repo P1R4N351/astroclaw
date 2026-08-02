@@ -4,26 +4,27 @@ import { basename } from "node:path";
 import {
   createChannelPartialDeliveryError,
   type MediaPlaceholderTextFact,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 import {
   createMessageReceiptFromOutboundResults,
   type MessageReceipt,
   type MessageReceiptPartKind,
   type MessageReceiptSourceResult,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
 import {
   extractOriginalFilename,
   kindFromMime,
   resolveOutboundAttachmentFromUrl,
-} from "astroclaw/plugin-sdk/media-runtime";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { sleep as delay } from "astroclaw/plugin-sdk/runtime-env";
-import { openNodeSqliteDatabase } from "astroclaw/plugin-sdk/sqlite-runtime";
-import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "astroclaw/plugin-sdk/temp-path";
-import { convertMarkdownTables } from "astroclaw/plugin-sdk/text-chunking";
-import { stripInlineDirectiveTagsForDelivery } from "astroclaw/plugin-sdk/text-chunking";
+  type OutboundMediaAccess,
+} from "openclaw/plugin-sdk/media-runtime";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { sleep as delay } from "openclaw/plugin-sdk/runtime-env";
+import { openNodeSqliteDatabase } from "openclaw/plugin-sdk/sqlite-runtime";
+import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
+import { convertMarkdownTables } from "openclaw/plugin-sdk/text-chunking";
+import { stripInlineDirectiveTagsForDelivery } from "openclaw/plugin-sdk/text-chunking";
 import {
   hasExclusiveIMessageLocalDatabase,
   resolveIMessageAccount,
@@ -71,6 +72,7 @@ type IMessageSendOpts = {
   conversationReadOrigin?: "delegated" | "direct-operator";
   replyToId?: string;
   mediaUrl?: string;
+  mediaAccess?: OutboundMediaAccess;
   mediaLocalRoots?: readonly string[];
   mediaReadFile?: (filePath: string) => Promise<Buffer>;
   audioAsVoice?: boolean;
@@ -84,10 +86,7 @@ type IMessageSendOpts = {
   resolveAttachmentImpl?: (
     mediaUrl: string,
     maxBytes: number,
-    options?: {
-      localRoots?: readonly string[];
-      readFile?: (filePath: string) => Promise<Buffer>;
-    },
+    options?: Parameters<typeof resolveOutboundAttachmentFromUrl>[2],
   ) => Promise<{ path: string; contentType?: string }>;
   createClient?: (params: { cliPath: string; dbPath?: string }) => Promise<IMessageRpcClient>;
   runCliJson?: (args: readonly string[]) => Promise<Record<string, unknown>>;
@@ -464,7 +463,7 @@ async function withOriginalIMessageAttachmentPath<T>(
   // The bridge exposes this basename and copies its bytes before returning;
   // keep the UUID-backed media-store file intact while its private alias is live.
   return await withTempWorkspace(
-    { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "openclaw-imessage-outbound-" },
+    { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "openclaw-imessage-outbound-" },
     async (workspace) => await send(await workspace.copyIn(filename, filePath)),
   );
 }
@@ -792,6 +791,7 @@ export async function sendMessageIMessage(
   if (opts.mediaUrl?.trim()) {
     const resolveAttachmentFn = opts.resolveAttachmentImpl ?? resolveOutboundAttachmentFromUrl;
     const resolved = await resolveAttachmentFn(opts.mediaUrl.trim(), maxBytes, {
+      mediaAccess: opts.mediaAccess,
       localRoots: opts.mediaLocalRoots,
       readFile: opts.mediaReadFile,
     });
