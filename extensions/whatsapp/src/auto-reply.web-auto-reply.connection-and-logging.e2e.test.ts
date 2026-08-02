@@ -28,6 +28,7 @@ import {
   deliverWebReply,
 } from "./auto-reply/deliver-reply.js";
 import { buildInboundLine } from "./auto-reply/monitor/message-line.js";
+import type { WebChannelStatus } from "./auto-reply/types.js";
 import {
   createTestLegacyFlatWebInboundMessage,
   createTestWebInboundMessage,
@@ -303,12 +304,7 @@ describe("web auto-reply connection", () => {
     });
     const listenerFactory = vi.fn(async () => createMockWebListener());
     const sleep = vi.fn(async () => {});
-    const statuses: Array<{
-      running?: boolean;
-      connected?: boolean;
-      healthState?: string;
-      terminalDisconnect?: boolean;
-    }> = [];
+    const statuses: Array<Partial<WebChannelStatus>> = [];
     const { runtime, run } = startWebAutoReplyMonitor({
       monitorWebChannelFn: monitorWebChannel as never,
       listenerFactory,
@@ -325,6 +321,7 @@ describe("web auto-reply connection", () => {
       running: false,
       connected: false,
       healthState: "logged-out",
+      lifecycle: "blocked",
       terminalDisconnect: true,
     });
     expectErrorContaining(runtime.error, "openclaw channels login --channel whatsapp");
@@ -533,7 +530,7 @@ describe("web auto-reply connection", () => {
       });
 
       const sleep = vi.fn(async () => {});
-      const statuses: Array<{ healthState?: string; running?: boolean; connected?: boolean }> = [];
+      const statuses: Array<Partial<WebChannelStatus>> = [];
       const scripted = createScriptedWebListenerFactory();
       const { run } = startWebAutoReplyMonitor({
         monitorWebChannelFn: monitorWebChannel as never,
@@ -569,6 +566,7 @@ describe("web auto-reply connection", () => {
       expect(finalStatus?.running).toBe(false);
       expect(finalStatus?.connected).toBe(false);
       expect(finalStatus?.healthState).toBe(healthState);
+      expect(finalStatus?.lifecycle).toBe("blocked");
     },
   );
 
@@ -666,6 +664,7 @@ describe("web auto-reply connection", () => {
           statuses.filter(
             (status) =>
               status.healthState === "reconnecting" &&
+              status.lifecycle === "recovering" &&
               status.reconnectAttempts === 1 &&
               (status.lastDisconnect as { status?: number } | null)?.status === 499,
           ),
@@ -683,6 +682,7 @@ describe("web auto-reply connection", () => {
             (status) =>
               status.connected === true &&
               status.healthState === "healthy" &&
+              status.lifecycle === "ready" &&
               status.reconnectAttempts === 0 &&
               status.lastDisconnect === null,
           ),
