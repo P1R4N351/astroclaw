@@ -7,6 +7,7 @@ import {
   optionalPositiveIntegerSchema,
 } from "astroclaw/plugin-sdk/channel-actions";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
 import {
   readFiniteNumberParam,
@@ -27,7 +28,6 @@ import {
 import {
   buildMemoryRecallUnavailableResult,
   createEmbeddings,
-  formatMemoryRecallError,
   isMemoryRecallTimeoutError,
   MemoryRecallEmbeddingError,
   runWithTimeout,
@@ -253,7 +253,7 @@ export default definePluginEntry({
               if (!(error instanceof MemoryRecallEmbeddingError)) {
                 throw error;
               }
-              const message = formatMemoryRecallError(error.originalError);
+              const message = formatErrorMessage(error.originalError);
               if (isMemoryRecallTimeoutError(error.originalError)) {
                 recordMemoryRecallCooldown(agentId, message);
               }
@@ -590,7 +590,7 @@ export default definePluginEntry({
           err instanceof MemoryRecallEmbeddingError &&
           isMemoryRecallTimeoutError(err.originalError)
         ) {
-          recordMemoryRecallCooldown(agentId, formatMemoryRecallError(err.originalError));
+          recordMemoryRecallCooldown(agentId, formatErrorMessage(err.originalError));
         }
         api.logger.warn(`memory-lancedb: recall failed: ${String(err)}`);
       }
