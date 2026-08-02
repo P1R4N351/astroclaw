@@ -1,12 +1,12 @@
 // Telegram plugin module implements state migrations behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
-import type { ChannelLegacyStateMigrationPlan } from "astroclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { fileExists } from "astroclaw/plugin-sdk/security-runtime";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { isRecord, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
+import type { ChannelLegacyStateMigrationPlan } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { fileExists } from "openclaw/plugin-sdk/security-runtime";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { isRecord, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { listTelegramAccountIds, resolveDefaultTelegramAccountId } from "./account-selection.js";
 import {
   listTelegramLegacyBotInfoCacheEntries,
@@ -22,7 +22,7 @@ import {
   TELEGRAM_MESSAGE_CACHE_PERSISTENT_MAX_MESSAGES,
   TELEGRAM_MESSAGE_CACHE_PERSISTENT_NAMESPACE,
   TELEGRAM_MESSAGE_CACHE_PERSISTED_VERSION,
-} from "./message-cache.js";
+} from "./message-cache-persistence.js";
 import { parseTelegramMessageThreadId } from "./outbound-params.js";
 import {
   listTelegramLegacySentMessageCacheEntries,
