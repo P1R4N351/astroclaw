@@ -7,6 +7,8 @@ describe("resolveTheme", () => {
   it("resolves named theme families when mode is provided", () => {
     expect(resolveTheme("knot", "dark")).toBe("openknot");
     expect(resolveTheme("dash", "light")).toBe("dash-light");
+    expect(resolveTheme("piranesi", "dark")).toBe("piranesi");
+    expect(resolveTheme("piranesi", "light")).toBe("piranesi-light");
   });
 
   it("uses system preference when mode is system", () => {
