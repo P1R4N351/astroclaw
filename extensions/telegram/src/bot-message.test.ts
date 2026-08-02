@@ -18,7 +18,7 @@ function requireInvocationOrder(mock: { invocationCallOrder: number[] }, context
   return expectDefined(mock.invocationCallOrder[0], context);
 }
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   createSubsystemLogger: () => ({
     child: () => ({
       info: telegramInboundInfo,
@@ -70,6 +70,34 @@ describe("telegram bot message processor", () => {
     cfg: {},
     telegramCfg: {},
   } satisfies import("./bot-message.js").TelegramMessageProcessorTurnContext;
+
+  it("passes the effective per-DM history limit into message context", async () => {
+    buildTelegramMessageContext.mockResolvedValue(null);
+    const processMessage = createTelegramMessageProcessor(baseDeps);
+
+    await processSampleMessage(
+      processMessage,
+      {
+        telegramCfg: {
+          dmHistoryLimit: 5,
+          dms: {
+            "42": { historyLimit: 0 },
+          },
+        },
+      },
+      {
+        message: {
+          chat: { id: 123, type: "private", title: "chat" },
+          message_id: 456,
+          from: { id: 42, first_name: "Pat" },
+        },
+      },
+    );
+
+    expect(buildTelegramMessageContext).toHaveBeenCalledWith(
+      expect.objectContaining({ dmHistoryLimit: 0 }),
+    );
+  });
 
   const baseDeps = {
     bot: {},
