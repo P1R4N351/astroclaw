@@ -3,13 +3,13 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
 import type { Message } from "grammy/types";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveTelegramBotInfoCachePath } from "./bot-info-cache.js";
-import { resolveTelegramMessageCachePath } from "./message-cache.js";
+import { resolveTelegramMessageCachePath } from "./message-cache-persistence.js";
 import { detectTelegramLegacyStateMigrations } from "./state-migrations.js";
 import {
   resolveTopicNameCacheNamespace,
