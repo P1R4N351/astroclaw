@@ -1,6 +1,6 @@
 // Huggingface tests cover models plugin behavior.
 import { expectDefined } from "@openclaw/normalization-core";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildHuggingfaceModelDefinition,
@@ -164,7 +164,7 @@ describe("huggingface models", () => {
     expect(models.map((m) => m.id)).toEqual(HUGGINGFACE_MODEL_CATALOG.map((m) => m.id));
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(releaseLock).toHaveBeenCalledTimes(1);
-    expect(read).toHaveBeenCalledTimes(17);
+    expect(read).toHaveBeenCalledTimes(5);
   });
 
   it("parses a valid bounded discovery response", async () => {
