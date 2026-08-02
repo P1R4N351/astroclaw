@@ -21,7 +21,7 @@ vi.mock("./shared.js", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: vi.fn(),
 }));
 
@@ -68,7 +68,7 @@ vi.mock("./remote-media.js", () => ({
   downloadAndStoreMSTeamsRemoteMedia: vi.fn(),
 }));
 
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import { downloadMSTeamsGraphMedia } from "./graph.js";
 import { downloadAndStoreMSTeamsRemoteMedia } from "./remote-media.js";
 import { safeFetchWithPolicy } from "./shared.js";
@@ -247,6 +247,104 @@ describe("downloadMSTeamsGraphMedia hosted content $value fallback", () => {
     expect(result.media).toHaveLength(0);
     expect(result.hostedCount).toBe(0);
     expect(hugeResponse.bodyUsed).toBe(true);
+  });
+
+  it("cancels the unread $value body when the hosted content bytes fetch fails", async () => {
+    const fetchCalls: string[] = [];
+    const failedValueResponse = new Response("server error", { status: 500 });
+
+    mockGraphMediaFetch({
+      messageId: "msg-500",
+      hostedContents: [{ id: "hosted-500", contentType: "image/png" }],
+      valueResponses: {
+        "/hostedContents/hosted-500/$value": failedValueResponse,
+      },
+      fetchCalls,
+    });
+
+    const result = await downloadMSTeamsGraphMedia({
+      messageUrl: "https://graph.microsoft.com/v1.0/chats/c/messages/msg-500",
+      tokenProvider: { getAccessToken: vi.fn(async () => "test-token") },
+      maxBytes: 10 * 1024 * 1024,
+    });
+
+    expect(result.media).toEqual([
+      { kind: "image", contentType: "image/png", sourceId: "hosted-500" },
+    ]);
+    expect(failedValueResponse.bodyUsed).toBe(true);
+  });
+
+  it("cancels the unread message body when the Graph message fetch fails", async () => {
+    const fetchCalls: string[] = [];
+    const failedMessageResponse = new Response("server error", { status: 500 });
+
+    mockGraphMediaFetch({
+      messageId: "msg-err",
+      valueResponses: {
+        "/hostedContents": mockFetchResponse({ value: [] }),
+        "/messages/msg-err": failedMessageResponse,
+      },
+      fetchCalls,
+    });
+
+    const result = await downloadMSTeamsGraphMedia({
+      messageUrl: "https://graph.microsoft.com/v1.0/chats/c/messages/msg-err",
+      tokenProvider: { getAccessToken: vi.fn(async () => "test-token") },
+      maxBytes: 10 * 1024 * 1024,
+    });
+
+    expect(result.media).toEqual([]);
+    expect(failedMessageResponse.bodyUsed).toBe(true);
+  });
+
+  it("releases a cloned failed collection body without awaiting stalled cancellation", async () => {
+    const failedCollectionResponse = new Response("server error", { status: 500 });
+    const captureClone = failedCollectionResponse.clone();
+    const body = failedCollectionResponse.body;
+    if (!body) {
+      throw new Error("expected a readable collection error body");
+    }
+    const originalCancel = body.cancel.bind(body);
+    let cancellation: Promise<void> | undefined;
+    let cancellationSettled = false;
+    const cancellationStarted = new Promise<void>((resolve) => {
+      vi.spyOn(body, "cancel").mockImplementation((reason) => {
+        cancellation = originalCancel(reason).finally(() => {
+          cancellationSettled = true;
+        });
+        resolve();
+        return cancellation;
+      });
+    });
+    const release = vi.fn(async () => {});
+    vi.mocked(fetchWithSsrFGuard).mockImplementation(async (params: GuardedFetchParams) => {
+      if (params.url.endsWith("/hostedContents")) {
+        return guardedFetchResult(params, failedCollectionResponse, release);
+      }
+      return guardedFetchResult(params, mockFetchResponse({ body: {}, attachments: [] }));
+    });
+
+    const operation = downloadMSTeamsGraphMedia({
+      messageUrl: "https://graph.microsoft.com/v1.0/chats/c/messages/msg-cloned-collection",
+      tokenProvider: { getAccessToken: vi.fn(async () => "test-token") },
+      maxBytes: 10 * 1024 * 1024,
+    });
+
+    try {
+      await cancellationStarted;
+      expect(release).toHaveBeenCalledOnce();
+      expect(failedCollectionResponse.bodyUsed).toBe(true);
+      expect(cancellationSettled).toBe(false);
+      await expect(operation).resolves.toMatchObject({
+        media: [],
+        hostedCount: 0,
+        hostedStatus: 500,
+      });
+    } finally {
+      void captureClone.body?.cancel().catch(() => undefined);
+      await cancellation?.catch(() => undefined);
+      await operation.catch(() => undefined);
+    }
   });
 
   it("ignores unexpected inline bytes and still fetches bounded $value", async () => {
