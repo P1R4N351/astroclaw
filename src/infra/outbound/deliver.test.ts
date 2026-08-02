@@ -20,17 +20,9 @@ import * as mediaCapabilityModule from "../../media/read-capability.js";
 import { createHookRunner } from "../../plugins/hooks.js";
 import { addTestHook } from "../../plugins/hooks.test-fixtures.js";
 import { createEmptyPluginRegistry } from "../../plugins/registry.js";
-import {
-  pinActivePluginChannelRegistry,
-  releasePinnedPluginChannelRegistry,
-  setActivePluginRegistry,
-} from "../../plugins/runtime.js";
+import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import type { PluginHookRegistration } from "../../plugins/types.js";
-import {
-  createChannelTestPluginBase,
-  createOutboundTestPlugin,
-  createTestRegistry,
-} from "../../test-utils/channel-plugins.js";
+import { createOutboundTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { createInternalHookEventPayload } from "../../test-utils/internal-hook-event-payload.js";
 import { createOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
 import {
@@ -39,7 +31,7 @@ import {
   type DiagnosticEventPayload,
 } from "../diagnostic-events.js";
 import { retryAsync } from "../retry.js";
-import { resolvePreferredOpenClawTmpDir } from "../tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
 import { prepareOutboundPayloadBatch } from "./deliver-prepare.js";
 import { PlatformMessageNotDispatchedError } from "./deliver-types.js";
 import { createUnmodifiedPreparedOutboundBatch } from "./prepared-batch.js";
@@ -189,7 +181,7 @@ const matrixChunkConfig: OpenClawConfig = {
   channels: { matrix: { textChunkLimit: 4000 } } as OpenClawConfig["channels"],
 };
 
-const expectedPreferredTmpRoot = resolvePreferredOpenClawTmpDir();
+const expectedPreferredTmpRoot = resolvePreferredAstroclawTmpDir();
 
 type DeliverOutboundArgs = Parameters<DeliverModule["deliverOutboundPayloads"]>[0];
 type DeliverOutboundPayload = DeliverOutboundArgs["payloads"][number];
@@ -405,7 +397,6 @@ describe("deliverOutboundPayloads", () => {
 
   beforeEach(() => {
     resetDiagnosticEventsForTest();
-    releasePinnedPluginChannelRegistry();
     setActivePluginRegistry(defaultRegistry);
     mocks.appendAssistantMessageToSessionTranscript.mockClear();
     hookMocks.runner.hasHooks.mockClear();
@@ -500,43 +491,7 @@ describe("deliverOutboundPayloads", () => {
 
   afterEach(() => {
     resetDiagnosticEventsForTest();
-    releasePinnedPluginChannelRegistry();
     setActivePluginRegistry(emptyRegistry);
-  });
-
-  it("delivers through full active plugin when pinned setup channel has no sender", async () => {
-    const sendMatrix = vi.fn().mockResolvedValue({ messageId: "m1", roomId: "!room:example" });
-    const setupRegistry = createTestRegistry([
-      {
-        pluginId: "matrix",
-        source: "setup",
-        plugin: createChannelTestPluginBase({ id: "matrix" }),
-      },
-    ]);
-    const runtimeRegistry = createTestRegistry([
-      {
-        pluginId: "matrix",
-        source: "runtime",
-        plugin: createOutboundTestPlugin({ id: "matrix", outbound: matrixOutboundForTest }),
-      },
-    ]);
-
-    setActivePluginRegistry(setupRegistry);
-    pinActivePluginChannelRegistry(setupRegistry);
-    setActivePluginRegistry(runtimeRegistry);
-
-    const results = await deliverMatrix({
-      cfg: matrixChunkConfig,
-      payloads: [{ text: "hello from queue" }],
-      deps: { matrix: sendMatrix },
-    });
-
-    expect(sendMatrix).toHaveBeenCalledWith("!room:example", "hello from queue", {
-      cfg: matrixChunkConfig,
-      accountId: undefined,
-      gifPlayback: undefined,
-    });
-    expect(results).toEqual([{ channel: "matrix", messageId: "m1", roomId: "!room:example" }]);
   });
 
   it("reports unsupported durable final delivery when required capabilities are missing", async () => {
@@ -4575,7 +4530,7 @@ describe("deliverOutboundPayloads", () => {
     // same capability the live send resolves, so a fabricated localRoots here
     // would hide whether the two gates agree.
     const sourceDir = await fsPromises.realpath(
-      await fsPromises.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "deliver-spool-")),
+      await fsPromises.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "deliver-spool-")),
     );
     const openClawState = await createOpenClawTestState({
       layout: "state-only",
