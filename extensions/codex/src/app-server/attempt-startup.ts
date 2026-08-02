@@ -10,7 +10,7 @@ import {
   type CodexBundleMcpThreadConfig,
   type EmbeddedRunAttemptParams,
   type resolveSandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
   CodexAppServerUnsafeSubscriptionError,
@@ -331,7 +331,7 @@ export async function startCodexAttemptThread(params: {
               }
               throw new AgentHarnessPreflightError(
                 `Codex Computer Use readiness failed: ${formatErrorMessage(error)}`,
-                { cause: error },
+                { cause: error, scope: "harness" },
               );
             }
             const startupRuntimeIdentity = activeStartupClient.getRuntimeIdentity();
