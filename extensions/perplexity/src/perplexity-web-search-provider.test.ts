@@ -1,12 +1,12 @@
 // Perplexity tests cover perplexity web search provider plugin behavior.
-import { withEnv, withEnvAsync } from "openclaw/plugin-sdk/test-env";
+import { withEnv, withEnvAsync } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
 import { createStreamingResponse } from "../../test-support/streaming-error-response.js";
 
 const withTrustedWebSearchEndpointMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/provider-web-search", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/provider-web-search")>();
+vi.mock("astroclaw/plugin-sdk/provider-web-search", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/provider-web-search")>();
   return {
     ...actual,
     withTrustedWebSearchEndpoint: withTrustedWebSearchEndpointMock,
@@ -41,6 +41,72 @@ describe("perplexity web search provider", () => {
         });
       },
     );
+  });
+
+  it.each([
+    { name: "native Search API", webSearch: { apiKey: "pplx-test" } },
+    {
+      name: "chat completions",
+      webSearch: { apiKey: "pplx-test", baseUrl: "https://api.perplexity.ai" },
+    },
+  ])("does not start an already canceled $name request", async ({ webSearch }) => {
+    withTrustedWebSearchEndpointMock.mockReset();
+    withTrustedWebSearchEndpointMock.mockResolvedValue({ results: [] });
+    const tool = createPerplexityWebSearchProvider().createTool({
+      config: { plugins: { entries: { perplexity: { config: { webSearch } } } } },
+      searchConfig: {},
+    });
+    if (!tool) {
+      throw new Error("Expected tool definition");
+    }
+    const controller = new AbortController();
+    controller.abort(new Error("Perplexity caller canceled"));
+
+    await expect(
+      tool.execute({ query: "perplexity pre-canceled" }, { signal: controller.signal }),
+    ).rejects.toThrow("Perplexity caller canceled");
+    expect(withTrustedWebSearchEndpointMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: "native Search API", webSearch: { apiKey: "pplx-test" } },
+    {
+      name: "chat completions",
+      webSearch: { apiKey: "pplx-test", baseUrl: "https://api.perplexity.ai" },
+    },
+  ])("cancels an in-flight $name request", async ({ name, webSearch }) => {
+    withTrustedWebSearchEndpointMock.mockReset();
+    withTrustedWebSearchEndpointMock.mockImplementation(
+      async (params: { signal?: AbortSignal }) =>
+        await new Promise<never>((_resolve, reject) => {
+          if (!params.signal) {
+            reject(new Error("Perplexity request lost caller cancellation"));
+            return;
+          }
+          params.signal.addEventListener("abort", () => reject(params.signal?.reason as Error), {
+            once: true,
+          });
+        }),
+    );
+    const tool = createPerplexityWebSearchProvider().createTool({
+      config: { plugins: { entries: { perplexity: { config: { webSearch } } } } },
+      searchConfig: {},
+    });
+    if (!tool) {
+      throw new Error("Expected tool definition");
+    }
+    const controller = new AbortController();
+    const result = tool.execute(
+      { query: `perplexity in-flight cancellation ${name}` },
+      { signal: controller.signal },
+    );
+
+    await vi.waitFor(() => expect(withTrustedWebSearchEndpointMock).toHaveBeenCalledOnce());
+    controller.abort(new Error("Perplexity request canceled in flight"));
+
+    await expect(result).rejects.toThrow("Perplexity request canceled in flight");
+    expect(withTrustedWebSearchEndpointMock.mock.calls[0]?.[0]?.signal).toBe(controller.signal);
+    withTrustedWebSearchEndpointMock.mockReset();
   });
 
   it("infers provider routing from api key prefixes", () => {
