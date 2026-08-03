@@ -1,15 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 // Zalo tests cover outbound media plugin behavior.
-import { createPluginStateKeyedStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { createPluginStateKeyedStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 
 const loadWebMediaMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/web-media", () => {
+vi.mock("astroclaw/plugin-sdk/web-media", () => {
   return {
     loadWebMedia: (...args: unknown[]) => loadWebMediaMock(...args),
   };
@@ -179,6 +179,42 @@ describe("zalo outbound hosted media", () => {
 
     expect(handledAgain).toBe(true);
     expect(secondResponse.res.statusCode).toBe(404);
+  });
+
+  it("serves HEAD metadata without consuming the hosted media", async () => {
+    const hostedUrl = await prepareHostedZaloMediaUrl({
+      mediaUrl: "https://example.com/photo.png",
+      webhookUrl: "https://gateway.example.com/zalo-webhook",
+      maxBytes: 1024,
+    });
+    const { pathname, search } = new URL(hostedUrl);
+    const headResponse = createMockResponse();
+
+    const handledHead = await tryHandleHostedZaloMediaRequest(
+      {
+        method: "HEAD",
+        url: `${pathname}${search}`,
+      } as never,
+      headResponse.res as never,
+    );
+
+    expect(handledHead).toBe(true);
+    expect(headResponse.res.statusCode).toBe(200);
+    expect(headResponse.headers.get("Content-Length")).toBe(
+      String(Buffer.byteLength("image-bytes")),
+    );
+    expect(headResponse.res.end).toHaveBeenCalledWith(undefined);
+
+    const getResponse = createMockResponse();
+    await tryHandleHostedZaloMediaRequest(
+      {
+        method: "GET",
+        url: `${pathname}${search}`,
+      } as never,
+      getResponse.res as never,
+    );
+    expect(getResponse.res.statusCode).toBe(200);
+    expect(getResponse.res.end).toHaveBeenCalledWith(Buffer.from("image-bytes"));
   });
 
   it("rejects hosted media preparation when the expiry would exceed a valid Date", async () => {
