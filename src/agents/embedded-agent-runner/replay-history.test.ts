@@ -1,5 +1,5 @@
 // Coverage for normalizing assistant replay content before provider requests.
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { describe, expect, it } from "vitest";
 import { markInboundContextLabel } from "../../auto-reply/reply/inbound-context-marker.js";
 import { OPENCLAW_TRANSCRIPT_ARTIFACT_API } from "../../shared/transcript-only-openclaw-assistant.js";
@@ -165,7 +165,7 @@ describe("normalizeAssistantReplayContent", () => {
   });
 
   it("preserves nonzero-usage silent-reply turns (stopReason=stop, content=[]) untouched", () => {
-    // run.empty-error-retry.test.ts treats `stopReason:"stop"` + `content:[]`
+    // run.shared-integration.test.ts treats `stopReason:"stop"` + `content:[]`
     // as a legitimate NO_REPLY / silent-reply, NOT a crash. Substituting the
     // failure sentinel here would inject a fabricated "[assistant turn failed
     // before producing content]" into the next provider request and change
