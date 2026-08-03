@@ -1,6 +1,6 @@
 // Voice Call tests cover webhook security plugin behavior.
 import crypto from "node:crypto";
-import { MAX_DATE_TIMESTAMP_MS } from "astroclaw/plugin-sdk/number-runtime";
+import { MAX_DATE_TIMESTAMP_MS } from "openclaw/plugin-sdk/number-runtime";
 import { describe, expect, it, vi } from "vitest";
 import {
   reconstructWebhookUrl,
@@ -90,8 +90,18 @@ function twilioSignature(params: { authToken: string; url: string; postBody: str
 }
 
 function expectReplayResultPair(
-  first: { ok: boolean; isReplay?: boolean; verifiedRequestKey?: string },
-  second: { ok: boolean; isReplay?: boolean; verifiedRequestKey?: string },
+  first: {
+    ok: boolean;
+    isReplay?: boolean;
+    verifiedRequestKey?: string;
+    releaseReplay?: () => void;
+  },
+  second: {
+    ok: boolean;
+    isReplay?: boolean;
+    verifiedRequestKey?: string;
+    releaseReplay?: () => void;
+  },
 ) {
   expect(first.ok).toBe(true);
   expect(first.isReplay).not.toBe(true);
@@ -101,6 +111,8 @@ function expectReplayResultPair(
   expect(second.ok).toBe(true);
   expect(second.isReplay).toBe(true);
   expect(second.verifiedRequestKey).toBe(first.verifiedRequestKey);
+  expect(first.releaseReplay).toEqual(expect.any(Function));
+  expect(second.releaseReplay).toBeUndefined();
 }
 
 function expectAcceptedWebhookVersion(
