@@ -4,7 +4,7 @@ import {
   hasNonEmptyString,
   normalizeOptionalString,
 } from "@openclaw/normalization-core/string-coerce";
-import { hasOutboundReplyContent } from "openclaw/plugin-sdk/reply-payload";
+import { hasOutboundReplyContent } from "astroclaw/plugin-sdk/reply-payload";
 import type { ChatRunStartupPhase } from "../../../packages/gateway-protocol/src/index.js";
 import { peekSessionMcpRuntime } from "../../agents/agent-bundle-mcp-manager-api.js";
 import { resolveBootstrapWarningSignaturesSeen } from "../../agents/bootstrap-budget.js";
@@ -446,6 +446,7 @@ async function executeAgentTurnInternalWithRetryState(
   const terminalFailurePayload = terminalRunFailed
     ? buildTerminalAgentRunFailureReplyPayload({
         isHeartbeat: params.isHeartbeat,
+        visibleReplyDelivered: false,
         sessionCtx: params.sessionCtx,
         cfg: params.followupRun.run.config,
       })
