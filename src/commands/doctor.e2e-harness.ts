@@ -384,6 +384,7 @@ vi.mock("../skills/discovery/status.js", () => ({
 }));
 
 vi.mock("../plugins/loader.js", () => ({
+  getRuntimePluginRegistryForLoadOptions: () => null,
   isPluginRegistryLoadInFlight: () => false,
   loadOpenClawPlugins: () => createEmptyPluginRegistry(),
   loadPluginRegistryHandle: () => createEmptyPluginRegistry(),
@@ -457,22 +458,22 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
   isNonSecretApiKeyMarker: () => false,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-model-shared", () => ({
+vi.mock("openclaw/plugin-sdk/provider-model-shared", () => ({
   DEFAULT_CONTEXT_TOKENS: 32768,
   normalizeProviderId: (value: string) => normalizeLowercaseStringOrEmpty(value),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-stream-shared", () => ({
+vi.mock("openclaw/plugin-sdk/provider-stream-shared", () => ({
   createMoonshotThinkingWrapper: () => undefined,
   resolveMoonshotThinkingType: () => undefined,
   streamWithPayloadPatch: () => undefined,
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   createSubsystemLogger: () => ({
     debug: () => {},
     info: () => {},
@@ -495,6 +496,24 @@ vi.mock("../infra/update-runner.js", () => ({
 
 vi.mock("../flows/doctor-health-contributions.js", () => ({
   runDoctorHealthContributions,
+}));
+
+vi.mock("../flows/doctor-core-checks.runtime.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../flows/doctor-core-checks.runtime.js")>()),
+  collectRuntimeToolSchemaFindings: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("./doctor/shared/active-tool-schema-warnings.js", () => ({
+  collectActiveToolSchemaProjectionWarnings: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("./doctor-browser.js", () => ({
+  detectLegacyClawdBrowserProfileResidue: vi.fn().mockResolvedValue(null),
+  maybeArchiveLegacyClawdBrowserProfileResidue: vi.fn().mockResolvedValue({
+    changes: [],
+    warnings: [],
+  }),
+  noteChromeMcpBrowserReadiness: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("./doctor-memory-search.js", () => ({
