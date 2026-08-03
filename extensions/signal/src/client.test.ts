@@ -2,12 +2,12 @@
 import { Buffer } from "node:buffer";
 import { once } from "node:events";
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-vi.mock("openclaw/plugin-sdk/core", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/core")>(
-    "openclaw/plugin-sdk/core",
+vi.mock("astroclaw/plugin-sdk/core", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/core")>(
+    "astroclaw/plugin-sdk/core",
   );
   return {
     ...actual,
@@ -307,6 +307,7 @@ describe("streamSignalEvents", () => {
   it("streams events through node http instead of fetch", async () => {
     type StreamEvent = Parameters<Parameters<typeof streamSignalEvents>[0]["onEvent"]>[0];
     const events: StreamEvent[] = [];
+    const onStreamOpen = vi.fn();
     const baseUrl = await withSignalServer((req, res) => {
       expect(req.url).toBe("/api/v1/events?account=%2B15555550123");
       expect(req.headers.accept).toBe("text/event-stream");
@@ -317,9 +318,11 @@ describe("streamSignalEvents", () => {
     await streamSignalEvents({
       baseUrl,
       account: "+15555550123",
+      onStreamOpen,
       onEvent: (event) => events.push(event),
     });
 
+    expect(onStreamOpen).toHaveBeenCalledOnce();
     expect(events).toEqual([{ id: "42", event: "message", data: '{"group":true}' }]);
   });
 
