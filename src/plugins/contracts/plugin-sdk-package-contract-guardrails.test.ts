@@ -38,15 +38,15 @@ const GENERIC_CORE_PLUGIN_OWNER_NAME_PATTERN =
   /\b(?:imessage|discord|feishu|googlechat|matrix|mattermost|msteams|slack|telegram|whatsapp|zalo|zalouser)\b/gi;
 const PACKAGE_CONTRACT_SCAN_TIMEOUT_MS = 240_000;
 const DEPRECATED_EXTENSION_SDK_SPECIFIERS = new Set([
-  "astroclaw/plugin-sdk",
+  "openclaw/plugin-sdk",
   // Bundled code uses the canonical channel-config-schema subpath; the
   // primitives/legacy shells stay export-compatible for third parties only.
-  "astroclaw/plugin-sdk/channel-config-primitives",
-  "astroclaw/plugin-sdk/channel-config-schema-legacy",
-  "astroclaw/plugin-sdk/compat",
-  "astroclaw/plugin-sdk/test-utils",
+  "openclaw/plugin-sdk/channel-config-primitives",
+  "openclaw/plugin-sdk/channel-config-schema-legacy",
+  "openclaw/plugin-sdk/compat",
+  "openclaw/plugin-sdk/test-utils",
 ]);
-const DEPRECATED_TEST_ALIAS_SPECIFIERS = new Set(["astroclaw/plugin-sdk/test-utils"]);
+const DEPRECATED_TEST_ALIAS_SPECIFIERS = new Set(["openclaw/plugin-sdk/test-utils"]);
 const DEPRECATED_TEST_ALIAS_ALLOWED_REFERENCE_FILES = new Set([
   "src/plugins/compat/registry.ts",
   "src/plugins/contracts/plugin-sdk-package-contract-guardrails.test.ts",
@@ -465,11 +465,13 @@ function collectNewDeprecatedMemoryEmbeddingProviderApiFiles(): string[] {
 
 function collectNewDeprecatedMemoryEmbeddingProviderManifestFiles(): string[] {
   const files: string[] = [];
-  const manifestFiles =
-    listGitTrackedFiles({
-      repoRoot: REPO_ROOT,
-      pathspecs: "extensions/**/openclaw.plugin.json",
-    }) ?? [];
+  const manifestFiles = listGitTrackedFiles({
+    repoRoot: REPO_ROOT,
+    pathspecs: "extensions/**/openclaw.plugin.json",
+  });
+  if (!manifestFiles) {
+    throw new Error("unable to list plugin manifests for the deprecated manifest guard");
+  }
   for (const repoRelativePath of manifestFiles) {
     const source = fs.readFileSync(resolve(REPO_ROOT, repoRelativePath), "utf8");
     if (
