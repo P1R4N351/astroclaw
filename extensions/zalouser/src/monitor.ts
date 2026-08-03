@@ -1,44 +1,45 @@
-import { mergeAllowlist, summarizeMapping } from "astroclaw/plugin-sdk/allow-from";
-import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
+import { mergeAllowlist, summarizeMapping } from "openclaw/plugin-sdk/allow-from";
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
 import {
   createChannelInboundEnvelopeBuilder,
   createChannelPartialDeliveryError,
   implicitMentionKindWhen,
   isChannelPartialDeliveryError,
   resolveInboundMentionDecision,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { resolveStableChannelMessageIngress } from "astroclaw/plugin-sdk/channel-ingress-runtime";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { resolveStableChannelMessageIngress } from "openclaw/plugin-sdk/channel-ingress-runtime";
 import {
   createMessageReceiptFromOutboundResults,
   listMessageReceiptPlatformIds,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
-import type { MarkdownTableMode, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
+import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
 // Zalouser plugin module implements monitor behavior.
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { channelReadyPatch } from "openclaw/plugin-sdk/gateway-runtime";
 import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   type HistoryEntry,
   createChannelHistoryWindow,
-} from "astroclaw/plugin-sdk/reply-history";
+} from "openclaw/plugin-sdk/reply-history";
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
   type OutboundReplyPayload,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
 import {
   resolveDefaultGroupPolicy,
   resolveOpenProviderRuntimeGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "astroclaw/plugin-sdk/runtime-group-policy";
+} from "openclaw/plugin-sdk/runtime-group-policy";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   buildZalouserGroupCandidates,
   findZalouserGroupEntry,
@@ -68,11 +69,7 @@ type ZalouserMonitorOptions = {
   config: OpenClawConfig;
   runtime: RuntimeEnv;
   abortSignal: AbortSignal;
-  statusSink?: (patch: {
-    lastInboundAt?: number;
-    lastOutboundAt?: number;
-    lifecycle?: ChannelAccountSnapshot["lifecycle"];
-  }) => void;
+  statusSink?: (patch: Omit<ChannelAccountSnapshot, "accountId">) => void;
   ingressQueue?: Parameters<typeof createZalouserIngressMonitor>[0]["queue"];
 };
 
@@ -964,7 +961,7 @@ export async function monitorZalouserProvider(
     listenerStop();
     listenerStop = null;
   } else if (!abortSignal.aborted) {
-    statusSink?.({ lifecycle: "ready" });
+    statusSink?.(channelReadyPatch());
   }
 
   if (abortSignal.aborted) {
