@@ -1,22 +1,22 @@
 // Xai tests cover index plugin behavior.
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
-import { createCapturedPluginRegistration } from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+import { createCapturedPluginRegistration } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import {
   registerProviderPlugin,
   registerSingleProviderPlugin,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import {
   clearLiveCatalogCacheForTests,
   type LiveModelCatalogFetchGuard,
-} from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+} from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const providerAuthRuntimeMocks = vi.hoisted(() => ({
   resolveApiKeyForProvider: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => providerAuthRuntimeMocks);
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => providerAuthRuntimeMocks);
 
 import plugin from "./index.js";
 import manifest from "./openclaw.plugin.json" with { type: "json" };
@@ -469,6 +469,31 @@ describe("xai provider plugin", () => {
           '400 {"code":"Client specified an invalid argument","error":"Incorrect API key provided: xa***en. You can obtain an API key from https://console.x.ai."}',
       }),
     ).toBeUndefined();
+  });
+
+  it("classifies exhausted Grok credits and subscription requirements as billing", async () => {
+    const provider = await registerSingleProviderPlugin(plugin);
+
+    expect(
+      provider.classifyFailoverReason?.({
+        errorMessage: '403 {"error":"You have run out of credits"}',
+      }),
+    ).toBe("billing");
+    expect(
+      provider.classifyFailoverReason?.({
+        errorMessage: '403 {"error":"You need a Grok subscription"}',
+      }),
+    ).toBe("billing");
+    expect(
+      provider.classifyFailoverReason?.({
+        errorMessage: "403 Forbidden",
+      }),
+    ).toBeUndefined();
+    expect(
+      provider.classifyFailoverReason?.({
+        errorMessage: "429 Too Many Requests",
+      }),
+    ).toBe("rate_limit");
   });
 
   it("registers xAI speech providers for batch and streaming STT", async () => {
