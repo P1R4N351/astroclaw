@@ -1,5 +1,5 @@
 // Command startup policy tests cover which CLI commands require startup side effects.
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cliCommandCatalog } from "./command-catalog.js";
 import { resolveCliExecutionStartupContext } from "./command-execution-startup.js";
@@ -72,6 +72,69 @@ describe("command-startup-policy", () => {
           commandPath: ["memory", "status"],
         }).skipConfigGuard,
       ).toBe(false);
+    }
+  });
+
+  it("skips the config guard for exact root update dry-runs", () => {
+    for (const argv of [
+      ["node", "openclaw", "update", "--dry-run"],
+      ["node", "openclaw", "--profile", "work", "update", "--dry-run"],
+      ["node", "openclaw", "--update", "--dry-run"],
+    ]) {
+      expect(
+        resolvePolicy({
+          argv,
+          commandPath: ["update"],
+        }).skipConfigGuard,
+        argv.join(" "),
+      ).toBe(true);
+    }
+  });
+
+  it("keeps the config guard for non-dry-run and descendant update invocations", () => {
+    for (const testCase of [
+      {
+        argv: ["node", "openclaw", "update"],
+        commandPath: ["update"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "--tag", "--dry-run"],
+        commandPath: ["update"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "--channel", "--dry-run"],
+        commandPath: ["update"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "--timeout", "--dry-run"],
+        commandPath: ["update"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "--tag=--dry-run"],
+        commandPath: ["update"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "--", "--dry-run"],
+        commandPath: ["update"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "status", "--dry-run"],
+        commandPath: ["update", "status"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "repair", "--dry-run"],
+        commandPath: ["update", "repair"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "finalize", "--dry-run"],
+        commandPath: ["update", "finalize"],
+      },
+      {
+        argv: ["node", "openclaw", "update", "wizard", "--dry-run"],
+        commandPath: ["update", "wizard"],
+      },
+    ]) {
+      expect(resolvePolicy(testCase).skipConfigGuard, testCase.argv.join(" ")).toBe(false);
     }
   });
 
