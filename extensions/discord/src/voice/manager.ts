@@ -1,11 +1,11 @@
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { DiscordAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { DiscordAccountConfig } from "openclaw/plugin-sdk/config-contracts";
 // Discord plugin module implements manager behavior.
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   type APIVoiceState,
   type Client,
@@ -270,7 +270,6 @@ export class DiscordVoiceManager {
   >();
   private readonly admissionAllowFrom?: string[];
   private readonly ownerAllowFrom?: string[];
-  private readonly ownerAllowAll: boolean;
   private readonly speakerContext: DiscordVoiceSpeakerContextResolver;
   private readonly membership: DiscordVoiceMembershipTracker;
   private readonly allowedChannels: VoiceChannelResidency[] | null;
@@ -299,7 +298,6 @@ export class DiscordVoiceManager {
     const voiceAccess = resolveDiscordVoiceAccess(params);
     this.admissionAllowFrom = voiceAccess.admissionAllowFrom;
     this.ownerAllowFrom = voiceAccess.ownerAllowFrom;
-    this.ownerAllowAll = voiceAccess.ownerAllowAll;
     this.allowedChannels =
       params.discordConfig.voice?.allowedChannels === undefined
         ? null
@@ -310,7 +308,6 @@ export class DiscordVoiceManager {
     this.speakerContext = new DiscordVoiceSpeakerContextResolver({
       client: params.client,
       ownerAllowFrom: this.ownerAllowFrom,
-      ownerAllowAll: this.ownerAllowAll,
     });
     this.membership = new DiscordVoiceMembershipTracker(
       params.client,
