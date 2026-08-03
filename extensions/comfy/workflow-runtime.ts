@@ -1,41 +1,41 @@
 // Comfy plugin module implements workflow runtime behavior.
 import fs from "node:fs/promises";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { canResolveEnvSecretRefInReadOnlyPath } from "astroclaw/plugin-sdk/extension-shared";
-import { resolveGeneratedMediaMaxBytes } from "astroclaw/plugin-sdk/media-generation-runtime";
-import { extensionForMime } from "astroclaw/plugin-sdk/media-mime";
-import { resolvePositiveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { canResolveEnvSecretRefInReadOnlyPath } from "openclaw/plugin-sdk/extension-shared";
+import { resolveGeneratedMediaMaxBytes } from "openclaw/plugin-sdk/media-generation-runtime";
+import { extensionForMime } from "openclaw/plugin-sdk/media-mime";
+import { resolvePositiveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import {
   isProviderApiKeyConfigured,
   type AuthProfileStore,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
+} from "openclaw/plugin-sdk/provider-auth";
+import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
 import {
   assertOkOrThrowHttpError,
   normalizeBaseUrl,
   readProviderJsonResponse,
   resolveProviderHttpRequestConfig,
-} from "astroclaw/plugin-sdk/provider-http";
-import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
+} from "openclaw/plugin-sdk/provider-http";
+import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
 import {
   normalizeSecretInputString,
   resolveSecretInputString,
-} from "astroclaw/plugin-sdk/secret-input-runtime";
+} from "openclaw/plugin-sdk/secret-input-runtime";
 import {
   fetchWithSsrFGuard,
   isPrivateOrLoopbackHost,
   mergeSsrFPolicies,
   ssrfPolicyFromHttpBaseUrlAllowedOrigin,
   type SsrFPolicy,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   asBoolean,
   isRecord,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
   uniqueStrings,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolveUserPath } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolveUserPath } from "openclaw/plugin-sdk/text-utility-runtime";
 
 const DEFAULT_COMFY_LOCAL_BASE_URL = "http://127.0.0.1:8188";
 const DEFAULT_COMFY_CLOUD_BASE_URL = "https://cloud.comfy.org";
@@ -637,6 +637,7 @@ export function isComfyCapabilityConfigured(params: {
   }
   return isProviderApiKeyConfigured({
     provider: "comfy",
+    cfg: params.cfg,
     agentDir: params.agentDir,
   });
 }
