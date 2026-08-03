@@ -9,7 +9,7 @@ import type {
   AnyAgentTool,
   EmbeddedRunAttemptParams,
   SandboxContext,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   applyEmbeddedAttemptToolsAllow,
   buildEmbeddedAttemptToolRunContext,
@@ -21,11 +21,11 @@ import {
   resolveEmbeddedAttemptToolConstructionPlan,
   resolveModelAuthMode,
   sanitizeToolResult,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { createAgentHarnessToolSurfaceRuntime } from "openclaw/plugin-sdk/agent-harness-tool-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { createAgentHarnessToolSurfaceRuntime } from "astroclaw/plugin-sdk/agent-harness-tool-runtime";
 
 type CreateOpenClawCodingTools =
-  (typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
+  (typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
 type OpenClawCodingToolsOptions = NonNullable<Parameters<CreateOpenClawCodingTools>[0]>;
 type AgentHarnessToolSurfaceRuntime = ReturnType<typeof createAgentHarnessToolSurfaceRuntime>;
 type CatalogExecuteParams = Parameters<
@@ -196,7 +196,7 @@ export async function createCopilotToolBridge(
 
   const createOpenClawCodingTools =
     input.createOpenClawCodingTools ??
-    (await import("openclaw/plugin-sdk/agent-harness")).createOpenClawCodingTools;
+    (await import("astroclaw/plugin-sdk/agent-harness")).createOpenClawCodingTools;
 
   const toolSurfaceRuntime = createAgentHarnessToolSurfaceRuntime({
     abortSignal: input.abortSignal,
@@ -446,6 +446,7 @@ function buildOpenClawCodingToolsOptions(
     // recordToolPrepStage intentionally omitted: copilot does not
     // surface attempt-stage telemetry yet. Codex omits this too.
     onToolOutcome: a.onToolOutcome,
+    isTurnTainted: a.isTurnTainted,
     onYield: (message) => {
       // Notify the caller first so the final attempt result can carry
       // yieldDetected even if the abort below races a concurrent
