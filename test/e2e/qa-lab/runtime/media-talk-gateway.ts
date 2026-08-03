@@ -4,8 +4,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   QA_EVIDENCE_FILENAME,
   type QaEvidenceSummaryJson,
@@ -50,7 +50,7 @@ const SCENARIOS = {
     docsRefs: ["docs/tools/tts.md", "docs/tools/media-overview.md"],
     codeRefs: [
       SOURCE_PATH,
-      "packages/speech-core/src/tts.ts",
+      "src/tts/runtime-api.ts",
       "src/gateway/managed-image-attachments.ts",
       "src/gateway/server-methods/artifacts.ts",
     ],
