@@ -1,39 +1,44 @@
 // Slack provider module implements model/runtime integration.
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { type FetchFunction, WebClient } from "@slack/web-api";
 import {
   addAllowlistUserEntriesFromConfigEntry,
   buildAllowlistResolutionSummary,
   mergeAllowlist,
   patchAllowlistUsersInConfigEntries,
   summarizeMapping,
-} from "astroclaw/plugin-sdk/allow-from";
-import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-adapter-runtime";
-import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
-import type { SessionScope } from "astroclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { resolveTextChunkLimit } from "astroclaw/plugin-sdk/reply-chunking";
-import { DEFAULT_GROUP_HISTORY_LIMIT } from "astroclaw/plugin-sdk/reply-history";
-import { normalizeMainKey } from "astroclaw/plugin-sdk/routing";
-import { warn } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/allow-from";
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-adapter-runtime";
+import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
+import type { SessionScope } from "openclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { resolveTextChunkLimit } from "openclaw/plugin-sdk/reply-chunking";
+import { DEFAULT_GROUP_HISTORY_LIMIT } from "openclaw/plugin-sdk/reply-history";
+import { normalizeMainKey } from "openclaw/plugin-sdk/routing";
+import { warn } from "openclaw/plugin-sdk/runtime-env";
 import {
   computeBackoff,
   createNonExitingRuntime,
   sleepWithAbort,
   type RuntimeEnv,
-} from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/runtime-env";
+import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
 import {
   normalizeOptionalString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { installRequestBodyLimitGuard } from "astroclaw/plugin-sdk/webhook-request-guards";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { installRequestBodyLimitGuard } from "openclaw/plugin-sdk/webhook-request-guards";
 import {
   resolveSlackAccount,
   resolveSlackAccountAllowFrom,
   resolveSlackAccountDmPolicy,
 } from "../accounts.js";
 import { isSlackAnyNativeApprovalClientEnabled } from "../approval-native-gates.js";
-import { resolveSlackProxyDispatcher, resolveSlackWebClientOptions } from "../client-options.js";
+import {
+  resolveSlackLookupClientOptions,
+  resolveSlackProxyDispatcher,
+  resolveSlackWebClientOptions,
+} from "../client-options.js";
 import { createSlackStartupAuthClient } from "../client.js";
 import { normalizeSlackWebhookPath, registerSlackHttpHandler } from "../http/index.js";
 import { SLACK_TEXT_LIMIT } from "../limits.js";
@@ -66,7 +71,11 @@ import { registerSlackMonitorEvents } from "./events.js";
 import { createSlackDurableIngress } from "./ingress.js";
 import { createSlackMessageHandler } from "./message-handler.js";
 import { openSlackPresenceCooldownStore } from "./presence-cooldown-store.js";
-import { createSlackPresenceMonitor, hasSlackPresenceEventsEnabled } from "./presence-monitor.js";
+import {
+  createSlackPresenceMonitor,
+  hasSlackPresenceEventsEnabled,
+  SLACK_PRESENCE_REQUEST_TIMEOUT_MS,
+} from "./presence-monitor.js";
 import {
   createSlackBoltApp,
   formatSlackChannelResolved,
@@ -91,6 +100,17 @@ import { registerSlackMonitorSlashCommands } from "./slash.js";
 import type { MonitorSlackOpts } from "./types.js";
 
 let slackBoltInterop: SlackBoltResolvedExports | undefined;
+
+function withSlackPresenceLifecycleSignal(
+  fetchImpl: FetchFunction,
+  lifecycleSignal: AbortSignal,
+): FetchFunction {
+  return async (input, init) =>
+    await fetchImpl(input, {
+      ...init,
+      signal: init?.signal ? AbortSignal.any([init.signal, lifecycleSignal]) : lifecycleSignal,
+    });
+}
 
 async function getSlackBoltInterop(): Promise<SlackBoltResolvedExports> {
   if (!slackBoltInterop) {
@@ -614,17 +634,34 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     account: slackCfg.presenceEvents,
     channels: slackCfg.channels,
   });
-  const presenceMonitor =
+  const presenceRequestAbort =
     installationIdentity.kind !== "enterprise" && presenceEventsEnabled
-      ? createSlackPresenceMonitor({
-          accountId: account.accountId,
-          accountConfig: slackCfg.presenceEvents,
-          client: app.client.users,
-          cooldownStore: openSlackPresenceCooldownStore(),
-          log: runtime.log,
-          error: runtime.error,
-        })
+      ? new AbortController()
       : undefined;
+  const presenceClient =
+    presenceRequestAbort === undefined
+      ? undefined
+      : (() => {
+          const options = resolveSlackLookupClientOptions(
+            { ...clientOptions, timeout: SLACK_PRESENCE_REQUEST_TIMEOUT_MS },
+            slackDispatcher,
+          );
+          options.fetch = withSlackPresenceLifecycleSignal(
+            options.fetch ?? globalThis.fetch,
+            presenceRequestAbort.signal,
+          );
+          return new WebClient(token, options).users;
+        })();
+  const presenceMonitor = presenceClient
+    ? createSlackPresenceMonitor({
+        accountId: account.accountId,
+        accountConfig: slackCfg.presenceEvents,
+        client: presenceClient,
+        cooldownStore: openSlackPresenceCooldownStore(),
+        log: runtime.log,
+        error: runtime.error,
+      })
+    : undefined;
   if (installationIdentity.kind === "enterprise" && presenceEventsEnabled) {
     runtime.log?.(warn("slack presence events are unavailable for Enterprise Grid org installs"));
   }
@@ -945,6 +982,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       }
     }
   } finally {
+    presenceRequestAbort?.abort();
     await presenceMonitor?.stop();
     if (slackMode === "relay") {
       setSlackDefaultSendIdentity(account.accountId, undefined);
