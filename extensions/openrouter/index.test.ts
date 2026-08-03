@@ -1,15 +1,15 @@
 // Openrouter tests cover index plugin behavior.
 import { readFileSync } from "node:fs";
-import { createAssistantMessageEventStream } from "astroclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream } from "openclaw/plugin-sdk/llm";
 import {
   registerProviderPlugin,
   registerSingleProviderPlugin,
   resolveProviderPluginChoice,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import {
   expectPassthroughReplayPolicy,
   expectUnifiedModelCatalogProviderRegistration,
-} from "astroclaw/plugin-sdk/provider-test-contracts";
+} from "openclaw/plugin-sdk/provider-test-contracts";
 import { describe, expect, it, vi } from "vitest";
 
 const { getOpenRouterModelCapabilitiesMock, loadOpenRouterModelCapabilitiesMock } = vi.hoisted(
@@ -19,9 +19,9 @@ const { getOpenRouterModelCapabilitiesMock, loadOpenRouterModelCapabilitiesMock 
   }),
 );
 
-vi.mock("astroclaw/plugin-sdk/provider-stream-family", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/provider-stream-family", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-stream-family")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/provider-stream-family")>();
   return {
     ...actual,
     getOpenRouterModelCapabilities: getOpenRouterModelCapabilitiesMock,
@@ -30,6 +30,7 @@ vi.mock("astroclaw/plugin-sdk/provider-stream-family", async (importOriginal) =>
 });
 
 import openrouterPlugin from "./index.js";
+import * as openRouterCatalog from "./provider-catalog.js";
 import {
   buildOpenrouterProvider,
   isOpenRouterProxyReasoningUnsupportedModel,
@@ -67,8 +68,8 @@ async function captureOpenRouterWrappedPayload(params: {
   let capturedPayload: Record<string, unknown> | undefined;
   const baseStreamFn = vi.fn(
     (
-      ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
-    ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
+      ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
+    ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
       void args[2]?.onPayload?.(params.payload, args[0]);
       if (!params.forwardPayload) {
         capturedPayload = params.payload;
@@ -250,6 +251,135 @@ describe("openrouter provider hooks", () => {
   it("uses the canonical prefixed OpenRouter auto model id", () => {
     expect(buildOpenrouterProvider().models?.map((model) => model.id)).toContain("openrouter/auto");
     expect(buildOpenrouterProvider().models?.map((model) => model.id)).not.toContain("auto");
+  });
+
+  it("forwards configured proxy destination and request policy into authenticated catalog discovery", async () => {
+    const provider = await registerSingleProviderPlugin(openrouterPlugin);
+    const configuredProvider = {
+      apiKey: "synthetic-private-proxy-key",
+      baseUrl: "https://private.example.invalid/router/v1///",
+      request: { headers: { "X-Private-Proxy-Tenant": "synthetic-tenant" } },
+      models: [],
+    };
+    const catalogSpy = vi
+      .spyOn(openRouterCatalog, "buildOpenrouterLiveProvider")
+      .mockResolvedValue(buildOpenrouterProvider());
+
+    try {
+      await provider.catalog?.run({
+        config: { models: { providers: { openrouter: configuredProvider } } },
+        resolveProviderApiKey: () => ({
+          apiKey: "OPENROUTER_API_KEY",
+          discoveryApiKey: "synthetic-private-proxy-key",
+        }),
+      } as never);
+
+      expect(catalogSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseUrl: configuredProvider.baseUrl,
+          request: configuredProvider.request,
+        }),
+      );
+    } finally {
+      catalogSpy.mockRestore();
+    }
+  });
+
+  it("keeps dynamic proxy models on their configured credential destination", async () => {
+    const provider = await registerSingleProviderPlugin(openrouterPlugin);
+    const model = provider.resolveDynamicModel?.({
+      provider: "openrouter",
+      modelId: "private/unknown-model",
+      modelRegistry: { find: vi.fn(() => null) },
+      providerConfig: { baseUrl: "https://private.example.invalid/router/v1///" },
+    } as never);
+
+    expect(model?.baseUrl).toBe("https://private.example.invalid/router/v1");
+  });
+
+  it("resolves dynamic proxy destinations from canonical provider config when runtime config is absent", async () => {
+    const provider = await registerSingleProviderPlugin(openrouterPlugin);
+    const model = provider.resolveDynamicModel?.({
+      provider: "openrouter",
+      modelId: "private/unknown-model",
+      modelRegistry: { find: vi.fn(() => null) },
+      config: {
+        models: {
+          providers: {
+            openrouter: { baseUrl: "https://private.example.invalid/router/v1/", models: [] },
+          },
+        },
+      },
+    } as never);
+
+    expect(model?.baseUrl).toBe("https://private.example.invalid/router/v1");
+  });
+
+  it("preserves the canonical official destination for dynamically resolved default models", async () => {
+    const provider = await registerSingleProviderPlugin(openrouterPlugin);
+    const model = provider.resolveDynamicModel?.({
+      provider: "openrouter",
+      modelId: "openrouter/auto",
+      modelRegistry: { find: vi.fn(() => null) },
+      providerConfig: { baseUrl: "https://openrouter.ai/v1///" },
+    } as never);
+
+    expect(model?.baseUrl).toBe("https://openrouter.ai/api/v1");
+  });
+
+  it("forwards configured proxy destination and headers to both usage requests", async () => {
+    const provider = await registerSingleProviderPlugin(openrouterPlugin);
+    const fetchFn = vi.fn<typeof fetch>(async () => Response.json({ data: { usage: 1 } }));
+
+    await provider.fetchUsageSnapshot?.({
+      config: {
+        models: {
+          providers: {
+            openrouter: {
+              baseUrl: "https://private.example.invalid/router/v1///",
+              request: { headers: { "X-Private-Proxy-Tenant": "synthetic-tenant" } },
+              models: [],
+            },
+          },
+        },
+      },
+      env: {},
+      provider: "openrouter",
+      token: "synthetic-private-proxy-key",
+      timeoutMs: 5000,
+      fetchFn: fetchFn as unknown as typeof fetch,
+    });
+
+    expect(fetchFn.mock.calls.map(([url]) => url)).toEqual([
+      "https://private.example.invalid/router/v1/credits",
+      "https://private.example.invalid/router/v1/key",
+    ]);
+    for (const [, options] of fetchFn.mock.calls) {
+      expect(new Headers(options?.headers).get("x-private-proxy-tenant")).toBe("synthetic-tenant");
+    }
+  });
+
+  it("does not start authenticated catalog discovery when no credential exists", async () => {
+    const provider = await registerSingleProviderPlugin(openrouterPlugin);
+    const catalogSpy = vi.spyOn(openRouterCatalog, "buildOpenrouterLiveProvider");
+
+    try {
+      await expect(
+        provider.catalog?.run({
+          config: {
+            models: {
+              providers: {
+                openrouter: { baseUrl: "https://private.example.invalid/v1", models: [] },
+              },
+            },
+          },
+          resolveProviderApiKey: () => ({}),
+        } as never),
+      ).resolves.toBeNull();
+      expect(catalogSpy).not.toHaveBeenCalled();
+    } finally {
+      catalogSpy.mockRestore();
+    }
   });
 
   it("normalizes OpenRouter API ids before capability loading and lookup", async () => {
@@ -764,8 +894,8 @@ describe("openrouter provider hooks", () => {
     let capturedPayload: Record<string, unknown> | undefined;
     const baseStreamFn = vi.fn(
       (
-        ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
-      ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
+        ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
+      ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
         const payload: Record<string, unknown> = {};
         void args[2]?.onPayload?.(payload, args[0]);
         capturedPayload = payload;
@@ -936,8 +1066,8 @@ describe("openrouter provider hooks", () => {
     const payloads: Array<Record<string, unknown>> = [];
     const baseStreamFn = vi.fn(
       (
-        ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
-      ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
+        ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
+      ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
         const payload = { reasoning: { effort: "high" }, messages: [] };
         void args[2]?.onPayload?.(payload, args[0]);
         payloads.push(payload);
@@ -1000,8 +1130,8 @@ describe("openrouter provider hooks", () => {
     const payloads: Array<Record<string, unknown>> = [];
     const baseStreamFn = vi.fn(
       (
-        ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
-      ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
+        ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
+      ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
         const payload = {
           messages: [{ role: "assistant", tool_calls: [{ id: "call_1", type: "function" }] }],
         };
@@ -1097,8 +1227,8 @@ describe("openrouter provider hooks", () => {
     const payloads: Array<Record<string, unknown>> = [];
     const baseStreamFn = vi.fn(
       (
-        ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
-      ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
+        ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
+      ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
         const payload = {
           messages: [
             { role: "user", content: "Return JSON." },
