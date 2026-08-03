@@ -3,9 +3,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { MemorySearchResult } from "openclaw/plugin-sdk/memory-core-host-runtime-files";
-import { normalizeSessionDeliveryState } from "openclaw/plugin-sdk/session-store-runtime";
-import * as sessionTranscriptHit from "openclaw/plugin-sdk/session-transcript-hit";
+import type { MemorySearchResult } from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
+import { normalizeSessionDeliveryState } from "astroclaw/plugin-sdk/session-store-runtime";
+import * as sessionTranscriptHit from "astroclaw/plugin-sdk/session-transcript-hit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { replaceQmdSessionArtifactMappings } from "./qmd-session-artifacts.js";
 import { filterMemorySearchHitsBySessionVisibility } from "./session-search-visibility.js";
@@ -30,9 +30,9 @@ const crossAgentStore: Record<string, TestSessionEntry> = {
 let combinedSessionStore: Record<string, TestSessionEntry> = crossAgentStore;
 const tempRoots: string[] = [];
 
-vi.mock("openclaw/plugin-sdk/session-transcript-hit", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-hit", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-hit")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-hit")>();
   return {
     ...actual,
     loadCombinedSessionStoreForGateway: vi.fn(() => ({
@@ -166,6 +166,49 @@ describe("filterMemorySearchHitsBySessionVisibility", () => {
       hits,
     });
     expect(filtered).toEqual(hits);
+  });
+
+  it("keeps memory but hides an unrelated same-agent session from a voice requester", async () => {
+    combinedSessionStore = {
+      "agent:main:voice:15550001111": {
+        sessionId: "voice",
+        updatedAt: 2,
+        sessionFile: "/tmp/sessions/voice.jsonl",
+        chatType: "direct",
+      },
+      "agent:main:telegram:direct:owner": {
+        sessionId: "private",
+        updatedAt: 1,
+        sessionFile: "/tmp/sessions/private.jsonl",
+        chatType: "direct",
+      },
+    };
+    const memoryHit: MemorySearchResult = {
+      path: "memory/allowed.md",
+      source: "memory",
+      score: 1,
+      snippet: "Visible memory",
+      startLine: 1,
+      endLine: 2,
+    };
+    const sessionHit: MemorySearchResult = {
+      path: "sessions/private.jsonl",
+      source: "sessions",
+      score: 1,
+      snippet: "Private session secret",
+      startLine: 1,
+      endLine: 2,
+    };
+
+    const filtered = await filterMemorySearchHitsBySessionVisibility({
+      cfg: asOpenClawConfig({}),
+      agentId: "main",
+      requesterSessionKey: "agent:main:voice:15550001111",
+      sandboxed: false,
+      hits: [memoryHit, sessionHit],
+    });
+
+    expect(filtered).toEqual([memoryHit]);
   });
 
   it("allows another same-agent private transcript through trusted conversation recall", async () => {
