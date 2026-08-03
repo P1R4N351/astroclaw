@@ -1,8 +1,8 @@
 // Qa Lab plugin module implements character eval behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { normalizeStringEntries, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { normalizeStringEntries, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import pMap from "p-map";
 import prettyMilliseconds from "pretty-ms";
 import { createQaArtifactRunId } from "./artifact-run-id.js";
@@ -376,6 +376,13 @@ function parseJudgeReply(reply: string | null, allowedModels: Set<string>) {
   const rankings = normalizeJudgment(parsed, allowedModels);
   if (rankings.length === 0) {
     throw new Error("judge reply did not contain valid rankings");
+  }
+  if (
+    rankings.length !== allowedModels.size ||
+    new Set(rankings.map(({ model }) => model)).size !== allowedModels.size ||
+    rankings.some(({ rank }, index) => rank !== index + 1)
+  ) {
+    throw new Error("judge reply must rank every candidate exactly once with consecutive ranks");
   }
   return rankings;
 }
