@@ -43,17 +43,17 @@ const {
   sanitizeConfiguredModelProviderRequestMock: vi.fn((request) => request),
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
   isProviderApiKeyConfigured: isProviderApiKeyConfiguredMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-http", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/provider-http")>(
-    "openclaw/plugin-sdk/provider-http",
+vi.mock("astroclaw/plugin-sdk/provider-http", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/provider-http")>(
+    "astroclaw/plugin-sdk/provider-http",
   );
   return {
     assertOkOrThrowHttpError: assertOkOrThrowHttpErrorMock,
@@ -180,6 +180,32 @@ describe("OpenAI-compatible image provider helper", () => {
     expect(isProviderApiKeyConfiguredMock).toHaveBeenCalledWith({
       provider: "sample",
       agentDir: "/tmp/agent",
+    });
+  });
+
+  it("checks config-backed auth under the credential owner, not its HTTP config alias", () => {
+    const provider = createProvider({ providerConfigKey: "different-http-provider" });
+    const cfg = {
+      models: {
+        providers: {
+          sample: {
+            apiKey: "sample-config-key",
+            baseUrl: "https://sample.example/v1/",
+            models: [],
+          },
+          "different-http-provider": {
+            apiKey: "wrong-owner-key",
+            baseUrl: "https://different-http-provider.example/v1/",
+            models: [],
+          },
+        },
+      },
+    };
+
+    expect(provider.isConfigured?.({ cfg })).toBe(true);
+    expect(isProviderApiKeyConfiguredMock).toHaveBeenCalledWith({
+      provider: "sample",
+      cfg,
     });
   });
 
