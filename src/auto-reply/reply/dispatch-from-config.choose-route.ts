@@ -2,7 +2,7 @@ import { normalizeOptionalString } from "@openclaw/normalization-core/string-coe
 import {
   hasOutboundReplyContent,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
+} from "openclaw/plugin-sdk/reply-payload";
 import { logVerbose } from "../../globals.js";
 import { createPluginSubagentRequesterContext } from "../../plugins/runtime/subagent-requester-context.js";
 import { registerReplyDispatcherSettledTask } from "../dispatch-dispatcher.js";
@@ -75,7 +75,6 @@ export async function chooseDispatchRoute(state: PrepareDispatchOperationReadySt
   const shouldSuppressDefaultToolProgressMessages = () => !shouldEmitVerboseProgress();
   const shouldSendVerboseProgressMessages = () => !shouldSuppressDefaultToolProgressMessages();
   const shouldSendToolSummaries = () => shouldSendVerboseProgressMessages();
-  const shouldSendToolStartStatuses = false;
   const notifiedSessionMetadataChangeKeys = new Set<string>();
   const routeState: { sessionMetadataChangesForResult?: CommandSessionMetadataChange[] } = {};
   const notifySessionMetadataChanges = (
@@ -600,7 +599,6 @@ export async function chooseDispatchRoute(state: PrepareDispatchOperationReadySt
     shouldSuppressDefaultToolProgressMessages,
     shouldSendVerboseProgressMessages,
     shouldSendToolSummaries,
-    shouldSendToolStartStatuses,
     notifySessionMetadataChanges,
     shouldDeliverVerboseProgressDespiteSourceSuppression,
     shouldDeliverForcedToolProgressDespiteSourceSuppression,
