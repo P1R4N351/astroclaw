@@ -14,19 +14,19 @@ import os from "node:os";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   isRecord,
   normalizeOptionalString,
   normalizeStringEntries,
   uniqueStrings,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -144,7 +144,7 @@ function createQaGatewayEmptyTransport() {
 }
 
 function resolveQaGatewayChildCommand(repoRoot: string): QaGatewayChildCommand {
-  for (const relativePath of ["dist/index.mjs", "dist/index.js"]) {
+  for (const relativePath of ["scripts/run-node.mjs", "dist/index.mjs", "dist/index.js"]) {
     const entryPath = path.join(repoRoot, relativePath);
     if (existsSync(entryPath)) {
       return {
@@ -156,16 +156,9 @@ function resolveQaGatewayChildCommand(repoRoot: string): QaGatewayChildCommand {
     }
   }
 
-  const sourceEntryPath = path.join(repoRoot, "src/entry.ts");
-  if (existsSync(sourceEntryPath)) {
-    return {
-      executablePath: process.execPath,
-      argsPrefix: ["--import", "tsx", sourceEntryPath],
-      cwd: repoRoot,
-    };
-  }
-
-  throw new Error("OpenClaw CLI entry not found: expected dist/index.(m)js or src/entry.ts");
+  throw new Error(
+    "OpenClaw CLI entry not found: expected scripts/run-node.mjs or dist/index.(m)js",
+  );
 }
 
 async function runQaGatewayCliCommand(params: {
@@ -450,6 +443,7 @@ export function buildQaRuntimeEnv(params: {
   };
   const normalizedEnv = normalizeQaProviderModeEnv(env, params.providerMode);
   Object.assign(normalizedEnv, params.runtimeEnvPatch);
+  normalizedEnv.OPENCLAW_BUILD_PRIVATE_QA = "1";
   delete normalizedEnv[QA_LIVE_ANTHROPIC_SETUP_TOKEN_ENV];
   delete normalizedEnv[QA_LIVE_SETUP_TOKEN_VALUE_ENV];
   return scrubQaGatewayChildSecretEnv(normalizedEnv);
@@ -1078,7 +1072,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
   const tempRoot = await fs.mkdtemp(path.join(tempParentDir, "openclaw-qa-suite-"));
   const runtimeCwd = tempRoot;
   const distEntryPath = path.join(params.repoRoot, "dist", "index.js");
