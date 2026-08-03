@@ -1,5 +1,5 @@
 // Command path policy tests cover allowed CLI command path shapes and lazy imports.
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CliCommandCatalogEntry, CliCommandPathPolicy } from "./command-catalog.js";
 import {
@@ -72,6 +72,20 @@ describe("command-path-policy", () => {
       ensureCliPath: false,
       networkProxy: "bypass",
     });
+  });
+
+  it("keeps RPC-only nodes reads off the config guard", () => {
+    expectResolvedPolicy(["nodes", "status"], {
+      configGuard: "skip",
+      networkProxy: "bypass",
+    });
+    expectResolvedPolicy(["nodes", "list"], {
+      configGuard: "skip",
+      networkProxy: "bypass",
+    });
+    // Bare `openclaw nodes` still resolves plugin subcommands from validated config.
+    expectResolvedPolicy(["nodes"], { networkProxy: "bypass" });
+    expectResolvedPolicy(["nodes", "pair"], { networkProxy: "bypass" });
   });
 
   it("applies exact overrides after broader channel plugin rules", () => {
