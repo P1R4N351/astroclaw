@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentTool, AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentTool, AgentToolResult } from "openclaw/plugin-sdk/agent-core";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { replaceSessionEntry } from "../config/sessions/session-accessor.js";
@@ -1059,6 +1059,7 @@ describe("createOpenClawCodingTools", () => {
     const resolvePluginToolsSpy = vi
       .spyOn(openClawPluginTools, "resolveOpenClawPluginToolsForOptions")
       .mockReturnValue([]);
+    const preparedModelRuntime = { metadataSnapshot: {} } as never;
 
     try {
       createOpenClawCodingTools({
@@ -1069,6 +1070,7 @@ describe("createOpenClawCodingTools", () => {
         modelId: "openrouter/auto",
         nativeChannelId: "oc_native_chat",
         clientCaps: ["inline-widgets"],
+        preparedModelRuntime,
         toolConstructionPlan: {
           includeBaseCodingTools: false,
           includeShellTools: false,
@@ -1085,6 +1087,7 @@ describe("createOpenClawCodingTools", () => {
       expect(pluginToolOptions?.modelId).toBe("openrouter/auto");
       expect(pluginToolOptions?.nativeChannelId).toBe("oc_native_chat");
       expect(pluginToolOptions?.clientCaps).toEqual(["inline-widgets"]);
+      expect(pluginToolOptions?.preparedModelRuntime).toBe(preparedModelRuntime);
     } finally {
       resolvePluginToolsSpy.mockRestore();
     }
