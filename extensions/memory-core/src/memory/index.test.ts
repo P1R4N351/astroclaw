@@ -4,23 +4,23 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { clearMemoryEmbeddingProviders as clearRegistry } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { clearMemoryEmbeddingProviders as clearRegistry } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   hashText,
   INVALID_PROJECT_ANNOTATION_KEY,
   MEMORY_CHUNKING_VERSION,
   type MemorySessionSyncTarget,
   type MemorySyncParams,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
-import { resolveOpenClawAgentSqlitePath } from "astroclaw/plugin-sdk/sqlite-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
+import { resolveOpenClawAgentSqlitePath } from "openclaw/plugin-sdk/sqlite-runtime";
 import {
   closeOpenClawAgentDatabasesForTest,
   closeOpenClawStateDatabaseForTest,
   openOpenClawAgentDatabase,
-} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+} from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configureMemoryCoreDreamingStateForTests,
@@ -91,7 +91,8 @@ function restoreMemoryIndexStateDir(): void {
   }
 }
 
-vi.mock("./embeddings.js", () => {
+vi.mock("./embeddings.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./embeddings.js")>();
   const embedText = (text: string) => {
     const lower = text.toLowerCase();
     const alpha = lower.split("alpha").length - 1;
@@ -101,6 +102,7 @@ vi.mock("./embeddings.js", () => {
     return [alpha, beta, image, audio];
   };
   return {
+    ...actual,
     resolveEmbeddingProviderFallbackModel: (providerId: string, fallbackSourceModel: string) =>
       providerId === "gemini" || providerId === "fallback-provider"
         ? `${providerId}-embed`
