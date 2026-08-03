@@ -1,6 +1,6 @@
 // Exa provider module implements model/runtime integration.
-import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
-import { readResponseTextLimited } from "openclaw/plugin-sdk/provider-http";
+import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
+import { readResponseTextLimited } from "astroclaw/plugin-sdk/provider-http";
 import {
   buildSearchCacheKey,
   DEFAULT_SEARCH_COUNT,
@@ -19,12 +19,12 @@ import {
   withTrustedWebSearchEndpoint,
   wrapWebContent,
   writeCachedSearchPayload,
-} from "openclaw/plugin-sdk/provider-web-search";
-import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
+} from "astroclaw/plugin-sdk/provider-web-search";
+import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 
 const EXA_SEARCH_ENDPOINT = "https://api.exa.ai/search";
 const EXA_SEARCH_TYPES = ["auto", "neural", "fast", "deep", "deep-reasoning", "instant"] as const;
@@ -392,6 +392,7 @@ async function runExaSearch(params: {
   type: ExaSearchType;
   contents?: ExaContentsArgs;
   timeoutSeconds: number;
+  signal?: AbortSignal;
 }): Promise<ExaSearchResult[]> {
   const body: Record<string, unknown> = {
     query: params.query,
@@ -413,6 +414,7 @@ async function runExaSearch(params: {
     {
       url: params.endpoint,
       timeoutSeconds: params.timeoutSeconds,
+      signal: params.signal,
       init: {
         method: "POST",
         headers: {
@@ -471,6 +473,7 @@ function buildExaCacheKey(params: {
 export async function executeExaWebSearchProviderTool(
   ctx: { config?: Record<string, unknown>; searchConfig?: SearchConfigRecord },
   args: Record<string, unknown>,
+  signal?: AbortSignal,
 ): Promise<Record<string, unknown>> {
   const searchConfig = mergeScopedSearchConfig(
     ctx.searchConfig,
@@ -570,8 +573,10 @@ export async function executeExaWebSearchProviderTool(
     type,
     contents,
     timeoutSeconds: resolveSearchTimeoutSeconds(searchConfig),
+    signal,
   });
 
+  signal?.throwIfAborted();
   const payload = {
     query,
     provider: "exa",
