@@ -1,7 +1,7 @@
+import { MAX_DATE_TIMESTAMP_MS } from "astroclaw/plugin-sdk/number-runtime";
+import { createPluginRuntimeStore } from "astroclaw/plugin-sdk/runtime-store";
 // Discord tests cover components plugin behavior.
 import { ButtonStyle, MessageFlags } from "discord-api-types/v10";
-import { MAX_DATE_TIMESTAMP_MS } from "openclaw/plugin-sdk/number-runtime";
-import { createPluginRuntimeStore } from "openclaw/plugin-sdk/runtime-store";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearDiscordComponentEntriesForTest } from "./components-registry.test-support.js";
 import type { DiscordComponentEntry, DiscordModalEntry } from "./components.js";
@@ -330,6 +330,10 @@ describe("discord component registry", () => {
   });
 
   const componentsRegistryModuleUrl = new URL("./components-registry.ts", import.meta.url).href;
+  const componentsRegistryStateModuleUrl = new URL(
+    "./components-registry-state.ts",
+    import.meta.url,
+  ).href;
 
   it("registers and consumes component entries", async () => {
     registerDiscordComponentEntries({
@@ -423,6 +427,21 @@ describe("discord component registry", () => {
     expect(typeof sharedEntry?.createdAt).toBe("number");
     expect(typeof sharedEntry?.expiresAt).toBe("number");
 
+    clearDiscordComponentEntriesForTest();
+  });
+
+  it("shares persistent registry state across duplicate state modules", async () => {
+    const first = (await import(
+      `${componentsRegistryStateModuleUrl}?t=first-${Date.now()}`
+    )) as typeof import("./components-registry-state.js");
+    const second = (await import(
+      `${componentsRegistryStateModuleUrl}?t=second-${Date.now()}`
+    )) as typeof import("./components-registry-state.js");
+
+    first.discordComponentRegistryState.persistentRegistryDisabled = true;
+
+    expect(second.discordComponentRegistryState).toBe(first.discordComponentRegistryState);
+    expect(second.discordComponentRegistryState.persistentRegistryDisabled).toBe(true);
     clearDiscordComponentEntriesForTest();
   });
 
