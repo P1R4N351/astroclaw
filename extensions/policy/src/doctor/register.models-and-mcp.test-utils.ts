@@ -1,7 +1,7 @@
 // Imported by register.test.ts to keep its mocked suite in one Vitest module graph.
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { runDoctorLintChecks, type OpenClawConfig } from "astroclaw/plugin-sdk/health";
+import { runDoctorLintChecks, type OpenClawConfig } from "openclaw/plugin-sdk/health";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectPolicyEvidence } from "../policy-state.js";
 import {
@@ -13,26 +13,15 @@ import {
   runPolicyChecks,
   runPolicyDoctorLint,
   runPolicyRepairCheck,
-  describe0BeforeEach0,
-  describe0AfterEach1,
+  setupPolicyDoctorTest,
+  teardownPolicyDoctorTest,
+  writePolicyFixture,
 } from "./register.test-harness.js";
 
 const scanPolicyMcpServers = (cfg: object) =>
   collectPolicyEvidence(cfg as Record<string, unknown>).mcpServers;
 const scanPolicyIngress = (cfg: object) =>
   collectPolicyEvidence(cfg as Record<string, unknown>).ingress ?? [];
-
-async function writePolicyFixture(...json: Parameters<typeof JSON.stringify>): Promise<string> {
-  const [policy] = json;
-  const configPath = join(workspaceDir, "openclaw.jsonc");
-  await fs.writeFile(configPath, "{}", "utf-8");
-  await fs.writeFile(
-    join(workspaceDir, "policy.jsonc"),
-    typeof policy === "string" ? policy : JSON.stringify(...json),
-    "utf-8",
-  );
-  return configPath;
-}
 
 function writeModelPolicyFixture(providers: object): Promise<string> {
   return writePolicyFixture({ models: { providers } });
@@ -51,9 +40,9 @@ function writeIngressPolicyFixture(ingress: object): Promise<string> {
 }
 
 describe("registerPolicyDoctorChecks", () => {
-  beforeEach(describe0BeforeEach0);
+  beforeEach(setupPolicyDoctorTest);
 
-  afterEach(describe0AfterEach1);
+  afterEach(teardownPolicyDoctorTest);
 
   it("repairs required agent workspace deny tool findings", async () => {
     const cfg = {
