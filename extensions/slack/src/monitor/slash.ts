@@ -5,34 +5,34 @@ import {
   loadPreparedModelCatalog,
   resolveAgentDir,
   resolveDefaultModelForAgent,
-} from "openclaw/plugin-sdk/agent-runtime";
+} from "astroclaw/plugin-sdk/agent-runtime";
 import {
   formatCommandArgMenuTitle,
   resolveEffectiveAgentRuntime,
   resolveStoredModelOverride,
   type ChatCommandDefinition,
-} from "openclaw/plugin-sdk/command-auth-native";
+} from "astroclaw/plugin-sdk/command-auth-native";
 import {
   type CommandArgs,
   resolveNativeCommandSessionTargets,
-} from "openclaw/plugin-sdk/command-auth-native";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+} from "astroclaw/plugin-sdk/command-auth-native";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
 import {
   resolveNativeCommandsEnabled,
   resolveNativeSkillsEnabled,
-} from "openclaw/plugin-sdk/native-command-config-runtime";
-import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
-import { getRuntimeConfigSnapshot } from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { danger, logVerbose, warn } from "openclaw/plugin-sdk/runtime-env";
-import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/native-command-config-runtime";
+import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
+import { getRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { danger, logVerbose, warn } from "astroclaw/plugin-sdk/runtime-env";
+import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeStringEntriesLower,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { chunkItems } from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { chunkItems } from "astroclaw/plugin-sdk/text-chunking";
 import type { ResolvedSlackAccount } from "../accounts.js";
 import { SLACK_MAX_BLOCKS } from "../blocks-input.js";
 import { formatSlackError } from "../errors.js";
@@ -387,6 +387,11 @@ export async function registerSlackMonitorSlashCommands(params: {
   const slashCommand = resolveSlackSlashCommandConfig(
     ctx.slashCommand ?? account.config.slashCommand,
   );
+  // App Home and argument handlers must share the registered command mode;
+  // explicit single-command mode also avoids loading inactive native runtimes.
+  let registration: SlackCommandRegistration = slashCommand.enabled
+    ? { mode: "single", name: slashCommand.name }
+    : { mode: "disabled" };
 
   const handleSlashCommand = async (p: {
     command: SlackCommandMiddlewareArgs["command"];
@@ -872,22 +877,22 @@ export async function registerSlackMonitorSlashCommands(params: {
     }
   };
 
-  const nativeEnabled = resolveNativeCommandsEnabled({
-    providerId: "slack",
-    providerSetting: account.config.commands?.native,
-    globalSetting: startupCfg.commands?.native,
-  });
-  const nativeSkillsEnabled = resolveNativeSkillsEnabled({
-    providerId: "slack",
-    providerSetting: account.config.commands?.nativeSkills,
-    globalSetting: startupCfg.commands?.nativeSkills,
-  });
-
   let nativeCommands: Array<{ name: string }> = [];
   let slashCommandsRuntime: typeof import("./slash-commands.runtime.js") | null = null;
-  if (nativeEnabled) {
+  if (
+    registration.mode === "disabled" &&
+    resolveNativeCommandsEnabled({
+      providerId: "slack",
+      providerSetting: account.config.commands?.native,
+      globalSetting: startupCfg.commands?.native,
+    })
+  ) {
     slashCommandsRuntime = await loadSlashCommandsRuntime();
-    const skillCommands = nativeSkillsEnabled
+    const skillCommands = resolveNativeSkillsEnabled({
+      providerId: "slack",
+      providerSetting: account.config.commands?.nativeSkills,
+      globalSetting: startupCfg.commands?.nativeSkills,
+    })
       ? (await loadSlashSkillCommandsRuntime()).listSkillCommandsForAgents({ cfg: startupCfg })
       : [];
     nativeCommands = slashCommandsRuntime.listNativeCommandSpecsForConfig(startupCfg, {
@@ -906,11 +911,12 @@ export async function registerSlackMonitorSlashCommands(params: {
       existingNativeNames.add(normalizedName);
       nativeCommands.push(pluginCommand);
     }
+    registration = nativeCommands.length > 0 ? { mode: "native" } : { mode: "disabled" };
   }
 
-  if (slashCommand.enabled) {
+  if (registration.mode === "single") {
     ctx.app.command(
-      buildSlackSlashCommandMatcher(slashCommand.name),
+      buildSlackSlashCommandMatcher(registration.name),
       async ({ command, ack, respond, body }: SlackCommandMiddlewareArgs) => {
         await handleSlashCommand({
           command,
@@ -921,7 +927,7 @@ export async function registerSlackMonitorSlashCommands(params: {
         });
       },
     );
-  } else if (nativeCommands.length > 0) {
+  } else if (registration.mode === "native") {
     if (!slashCommandsRuntime) {
       throw new Error("Missing commands runtime for native Slack commands.");
     }
@@ -960,14 +966,7 @@ export async function registerSlackMonitorSlashCommands(params: {
     logVerbose("slack: slash commands disabled");
   }
 
-  const registration: SlackCommandRegistration =
-    nativeCommands.length > 0
-      ? { mode: "native" }
-      : slashCommand.enabled
-        ? { mode: "single", name: slashCommand.name }
-        : { mode: "disabled" };
-
-  if (nativeCommands.length === 0 || !supportsInteractiveArgMenus) {
+  if (registration.mode !== "native" || !supportsInteractiveArgMenus) {
     return registration;
   }
 
