@@ -1,8 +1,8 @@
 // Ollama plugin entrypoint registers its OpenClaw integration.
 import { createHash } from "node:crypto";
 import { collectConfiguredModelRefValues } from "@openclaw/model-catalog-core/configured-model-refs";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type OpenClawPluginApi,
@@ -16,23 +16,23 @@ import {
   type ProviderPlugin,
   type ProviderReplayPolicy,
   type ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   buildApiKeyCredential,
   coerceSecretRef,
   isNonSecretApiKeyMarker,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
+} from "openclaw/plugin-sdk/provider-auth";
+import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 import {
   buildOpenAICompatibleReplayPolicy,
   selectPreferredLocalModelId,
-} from "astroclaw/plugin-sdk/provider-model-shared";
-import { buildProviderToolCompatFamilyHooks } from "astroclaw/plugin-sdk/provider-tools";
-import { resolveConfiguredSecretInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
+} from "openclaw/plugin-sdk/provider-model-shared";
+import { buildProviderToolCompatFamilyHooks } from "openclaw/plugin-sdk/provider-tools";
+import { resolveConfiguredSecretInputString } from "openclaw/plugin-sdk/secret-input-runtime";
 import {
   buildOllamaModelDefinition,
   buildOllamaProvider,
@@ -78,8 +78,10 @@ import {
   buildDefaultOllamaCloudModelDefinition,
   capLocalOllamaModelContext,
   capLocalOllamaProviderContext,
+  fetchLoadedOllamaModelNames,
   isOllamaCloudModel,
 } from "./src/provider-models.js";
+import { findAvailableOllamaModelName } from "./src/setup-model-selection.js";
 import {
   OLLAMA_INCOMPLETE_STREAM_ERROR,
   createConfiguredOllamaCompatStreamWrapper,
@@ -239,12 +241,23 @@ async function discoverAppGuidedOllamaModel(ctx: ProviderAppGuidedSetupContext) 
   });
   const accessValue = await resolveAppGuidedOllamaApiKey(ctx, existing);
   const discoveryAccess = accessValue ? { apiKey: accessValue } : {};
-  const provider = await buildOllamaProvider(readProviderBaseUrl(existing), {
+  const baseUrl = resolveOllamaApiBase(readProviderBaseUrl(existing));
+  // App-guided setup must not turn an installed-but-idle model into a surprise
+  // memory allocation. Only /api/ps owns the currently resident model set.
+  const loaded = await fetchLoadedOllamaModelNames(baseUrl, discoveryAccess);
+  if (!loaded.reachable || loaded.models.length === 0) {
+    return null;
+  }
+  const provider = await buildOllamaProvider(baseUrl, {
     quiet: true,
     ...discoveryAccess,
   });
   const toolModels =
-    provider.models?.filter((candidate) => candidate.compat?.supportsTools === true) ?? [];
+    provider.models?.filter(
+      (candidate) =>
+        candidate.compat?.supportsTools === true &&
+        findAvailableOllamaModelName(candidate.id, loaded.models) !== undefined,
+    ) ?? [];
   // Automatic setup needs measured /api/show facts. The catalog fallback is
   // intentionally optimistic for manual use and must not qualify a weak route.
   let model: ModelDefinitionConfig | undefined;
