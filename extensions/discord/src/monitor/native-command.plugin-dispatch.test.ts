@@ -1,25 +1,25 @@
-import { dispatchChannelInboundTurn } from "astroclaw/plugin-sdk/channel-inbound";
-import type { NativeCommandSpec } from "astroclaw/plugin-sdk/command-auth-native";
-import { resolveDirectStatusReplyForSession } from "astroclaw/plugin-sdk/command-status-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
+// Discord tests cover native command.plugin dispatch plugin behavior.
+import { ChannelType } from "discord-api-types/v10";
+import { dispatchChannelInboundTurn } from "openclaw/plugin-sdk/channel-inbound";
+import type { NativeCommandSpec } from "openclaw/plugin-sdk/command-auth-native";
+import { resolveDirectStatusReplyForSession } from "openclaw/plugin-sdk/command-status-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
 import {
   clearPluginCommands,
   executePluginCommand,
   matchPluginCommand,
   registerPluginCommand,
-} from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/plugin-runtime";
 import {
   createTestRegistry,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { getSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-// Discord tests cover native command.plugin dispatch plugin behavior.
-import { ChannelType } from "discord-api-types/v10";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { getSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineThrowingDiscordChannelGetter } from "../test-support/partial-channel.js";
 import { resolveDiscordNativeInteractionRouteState } from "./native-command-route.js";
@@ -462,9 +462,9 @@ describe("Discord native plugin command dispatch", () => {
     runtimeModuleMocks.getSessionEntry.mockReset();
     runtimeModuleMocks.getSessionEntry.mockReturnValue(undefined);
     nativeCommandRuntime.matchPluginCommand =
-      runtimeModuleMocks.matchPluginCommand as typeof import("astroclaw/plugin-sdk/plugin-runtime").matchPluginCommand;
+      runtimeModuleMocks.matchPluginCommand as typeof import("openclaw/plugin-sdk/plugin-runtime").matchPluginCommand;
     nativeCommandRuntime.executePluginCommand =
-      runtimeModuleMocks.executePluginCommand as typeof import("astroclaw/plugin-sdk/plugin-runtime").executePluginCommand;
+      runtimeModuleMocks.executePluginCommand as typeof import("openclaw/plugin-sdk/plugin-runtime").executePluginCommand;
     nativeCommandRuntime.dispatchChannelInboundTurn = dispatchChannelInboundTurnForTest;
     nativeCommandRuntime.resolveDirectStatusReplyForSession =
       runtimeModuleMocks.resolveDirectStatusReplyForSession as typeof resolveDirectStatusReplyForSession;
@@ -476,7 +476,7 @@ describe("Discord native plugin command dispatch", () => {
         accountId: params.accountId,
       });
     nativeCommandRuntime.getSessionEntry =
-      runtimeModuleMocks.getSessionEntry as typeof import("astroclaw/plugin-sdk/session-store-runtime").getSessionEntry;
+      runtimeModuleMocks.getSessionEntry as typeof import("openclaw/plugin-sdk/session-store-runtime").getSessionEntry;
   });
 
   afterEach(() => {
@@ -582,6 +582,37 @@ describe("Discord native plugin command dispatch", () => {
       },
     });
   });
+
+  it.each([
+    { ownerAllowFrom: ["discord:*"], senderIsOwner: false },
+    { ownerAllowFrom: ["discord:123456789012345678"], senderIsOwner: true },
+  ])(
+    "passes host owner status $senderIsOwner for command owners $ownerAllowFrom",
+    async ({ ownerAllowFrom, senderIsOwner }) => {
+      const cfg = {
+        ...createConfig(),
+        commands: { ownerAllowFrom },
+      } as OpenClawConfig;
+      const interaction = createInteraction();
+      interaction.user.id = "123456789012345678";
+      interaction.options.getString.mockReturnValue("now");
+      registerPairPlugin();
+      const command = await createPluginCommand({ cfg, name: "pair" });
+      const executeSpy = runtimeModuleMocks.executePluginCommand.mockResolvedValue({
+        text: "paired:now",
+      });
+
+      await (command as { run: (interaction: unknown) => Promise<void> }).run(
+        interaction as unknown,
+      );
+
+      expectPluginCommandExecution({
+        mock: executeSpy,
+        commandName: "pair",
+        expected: { senderIsOwner },
+      });
+    },
+  );
 
   it("passes the configured binding agent to plugin-owned Discord command sessions", async () => {
     const cfg = createConfig();
