@@ -1,22 +1,22 @@
 // Mattermost plugin module implements client behavior.
-import { createChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { buildTimeoutAbortSignal } from "openclaw/plugin-sdk/extension-shared";
-import { responseWithRelease } from "openclaw/plugin-sdk/fetch-runtime";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { buildTimeoutAbortSignal } from "astroclaw/plugin-sdk/extension-shared";
+import { responseWithRelease } from "astroclaw/plugin-sdk/fetch-runtime";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
 import {
   readProviderJsonResponse,
   readResponseTextLimited,
-} from "openclaw/plugin-sdk/provider-http";
-import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
-import { retryAsync } from "openclaw/plugin-sdk/retry-runtime";
+} from "astroclaw/plugin-sdk/provider-http";
+import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
+import { retryAsync } from "astroclaw/plugin-sdk/retry-runtime";
 import {
   fetchWithSsrFGuard,
   ssrfPolicyFromPrivateNetworkOptIn,
-} from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 
 const MATTERMOST_ERROR_BODY_LIMIT_BYTES = 8 * 1024;
@@ -91,6 +91,20 @@ type MattermostFileInfo = {
   mime_type?: string | null;
   size?: number | null;
 };
+
+export function parseMattermostApiStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") {
+    return undefined;
+  }
+  const message = "message" in error && typeof error.message === "string" ? error.message : "";
+  // Read only the provider's status prefix; upstream details can mention other HTTP statuses.
+  const match = /Mattermost API (\d{3})\b/.exec(message);
+  if (!match) {
+    return undefined;
+  }
+  const status = Number(match[1]);
+  return Number.isFinite(status) ? status : undefined;
+}
 
 export function normalizeMattermostBaseUrl(raw?: string | null): string | undefined {
   const trimmed = raw?.trim();
