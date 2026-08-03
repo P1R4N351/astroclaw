@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import type { AssistantMessage, UserMessage } from "openclaw/plugin-sdk/llm";
+import type { AssistantMessage, UserMessage } from "astroclaw/plugin-sdk/llm";
 import { afterAll, beforeAll, beforeEach, expect, vi } from "vitest";
 import type { InternalSessionEntry as SessionEntry } from "../../config/sessions.js";
 import {
@@ -128,7 +128,7 @@ const sessionCleanupMocks = vi.hoisted(() => ({
     );
     return { followupCleared: 0, laneCleared: 0, keys: clearedKeys };
   }),
-  stopSubagentsForRequester: vi.fn(() => ({ stopped: 0 })),
+  stopSubagentsForRequester: vi.fn(async () => ({ stopped: 0 })),
 }));
 
 const bootstrapCacheMocks = vi.hoisted(() => ({
