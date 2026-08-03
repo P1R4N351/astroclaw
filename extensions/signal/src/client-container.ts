@@ -6,22 +6,22 @@
  * to keep the two modes cleanly isolated.
  */
 
-import { toErrorObject } from "openclaw/plugin-sdk/error-runtime";
-import { resolveFetch } from "openclaw/plugin-sdk/fetch-runtime";
+import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveFetch } from "astroclaw/plugin-sdk/fetch-runtime";
 import {
   detectMime,
   extractOriginalFilename,
   parseMediaContentLength,
-} from "openclaw/plugin-sdk/media-runtime";
+} from "astroclaw/plugin-sdk/media-runtime";
 import {
   parseStrictNonNegativeInteger,
   resolveTimerTimeoutMs,
-} from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/number-runtime";
 import {
   readResponseTextPrefix,
   readResponseWithLimit,
-} from "openclaw/plugin-sdk/response-limit-runtime";
-import { readRegularFile } from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/response-limit-runtime";
+import { readRegularFile } from "astroclaw/plugin-sdk/security-runtime";
 import WebSocket from "ws";
 
 type ContainerRpcOptions = {
@@ -429,6 +429,7 @@ export async function streamContainerEvents(params: {
   abortSignal?: AbortSignal;
   timeoutMs?: number;
   onEvent: (event: ContainerWebSocketMessage) => unknown;
+  onStreamOpen?: () => void;
   logger?: { log?: (msg: string) => void; error?: (msg: string) => void };
 }): Promise<void> {
   const normalized = normalizeBaseUrl(params.baseUrl);
@@ -480,6 +481,7 @@ export async function streamContainerEvents(params: {
 
     ws.on("open", () => {
       log("[signal-ws] connected");
+      params.onStreamOpen?.();
     });
 
     ws.on("message", (data: Buffer) => {
