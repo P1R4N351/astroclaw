@@ -5,11 +5,12 @@ import * as querystring from "node:querystring";
 import {
   readResponseTextPrefix,
   readResponseWithLimit,
-} from "openclaw/plugin-sdk/response-limit-runtime";
-import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
-import { readRequestBodyWithLimit } from "openclaw/plugin-sdk/webhook-ingress";
+} from "astroclaw/plugin-sdk/response-limit-runtime";
+import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { readRequestBodyWithLimit } from "astroclaw/plugin-sdk/webhook-ingress";
 import { looksLikeSmsPhoneNumber, normalizeSmsPhoneNumber } from "./phone.js";
+import { resolveTwilioStatusCallbackUrl } from "./public-webhook-url.js";
 import type { ResolvedSmsAccount, SmsInboundMessage, SmsSendResult } from "./types.js";
 
 const TWILIO_ACCOUNTS_URL = "https://api.twilio.com/2010-04-01/Accounts";
@@ -592,6 +593,10 @@ export async function sendSmsViaTwilio(params: {
     body.set("From", params.account.fromNumber);
   } else {
     body.set("MessagingServiceSid", params.account.messagingServiceSid);
+  }
+  const statusCallback = resolveTwilioStatusCallbackUrl(params.account.publicWebhookUrl);
+  if (statusCallback) {
+    body.set("StatusCallback", statusCallback);
   }
   const init = {
     method: "POST",
