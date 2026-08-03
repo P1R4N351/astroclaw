@@ -5,8 +5,8 @@ import {
   expectStopPendingUntilAbort,
   startAccountAndTrackLifecycle,
   waitForStartedMocks,
-} from "openclaw/plugin-sdk/channel-test-helpers";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/status-helpers";
+} from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/status-helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TwitchAccountConfig } from "./types.js";
 
@@ -74,6 +74,29 @@ describe("twitch startAccount lifecycle", () => {
       task,
       stop,
     });
+  });
+
+  it("publishes starting and forwards a bound status sink to the monitor", async () => {
+    const stop = mockStartedMonitor();
+    const patches: ChannelAccountSnapshot[] = [];
+    const abort = new AbortController();
+    const task = requireStartAccount()(
+      createStartAccountContext({
+        account: buildAccount(),
+        abortSignal: abort.signal,
+        statusPatchSink: (next) => patches.push({ ...next }),
+      }),
+    );
+
+    await vi.waitFor(() => expect(hoisted.monitorTwitchProvider).toHaveBeenCalledOnce());
+    expectLifecyclePatch(patches, { lifecycle: "starting", running: true });
+    expect(hoisted.monitorTwitchProvider).toHaveBeenCalledWith(
+      expect.objectContaining({ statusSink: expect.any(Function) }),
+    );
+
+    abort.abort();
+    await task;
+    expect(stop).toHaveBeenCalledOnce();
   });
 
   it("stops immediately when startAccount receives an already-aborted signal", async () => {
