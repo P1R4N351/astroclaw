@@ -2,9 +2,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AgentMessage, StreamFn } from "astroclaw/plugin-sdk/agent-core";
-import type { ExtensionAPI, ExtensionContext } from "astroclaw/plugin-sdk/agent-sessions";
-import { createAssistantMessageEventStream, type Model } from "astroclaw/plugin-sdk/llm";
+import type { AgentMessage, StreamFn } from "openclaw/plugin-sdk/agent-core";
+import type { ExtensionAPI, ExtensionContext } from "openclaw/plugin-sdk/agent-sessions";
+import { createAssistantMessageEventStream, type Model } from "openclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
 import {
@@ -1094,6 +1094,20 @@ describe("compaction-safeguard recent-turn preservation", () => {
         0,
       ),
     ).toBe(1);
+  });
+
+  it("keeps valid host/port identifiers after a long non-identifier token", () => {
+    const identifiers = extractOpaqueIdentifiers(
+      `${"x".repeat(120_000)} host.local:18789 ` +
+        "api.example.com/v1:443 127.0.0.1:8080 sub-domain.example.test:65535",
+    );
+
+    expect(identifiers).toStrictEqual([
+      "host.local:18789",
+      "api.example.com/v1:443",
+      "127.0.0.1:8080",
+      "sub-domain.example.test:65535",
+    ]);
   });
 
   it("dedupes identifiers before applying the result cap", () => {
