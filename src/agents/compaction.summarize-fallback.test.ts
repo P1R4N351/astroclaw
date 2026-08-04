@@ -1,8 +1,9 @@
 // Covers final fallback behavior when model-backed summarization fails.
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
-import type { ExtensionContext } from "openclaw/plugin-sdk/agent-sessions";
-import type { UserMessage } from "openclaw/plugin-sdk/llm";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import type { ExtensionContext } from "astroclaw/plugin-sdk/agent-sessions";
+import type { UserMessage } from "astroclaw/plugin-sdk/llm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CompactionError } from "../../packages/agent-core/src/harness/types.js";
 import { summarizeWithFallback } from "./compaction.test-support.js";
 
 const agentSessionMocks = vi.hoisted(() => ({
@@ -10,9 +11,9 @@ const agentSessionMocks = vi.hoisted(() => ({
   estimateTokens: vi.fn((_message: unknown) => 100),
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-sessions", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/agent-sessions")>(
-    "openclaw/plugin-sdk/agent-sessions",
+vi.mock("astroclaw/plugin-sdk/agent-sessions", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/agent-sessions")>(
+    "astroclaw/plugin-sdk/agent-sessions",
   );
   return {
     ...actual,
@@ -103,6 +104,36 @@ describe("summarizeWithFallback", () => {
 
     expect(result).toBe("recovered summary after provider disconnect");
     // Two calls: first fails with provider-side AbortError, second succeeds.
+    expect(agentSessionMocks.generateSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a summarization_failed result and persists the recovered summary", async () => {
+    agentSessionMocks.generateSummary
+      .mockRejectedValueOnce(
+        new CompactionError(
+          "summarization_failed",
+          "Summarization failed: model returned no summary text",
+        ),
+      )
+      .mockResolvedValueOnce("recovered non-empty summary");
+
+    await expect(
+      summarizeWithFallback({
+        messages: [
+          {
+            role: "user",
+            content: "hello",
+            timestamp: 1,
+          } satisfies UserMessage,
+        ],
+        model: testModel,
+        apiKey: "test-key", // pragma: allowlist secret
+        signal: new AbortController().signal,
+        reserveTokens: 1000,
+        maxChunkTokens: 50_000,
+        contextWindow: 200_000,
+      }),
+    ).resolves.toBe("recovered non-empty summary");
     expect(agentSessionMocks.generateSummary).toHaveBeenCalledTimes(2);
   });
 
