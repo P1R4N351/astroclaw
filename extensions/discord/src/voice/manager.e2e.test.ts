@@ -1,12 +1,12 @@
 import { PassThrough, type Readable } from "node:stream";
 import { DAVESession } from "@discordjs/voice";
 import { expectDefined } from "@openclaw/normalization-core";
-import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
+import { VoiceOpcodes, type VoiceSendPayload } from "discord-api-types/voice/v8";
+import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
 import type {
   RealtimeVoiceAgentControlResult,
   RealtimeVoiceSessionHarness,
-} from "astroclaw/plugin-sdk/realtime-voice";
-import { VoiceOpcodes, type VoiceSendPayload } from "discord-api-types/voice/v8";
+} from "openclaw/plugin-sdk/realtime-voice";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelType } from "../internal/discord.js";
 import { createVoiceCaptureState } from "./capture-state.js";
@@ -227,9 +227,9 @@ vi.mock("./sdk-runtime.js", () => ({
   }),
 }));
 
-vi.mock("astroclaw/plugin-sdk/routing", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/routing")>(
-    "astroclaw/plugin-sdk/routing",
+vi.mock("openclaw/plugin-sdk/routing", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/routing")>(
+    "openclaw/plugin-sdk/routing",
   );
   return {
     ...actual,
@@ -237,9 +237,9 @@ vi.mock("astroclaw/plugin-sdk/routing", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/agent-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/agent-runtime")>(
-    "astroclaw/plugin-sdk/agent-runtime",
+vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/agent-runtime")>(
+    "openclaw/plugin-sdk/agent-runtime",
   );
   return {
     ...actual,
@@ -248,19 +248,19 @@ vi.mock("astroclaw/plugin-sdk/agent-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/realtime-bootstrap-context", async () => {
+vi.mock("openclaw/plugin-sdk/realtime-bootstrap-context", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/realtime-bootstrap-context")
-  >("astroclaw/plugin-sdk/realtime-bootstrap-context");
+    typeof import("openclaw/plugin-sdk/realtime-bootstrap-context")
+  >("openclaw/plugin-sdk/realtime-bootstrap-context");
   return {
     ...actual,
     resolveRealtimeBootstrapContextInstructions: resolveRealtimeBootstrapContextInstructionsMock,
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
-    "astroclaw/plugin-sdk/runtime-env",
+vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
+    "openclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -268,13 +268,13 @@ vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: enqueueSystemEventMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/realtime-voice", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/realtime-voice")>(
-    "astroclaw/plugin-sdk/realtime-voice",
+vi.mock("openclaw/plugin-sdk/realtime-voice", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/realtime-voice")>(
+    "openclaw/plugin-sdk/realtime-voice",
   );
   return {
     ...actual,
@@ -433,15 +433,18 @@ describe("DiscordVoiceManager", () => {
       runtime: createRuntime(),
     });
 
-  const createAgentProxyManager = () =>
-    createManager({
-      groupPolicy: "open",
-      voice: {
-        enabled: true,
-        mode: "agent-proxy",
-        realtime: { provider: "openai" },
+  const createAgentProxyManager = (clientOverride?: ReturnType<typeof createClient>) =>
+    createManager(
+      {
+        groupPolicy: "open",
+        voice: {
+          enabled: true,
+          mode: "agent-proxy",
+          realtime: { provider: "openai" },
+        },
       },
-    });
+      clientOverride,
+    );
 
   const expectConnectedStatus = (
     manager: InstanceType<typeof managerModule.DiscordVoiceManager>,
@@ -4112,6 +4115,88 @@ describe("DiscordVoiceManager", () => {
 
     idleHandler?.();
     expectUserMessageIncludes("third answer");
+  });
+
+  it("terminates realtime voice when retained Unicode speech exceeds the byte budget", async () => {
+    const client = createClient();
+    client.fetchChannel.mockImplementation(async (channelId: string) => {
+      const guildId = channelId === "2001" ? "g2" : "g1";
+      return {
+        id: channelId,
+        guildId,
+        guild: { id: guildId, name: guildId },
+        type: ChannelType.GuildVoice,
+      };
+    });
+    const manager = createAgentProxyManager(client);
+
+    await manager.join({ guildId: "g1", channelId: "1001" });
+    const entry = getSessionEntry(manager);
+    const realtime = entry.realtime as unknown as {
+      enqueueExactSpeechMessage: (text: string) => void;
+    };
+    const connection = (entry as unknown as { connection: { destroy: ReturnType<typeof vi.fn> } })
+      .connection;
+    const bridgeParams = lastRealtimeBridgeParams();
+    const accepted = "😀".repeat(8 * 1024);
+    expect(accepted.length).toBe(16 * 1024);
+    expect(Buffer.byteLength(accepted, "utf8")).toBe(32 * 1024);
+
+    await manager.join({ guildId: "g2", channelId: "2001" });
+    const siblingRealtime = getSessionEntry(manager, "g2").realtime as unknown as {
+      enqueueExactSpeechMessage: (text: string) => void;
+    };
+
+    realtime.enqueueExactSpeechMessage(accepted);
+    expectUserMessageIncludes(accepted);
+    expect(manager.status()).toHaveLength(2);
+
+    realtime.enqueueExactSpeechMessage("overflow");
+
+    expect(manager.status()).toEqual([
+      expect.objectContaining({ guildId: "g2", channelId: "2001" }),
+    ]);
+    expect(connection.destroy).toHaveBeenCalledOnce();
+    expect(realtimeSessionMock.close).toHaveBeenCalledOnce();
+    expectUserMessageNotIncludes("overflow");
+
+    siblingRealtime.enqueueExactSpeechMessage("sibling remains usable");
+    expectUserMessageIncludes("sibling remains usable");
+
+    bridgeParams.onReady?.();
+    bridgeParams.onEvent?.({ direction: "server", type: "response.done" });
+    realtime.enqueueExactSpeechMessage("late");
+    entry.stop();
+
+    expect(connection.destroy).toHaveBeenCalledOnce();
+    expect(realtimeSessionMock.close).toHaveBeenCalledOnce();
+    expectUserMessageNotIncludes("late");
+  });
+
+  it("terminates realtime voice when retained exact speech exceeds the message budget", async () => {
+    const manager = createAgentProxyManager();
+
+    await manager.join({ guildId: "g1", channelId: "1001" });
+    const entry = getSessionEntry(manager);
+    const realtime = entry.realtime as unknown as {
+      enqueueExactSpeechMessage: (text: string) => void;
+    };
+    const connection = (entry as unknown as { connection: { destroy: ReturnType<typeof vi.fn> } })
+      .connection;
+
+    for (let index = 0; index < 32; index += 1) {
+      realtime.enqueueExactSpeechMessage(`answer-${index}`);
+    }
+
+    expect(manager.status()).toHaveLength(1);
+    expect(realtimeSessionMock.sendUserMessage).toHaveBeenCalledOnce();
+
+    realtime.enqueueExactSpeechMessage("answer-overflow");
+
+    expect(manager.status()).toStrictEqual([]);
+    expect(connection.destroy).toHaveBeenCalledOnce();
+    expect(realtimeSessionMock.close).toHaveBeenCalledOnce();
+    expectUserMessageNotIncludes("answer-overflow");
   });
 
   it("does not interrupt active exact speech for a later forced agent-proxy consult", async () => {
