@@ -1,30 +1,30 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   clearPluginInteractiveHandlers,
   registerPluginInteractiveHandler,
-} from "openclaw/plugin-sdk/plugin-runtime";
+} from "astroclaw/plugin-sdk/plugin-runtime";
 import {
   closeOpenClawStateDatabaseForTest,
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { createNonExitingRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { MsgContext } from "openclaw/plugin-sdk/reply-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { createNonExitingRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
 import {
   listSessionEntries,
   normalizeSessionDeliveryState,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
-import { mockPinnedHostnameResolution } from "openclaw/plugin-sdk/test-env";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+import { mockPinnedHostnameResolution } from "astroclaw/plugin-sdk/test-env";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import {
   registerSessionBindingAdapter,
   type SessionBindingAdapter,
   type SessionBindingRecord,
   unregisterSessionBindingAdapter,
-} from "openclaw/plugin-sdk/thread-bindings-runtime";
+} from "astroclaw/plugin-sdk/thread-bindings-runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildTelegramApprovalCallbackData } from "./approval-callback-data.js";
 import type { TelegramBotDeps } from "./bot-deps.js";
@@ -64,15 +64,15 @@ const questionGatewayHoisted = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("openclaw/plugin-sdk/question-gateway-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/question-gateway-runtime", () => ({
   questionGatewayRuntime: {
     resolveOption: questionGatewayHoisted.resolveQuestionOverGatewaySpy,
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-inbound")>(
-    "openclaw/plugin-sdk/channel-inbound",
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-inbound")>(
+    "astroclaw/plugin-sdk/channel-inbound",
   );
   return {
     ...actual,
@@ -127,7 +127,6 @@ const CHECK_MARK_EMOJI = "\u{2705}";
 const THUMBS_UP_EMOJI = "\u{1F44D}";
 const FIRE_EMOJI = "\u{1F525}";
 const PARTY_EMOJI = "\u{1F389}";
-const EYES_EMOJI = "\u{1F440}";
 const HEART_EMOJI = "\u{2764}\u{FE0F}";
 
 type TelegramChannelConfig = NonNullable<NonNullable<OpenClawConfig["channels"]>["telegram"]>;
@@ -289,7 +288,7 @@ function createTelegramTestStorePath(label: string): string {
 }
 
 async function loadEnvelopeTimestampHelpers() {
-  return await import("openclaw/plugin-sdk/channel-test-helpers");
+  return await import("astroclaw/plugin-sdk/channel-test-helpers");
 }
 
 async function loadInboundContextContract() {
@@ -5803,9 +5802,10 @@ describe("createTelegramBot", () => {
     ]);
   });
 
-  it("routes forum group reactions to the general topic (thread id not available on reactions)", async () => {
-    // MessageReactionUpdated does not include message_thread_id in the Bot API,
-    // so forum reactions always route to the general topic (1).
+  it("drops forum reactions whose topic is no longer in the message cache", async () => {
+    // MessageReactionUpdated carries no message_thread_id, and this message was never
+    // cached, so the topic is unknown. Guessing General would authorize and enqueue
+    // against a topic the user did not react in.
     await dispatchTelegramReaction({
       updateId: 505,
       channelConfig: { dmPolicy: "open", reactionNotifications: "all" },
@@ -5817,31 +5817,7 @@ describe("createTelegramBot", () => {
       },
     });
 
-    expect(enqueueSystemEventSpy).toHaveBeenCalledTimes(1);
-    expect(firstSystemEventArg(0)).toBe(
-      `Telegram reaction added: ${FIRE_EMOJI} by Bob (@bob_user) on msg 100`,
-    );
-    expect(String(systemEventOptions().sessionKey)).toContain("telegram:group:5678:topic:1");
-    expect(String(systemEventOptions().contextKey)).toContain("telegram:reaction:add:5678:100:10");
-  });
-
-  it("uses correct session key for forum group reactions in general topic", async () => {
-    await dispatchTelegramReaction({
-      updateId: 506,
-      channelConfig: { dmPolicy: "open", reactionNotifications: "all" },
-      reaction: {
-        chat: { id: 5678, type: "supergroup", is_forum: true },
-        message_id: 101,
-        // No message_thread_id - should default to general topic (1)
-        user: { id: 10, first_name: "Bob" },
-        new_reaction: [{ type: "emoji", emoji: EYES_EMOJI }],
-      },
-    });
-
-    expect(enqueueSystemEventSpy).toHaveBeenCalledTimes(1);
-    expect(firstSystemEventArg(0)).toBe(`Telegram reaction added: ${EYES_EMOJI} by Bob on msg 101`);
-    expect(String(systemEventOptions().sessionKey)).toContain("telegram:group:5678:topic:1");
-    expect(String(systemEventOptions().contextKey)).toContain("telegram:reaction:add:5678:101:10");
+    expect(enqueueSystemEventSpy).not.toHaveBeenCalled();
   });
 
   it("uses correct session key for regular group reactions without topic", async () => {
