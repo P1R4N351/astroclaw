@@ -1,7 +1,7 @@
 // Ollama tests cover setup plugin behavior.
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import type { WizardPrompter } from "astroclaw/plugin-sdk/setup";
-import { jsonResponse, requestBodyText, requestUrl } from "astroclaw/plugin-sdk/test-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import type { WizardPrompter } from "openclaw/plugin-sdk/setup";
+import { jsonResponse, requestBodyText, requestUrl } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   checkOllamaCloudAuth,
@@ -22,16 +22,16 @@ const fetchWithSsrFGuardMock = vi.hoisted(() =>
   })),
 );
 
-vi.mock("astroclaw/plugin-sdk/provider-auth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth")>();
+vi.mock("openclaw/plugin-sdk/provider-auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/provider-auth")>();
   return {
     ...actual,
     upsertAuthProfileWithLock,
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: (...args: Parameters<typeof actual.fetchWithSsrFGuard>) =>
@@ -531,6 +531,7 @@ describe("ollama setup", () => {
     );
 
     expect(model?.contextWindow).toBe(65536);
+    expect(result.defaultModel).toBe("ollama/llama3:8b");
   });
 
   it("offers and streams a recommended pull when no installed model supports tools", async () => {
@@ -581,6 +582,7 @@ describe("ollama setup", () => {
       contextWindow: 131072,
       compat: { supportsTools: true },
     });
+    expect(result.defaultModel).toBe("ollama/gemma4:e4b");
   });
 
   it("does not offer a pull when an installed Ollama model supports tools", async () => {
