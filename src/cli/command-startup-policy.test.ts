@@ -1,5 +1,5 @@
 // Command startup policy tests cover which CLI commands require startup side effects.
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cliCommandCatalog } from "./command-catalog.js";
 import { resolveCliExecutionStartupContext } from "./command-execution-startup.js";
@@ -185,6 +185,15 @@ describe("command-startup-policy", () => {
   });
 
   it("matches plugin preload policy", () => {
+    for (const commandPath of [
+      ["memory", "index"],
+      ["memory", "search"],
+      ["memory", "status"],
+    ]) {
+      const policy = resolvePolicy({ commandPath });
+      expect(policy.loadPlugins, commandPath.join(" ")).toBe(true);
+      expect(policy.pluginRegistry, commandPath.join(" ")).toEqual({ scope: "memory" });
+    }
     expect(
       resolvePolicy({
         commandPath: ["status"],
