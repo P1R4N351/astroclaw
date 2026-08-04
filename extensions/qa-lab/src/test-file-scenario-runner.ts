@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { resolvePositiveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { resolvePositiveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import { assertQaSuiteArtifactWritten } from "./artifact-assertion.js";
 import { toRepoRelativePath } from "./cli-paths.js";
 import {
@@ -143,7 +143,7 @@ function playwrightSteps(
   return [
     {
       command: process.execPath,
-      args: ["scripts/ensure-playwright-chromium.mjs", "--skip-ffmpeg"],
+      args: ["scripts/ensure-playwright-chromium.mjs"],
     },
     {
       command: process.execPath,
