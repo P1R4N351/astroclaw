@@ -3,19 +3,19 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import { escapeRegExp, formatEnvelopeTimestamp } from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { TelegramGroupConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { escapeRegExp, formatEnvelopeTimestamp } from "openclaw/plugin-sdk/channel-test-helpers";
+import type { TelegramGroupConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   buildPluginBindingApprovalCustomId,
   resolvePluginConversationBindingApproval,
-} from "astroclaw/plugin-sdk/conversation-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
 import {
   clearPluginInteractiveHandlers,
   registerPluginInteractiveHandler,
-} from "astroclaw/plugin-sdk/plugin-runtime";
-import type { GetReplyOptions, MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { withEnvAsync } from "astroclaw/plugin-sdk/test-env";
-import { sanitizeTerminalText } from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/plugin-runtime";
+import type { GetReplyOptions, MsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { withEnvAsync } from "openclaw/plugin-sdk/test-env";
+import { sanitizeTerminalText } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTelegramNativeCommandTestDeps,
@@ -31,12 +31,12 @@ import type { TelegramBotOptions } from "./bot.types.js";
 import type { TelegramGetChat } from "./bot/types.js";
 import { buildTelegramOpaqueCallbackData } from "./native-command-callback-data.js";
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", { spy: true });
+vi.mock("openclaw/plugin-sdk/conversation-runtime", { spy: true });
 
 const harness = await import("./bot.create-telegram-bot.test-harness.js");
-const pluginStateTestRuntime = await import("astroclaw/plugin-sdk/plugin-state-test-runtime");
-const configMutation = await import("astroclaw/plugin-sdk/config-mutation");
-const sessionStoreRuntime = await import("astroclaw/plugin-sdk/session-store-runtime");
+const pluginStateTestRuntime = await import("openclaw/plugin-sdk/plugin-state-test-runtime");
+const configMutation = await import("openclaw/plugin-sdk/config-mutation");
+const sessionStoreRuntime = await import("openclaw/plugin-sdk/session-store-runtime");
 const EYES_EMOJI = "\u{1F440}";
 const tempStateDirs: string[] = [];
 let previousStateDir: string | undefined;
@@ -79,7 +79,7 @@ type BuildModelsProviderDataMock = ReturnType<
 const { resolveTelegramFetch } = await import("./fetch.js");
 const messageDispatchDedupe = await import("./message-dispatch-dedupe.js");
 const { createTelegramBotCore: createTelegramBotBase } = await import("./bot-core.js");
-const { getTelegramSequentialKey } = await import("./sequential-key.js");
+const { getTelegramSequentialConstraints } = await import("./sequential-key.js");
 const {
   createTelegramSpooledReplayDeferredParticipant,
   recordTelegramMessageProcessingResult,
@@ -309,21 +309,24 @@ function installPerKeySequentializer(): void {
   sequentializeSpy.mockImplementationOnce(() => {
     const lanes = new Map<string, Promise<void>>();
     return async (ctx: TelegramMiddlewareTestContext, next: () => Promise<void>) => {
-      const key = harness.sequentializeKey?.(ctx) ?? "default";
-      const previous = lanes.get(key) ?? Promise.resolve();
+      const constraint = harness.sequentializeKey?.(ctx) ?? "default";
+      const keys = Array.isArray(constraint) ? constraint : [constraint];
+      const previous = Promise.all(keys.map((key) => lanes.get(key) ?? Promise.resolve()));
       const current = previous.then(async () => {
         await next();
       });
-      lanes.set(
-        key,
-        current.catch(() => undefined),
-      );
+      const tracked = current.catch(() => undefined);
+      for (const key of keys) {
+        lanes.set(key, tracked);
+      }
 
       try {
         await current;
       } finally {
-        if (lanes.get(key) === current) {
-          lanes.delete(key);
+        for (const key of keys) {
+          if (lanes.get(key) === tracked) {
+            lanes.delete(key);
+          }
         }
       }
     };
@@ -590,7 +593,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     expect(sequentializeSpy).toHaveBeenCalledTimes(1);
     expect(middlewareUseSpy).toHaveBeenCalledWith(sequentializeSpy.mock.results[0]?.value);
-    expect(harness.sequentializeKey).toBe(getTelegramSequentialKey);
+    expect(harness.sequentializeKey).toBe(getTelegramSequentialConstraints);
   });
 
   it("answers callback queries before same-chat sequentialize delays handlers", async () => {
