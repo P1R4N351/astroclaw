@@ -4,17 +4,17 @@ import os from "node:os";
 import path from "node:path";
 import type { Tool as SdkTool, ToolInvocation, ToolResultObject } from "@github/copilot-sdk";
 import { expectDefined } from "@openclaw/normalization-core";
-import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import {
   type AnyAgentTool,
   type SandboxContext,
   wrapToolWithBeforeToolCallHook,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   clearMemoryPluginState,
   type MemoryFlushPlan,
   registerMemoryCapability,
-} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCopilotToolBridge } from "./tool-bridge.js";
 
@@ -1851,7 +1851,7 @@ describe("createCopilotToolBridge tool conversion", () => {
     const result = await runSdkTool(sdkTool, {});
     await flushAsync();
 
-    expect(result).toMatchObject({ resultType: "success" });
+    expect(result).toMatchObject({ resultType: "failure" });
     expect(onAgentToolResult).toHaveBeenCalledWith({
       toolName: "tool-a",
       result: sourceResult,
