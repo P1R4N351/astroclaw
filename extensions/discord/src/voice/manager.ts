@@ -1,11 +1,11 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { DiscordAccountConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { DiscordAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Discord plugin module implements manager behavior.
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
-import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   type APIVoiceState,
   type Client,
@@ -746,6 +746,7 @@ export class DiscordVoiceManager {
       receiveRecovery: createVoiceReceiveRecoveryState(),
       isStopped: () => stopped,
       stop: () => {
+        clearSessionIfCurrent();
         stopEntry(entry, {
           destroyConnection: true,
           reason: `stop guild ${guildId} channel ${channelId}`,
@@ -884,6 +885,12 @@ export class DiscordVoiceManager {
       entry,
       getHumanParticipantCount: () => this.membership.countHumanParticipants(entry, this.botUserId),
       mode: voiceMode,
+      onTerminalError: (error) => {
+        logger.error(
+          `discord voice: realtime session failed terminally guild=${entry.guildId} channel=${entry.channelId}: ${formatErrorMessage(error)}`,
+        );
+        entry.stop();
+      },
       runAgentTurn: ({ context, message, toolsAllow, userId }) =>
         this.runDiscordRealtimeAgentTurn({ context, entry, message, toolsAllow, userId }),
     });
