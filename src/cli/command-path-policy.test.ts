@@ -1,5 +1,5 @@
 // Command path policy tests cover allowed CLI command path shapes and lazy imports.
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CliCommandCatalogEntry, CliCommandPathPolicy } from "./command-catalog.js";
 import {
@@ -377,18 +377,19 @@ describe("command-path-policy", () => {
         networkProxy: "bypass",
       });
     }
-    for (const commandPath of [
-      ["skills", "search"],
-      ["memory", "search"],
-    ]) {
-      expectResolvedPolicy(commandPath, {
-        configGuard: "skip",
-        loadPlugins: "never",
-      });
-    }
+    expectResolvedPolicy(["skills", "search"], {
+      configGuard: "skip",
+      loadPlugins: "never",
+    });
+    expectResolvedPolicy(["memory", "search"], {
+      configGuard: "skip",
+      loadPlugins: "always",
+      pluginRegistry: { scope: "memory" },
+    });
     const memoryStatusPolicy = resolveCliCommandPathPolicy(["memory", "status"]);
     expectConfigGuardResolver(memoryStatusPolicy);
-    expect(memoryStatusPolicy.loadPlugins).toBe("never");
+    expect(memoryStatusPolicy.loadPlugins).toBe("always");
+    expect(memoryStatusPolicy.pluginRegistry).toEqual({ scope: "memory" });
     expect(
       memoryStatusPolicy.configGuard({
         argv: ["node", "openclaw", "memory", "status"],
