@@ -1,10 +1,10 @@
+import { formatLocationText } from "astroclaw/plugin-sdk/channel-inbound";
+import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
+import type { MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 // Telegram plugin module implements message cache behavior.
 import type { Message } from "grammy/types";
-import { formatLocationText } from "openclaw/plugin-sdk/channel-inbound";
-import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
-import type { MsgContext } from "openclaw/plugin-sdk/reply-runtime";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   resolveTelegramPrimaryMedia,
   resolveTelegramRichMessageBody,
@@ -258,6 +258,13 @@ export function hasProviderObservedTelegramThreadBinding(
   threadId: unknown,
 ): boolean {
   return normalizeTelegramMessageThreadBinding(node?.threadBinding, threadId) !== undefined;
+}
+
+export function resolveProviderObservedTelegramThreadId(
+  node: TelegramCachedMessageNode | null | undefined,
+): number | undefined {
+  const threadId = parseTelegramMessageThreadId(node?.threadId);
+  return hasProviderObservedTelegramThreadBinding(node, threadId) ? threadId : undefined;
 }
 
 function normalizeMessageNodes(
