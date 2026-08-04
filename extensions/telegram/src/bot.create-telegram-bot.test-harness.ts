@@ -1,10 +1,10 @@
 // Telegram plugin module implements bot.create telegram bot harness behavior.
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
-import { buildChannelInboundEventContext } from "openclaw/plugin-sdk/channel-inbound";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { MockFn } from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { GetReplyOptions, MsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { buildChannelInboundEventContext } from "astroclaw/plugin-sdk/channel-inbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { MockFn } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { GetReplyOptions, MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
 import { beforeEach, vi } from "vitest";
 import type { TelegramBotDeps } from "./bot-deps.js";
 import { runTelegramChannelInboundEventWithHarness } from "./bot.test-helpers.js";
@@ -13,20 +13,21 @@ type AnyMock = ReturnType<typeof vi.fn>;
 type AnyAsyncMock = ReturnType<typeof vi.fn<(...args: unknown[]) => Promise<unknown>>>;
 type TelegramBotRuntimeForTest = typeof import("./bot.runtime.js");
 type GetRuntimeConfigFn =
-  typeof import("openclaw/plugin-sdk/runtime-config-snapshot").getRuntimeConfig;
-type GetSessionEntryFn = typeof import("openclaw/plugin-sdk/session-store-runtime").getSessionEntry;
+  typeof import("astroclaw/plugin-sdk/runtime-config-snapshot").getRuntimeConfig;
+type GetSessionEntryFn =
+  typeof import("astroclaw/plugin-sdk/session-store-runtime").getSessionEntry;
 type ListSessionEntriesFn =
-  typeof import("openclaw/plugin-sdk/session-store-runtime").listSessionEntries;
+  typeof import("astroclaw/plugin-sdk/session-store-runtime").listSessionEntries;
 type ResolveStorePathFn =
-  typeof import("openclaw/plugin-sdk/session-store-runtime").resolveStorePath;
+  typeof import("astroclaw/plugin-sdk/session-store-runtime").resolveStorePath;
 type ReadSessionUpdatedAtFn =
-  typeof import("openclaw/plugin-sdk/session-store-runtime").readSessionUpdatedAt;
-type SessionEntry = import("openclaw/plugin-sdk/session-store-runtime").SessionEntry;
+  typeof import("astroclaw/plugin-sdk/session-store-runtime").readSessionUpdatedAt;
+type SessionEntry = import("astroclaw/plugin-sdk/session-store-runtime").SessionEntry;
 type SessionStore = Record<string, SessionEntry>;
 type LoadSessionStoreFn = (storePath?: string, opts?: unknown) => SessionStore;
 type ResolveTelegramApprovalForTest = NonNullable<TelegramBotDeps["resolveApproval"]>;
 type DispatchReplyWithBufferedBlockDispatcherFn =
-  typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
+  typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
 type DispatchReplyWithBufferedBlockDispatcherResult = Awaited<
   ReturnType<DispatchReplyWithBufferedBlockDispatcherFn>
 >;
@@ -61,7 +62,7 @@ export function getLoadWebMediaMock(): AnyMock {
   return loadWebMedia;
 }
 
-vi.mock("openclaw/plugin-sdk/web-media", () => ({
+vi.mock("astroclaw/plugin-sdk/web-media", () => ({
   loadWebMedia,
 }));
 
@@ -209,8 +210,8 @@ vi.mock("../../../src/auto-reply/reply/provider-dispatcher.js", () => ({
   dispatchReplyWithBufferedBlockDispatcher:
     dispatchReplyHoisted.dispatchReplyWithBufferedBlockDispatcher,
 }));
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
   return {
     ...actual,
     runChannelInboundEvent: async (params: Parameters<typeof actual.runChannelInboundEvent>[0]) =>
@@ -442,7 +443,7 @@ const runnerHoisted = vi.hoisted(() => ({
   throttlerSpy: vi.fn(() => "throttler"),
 }));
 export const sequentializeSpy: AnyMock = runnerHoisted.sequentializeSpy;
-export let sequentializeKey: ((ctx: unknown) => string) | undefined;
+export let sequentializeKey: ((ctx: unknown) => string | string[] | undefined) | undefined;
 export const throttlerSpy: AnyMock = runnerHoisted.throttlerSpy;
 const telegramBotRuntimeForTest = {
   Bot: class {
@@ -492,7 +493,7 @@ const telegramBotRuntimeForTest = {
       );
     }
   } as unknown as TelegramBotRuntimeForTest["Bot"],
-  sequentialize: ((keyFn: (ctx: unknown) => string) => {
+  sequentialize: ((keyFn: (ctx: unknown) => string | string[] | undefined) => {
     sequentializeKey = keyFn;
     return (
       runnerHoisted.sequentializeSpy as unknown as () => ReturnType<
