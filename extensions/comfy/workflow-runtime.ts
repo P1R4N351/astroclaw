@@ -1,41 +1,41 @@
 // Comfy plugin module implements workflow runtime behavior.
 import fs from "node:fs/promises";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { canResolveEnvSecretRefInReadOnlyPath } from "openclaw/plugin-sdk/extension-shared";
-import { resolveGeneratedMediaMaxBytes } from "openclaw/plugin-sdk/media-generation-runtime";
-import { extensionForMime } from "openclaw/plugin-sdk/media-mime";
-import { resolvePositiveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { canResolveEnvSecretRefInReadOnlyPath } from "astroclaw/plugin-sdk/extension-shared";
+import { resolveGeneratedMediaMaxBytes } from "astroclaw/plugin-sdk/media-generation-runtime";
+import { extensionForMime } from "astroclaw/plugin-sdk/media-mime";
+import { resolvePositiveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
 import {
   isProviderApiKeyConfigured,
   type AuthProfileStore,
-} from "openclaw/plugin-sdk/provider-auth";
-import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
 import {
   assertOkOrThrowHttpError,
   normalizeBaseUrl,
   readProviderJsonResponse,
   resolveProviderHttpRequestConfig,
-} from "openclaw/plugin-sdk/provider-http";
-import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
+} from "astroclaw/plugin-sdk/provider-http";
+import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
 import {
   normalizeSecretInputString,
   resolveSecretInputString,
-} from "openclaw/plugin-sdk/secret-input-runtime";
+} from "astroclaw/plugin-sdk/secret-input-runtime";
 import {
   fetchWithSsrFGuard,
   isPrivateOrLoopbackHost,
   mergeSsrFPolicies,
   ssrfPolicyFromHttpBaseUrlAllowedOrigin,
   type SsrFPolicy,
-} from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   asBoolean,
   isRecord,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
   uniqueStrings,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolveUserPath } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolveUserPath } from "astroclaw/plugin-sdk/text-utility-runtime";
 
 const DEFAULT_COMFY_LOCAL_BASE_URL = "http://127.0.0.1:8188";
 const DEFAULT_COMFY_CLOUD_BASE_URL = "https://cloud.comfy.org";
@@ -527,6 +527,7 @@ function collectOutputFiles(params: {
   history: ComfyHistoryEntry;
   outputNodeId?: string;
   outputKinds: readonly ComfyOutputKind[];
+  capability: ComfyCapability;
 }): Array<{ nodeId: string; file: ComfyOutputFile }> {
   const outputs = params.history.outputs;
   if (!outputs) {
@@ -546,6 +547,15 @@ function collectOutputFiles(params: {
         continue;
       }
       for (const file of bucket) {
+        if (params.capability === "video" && kind === "images") {
+          // Comfy SaveVideo shares the images bucket with real image outputs.
+          // Filter before download so mixed workflows cannot return images as videos.
+          const fileName =
+            normalizeOptionalString(file.filename) || normalizeOptionalString(file.name);
+          if (!fileName || !/\.(?:mp4|webm)$/i.test(fileName)) {
+            continue;
+          }
+        }
         files.push({ nodeId, file });
       }
     }
@@ -828,6 +838,7 @@ export async function runComfyWorkflow(params: {
     history: historyEntry,
     outputNodeId,
     outputKinds: params.outputKinds,
+    capability: params.capability,
   });
   if (outputFiles.length === 0) {
     throw new Error(`Comfy workflow ${promptId} completed without ${params.capability} outputs`);
