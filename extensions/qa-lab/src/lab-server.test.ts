@@ -30,7 +30,7 @@ vi.mock("./live-transports/cli.js", () => ({
   listLiveTransportQaAdapterFactories: liveTransportMock.listAdapterFactories,
 }));
 
-vi.mock("astroclaw/plugin-sdk/qa-channel", () => ({
+vi.mock("openclaw/plugin-sdk/qa-channel", () => ({
   qaChannelPlugin: {
     config: {
       resolveAccount: qaChannelMock.resolveAccount,
@@ -155,7 +155,7 @@ const captureMock = vi.hoisted(() => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/proxy-capture", () => ({
+vi.mock("openclaw/plugin-sdk/proxy-capture", () => ({
   acquireDebugProxyCaptureStore: () => ({
     store: captureMock.store,
     release: captureMock.store.close,
@@ -457,6 +457,7 @@ describe("qa-lab server", () => {
       expect.objectContaining({
         alternateModel: "openai/gpt-5.6-luna",
         channelDriver: "crabline",
+        controlUiEnabled: true,
         primaryModel: "openai/gpt-5.6-luna",
         providerMode: "live-frontier",
         scenarioIds: ["dm-chat-baseline", "browser-talk-start-stop"],
