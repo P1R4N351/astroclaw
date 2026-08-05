@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { OpenClawPluginGatewayEvents, PluginRuntime } from "openclaw/plugin-sdk/core";
+import type { OpenClawPluginGatewayEvents, PluginRuntime } from "astroclaw/plugin-sdk/core";
 import type {
   SessionDiscussionInfo,
   SessionDiscussionProvider,
-} from "openclaw/plugin-sdk/session-discussion";
+} from "astroclaw/plugin-sdk/session-discussion";
 import { listClickClackAccountIds, resolveClickClackAccount } from "../accounts.js";
 import {
   createClickClackClient,
@@ -466,13 +466,17 @@ export class ClickClackDiscussionService {
     ) {
       return;
     }
-    this.#store.set(sessionKey, {
+    const nextBinding: ClickClackDiscussionBinding = {
       ...latestBinding,
       externalUrl,
       label,
       section,
-      displayTitle: "display_title" in updated ? updated.display_title : undefined,
-    });
+      ...(updated.display_title !== undefined ? { displayTitle: updated.display_title } : {}),
+    };
+    if (updated.display_title === undefined) {
+      delete nextBinding.displayTitle;
+    }
+    this.#store.set(sessionKey, nextBinding);
   }
 
   #refreshSessionAttachment(
