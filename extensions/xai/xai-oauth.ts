@@ -1,28 +1,24 @@
 // Xai plugin module implements xai oauth behavior.
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   positiveSecondsToSafeMilliseconds,
   resolveExpiresAtMsFromDurationSeconds,
   resolveExpiresAtMsFromEpochSeconds,
-} from "openclaw/plugin-sdk/number-runtime";
-import type { ProviderAuthContext, ProviderAuthMethod } from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/number-runtime";
+import type { ProviderAuthContext } from "astroclaw/plugin-sdk/plugin-entry";
 import {
   buildOauthProviderAuthResult,
   toFormUrlEncoded,
   type OAuthCredential,
   type ProviderAuthResult,
-} from "openclaw/plugin-sdk/provider-auth";
-import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
-import { sleep } from "openclaw/plugin-sdk/runtime-env";
-import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
+import { sleep } from "astroclaw/plugin-sdk/runtime-env";
+import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { applyXaiOAuthConfig, XAI_OAUTH_DEFAULT_MODEL_REF } from "./onboard.js";
 import { xaiUserAgent } from "./src/xai-user-agent.js";
 
 const PROVIDER_ID = "xai";
-const XAI_OAUTH_METHOD_ID = "oauth";
-const XAI_OAUTH_CHOICE_ID = "xai-oauth";
-const XAI_DEVICE_CODE_METHOD_ID = "device-code";
-const XAI_DEVICE_CODE_CHOICE_ID = "xai-device-code";
 const XAI_OAUTH_CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828";
 const XAI_OAUTH_SCOPE = "openid profile email offline_access grok-cli:access api:access";
 const XAI_OAUTH_ISSUER = "https://auth.x.ai";
@@ -607,7 +603,7 @@ async function noteXaiDeviceCode(
   );
 }
 
-async function loginXaiDeviceCode(ctx: ProviderAuthContext): Promise<ProviderAuthResult> {
+export async function loginXaiDeviceCode(ctx: ProviderAuthContext): Promise<ProviderAuthResult> {
   const progress = ctx.prompter.progress("Starting xAI OAuth...");
   try {
     const discovery = await fetchXaiDeviceCodeDiscovery(
@@ -707,43 +703,4 @@ export async function refreshXaiOAuthCredential(
     tokenEndpoint,
     issuer: XAI_OAUTH_ISSUER,
   } as OAuthCredential;
-}
-
-export function createXaiOAuthAuthMethod(): ProviderAuthMethod {
-  return {
-    id: XAI_OAUTH_METHOD_ID,
-    label: "xAI OAuth",
-    hint: "Remote-friendly browser sign-in without a localhost callback",
-    kind: "oauth",
-    wizard: {
-      choiceId: XAI_OAUTH_CHOICE_ID,
-      choiceLabel: "xAI OAuth",
-      choiceHint: "Remote-friendly browser sign-in without a localhost callback",
-      groupId: PROVIDER_ID,
-      groupLabel: "xAI (Grok)",
-      groupHint: "API key or OAuth",
-      methodId: XAI_OAUTH_METHOD_ID,
-    },
-    run: async (ctx) => loginXaiDeviceCode(ctx),
-  };
-}
-
-export function createXaiDeviceCodeAuthMethod(): ProviderAuthMethod {
-  return {
-    id: XAI_DEVICE_CODE_METHOD_ID,
-    label: "xAI device code",
-    hint: "Deprecated alias for xAI OAuth device-code login",
-    kind: "device_code",
-    wizard: {
-      choiceId: XAI_DEVICE_CODE_CHOICE_ID,
-      choiceLabel: "xAI device code",
-      choiceHint: "Compatibility alias for xAI OAuth device-code sign-in",
-      assistantVisibility: "manual-only",
-      groupId: PROVIDER_ID,
-      groupLabel: "xAI (Grok)",
-      groupHint: "API key or OAuth",
-      methodId: XAI_DEVICE_CODE_METHOD_ID,
-    },
-    run: async (ctx) => loginXaiDeviceCode(ctx),
-  };
 }
