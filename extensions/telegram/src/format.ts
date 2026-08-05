@@ -1,6 +1,6 @@
-import type { MarkdownTableMode } from "astroclaw/plugin-sdk/config-contracts";
+import type { MarkdownTableMode } from "openclaw/plugin-sdk/config-contracts";
 // Telegram helper module supports format behavior.
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   FILE_REF_EXTENSIONS_WITH_TLD,
   isAutoLinkedFileRef,
@@ -9,7 +9,7 @@ import {
   type MarkdownIR,
   renderMarkdownIRChunksWithinLimit,
   tokenizeHtmlTags,
-} from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/text-chunking";
 import {
   protectTelegramAssistantTranscriptRoleHeaders,
   TELEGRAM_ASSISTANT_TRANSCRIPT_PREFIX,
@@ -195,7 +195,7 @@ const TELEGRAM_RICH_HTML_TABLE_PATTERN = /<table\b[^>]*>[\s\S]*?<\/table>/gi;
 const TELEGRAM_RICH_HTML_TABLE_ROW_PATTERN = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
 const TELEGRAM_RICH_HTML_TABLE_CELL_PATTERN = /<(td|th)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
 const TELEGRAM_HTML_CAPTION_PATTERN = /<caption\b[^>]*>([\s\S]*?)<\/caption>/i;
-const TELEGRAM_HTML_COLSPAN_PATTERN = /\bcolspan\s*=\s*(?:"(\d+)"|'(\d+)'|(\d+))/i;
+const TELEGRAM_HTML_COLSPAN_PATTERN = /(?:^|\s)colspan\s*=\s*(['"]?)\s*(\d+)\s*\1(?=\s|$)/i;
 const TELEGRAM_SIMPLE_HTML_TAGS = new Set([
   "b",
   "strong",
@@ -604,7 +604,7 @@ function normalizeTelegramLegacyHtmlTables(html: string): string {
 }
 
 function parseTelegramHtmlColspan(attrs: string): number {
-  const raw = TELEGRAM_HTML_COLSPAN_PATTERN.exec(attrs)?.slice(1).find(Boolean);
+  const raw = TELEGRAM_HTML_COLSPAN_PATTERN.exec(attrs)?.[2];
   const value = raw ? Number.parseInt(raw, 10) : 1;
   return Number.isFinite(value) && value > 1 ? Math.min(value, 21) : 1;
 }
