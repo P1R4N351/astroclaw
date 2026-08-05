@@ -4,13 +4,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
-import { createPluginStateKeyedStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { createPluginStateKeyedStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { deriveConceptTags } from "./concept-vocabulary.js";
 import { isPromotionOriginBlocked } from "./dreaming-consolidation-candidates.js";
 
-vi.mock("astroclaw/plugin-sdk/memory-host-events", () => ({
+vi.mock("openclaw/plugin-sdk/memory-host-events", () => ({
   appendMemoryHostEvent: vi.fn(async () => {}),
 }));
 
@@ -4211,7 +4211,19 @@ describe("short-term promotion", () => {
         });
 
         const truncateAt = 51_200;
+        const originalOpen = fs.open.bind(fs);
         const originalWriteFile = fs.writeFile.bind(fs);
+        const promotionTempHandles = new WeakSet<object>();
+        vi.spyOn(fs, "open").mockImplementation(async (target, flags, mode) => {
+          const handle = await originalOpen(target, flags, mode);
+          if (
+            typeof target === "string" &&
+            path.basename(target).startsWith("MEMORY.md.promotion")
+          ) {
+            promotionTempHandles.add(handle);
+          }
+          return handle;
+        });
         vi.spyOn(fs, "writeFile").mockImplementation((async (
           target: Parameters<typeof fs.writeFile>[0],
           data: Parameters<typeof fs.writeFile>[1],
@@ -4219,7 +4231,10 @@ describe("short-term promotion", () => {
         ) => {
           const targetPath =
             typeof target === "string" ? target : target instanceof URL ? target.pathname : "";
-          if (targetPath && path.basename(targetPath).startsWith("MEMORY.md")) {
+          if (
+            (targetPath && path.basename(targetPath).startsWith("MEMORY.md")) ||
+            (typeof target === "object" && target !== null && promotionTempHandles.has(target))
+          ) {
             const text =
               typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString();
             await originalWriteFile(target, text.slice(0, truncateAt), options);
