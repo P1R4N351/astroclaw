@@ -1,4 +1,4 @@
-import type { AgentPlanStep } from "astroclaw/plugin-sdk/channel-outbound";
+import type { AgentPlanStep } from "openclaw/plugin-sdk/channel-outbound";
 import {
   buildChannelProgressDraftLine,
   buildChannelProgressDraftLineForEntry,
@@ -12,8 +12,8 @@ import {
   resolveChannelStreamingSuppressDefaultToolProgressMessages,
   type ChannelProgressDraftCompositorSnapshot,
   type ChannelProgressDraftLine,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { createSlackDraftStream } from "../../draft-stream.js";
 import { formatSlackError } from "../../errors.js";
 import { SLACK_TEXT_LIMIT } from "../../limits.js";
@@ -322,7 +322,7 @@ export function createSlackProgressRuntime(runtimeParams: {
     mode: slackStreaming.mode,
     active: progressDraftActive,
     seed: progressSeed,
-    formatLine: escapeSlackMrkdwn,
+    formatLine: formatSlackProgressDraftLine,
     reasoningLinePrefix: "🧠 ",
     commentaryLinePrefix: "💬 ",
     reasoningGate: previewToolProgressEnabled,
@@ -442,7 +442,7 @@ export function createSlackProgressRuntime(runtimeParams: {
       entry: account.config,
       lines: [...progressDraft.getSnapshot().lines],
       seed: progressSeed,
-      formatLine: escapeSlackMrkdwn,
+      formatLine: formatSlackProgressDraftLine,
       narration: explanation,
       plan: steps,
     });
@@ -655,4 +655,8 @@ export function createSlackProgressRuntime(runtimeParams: {
     },
     shouldYieldDraftProgress: () => shouldYieldDraftProgress(),
   };
+}
+
+function formatSlackProgressDraftLine(line: string): string {
+  return /^(?:🧠|💬)\s/u.test(line) ? line : escapeSlackMrkdwn(line);
 }
