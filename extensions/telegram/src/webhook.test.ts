@@ -9,8 +9,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { WEBHOOK_RATE_LIMIT_DEFAULTS } from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { WEBHOOK_RATE_LIMIT_DEFAULTS } from "openclaw/plugin-sdk/webhook-ingress";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildTelegramApprovalCallbackData } from "./approval-callback-data.js";
 import {
@@ -623,7 +623,7 @@ describe("startTelegramWebhook", () => {
     );
   });
 
-  it("aborts bot media fetches when the webhook stops", async () => {
+  it("aborts bot fetches and account-owned work when the webhook stops", async () => {
     const callerAbort = new AbortController();
     const started = await startTelegramWebhook({
       token: TELEGRAM_TOKEN,
@@ -640,17 +640,28 @@ describe("startTelegramWebhook", () => {
         "createTelegramBot params",
       );
       const fetchAbortSignal = botParams.fetchAbortSignal;
+      const accountAbortSignal = botParams.accountAbortSignal;
       expect(fetchAbortSignal).toBeInstanceOf(AbortSignal);
-      if (!(fetchAbortSignal instanceof AbortSignal)) {
-        throw new Error("expected bot fetch abort signal");
+      expect(accountAbortSignal).toBeInstanceOf(AbortSignal);
+      if (
+        !(fetchAbortSignal instanceof AbortSignal) ||
+        !(accountAbortSignal instanceof AbortSignal)
+      ) {
+        throw new Error("expected bot fetch and account abort signals");
       }
-      const aborted = new Promise<void>((resolve) => {
+      const fetchAborted = new Promise<void>((resolve) => {
         fetchAbortSignal.addEventListener("abort", () => resolve(), { once: true });
+      });
+      const accountAborted = new Promise<void>((resolve) => {
+        accountAbortSignal.addEventListener("abort", () => resolve(), { once: true });
       });
 
       await started.stop();
 
-      await expect(aborted).resolves.toBeUndefined();
+      await expect(Promise.all([fetchAborted, accountAborted])).resolves.toEqual([
+        undefined,
+        undefined,
+      ]);
       expect(callerAbort.signal.aborted).toBe(false);
     } finally {
       await started.stop();
