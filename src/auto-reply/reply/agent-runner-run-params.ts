@@ -2,6 +2,7 @@
 import { resolveEffectiveModelFallbacks } from "../../agents/agent-scope.js";
 import type { resolveProviderScopedAuthProfile } from "./agent-runner-auth-profile.js";
 import type { FollowupRun } from "./queue.js";
+import { resolveQuotaOverageRoute } from "./quota-overage-route.js";
 
 /** Callback used to detect providers that require final-answer tags. */
 type ReasoningTagProviderResolver = (
@@ -19,6 +20,11 @@ export function resolveModelFallbackOptions(
   configOverride: FollowupRun["run"]["config"] = run.config,
 ) {
   const config = configOverride;
+  const quotaRoute = resolveQuotaOverageRoute({
+    provider: run.provider,
+    authProfileId: run.authProfileId,
+    config,
+  });
   const fallbacksOverride = run.modelSelectionLocked
     ? []
     : resolveEffectiveModelFallbacks({
@@ -31,9 +37,9 @@ export function resolveModelFallbackOptions(
       });
   return {
     cfg: config,
-    provider: run.provider,
-    model: run.model,
-    requestedRouteResolution: run.requestedRouteResolution,
+    provider: quotaRoute?.provider ?? run.provider,
+    model: quotaRoute?.model ?? run.model,
+    requestedRouteResolution: quotaRoute ? "resolved" : run.requestedRouteResolution,
     agentDir: run.agentDir,
     agentId: run.agentId,
     sessionKey: run.runtimePolicySessionKey ?? run.sessionKey,

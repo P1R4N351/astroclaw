@@ -1,5 +1,8 @@
 // Tests agent runner utility decisions for fallbacks, channels, and reasoning tags.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FollowupRun } from "./queue.js";
 
 const hoisted = vi.hoisted(() => {
@@ -27,7 +30,21 @@ const { buildThreadingToolContext, buildEmbeddedRunExecutionParams, resolveModel
 const { resolveProviderScopedAuthProfile } = await import("./agent-runner-auth-profile.js");
 const { buildEmbeddedRunBaseParams: buildEmbeddedRunBaseParamsCore } =
   await import("./agent-runner-run-params.js");
+const { resetQuotaOverageRouteCacheForTest } = await import("./quota-overage-route.js");
 const { setChannelSourceTurnId } = await import("./source-turn-id.js");
+
+const quotaTempDirs: string[] = [];
+
+function writeQuotaSnapshot(
+  providers: Record<string, { forced_open: boolean }>,
+  sourceFetchedAt = new Date().toISOString(),
+): string {
+  const dir = mkdtempSync(join(tmpdir(), "astroclaw-quota-route-"));
+  quotaTempDirs.push(dir);
+  const path = join(dir, "quota-overrides.json");
+  writeFileSync(path, JSON.stringify({ providers, source_fetched_at: sourceFetchedAt }));
+  return path;
+}
 
 function buildEmbeddedRunBaseParams(
   params: Omit<Parameters<typeof buildEmbeddedRunBaseParamsCore>[0], "isReasoningTagProvider">,
@@ -69,6 +86,14 @@ describe("agent-runner-utils", () => {
     hoisted.getChannelPluginMock.mockReset();
     hoisted.isReasoningTagProviderMock.mockReset();
     hoisted.isReasoningTagProviderMock.mockReturnValue(false);
+    vi.unstubAllEnvs();
+    resetQuotaOverageRouteCacheForTest();
+  });
+
+  afterEach(() => {
+    while (quotaTempDirs.length > 0) {
+      rmSync(quotaTempDirs.pop()!, { recursive: true, force: true });
+    }
   });
 
   it("resolves model fallback options from run context", () => {
@@ -124,6 +149,116 @@ describe("agent-runner-utils", () => {
 
     expect(hoisted.resolveEffectiveModelFallbacksMock).not.toHaveBeenCalled();
     expect(resolved.fallbacksOverride).toEqual([]);
+  });
+
+  it("routes a locked run to OpenRouter when its selected account is over quota", () => {
+    vi.stubEnv(
+      "ASTROCLAW_QUOTA_OVERRIDES_FILE",
+      writeQuotaSnapshot({ anthropic_piranesi: { forced_open: true } }),
+    );
+    const run = makeRun({
+      provider: "anthropic",
+      model: "claude-opus-4-6",
+      modelSelectionLocked: true,
+      authProfileId: "anthropic-piranesi-own:default",
+      requestedRouteResolution: "raw",
+      config: {
+        models: { providers: {} },
+        auth: { order: { anthropic: ["anthropic-piranesi-own:default"] } },
+      },
+    });
+
+    const resolved = resolveModelFallbackOptions(run);
+
+    expect(resolved.provider).toBe("openrouter");
+    expect(resolved.model).toBe("anthropic/claude-opus-5");
+    expect(resolved.requestedRouteResolution).toBe("resolved");
+    expect(resolved.fallbacksOverride).toEqual([]);
+  });
+
+  it("routes a user-selected model to OpenRouter when its selected account is over quota", () => {
+    vi.stubEnv(
+      "ASTROCLAW_QUOTA_OVERRIDES_FILE",
+      writeQuotaSnapshot({ github_piranesi: { forced_open: true } }),
+    );
+    hoisted.resolveEffectiveModelFallbacksMock.mockReturnValue([]);
+    const run = makeRun({
+      provider: "github-copilot",
+      model: "claude-opus-4.6",
+      authProfileId: "github-copilot:piranesi",
+      hasSessionModelOverride: true,
+      modelOverrideSource: "user",
+      config: {
+        models: { providers: {} },
+        auth: { order: { "github-copilot": ["github-copilot:piranesi"] } },
+      },
+    });
+
+    const resolved = resolveModelFallbackOptions(run);
+
+    expect(resolved.provider).toBe("openrouter");
+    expect(resolved.model).toBe("anthropic/claude-opus-5");
+  });
+
+  it("does not apply one account's overage to a different selected account", () => {
+    vi.stubEnv(
+      "ASTROCLAW_QUOTA_OVERRIDES_FILE",
+      writeQuotaSnapshot({ anthropic_piranesi: { forced_open: true } }),
+    );
+    const run = makeRun({
+      provider: "anthropic",
+      model: "claude-opus-4-6",
+      modelSelectionLocked: true,
+      authProfileId: "anthropic:sat-oauth",
+      config: {
+        models: { providers: {} },
+        auth: { order: { anthropic: ["anthropic-piranesi-own:default"] } },
+      },
+    });
+
+    const resolved = resolveModelFallbackOptions(run);
+
+    expect(resolved.provider).toBe("anthropic");
+    expect(resolved.model).toBe("claude-opus-4-6");
+  });
+
+  it("does not replace an unknown explicit account with the configured default account", () => {
+    vi.stubEnv(
+      "ASTROCLAW_QUOTA_OVERRIDES_FILE",
+      writeQuotaSnapshot({ anthropic_piranesi: { forced_open: true } }),
+    );
+    const run = makeRun({
+      provider: "anthropic",
+      model: "claude-opus-4-6",
+      modelSelectionLocked: true,
+      authProfileId: "anthropic:future-account",
+      config: {
+        models: { providers: {} },
+        auth: { order: { anthropic: ["anthropic-piranesi-own:default"] } },
+      },
+    });
+
+    const resolved = resolveModelFallbackOptions(run);
+
+    expect(resolved.provider).toBe("anthropic");
+  });
+
+  it("fails open when the quota snapshot is stale", () => {
+    const staleAt = new Date(Date.now() - 1_800_001).toISOString();
+    vi.stubEnv(
+      "ASTROCLAW_QUOTA_OVERRIDES_FILE",
+      writeQuotaSnapshot({ anthropic_piranesi: { forced_open: true } }, staleAt),
+    );
+    const run = makeRun({
+      provider: "anthropic",
+      model: "claude-opus-4-6",
+      modelSelectionLocked: true,
+      authProfileId: "anthropic-piranesi-own:default",
+    });
+
+    const resolved = resolveModelFallbackOptions(run);
+
+    expect(resolved.provider).toBe("anthropic");
   });
 
   it("passes through missing agentId for helper-based fallback resolution", () => {
