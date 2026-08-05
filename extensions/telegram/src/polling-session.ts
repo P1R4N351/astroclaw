@@ -1,11 +1,11 @@
 // Telegram plugin module implements polling session behavior.
 import { type RunOptions, run } from "@grammyjs/runner";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
-import type { TelegramNetworkConfig } from "openclaw/plugin-sdk/config-contracts";
-import { drainPendingDeliveries } from "openclaw/plugin-sdk/delivery-queue-runtime";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { formatDurationPrecise, sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
+import type { TelegramNetworkConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { drainPendingDeliveries } from "astroclaw/plugin-sdk/delivery-queue-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatDurationPrecise, sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
 import { createTelegramBot } from "./bot.js";
 import type { TelegramTransport } from "./fetch.js";
@@ -27,8 +27,6 @@ import { resolveTelegramAdoptionStallTimeoutMs } from "./telegram-ingress-drain.
 import {
   resolveTelegramIngressSpoolDir,
   resolveTelegramUpdateId,
-  telegramSpooledUpdateLaneKey,
-  writeTelegramSpooledUpdate,
 } from "./telegram-ingress-spool.js";
 import {
   createTelegramIngressWorker,
@@ -533,13 +531,16 @@ export class TelegramPollingSession {
         // The committed spool enqueue is the ACK boundary; offset persistence is
         // monotonic catch-up and must not stall intake during a state-store outage.
         void (async () => {
-          let updateId: number;
-          try {
-            updateId = await writeTelegramSpooledUpdate({
-              spoolDir,
-              update: message.update,
-              laneKey: telegramSpooledUpdateLaneKey(message.update, botInfo),
+          const updateId = resolveTelegramUpdateId(message.update);
+          if (updateId === null) {
+            ackSpooledUpdate(message.requestId, {
+              ok: false,
+              message: "Telegram update missing numeric update_id.",
             });
+            return;
+          }
+          try {
+            await ingressMonitor.admit(message.update);
             this.opts.log(`[telegram][diag] isolated polling update spooled updateId=${updateId}`);
           } catch (err: unknown) {
             this.opts.log(
@@ -562,7 +563,6 @@ export class TelegramPollingSession {
           });
           this.opts.log(`[telegram][diag] isolated polling offset queued updateId=${updateId}`);
           ackSpooledUpdate(message.requestId, { ok: true, updateId });
-          requestImmediateDrain();
         })();
         return;
       }
