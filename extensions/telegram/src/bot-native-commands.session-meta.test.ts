@@ -1,10 +1,11 @@
 // Telegram tests cover bot native commands.session meta plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
-import { resolveChunkMode } from "openclaw/plugin-sdk/reply-dispatch-runtime";
-import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
-import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
-import type { SessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
+import { resolveChunkMode } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
+import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
+import type { SessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TelegramNativeCommandDeps } from "./bot-native-command-deps.runtime.js";
 import {
@@ -21,25 +22,25 @@ import { runWithTelegramUpdateProcessingFrame } from "./bot-processing-outcome.j
 // All mocks scoped to this file only — does not affect bot-native-commands.test.ts
 
 type ResolveConfiguredBindingRouteFn =
-  typeof import("openclaw/plugin-sdk/conversation-runtime").resolveConfiguredBindingRoute;
+  typeof import("astroclaw/plugin-sdk/conversation-runtime").resolveConfiguredBindingRoute;
 type EnsureConfiguredBindingRouteReadyFn =
-  typeof import("openclaw/plugin-sdk/conversation-runtime").ensureConfiguredBindingRouteReady;
+  typeof import("astroclaw/plugin-sdk/conversation-runtime").ensureConfiguredBindingRouteReady;
 type DispatchReplyWithBufferedBlockDispatcherFn =
-  typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
+  typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
 type DispatchReplyWithBufferedBlockDispatcherParams =
   Parameters<DispatchReplyWithBufferedBlockDispatcherFn>[0];
 type DispatchReplyWithBufferedBlockDispatcherResult = Awaited<
   ReturnType<DispatchReplyWithBufferedBlockDispatcherFn>
 >;
 type DispatchChannelInboundTurnFn =
-  typeof import("openclaw/plugin-sdk/channel-inbound").dispatchChannelInboundTurn;
+  typeof import("astroclaw/plugin-sdk/channel-inbound").dispatchChannelInboundTurn;
 type ResolveCommandArgMenuFn =
-  typeof import("openclaw/plugin-sdk/command-auth-native").resolveCommandArgMenu;
+  typeof import("astroclaw/plugin-sdk/command-auth-native").resolveCommandArgMenu;
 type DeliverRepliesFn = typeof import("./bot/delivery.js").deliverReplies;
 type DeliverRepliesParams = Parameters<DeliverRepliesFn>[0];
-type LoadModelCatalogFn = typeof import("openclaw/plugin-sdk/agent-runtime").loadModelCatalog;
+type LoadModelCatalogFn = typeof import("astroclaw/plugin-sdk/agent-runtime").loadModelCatalog;
 type ResolveDefaultModelForAgentFn =
-  typeof import("openclaw/plugin-sdk/agent-runtime").resolveDefaultModelForAgent;
+  typeof import("astroclaw/plugin-sdk/agent-runtime").resolveDefaultModelForAgent;
 type MatchPluginCommandFn = typeof import("./bot-native-commands.runtime.js").matchPluginCommand;
 
 const dispatchReplyResult: DispatchReplyWithBufferedBlockDispatcherResult = {
@@ -146,9 +147,9 @@ const conversationStoreMocks = vi.hoisted(() => ({
   upsertChannelPairingRequest: vi.fn(async () => ({ code: "PAIRCODE", created: true })),
 }));
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
-    "openclaw/plugin-sdk/conversation-runtime",
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
+    "astroclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
@@ -218,9 +219,9 @@ vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
     }),
   };
 });
-vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
-    "openclaw/plugin-sdk/session-store-runtime",
+vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
+    "astroclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -230,9 +231,9 @@ vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
     updateSessionStoreEntry: sessionMocks.updateSessionStoreEntry,
   };
 });
-vi.mock("openclaw/plugin-sdk/command-auth-native", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/command-auth-native")>(
-    "openclaw/plugin-sdk/command-auth-native",
+vi.mock("astroclaw/plugin-sdk/command-auth-native", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/command-auth-native")>(
+    "astroclaw/plugin-sdk/command-auth-native",
   );
   commandAuthMocks.resolveCommandArgMenu.mockImplementation(actual.resolveCommandArgMenu);
   return {
@@ -240,9 +241,9 @@ vi.mock("openclaw/plugin-sdk/command-auth-native", async () => {
     resolveCommandArgMenu: commandAuthMocks.resolveCommandArgMenu,
   };
 });
-vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/agent-runtime")>(
-    "openclaw/plugin-sdk/agent-runtime",
+vi.mock("astroclaw/plugin-sdk/agent-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/agent-runtime")>(
+    "astroclaw/plugin-sdk/agent-runtime",
   );
   agentRuntimeMocks.resolveDefaultModelForAgent.mockImplementation(
     actual.resolveDefaultModelForAgent,
@@ -291,9 +292,9 @@ vi.mock("./bot-native-commands.runtime.js", () => {
     >,
   };
 });
-vi.mock("openclaw/plugin-sdk/plugin-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-runtime")>(
-    "openclaw/plugin-sdk/plugin-runtime",
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-runtime")>(
+    "astroclaw/plugin-sdk/plugin-runtime",
   );
   return {
     ...actual,
@@ -1443,6 +1444,161 @@ describe("registerTelegramNativeCommands — session metadata", () => {
         replies: [{ text: "No response generated. Please try again." }],
       }),
     );
+  });
+
+  it("emits the fallback when a non-final suppression precedes a final failure", async () => {
+    dispatchChannelInboundTurnMock.mockImplementationOnce(async (plan) => {
+      await plan.delivery.onDelivered?.(
+        { text: "cancelled tool reply" },
+        { kind: "tool" },
+        {
+          visibleReplySent: false,
+          suppression: { reason: "cancelled_by_reply_payload_sending_hook" },
+        },
+      );
+      plan.delivery.onError?.(new Error("Telegram final delivery failed"), {
+        kind: "final",
+      });
+      return {
+        admission: { kind: "dispatch" },
+        dispatched: true,
+        ctxPayload: plan.ctxPayload,
+        routeSessionKey: plan.route.sessionKey,
+        dispatchResult: {
+          queuedFinal: false,
+          counts: { block: 0, final: 0, tool: 0 },
+        },
+      };
+    });
+    const { handler } = registerAndResolveStatusHandler({ cfg: {} });
+
+    await handler(createTelegramPrivateCommandContext());
+
+    expect(deliveryMocks.deliverReplies).toHaveBeenCalledOnce();
+    expect(deliveryMocks.deliverReplies).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replies: [{ text: "No response generated. Please try again." }],
+      }),
+    );
+  });
+
+  it("emits the fallback when a suppressed block reply precedes a final failure", async () => {
+    dispatchChannelInboundTurnMock.mockImplementationOnce(async (plan) => {
+      await plan.delivery.onDelivered?.(
+        { text: "cancelled block reply" },
+        { kind: "block" },
+        {
+          visibleReplySent: false,
+          suppression: { reason: "empty_after_reply_payload_sending_hook" },
+        },
+      );
+      plan.delivery.onError?.(new Error("Telegram final delivery failed"), {
+        kind: "final",
+      });
+      return {
+        admission: { kind: "dispatch" },
+        dispatched: true,
+        ctxPayload: plan.ctxPayload,
+        routeSessionKey: plan.route.sessionKey,
+        dispatchResult: {
+          queuedFinal: false,
+          counts: { block: 0, final: 0, tool: 0 },
+        },
+      };
+    });
+    const { handler } = registerAndResolveStatusHandler({ cfg: {} });
+
+    await handler(createTelegramPrivateCommandContext());
+
+    expect(deliveryMocks.deliverReplies).toHaveBeenCalledOnce();
+  });
+
+  it("emits the fallback when a final failure precedes a later suppressed final", async () => {
+    dispatchChannelInboundTurnMock.mockImplementationOnce(async (plan) => {
+      plan.delivery.onError?.(new Error("Telegram final delivery failed"), {
+        kind: "final",
+      });
+      await plan.delivery.onDelivered?.(
+        { text: "cancelled final reply" },
+        { kind: "final" },
+        {
+          visibleReplySent: false,
+          suppression: { reason: "cancelled_by_reply_payload_sending_hook" },
+        },
+      );
+      return {
+        admission: { kind: "dispatch" },
+        dispatched: true,
+        ctxPayload: plan.ctxPayload,
+        routeSessionKey: plan.route.sessionKey,
+        dispatchResult: {
+          queuedFinal: false,
+          counts: { block: 0, final: 0, tool: 0 },
+        },
+      };
+    });
+    const { handler } = registerAndResolveStatusHandler({ cfg: {} });
+
+    await handler(createTelegramPrivateCommandContext());
+
+    expect(deliveryMocks.deliverReplies).toHaveBeenCalledOnce();
+  });
+
+  it("preserves a suppressed final after a non-final delivery failure", async () => {
+    dispatchChannelInboundTurnMock.mockImplementationOnce(async (plan) => {
+      plan.delivery.onError?.(new Error("Telegram tool delivery failed"), {
+        kind: "tool",
+      });
+      await plan.delivery.onDelivered?.(
+        { text: "cancelled final reply" },
+        { kind: "final" },
+        {
+          visibleReplySent: false,
+          suppression: { reason: "cancelled_by_reply_payload_sending_hook" },
+        },
+      );
+      return {
+        admission: { kind: "dispatch" },
+        dispatched: true,
+        ctxPayload: plan.ctxPayload,
+        routeSessionKey: plan.route.sessionKey,
+        dispatchResult: {
+          queuedFinal: false,
+          counts: { block: 0, final: 0, tool: 0 },
+        },
+      };
+    });
+    const { handler } = registerAndResolveStatusHandler({ cfg: {} });
+
+    await handler(createTelegramPrivateCommandContext());
+
+    expect(deliveryMocks.deliverReplies).not.toHaveBeenCalled();
+  });
+
+  it("does not emit the fallback after a partially delivered final", async () => {
+    dispatchChannelInboundTurnMock.mockImplementationOnce(async (plan) => {
+      plan.delivery.onError?.(
+        createChannelPartialDeliveryError(new Error("Telegram final delivery failed"), {
+          visibleReplySent: true,
+        }),
+        { kind: "final" },
+      );
+      return {
+        admission: { kind: "dispatch" },
+        dispatched: true,
+        ctxPayload: plan.ctxPayload,
+        routeSessionKey: plan.route.sessionKey,
+        dispatchResult: {
+          queuedFinal: false,
+          counts: { block: 0, final: 0, tool: 0 },
+        },
+      };
+    });
+    const { handler } = registerAndResolveStatusHandler({ cfg: {} });
+
+    await handler(createTelegramPrivateCommandContext());
+
+    expect(deliveryMocks.deliverReplies).not.toHaveBeenCalled();
   });
 
   it("retains the empty fallback for a true non-silent metadata-only native reply", async () => {
