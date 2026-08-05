@@ -1,5 +1,5 @@
 // Telegram tests cover doctor plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { telegramDoctor } from "./doctor.js";
 
@@ -35,7 +35,7 @@ function collectEmptyAllowlistWarnings(
   return collect(params);
 }
 
-vi.mock("openclaw/plugin-sdk/runtime", () => {
+vi.mock("astroclaw/plugin-sdk/runtime", () => {
   return {
     getChannelsCommandSecretTargetIds: () => ["channels"],
     resolveCommandSecretRefsViaGateway: resolveCommandSecretRefsViaGatewayMock,
@@ -662,6 +662,24 @@ describe("telegram doctor", () => {
         } as unknown as OpenClawConfig)
       ).join("\n"),
     ).not.toContain("selected quote replies");
+  });
+
+  it("warns for selected quotes when explicit preview overrides inherited block delivery", async () => {
+    const warnings = await collectPreviewWarnings({
+      channels: {
+        telegram: {
+          replyToMode: "first",
+          streaming: { mode: "partial" },
+        },
+      },
+      agents: {
+        defaults: {
+          blockStreamingDefault: "on",
+        },
+      },
+    } as unknown as OpenClawConfig);
+
+    expect(warnings.join("\n")).toContain("selected quote replies");
   });
 
   it("wires apiRoot preview warnings and repair through the doctor adapter", async () => {
