@@ -1,48 +1,49 @@
 // Feishu plugin module implements channel behavior.
-import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
-import { formatAllowFromLowercase } from "openclaw/plugin-sdk/allow-from";
-import { ToolAuthorizationError } from "openclaw/plugin-sdk/channel-actions";
+import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
+import { formatAllowFromLowercase } from "astroclaw/plugin-sdk/allow-from";
+import { ToolAuthorizationError } from "astroclaw/plugin-sdk/channel-actions";
 import {
   adaptScopedAccountAccessor,
   createHybridChannelConfigAdapter,
-} from "openclaw/plugin-sdk/channel-config-helpers";
+} from "astroclaw/plugin-sdk/channel-config-helpers";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionContext,
   ChannelMessageToolDiscovery,
-} from "openclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+} from "astroclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
 import {
   defineChannelMessageAdapter,
   createRuntimeOutboundDelegates,
   createAccountStatusSink,
   type ChannelMessageSendResult,
   type MessageReceiptPartKind,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
 import {
   createAllowlistProviderGroupPolicyWarningCollector,
   projectConfigAccountIdWarningCollector,
-} from "openclaw/plugin-sdk/channel-policy";
-import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-runtime";
+} from "astroclaw/plugin-sdk/channel-policy";
+import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-runtime";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "openclaw/plugin-sdk/directory-runtime";
+} from "astroclaw/plugin-sdk/directory-runtime";
+import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
 import {
   legacyInteractiveReplyToPresentation,
   normalizeLegacyInteractiveReply,
   normalizeMessagePresentation,
   resolveLegacyInteractiveTextFallback,
-} from "openclaw/plugin-sdk/interactive-runtime";
-import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
-import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
-import { createComputedAccountStatusAdapter } from "openclaw/plugin-sdk/status-helpers";
+} from "astroclaw/plugin-sdk/interactive-runtime";
+import { createLazyRuntimeNamedExport } from "astroclaw/plugin-sdk/lazy-runtime";
+import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
+import { createComputedAccountStatusAdapter } from "astroclaw/plugin-sdk/status-helpers";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
 import type { PluginRuntime } from "../runtime-api.js";
 import {
   inspectFeishuCredentials,
@@ -180,6 +181,38 @@ const loadFeishuChannelRuntime = createLazyRuntimeNamedExport(
   "feishuChannelRuntime",
 );
 
+async function resolveFeishuMessageSender<TSender>(params: {
+  resolve: (
+    runtime: Awaited<ReturnType<typeof loadFeishuChannelRuntime>>,
+  ) => TSender | null | undefined;
+  unavailableMessage: string;
+}): Promise<TSender> {
+  try {
+    const sender = params.resolve(await loadFeishuChannelRuntime());
+    if (sender) {
+      return sender;
+    }
+    throw new Error(params.unavailableMessage);
+  } catch (error) {
+    if (error instanceof PlatformMessageNotDispatchedError) {
+      throw error;
+    }
+    throw new PlatformMessageNotDispatchedError(params.unavailableMessage, { cause: error });
+  }
+}
+
+const resolveFeishuTextSender = () =>
+  resolveFeishuMessageSender({
+    resolve: (runtime) => runtime.feishuOutbound.sendText,
+    unavailableMessage: "Feishu text sending is not available.",
+  });
+
+const resolveFeishuMediaSender = () =>
+  resolveFeishuMessageSender({
+    resolve: (runtime) => runtime.feishuOutbound.sendMedia,
+    unavailableMessage: "Feishu media sending is not available.",
+  });
+
 function toFeishuMessageSendResult(
   result: { messageId?: string; chatId?: string; receipt?: ChannelMessageSendResult["receipt"] },
   kind: MessageReceiptPartKind,
@@ -206,12 +239,19 @@ const feishuMessageAdapter = defineChannelMessageAdapter({
     },
   },
   send: {
+    lifecycle: {
+      // Resolve process-stable runtime methods before core records platform-send start.
+      // Provider invocation stays below so a lost provider result remains ambiguous.
+      beforeSendAttempt: async (ctx) => {
+        if (ctx.kind === "text") {
+          await resolveFeishuTextSender();
+        } else if (ctx.kind === "media") {
+          await resolveFeishuMediaSender();
+        }
+      },
+    },
     text: async (ctx) => {
-      const runtime = await loadFeishuChannelRuntime();
-      const sendText = runtime.feishuOutbound.sendText;
-      if (!sendText) {
-        throw new Error("Feishu text sending is not available.");
-      }
+      const sendText = await resolveFeishuTextSender();
       const { onDeliveryResult, ...outboundCtx } = ctx;
       const result = await sendText({
         ...outboundCtx,
@@ -226,11 +266,7 @@ const feishuMessageAdapter = defineChannelMessageAdapter({
       return toFeishuMessageSendResult(result, "text");
     },
     media: async (ctx) => {
-      const runtime = await loadFeishuChannelRuntime();
-      const sendMedia = runtime.feishuOutbound.sendMedia;
-      if (!sendMedia) {
-        throw new Error("Feishu media sending is not available.");
-      }
+      const sendMedia = await resolveFeishuMediaSender();
       const { onDeliveryResult, ...outboundCtx } = ctx;
       const result = await sendMedia({
         ...outboundCtx,
@@ -1640,8 +1676,8 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
       },
       auth: {
         login: async ({ cfg }) => {
-          const { createClackPrompter } = await import("openclaw/plugin-sdk/setup-runtime");
-          const { replaceConfigFile } = await import("openclaw/plugin-sdk/config-mutation");
+          const { createClackPrompter } = await import("astroclaw/plugin-sdk/setup-runtime");
+          const { replaceConfigFile } = await import("astroclaw/plugin-sdk/config-mutation");
           const prompter = createClackPrompter();
           const nextCfg = await runFeishuLogin({ cfg, prompter });
           if (nextCfg !== cfg) {
