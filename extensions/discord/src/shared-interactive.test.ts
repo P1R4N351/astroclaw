@@ -1,9 +1,9 @@
 // Discord tests cover shared interactive plugin behavior.
-import { buildApprovalResolutionRef } from "openclaw/plugin-sdk/approval-reference-runtime";
+import { buildApprovalResolutionRef } from "astroclaw/plugin-sdk/approval-reference-runtime";
 import type {
   MessagePresentation,
   MessagePresentationAction,
-} from "openclaw/plugin-sdk/interactive-runtime";
+} from "astroclaw/plugin-sdk/interactive-runtime";
 import { describe, expect, it } from "vitest";
 import { parseExecApprovalData } from "./approval-custom-id.js";
 import { buildDiscordActivityCustomId } from "./component-custom-id.js";
@@ -221,6 +221,30 @@ describe("buildDiscordInteractiveComponents", () => {
       ],
     } as unknown as MessagePresentation;
     expect(buildDiscordPresentationComponents(presentation)).toBeUndefined();
+  });
+
+  it("preserves authored block order around controls", () => {
+    expect(
+      buildDiscordPresentationComponents({
+        blocks: [
+          { type: "text", text: "First" },
+          {
+            type: "buttons",
+            buttons: [{ label: "Approve", value: "approve", style: "success" }],
+          },
+          { type: "text", text: "Last" },
+        ],
+      }),
+    ).toEqual({
+      blocks: [
+        { type: "text", text: "First" },
+        {
+          type: "actions",
+          buttons: [{ label: "Approve", style: "success", callbackData: "approve" }],
+        },
+        { type: "text", text: "Last" },
+      ],
+    });
   });
 
   it("renders typed approvals as actionable transport-private Discord controls", () => {
