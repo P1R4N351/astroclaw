@@ -1,5 +1,5 @@
 // Qa Lab tests cover qa gateway config plugin behavior.
-import { OPENCLAW_VERSION } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { OPENCLAW_VERSION } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { describe, expect, it } from "vitest";
 import {
   buildQaGatewayConfig,
@@ -105,7 +105,7 @@ describe("buildQaGatewayConfig", () => {
     expect(cfg.models?.providers?.anthropic?.baseUrl).toBe("http://127.0.0.1:44080");
     expect(cfg.models?.providers?.anthropic?.request).toEqual({ allowPrivateNetwork: true });
     expect(cfg.memory?.search).toMatchObject({
-      provider: "openai",
+      provider: "openai-compatible",
       model: "text-embedding-3-small",
       remote: {
         baseUrl: "http://127.0.0.1:44080/v1",
