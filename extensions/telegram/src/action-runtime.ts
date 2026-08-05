@@ -1,6 +1,6 @@
 // Telegram plugin module implements action runtime behavior.
-import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
-import { readBooleanParam } from "openclaw/plugin-sdk/boolean-param";
+import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
+import { readBooleanParam } from "astroclaw/plugin-sdk/boolean-param";
 import {
   jsonResult,
   readPositiveIntegerParam,
@@ -10,22 +10,22 @@ import {
   readStringParam,
   resolvePollMaxSelections,
   resolveReactionMessageId,
-} from "openclaw/plugin-sdk/channel-actions";
-import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
-import { normalizeOutboundLocation } from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-actions";
+import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
+import { normalizeOutboundLocation } from "astroclaw/plugin-sdk/channel-inbound";
 import {
   buildOutboundSessionContext,
   sendDurableMessageBatch,
   type DurableMessageBatchSendResult,
-} from "openclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   normalizeMessagePresentation,
   renderMessagePresentationFallbackText,
-} from "openclaw/plugin-sdk/interactive-runtime";
-import type { MessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/interactive-runtime";
+import type { MessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   createTelegramActionGate,
   resolveDefaultTelegramAccountId,
@@ -750,6 +750,8 @@ export async function handleTelegramAction(
       messageId: result.messageId,
       chatId: result.chatId,
       pollId: result.pollId,
+      ...(result.pollAnswerRouting ? { pollAnswerRouting: result.pollAnswerRouting } : {}),
+      ...(result.warning ? { warning: result.warning } : {}),
     });
   }
 
