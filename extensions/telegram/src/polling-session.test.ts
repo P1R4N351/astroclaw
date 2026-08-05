@@ -2,13 +2,14 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
-import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "astroclaw/plugin-sdk/channel-outbound";
+import { Bot } from "grammy";
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
+import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "openclaw/plugin-sdk/channel-outbound";
 import {
   isIngressClaimOwnedByOtherLiveProcess as isTelegramSpooledUpdateClaimOwnedByOtherLiveProcess,
   resolveIngressRetryDelayMs,
   shouldDeadLetterRetryableIngressEvent,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
@@ -16,8 +17,7 @@ import {
   getNodeSqliteKysely,
   openOpenClawStateDatabase,
   type OpenClawStateKyselyDatabaseForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { Bot } from "grammy";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { commitTelegramMessageDispatchReplay } from "./message-dispatch-dedupe.js";
 import {
@@ -72,7 +72,7 @@ vi.mock("./network-errors.js", () => ({
   isTelegramAuthenticationError: isTelegramAuthenticationErrorMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/delivery-queue-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/delivery-queue-runtime", () => ({
   drainPendingDeliveries: drainPendingDeliveriesMock,
 }));
 
@@ -80,7 +80,7 @@ vi.mock("./api-logging.js", () => ({
   withTelegramApiErrorLogging: async ({ fn }: { fn: () => Promise<unknown> }) => await fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   computeBackoff: computeBackoffMock,
   createSubsystemLogger: vi.fn(() => {
     const logger = {
@@ -143,7 +143,7 @@ async function claimSpooledUpdateById(spoolDir: string, updateId: number) {
 
 async function createTelegramMessageDispatchReplayForgetError(): Promise<unknown> {
   type ReplayGuard = Parameters<typeof commitTelegramMessageDispatchReplay>[0]["guard"];
-  type ReplayClaim = import("astroclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle;
+  type ReplayClaim = import("openclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle;
   const diskError = new Error("dedupe disk write failed");
   const guard: ReplayGuard = {
     claim: async () => ({ kind: "invalid" }),
@@ -883,7 +883,7 @@ describe("TelegramPollingSession", () => {
     closeOpenClawStateDatabaseForTest();
   });
 
-  it("uses backoff helpers for recoverable polling retries", async () => {
+  it("keeps account work alive across recoverable classic polling retries", async () => {
     const abort = new AbortController();
     const recoverableError = new Error("recoverable polling error");
     const setStatus = vi.fn();
@@ -913,6 +913,20 @@ describe("TelegramPollingSession", () => {
       }
       return {
         task: async () => {
+          const firstBotOptions = mockObjectArg(
+            createTelegramBotMock,
+            "first createTelegramBot",
+            0,
+          );
+          const secondBotOptions = mockObjectArg(
+            createTelegramBotMock,
+            "second createTelegramBot",
+            1,
+          );
+          expect((firstBotOptions.fetchAbortSignal as AbortSignal).aborted).toBe(true);
+          expect(firstBotOptions.accountAbortSignal).toBe(abort.signal);
+          expect(secondBotOptions.accountAbortSignal).toBe(abort.signal);
+          expect(abort.signal.aborted).toBe(false);
           abort.abort();
         },
         stop: runnerStop,
