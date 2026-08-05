@@ -2,14 +2,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import { Bot } from "grammy";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
-import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "openclaw/plugin-sdk/channel-outbound";
+import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
+import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "astroclaw/plugin-sdk/channel-outbound";
 import {
   isIngressClaimOwnedByOtherLiveProcess as isTelegramSpooledUpdateClaimOwnedByOtherLiveProcess,
   resolveIngressRetryDelayMs,
   shouldDeadLetterRetryableIngressEvent,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
@@ -17,7 +16,8 @@ import {
   getNodeSqliteKysely,
   openOpenClawStateDatabase,
   type OpenClawStateKyselyDatabaseForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { Bot } from "grammy";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { commitTelegramMessageDispatchReplay } from "./message-dispatch-dedupe.js";
 import {
@@ -72,7 +72,7 @@ vi.mock("./network-errors.js", () => ({
   isTelegramAuthenticationError: isTelegramAuthenticationErrorMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/delivery-queue-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/delivery-queue-runtime", () => ({
   drainPendingDeliveries: drainPendingDeliveriesMock,
 }));
 
@@ -80,7 +80,7 @@ vi.mock("./api-logging.js", () => ({
   withTelegramApiErrorLogging: async ({ fn }: { fn: () => Promise<unknown> }) => await fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   computeBackoff: computeBackoffMock,
   createSubsystemLogger: vi.fn(() => {
     const logger = {
@@ -120,7 +120,7 @@ let claimNextTelegramSpooledUpdate: typeof import("./telegram-ingress-spool.test
 let listTelegramSpooledUpdateClaims: typeof import("./telegram-ingress-spool.test-support.js").listTelegramSpooledUpdateClaims;
 let listTelegramSpooledUpdates: typeof import("./telegram-ingress-spool.test-support.js").listTelegramSpooledUpdates;
 let recoverStaleTelegramSpooledUpdateClaims: typeof import("./telegram-ingress-spool.test-support.js").recoverStaleTelegramSpooledUpdateClaims;
-let writeTelegramSpooledUpdate: typeof import("./telegram-ingress-spool.js").writeTelegramSpooledUpdate;
+let writeTelegramSpooledUpdate: typeof import("./telegram-ingress-spool.test-support.js").writeTelegramSpooledUpdate;
 let createTelegramSpooledReplayDeferredParticipant: typeof import("./bot-processing-outcome.js").createTelegramSpooledReplayDeferredParticipant;
 type TelegramMessageProcessingResult =
   import("./bot-processing-outcome.js").TelegramMessageProcessingResult;
@@ -143,7 +143,7 @@ async function claimSpooledUpdateById(spoolDir: string, updateId: number) {
 
 async function createTelegramMessageDispatchReplayForgetError(): Promise<unknown> {
   type ReplayGuard = Parameters<typeof commitTelegramMessageDispatchReplay>[0]["guard"];
-  type ReplayClaim = import("openclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle;
+  type ReplayClaim = import("astroclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle;
   const diskError = new Error("dedupe disk write failed");
   const guard: ReplayGuard = {
     claim: async () => ({ kind: "invalid" }),
@@ -852,12 +852,12 @@ function startIsolatedIngressSession(params: {
 describe("TelegramPollingSession", () => {
   beforeAll(async () => {
     ({ TelegramPollingSession } = await import("./polling-session.js"));
-    ({ writeTelegramSpooledUpdate } = await import("./telegram-ingress-spool.js"));
     ({
       claimNextTelegramSpooledUpdate,
       listTelegramSpooledUpdateClaims,
       listTelegramSpooledUpdates,
       recoverStaleTelegramSpooledUpdateClaims,
+      writeTelegramSpooledUpdate,
     } = await import("./telegram-ingress-spool.test-support.js"));
     ({ createTelegramSpooledReplayDeferredParticipant } =
       await import("./bot-processing-outcome.js"));
@@ -1730,6 +1730,9 @@ describe("TelegramPollingSession", () => {
           update: { update_id: 2, message: { text: "during-drain" } },
           queued: 1,
         });
+        expect(worker.ackSpooledUpdate).not.toHaveBeenCalledWith("write-2", expect.anything());
+        releaseFirstClaim?.();
+        releaseFirstClaim = undefined;
         await waitForTelegramTestState(() =>
           expect(worker.ackSpooledUpdate).toHaveBeenCalledWith("write-2", {
             ok: true,
@@ -1737,8 +1740,6 @@ describe("TelegramPollingSession", () => {
           }),
         );
         worker.emit({ type: "spooled", updateId: 2, queued: 1 });
-        releaseFirstClaim?.();
-        releaseFirstClaim = undefined;
 
         await waitForTelegramTestState(() =>
           expect(handleUpdate).toHaveBeenCalledWith({
