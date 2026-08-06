@@ -1,10 +1,10 @@
 import { redactSensitiveUrlLikeString } from "@astroclaw/net-policy/redact-sensitive-url";
+import { stableStringify } from "@astroclaw/normalization-core";
 import {
   listAgentEntries,
   listAgentIds,
   resolveAgentWorkspaceDir,
 } from "../agents/agent-scope-config.js";
-import { stableStringify } from "../agents/stable-stringify.js";
 import {
   applyClawAddPlan,
   CLAW_ADD_RESULT_SCHEMA_VERSION,
