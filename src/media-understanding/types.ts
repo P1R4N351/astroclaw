@@ -1,8 +1,9 @@
 // Shared media-understanding types for attachments, provider hooks, request
 // auth, decisions, and structured extraction inputs.
+import type { MediaKind } from "@astroclaw/media-core/constants";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { ModelProviderConfig } from "../config/types.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelProviderConfig } from "../config/types.js";
 
 /** Agent-owned runtime handle carried opaquely through media provider requests. */
 type MediaPreparedModelRuntime = Readonly<{
@@ -27,6 +28,7 @@ export type MediaAttachment = {
   path?: string;
   url?: string;
   mime?: string;
+  kind?: MediaKind;
   workspaceDir?: string;
   index: number;
   alreadyTranscribed?: boolean;
