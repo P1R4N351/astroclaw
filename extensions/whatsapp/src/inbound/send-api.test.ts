@@ -1,4 +1,3 @@
-// Whatsapp tests cover send api plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,6 +7,8 @@ import {
 } from "astroclaw/plugin-sdk/channel-inbound";
 import { listMessageReceiptPlatformIds } from "astroclaw/plugin-sdk/channel-outbound";
 import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
+// Whatsapp tests cover send api plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import type { AnyMessageContent, MiscMessageGenerationOptions, WAMessage } from "baileys";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prepareWhatsAppOutboundMedia } from "../outbound-media-contract.js";
@@ -42,12 +43,7 @@ vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
   };
 });
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null) {
-    throw new Error(`${label} was not an object`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("object", "label-not-object");
 
 type MockCallSource = {
   mock: {
