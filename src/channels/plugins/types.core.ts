@@ -11,8 +11,8 @@ import type {
 import type { AgentTool, AgentToolResult } from "../../agents/runtime/index.js";
 import type { ReplyDeliveryContext, ReplyPayload } from "../../auto-reply/reply-payload.js";
 import type { MsgContext } from "../../auto-reply/templating.js";
-import type { MarkdownTableMode } from "../../config/types.base.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { MarkdownTableMode } from "../../config/types.base.js";
 import type { MessagePresentation } from "../../interactive/payload.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import type { PollInput } from "../../polls.js";
@@ -266,6 +266,8 @@ export type ChannelTtsVoiceDeliveryCapabilities = {
   synthesisTarget: "audio-file" | "voice-note";
   transcodesAudio?: boolean;
   audioFileFormats?: readonly string[];
+  /** Voice notes can carry the final reply text as a visible caption. */
+  captionedFinalText?: boolean;
   /**
    * Optional preferred audio container the channel wants for voice-memo
    * delivery. When set and the host can transcode (e.g. `afconvert` on
