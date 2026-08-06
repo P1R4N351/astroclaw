@@ -1,5 +1,6 @@
 // Orchestrates security audit collection and report formatting.
 import path from "node:path";
+import { redactSensitiveUrlLikeString } from "@astroclaw/net-policy/redact-sensitive-url";
 import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
@@ -11,8 +12,8 @@ import { resolveDefaultAgentWorkspaceDir } from "../agents/workspace-default.js"
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { ConfigFileSnapshot, OpenClawConfig } from "../config/config.js";
 import { resolveConfigPath, resolveStateDir } from "../config/paths.js";
-import type { GatewayAuthConfig } from "../config/types.gateway.js";
 import type { SecurityAuditSuppression } from "../config/types.astroclaw.js";
+import type { GatewayAuthConfig } from "../config/types.gateway.js";
 import {
   canMaterializeGatewayAuthSecretRefsWithoutExec,
   materializeGatewayAuthSecretRefs,
@@ -1268,10 +1269,15 @@ async function maybeProbeGateway(params: {
     deep: {
       gateway: {
         attempted: true,
-        url,
+        url: redactSensitiveUrlLikeString(url),
         ok: res.ok,
-        error: res.ok ? null : res.error,
-        close: res.close ? { code: res.close.code, reason: res.close.reason } : null,
+        error: res.ok || res.error === null ? null : redactSensitiveUrlLikeString(res.error),
+        close: res.close
+          ? {
+              code: res.close.code,
+              reason: redactSensitiveUrlLikeString(res.close.reason),
+            }
+          : null,
       },
     },
     authWarning: authResolution.warning,
