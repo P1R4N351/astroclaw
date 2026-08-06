@@ -1,6 +1,6 @@
 import { expectDefined } from "@astroclaw/normalization-core";
 // Diagnostics Prometheus tests cover service plugin behavior.
-import type { DiagnosticEventPrivateData } from "openclaw/plugin-sdk/diagnostic-runtime";
+import type { DiagnosticEventPrivateData } from "astroclaw/plugin-sdk/diagnostic-runtime";
 // Diagnostics Prometheus tests cover service plugin behavior.
 import { describe, expect, it, vi } from "vitest";
 import type { DiagnosticEventMetadata, DiagnosticEventPayload } from "../api.js";
@@ -433,6 +433,36 @@ describe("diagnostics-prometheus service", () => {
       'openclaw_model_tokens_total{agent="unknown",channel="unknown",model="gpt-5.4",provider="openai",token_type="input"} 12',
     );
     expect(rendered).not.toContain("Agent:qa:otel-trace-smoke");
+  });
+
+  it("aggregates plugin usage without adding a plugin label", () => {
+    const metrics = createMetricsHarness();
+    const record = (input: number) =>
+      metrics.record(
+        {
+          ...baseEvent(),
+          type: "model.usage",
+          agentId: "main",
+          provider: "openai",
+          model: "gpt-5.4",
+          usage: { input, total: input },
+        },
+        Object.freeze({ trusted: true, internal: true }),
+      );
+
+    record(12);
+    record(8);
+    const rendered = metrics.render();
+
+    expect(rendered).toContain(
+      'openclaw_model_tokens_total{agent="main",channel="unknown",model="gpt-5.4",provider="openai",token_type="input"} 20',
+    );
+    expect(rendered).toContain(
+      'openclaw_model_tokens_total{agent="main",channel="unknown",model="gpt-5.4",provider="openai",token_type="total"} 20',
+    );
+    expect(rendered).not.toContain("plugin=");
+    expect(rendered).not.toContain("llm-task");
+    expect(rendered).not.toContain("another-plugin");
   });
 
   it("drops session-shaped queue lane labels", () => {
