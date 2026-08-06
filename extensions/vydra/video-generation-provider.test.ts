@@ -1,7 +1,8 @@
 // Vydra tests cover video generation provider plugin behavior.
-import * as providerHttp from "openclaw/plugin-sdk/provider-http";
-import { expectExplicitVideoGenerationCapabilities } from "openclaw/plugin-sdk/provider-test-contracts";
-import { installPinnedHostnameTestHooks } from "openclaw/plugin-sdk/test-media-understanding";
+import * as providerHttp from "astroclaw/plugin-sdk/provider-http";
+import { expectExplicitVideoGenerationCapabilities } from "astroclaw/plugin-sdk/provider-test-contracts";
+import { bufferedOversizedJsonResponse as oversizedJsonResponse } from "astroclaw/plugin-sdk/test-fixtures";
+import { installPinnedHostnameTestHooks } from "astroclaw/plugin-sdk/test-media-understanding";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   binaryResponse,
@@ -17,13 +18,6 @@ function fetchCall(fetchMock: ReturnType<typeof vi.fn>, index: number) {
     throw new Error(`expected fetch call ${index}`);
   }
   return call;
-}
-
-function oversizedJsonResponse(): Response {
-  return new Response(Buffer.alloc(16 * 1024 * 1024 + 1, 0x20), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
 }
 
 describe("vydra video-generation provider", () => {
