@@ -7,7 +7,7 @@ import {
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
 } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord, importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import type { Bot } from "grammy";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { markdownToTelegramHtml, telegramHtmlToPlainTextFallback } from "./format.js";
@@ -365,12 +365,7 @@ function requireString(value: unknown, label: string): string {
   return value;
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null) {
-    throw new Error(`expected ${label}`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("object", "expected-label");
 
 function expectMediaSendCall(
   call: unknown[] | undefined,
