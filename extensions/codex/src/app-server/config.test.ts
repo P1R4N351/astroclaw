@@ -1,8 +1,9 @@
-// Codex tests cover config plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { withTempDir } from "astroclaw/plugin-sdk/test-env";
+// Codex tests cover config plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import {
   canUseCodexModelBackedApprovalsReviewerForModel,
@@ -45,12 +46,7 @@ function envRef(id: string) {
   return { source: "env" as const, provider: "default", id };
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Expected ${label}`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("record", "expected-label-capitalized");
 
 function expectFields(
   value: unknown,
