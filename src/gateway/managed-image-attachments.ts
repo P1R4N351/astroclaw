@@ -622,6 +622,7 @@ export async function cleanupManagedOutgoingMediaRecords(params?: {
   sessionKey?: string;
   agentId?: string;
   forceDeleteSessionRecords?: boolean;
+  hasActiveSessionRun?: (sessionKey: string, agentId: string | undefined) => boolean;
 }): Promise<CleanupManagedOutgoingMediaRecordsResult> {
   const stateDir = params?.stateDir ?? resolveStateDir();
   const nowMs = params?.nowMs ?? Date.now();
@@ -678,7 +679,11 @@ export async function cleanupManagedOutgoingMediaRecords(params?: {
       shouldDelete = transcriptMatch === "missing";
     } else if (!entry.cleanupPending) {
       const createdAtMs = Date.parse(record.createdAt);
-      shouldDelete = Number.isFinite(createdAtMs) && nowMs - createdAtMs >= transientMaxAgeMs;
+      shouldDelete =
+        Number.isFinite(createdAtMs) &&
+        nowMs - createdAtMs >= transientMaxAgeMs &&
+        params?.hasActiveSessionRun?.(record.sessionKey, record.agentId?.trim() || undefined) !==
+          true;
     }
 
     if (shouldDelete) {
