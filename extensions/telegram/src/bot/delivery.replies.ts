@@ -1,15 +1,8 @@
-// Telegram plugin module implements delivery.replies behavior.
-import { type Bot, GrammyError } from "grammy";
-import type { Message } from "grammy/types";
-import {
-  createChannelPartialDeliveryError,
-  isChannelPartialDeliveryError,
-} from "openclaw/plugin-sdk/channel-inbound";
 import {
   createOutboundPayloadPlan,
   projectOutboundPayloadPlanForDelivery,
-} from "openclaw/plugin-sdk/channel-outbound";
-import type { MarkdownTableMode, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
 import {
   buildCanonicalSentMessageHookContext,
   createInternalHookEvent,
@@ -18,21 +11,25 @@ import {
   toPluginMessageContext,
   toPluginMessageSentEvent,
   triggerInternalHook,
-} from "openclaw/plugin-sdk/hook-runtime";
-import type { ReplyPayloadDelivery } from "openclaw/plugin-sdk/interactive-runtime";
-import { normalizeMessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import type { ReplyPayloadDelivery } from "astroclaw/plugin-sdk/interactive-runtime";
+import { normalizeMessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
 import {
   buildOutboundMediaLoadOptions,
   probeVideoDimensions,
-} from "openclaw/plugin-sdk/media-runtime";
-import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
-import { chunkMarkdownTextWithMode, type ChunkMode } from "openclaw/plugin-sdk/reply-chunking";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
-import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
+} from "astroclaw/plugin-sdk/media-runtime";
+import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
+import { chunkMarkdownTextWithMode, type ChunkMode } from "astroclaw/plugin-sdk/reply-chunking";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { loadWebMedia } from "astroclaw/plugin-sdk/web-media";
+// Telegram plugin module implements delivery.replies behavior.
+import { type Bot, GrammyError } from "grammy";
+import type { Message } from "grammy/types";
 import { resolveTelegramInlineButtons, type TelegramInlineButtons } from "../button-types.js";
+import { mergeTelegramPartialDeliveryError } from "../chunk-delivery.js";
 import {
   markdownToTelegramChunks,
   markdownToTelegramHtml,
@@ -61,6 +58,7 @@ import {
 } from "../rich-message.js";
 import { isTelegramEmptyContentError } from "../rich-plain-fallback.js";
 import { isTelegramPhotoLimitError } from "../send-error-predicates.js";
+import { reportTelegramProviderDelivery } from "../send-outbound.js";
 import { buildInlineKeyboard, reactMessageTelegram } from "../send.js";
 import { recordSentMessage } from "../sent-message-cache.js";
 import { resolveTelegramTargetChatType } from "../targets.js";
@@ -404,6 +402,21 @@ async function deliverMediaReply(params: {
         }),
     });
     const message = delivery.result;
+    if (params.thread?.id !== undefined) {
+      try {
+        await reportTelegramProviderDelivery({
+          message,
+          messageId: message.message_id,
+          fallbackChatId: params.chatId,
+          successfulSendThread: params.thread,
+        });
+      } catch (error) {
+        throw mergeTelegramPartialDeliveryError(error, {
+          messageIds: deliveredMediaMessageIds,
+          visibleReplySent: true,
+        });
+      }
+    }
     firstDeliveredMessageId ??= message.message_id;
     firstDeliveredCaption ??= delivery.deliveredCaption;
     if (delivery.captionRemoved) {
@@ -415,11 +428,8 @@ async function deliverMediaReply(params: {
     markDelivered(params.progress);
   };
   const throwMediaPartial = (error: unknown): never => {
-    const textMessageIds = isChannelPartialDeliveryError(error)
-      ? (error.deliveryResult.messageIds ?? [])
-      : [];
-    throw createChannelPartialDeliveryError(error, {
-      messageIds: [...new Set([...deliveredMediaMessageIds, ...textMessageIds])],
+    throw mergeTelegramPartialDeliveryError(error, {
+      messageIds: deliveredMediaMessageIds,
       visibleReplySent: true,
     });
   };
@@ -747,7 +757,7 @@ export function emitTelegramMessageSentHooks(params: EmitMessageSentHookParams):
 
 export async function deliverReplies(params: {
   replies: ReplyPayload[];
-  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  cfg?: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
   chatId: string;
   accountId?: string;
   sessionKeyForInternalHooks?: string;
