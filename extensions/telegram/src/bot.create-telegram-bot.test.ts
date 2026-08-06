@@ -19,7 +19,7 @@ import type {
 } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import type { GetReplyOptions, MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
 import { withEnvAsync } from "astroclaw/plugin-sdk/test-env";
-import { sanitizeTerminalText } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord, sanitizeTerminalText } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTelegramNativeCommandTestDeps,
@@ -386,12 +386,7 @@ function createDeferred<T = void>() {
   return { promise, resolve, reject };
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error(`expected ${label} to be an object`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("record", "expected-label-object");
 
 function expectRecordFields(
   value: unknown,
