@@ -1,4 +1,3 @@
-// Opencode Go tests cover index plugin behavior.
 import { clampThinkingLevel } from "astroclaw/plugin-sdk/llm";
 import type { ProviderRuntimeModel } from "astroclaw/plugin-sdk/plugin-entry";
 import {
@@ -8,21 +7,18 @@ import {
 import { NON_ENV_SECRETREF_MARKER } from "astroclaw/plugin-sdk/provider-auth-runtime";
 import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 import { expectPassthroughReplayPolicy } from "astroclaw/plugin-sdk/provider-test-contracts";
+// Opencode Go tests cover index plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import plugin from "./index.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import plugin from "./index.js";
 import {
   buildOpencodeGoLiveProviderConfig,
   buildStaticOpencodeGoProviderConfig,
 } from "./provider-catalog.js";
 import opencodeGoProviderDiscovery from "./provider-discovery.js";
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`expected ${label} to be a record`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("record", "expected-label-record");
 
 function requireMapEntry<T>(map: Map<string, T>, id: string): T {
   const entry = map.get(id);
