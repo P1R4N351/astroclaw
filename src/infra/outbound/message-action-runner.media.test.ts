@@ -1,8 +1,9 @@
-// Covers message-action media hydration, sandbox path normalization,
-// attachments, and channel/plugin media source aliases.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+// Covers message-action media hydration, sandbox path normalization,
+// attachments, and channel/plugin media source aliases.
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonResult } from "../../agents/tools/common.js";
@@ -11,12 +12,12 @@ import type { OpenClawConfig } from "../../config/config.js";
 import { MEDIA_MAX_BYTES } from "../../media/store.js";
 import { loadWebMedia } from "../../media/web-media.js";
 import { getActivePluginRegistry, setActivePluginRegistry } from "../../plugins/runtime.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import {
   createChannelTestPluginBase,
   createTestRegistry,
 } from "../../test-utils/channel-plugins.js";
-import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
-import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
 import { runMessageAction } from "./message-action-runner.js";
 
 const onePixelPng = Buffer.from(
@@ -115,12 +116,7 @@ const runDrySend = (params: {
     sandboxRoot: params.sandboxRoot,
   });
 
-function requireRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Expected a non-array record");
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("record", "expected-non-array-record");
 
 function requireActionPayload(
   result: Awaited<ReturnType<typeof runMessageAction>>,
@@ -1359,7 +1355,7 @@ describe("runMessageAction media behavior", () => {
     );
 
     it("allows media paths under preferred OpenClaw tmp root", async () => {
-      const tmpRoot = resolvePreferredAstroclawTmpDir();
+      const tmpRoot = resolvePreferredOpenClawTmpDir();
       await fs.mkdir(tmpRoot, { recursive: true });
       const sandboxDir = await fs.mkdtemp(path.join(os.tmpdir(), "msg-sandbox-"));
       try {
