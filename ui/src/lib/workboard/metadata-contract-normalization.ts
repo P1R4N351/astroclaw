@@ -1,4 +1,4 @@
-import { isRecord } from "./normalization-utils.ts";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type {
   WorkboardAutomation,
   WorkboardDiagnosticAction,
