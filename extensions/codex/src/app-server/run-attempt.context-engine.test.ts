@@ -1,4 +1,3 @@
-// Codex tests cover run attempt.context engine plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -20,6 +19,8 @@ import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runti
 import { registerSandboxBackend } from "astroclaw/plugin-sdk/sandbox";
 import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import { formatSqliteSessionFileMarker } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+// Codex tests cover run attempt.context engine plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
 import { shouldEnableCodexAppServerNativeToolSurface } from "./dynamic-tool-build.js";
@@ -382,12 +383,7 @@ function createContextEngine(overrides: Partial<ContextEngine> = {}): ContextEng
 
 type MockCallReader = { mock: { calls: unknown[][] } };
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`expected ${label} to be an object`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("record", "expected-label-object");
 
 function optionalString(value: unknown): string {
   return typeof value === "string" ? value : "";
