@@ -1,8 +1,9 @@
-// Ollama tests cover index plugin behavior.
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { ProviderAuthMethod } from "astroclaw/plugin-sdk/plugin-entry";
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-shared";
+// Ollama tests cover index plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import plugin from "./index.js";
 import { OLLAMA_DEFAULT_API_KEY } from "./src/discovery-shared.js";
@@ -177,12 +178,7 @@ function createOllamaResetValidationContext(
   };
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object") {
-    throw new Error(`expected ${label}`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("object", "expected-label");
 
 function requireConfiguredStreamParams(): Record<string, unknown> {
   return requireRecord(createConfiguredOllamaStreamFnMock.mock.calls[0]?.[0], "stream params");
