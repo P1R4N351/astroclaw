@@ -1,4 +1,4 @@
-// Qa Lab tests cover lab server plugin behavior.
+// QA Lab tests cover lab server plugin behavior.
 import fs, { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import os from "node:os";
@@ -30,7 +30,7 @@ vi.mock("./live-transports/cli.js", () => ({
   listLiveTransportQaAdapterFactories: liveTransportMock.listAdapterFactories,
 }));
 
-vi.mock("openclaw/plugin-sdk/qa-channel", () => ({
+vi.mock("astroclaw/plugin-sdk/qa-channel", () => ({
   qaChannelPlugin: {
     config: {
       resolveAccount: qaChannelMock.resolveAccount,
@@ -155,7 +155,7 @@ const captureMock = vi.hoisted(() => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/proxy-capture", () => ({
+vi.mock("astroclaw/plugin-sdk/proxy-capture", () => ({
   acquireDebugProxyCaptureStore: () => ({
     store: captureMock.store,
     release: captureMock.store.close,
@@ -407,6 +407,8 @@ describe("qa-lab server", () => {
     });
     suiteLaunchMock.runQaSuite.mockResolvedValue({
       executionKind: "suite",
+      expectedCells: [],
+      observedCells: [],
       result: await createQaLabSuiteResultFixture(),
     });
 
@@ -494,7 +496,12 @@ describe("qa-lab server", () => {
       const result = await createQaLabSuiteResultFixture({
         scenarios: [{ name: "Channel chat baseline", status, steps: [] }],
       });
-      suiteLaunchMock.runQaSuite.mockResolvedValue({ executionKind: "flow", result });
+      suiteLaunchMock.runQaSuite.mockResolvedValue({
+        executionKind: "flow",
+        expectedCells: [],
+        observedCells: [],
+        result,
+      });
 
       const response = await fetch(`${lab.baseUrl}/api/scenario/suite`, {
         method: "POST",
@@ -561,7 +568,12 @@ describe("qa-lab server", () => {
       });
       const result = await createQaLabSuiteResultFixture();
       await writeFile(result.summaryPath, invalidResult.summary, "utf8");
-      suiteLaunchMock.runQaSuite.mockResolvedValue({ executionKind: "flow", result });
+      suiteLaunchMock.runQaSuite.mockResolvedValue({
+        executionKind: "flow",
+        expectedCells: [],
+        observedCells: [],
+        result,
+      });
 
       const response = await fetch(`${lab.baseUrl}/api/scenario/suite`, {
         method: "POST",
@@ -601,7 +613,12 @@ describe("qa-lab server", () => {
         },
       ],
     });
-    suiteLaunchMock.runQaSuite.mockResolvedValue({ executionKind: "flow", result });
+    suiteLaunchMock.runQaSuite.mockResolvedValue({
+      executionKind: "flow",
+      expectedCells: [],
+      observedCells: [],
+      result,
+    });
 
     const response = await fetch(`${lab.baseUrl}/api/scenario/suite`, {
       method: "POST",
@@ -630,6 +647,8 @@ describe("qa-lab server", () => {
     });
     suiteLaunchMock.runQaSuite.mockResolvedValue({
       executionKind: "flow",
+      expectedCells: [],
+      observedCells: [],
       result: await createQaLabSuiteResultFixture({ watchUrl: "http://runtime-watch.invalid" }),
     });
 
@@ -693,6 +712,8 @@ describe("qa-lab server", () => {
     expect(suiteLaunchMock.runQaSuite).toHaveBeenCalledTimes(1);
     finishSuite?.({
       executionKind: "flow",
+      expectedCells: [],
+      observedCells: [],
       result: await createQaLabSuiteResultFixture(),
     });
     await vi.waitFor(async () => {
@@ -727,6 +748,8 @@ describe("qa-lab server", () => {
     });
     suiteLaunchMock.runQaSuite.mockResolvedValue({
       executionKind: "flow",
+      expectedCells: [],
+      observedCells: [],
       result: await createQaLabSuiteResultFixture({ watchUrl: lab.baseUrl }),
     });
 
