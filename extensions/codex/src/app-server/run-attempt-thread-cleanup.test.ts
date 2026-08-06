@@ -5,7 +5,7 @@ import path from "node:path";
 import {
   resetAgentEventsForTest,
   type EmbeddedRunAttemptParams,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
 import { CodexAppServerClient } from "./client.js";
@@ -106,7 +106,7 @@ function threadStartResult(threadId = "thread-1") {
       status: { type: "idle" },
       path: null,
       cwd: tempDir || "/tmp/openclaw-codex-test",
-      cliVersion: "0.146.0",
+      cliVersion: "0.146.1",
       source: "unknown",
       agentNickname: null,
       agentRole: null,
