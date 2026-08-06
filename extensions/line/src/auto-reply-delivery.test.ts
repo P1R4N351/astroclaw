@@ -1,4 +1,4 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { chunkMarkdownText } from "astroclaw/plugin-sdk/reply-runtime";
 // Line tests cover auto reply delivery plugin behavior.
 import { describe, expect, it, vi } from "vitest";

@@ -8,7 +8,7 @@ import { PLUGIN_APPROVAL_DESCRIPTION_MAX_LENGTH } from "../../infra/plugin-appro
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import { resolveSkillWorkshopToolApproval } from "./policy.js";
 import { proposeCreateSkill } from "./service.js";

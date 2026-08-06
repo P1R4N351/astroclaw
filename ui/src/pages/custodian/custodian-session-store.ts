@@ -2,7 +2,7 @@ import {
   readSystemAgentInferenceUnavailableErrorDetails,
   type SystemAgentChatParams,
   type SystemAgentChatResult,
-} from "@openclaw/gateway-protocol";
+} from "@astroclaw/gateway-protocol";
 import type { GatewayBrowserClient } from "../../api/gateway.ts";
 import { selectApplicationSession } from "../../app/agent-selection.ts";
 import type { ApplicationContext } from "../../app/context.ts";

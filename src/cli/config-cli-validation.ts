@@ -1,10 +1,10 @@
-import { isRecord as isPlainRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord as isPlainRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { ConfigFileSnapshot } from "../config/config.js";
 import { readConfigFileSnapshot } from "../config/config.js";
 import { formatConfigIssueLines, normalizeConfigIssues } from "../config/issue-format.js";
 import { attachConfigIssueDiagnostics } from "../config/issue-location.js";
 import { isPluginPackagingRuntimeOutputInvalidConfigSnapshot } from "../config/recovery-policy.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   coerceSecretRef,
   resolveSecretInputRef,

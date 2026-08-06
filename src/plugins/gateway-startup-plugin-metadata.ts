@@ -1,7 +1,7 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 // Builds deterministic metadata scopes for startup and config validation.
 import type { AmbientEnvTriggerPolicy } from "../channels/config-presence.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { addRequiredAgentHarnessPluginIds } from "./gateway-startup-plugin-activation.js";
 import {
   addConfiguredActivationPathPluginIds,

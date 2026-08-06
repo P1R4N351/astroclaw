@@ -6,8 +6,8 @@ import {
   sortPromptCacheToolsByName,
   splitSystemPromptCacheBoundary,
 } from "@openclaw/ai/internal/shared";
-import { stableStringify } from "@openclaw/normalization-core";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { stableStringify } from "@astroclaw/normalization-core";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { pruneMapToMaxSize } from "../../infra/map-size.js";
 import type { NormalizedUsage } from "../usage.js";
 

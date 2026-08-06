@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { resolveDefaultModelForAgent } from "../../agents/model-selection-config.js";
 import { SessionManager } from "../../agents/sessions/index.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { CommandLane } from "../../process/lanes.js";
 import {
   buildSkillHistoryScanPrompt,

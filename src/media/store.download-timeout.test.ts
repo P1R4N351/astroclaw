@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import { saveMediaSource } from "./store.js";
 
 const saveRemoteMediaMock = vi.hoisted(() => vi.fn());

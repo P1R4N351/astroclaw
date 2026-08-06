@@ -6,7 +6,7 @@ import type {
   SystemAgentSetupDetectResult,
   SystemAgentSetupVerifyResult,
 } from "../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { CallGatewayCliOptions } from "../gateway/call.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import type {

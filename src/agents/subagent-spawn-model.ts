@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { findModelCatalogEntry } from "./model-catalog-lookup.js";
 import { resolveDefaultModelForAgent } from "./model-selection.js";
 import { supportsModelTools } from "./model-tool-support.js";

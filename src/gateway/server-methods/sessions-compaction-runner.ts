@@ -1,5 +1,5 @@
 // Model-backed compaction request construction.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveAgentWorkspaceDir } from "../../agents/agent-scope.js";
 import { compactEmbeddedAgentSession } from "../../agents/embedded-agent.js";
 import { resolvePersistedSessionRuntimeId } from "../../agents/session-runtime-compat.js";
@@ -17,7 +17,7 @@ import {
   scanSessionTranscriptTree,
   selectSessionTranscriptTreePathNodes,
 } from "../../config/sessions/transcript-tree.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveSessionModelRef } from "../session-utils.js";
 
 type GatewaySessionCompactionParams = {

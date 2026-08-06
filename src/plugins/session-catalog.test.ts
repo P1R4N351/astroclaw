@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { importSessionCatalogHistory } from "./session-catalog-history-import.js";
 
 const transcript = vi.hoisted(() => ({

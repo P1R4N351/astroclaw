@@ -1,7 +1,7 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { readConfigFileSnapshot } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { readGatewayServiceState, resolveGatewayService } from "../../daemon/service.js";
 import type { UpdateChannel } from "../../infra/update-channels.js";
 import { compareSemverStrings } from "../../infra/update-check.js";

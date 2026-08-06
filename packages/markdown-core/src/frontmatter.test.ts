@@ -1,5 +1,5 @@
 // Markdown Core tests cover frontmatter behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import JSON5 from "json5";
 import { describe, expect, it } from "vitest";
 import {

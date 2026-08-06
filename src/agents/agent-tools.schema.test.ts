@@ -1,5 +1,5 @@
 import { normalizeToolParameterSchema } from "@openclaw/ai/internal/openai";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 /**
  * Tests provider-compatible tool schema normalization.
  * Protects caching, ref inlining, OpenAPI keyword cleanup, and no-parameter

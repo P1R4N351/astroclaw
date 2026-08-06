@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/openclaw-test-instance.js";
+} from "./helpers/astroclaw-test-instance.js";
 
 type CapturedChatRequest = {
   path: string;

@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { RequestScopedSubagentRuntimeError } from "astroclaw/plugin-sdk/error-runtime";
 import {

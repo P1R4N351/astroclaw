@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   disableCronJobsBoundToSession,
   resolveCronJobBoundSessionKeys,

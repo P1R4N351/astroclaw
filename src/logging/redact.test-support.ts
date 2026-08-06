@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { fullContextToolPayloadRedactionState } from "./redact-internal-state.js";
 
 type LoggingConfig = OpenClawConfig["logging"];

@@ -2,7 +2,7 @@
 import path from "node:path";
 import { sanitizeForLog } from "../../../../packages/terminal-core/src/ansi.js";
 import { resolveAgentWorkspaceDir, tryResolveDefaultAgentId } from "../../../agents/agent-scope.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import {
   buildBundledPluginLoadPathAliases,
   normalizeBundledLookupPath,

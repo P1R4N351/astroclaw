@@ -20,7 +20,7 @@ import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
 } from "../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   consumeGatewaySigusr1RestartIntent,
   isGatewaySigusr1RestartExternallyAllowed,

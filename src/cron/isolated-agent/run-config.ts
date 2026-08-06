@@ -6,7 +6,7 @@ import {
   selectApplicableRuntimeConfig,
 } from "../../config/config.js";
 import type { AgentDefaultsConfig } from "../../config/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 type ResolvedAgentConfig = NonNullable<ReturnType<typeof resolveAgentConfig>>;
 

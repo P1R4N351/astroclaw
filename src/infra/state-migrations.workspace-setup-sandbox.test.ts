@@ -15,7 +15,7 @@ import {
   listSessionEntryKeysReadOnly,
   upsertSessionEntry,
 } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import {
   closeOpenClawAgentDatabasesForTest,

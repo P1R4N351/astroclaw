@@ -6,7 +6,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { getRuntimeAuthProfileStoreCredentialsRevision } from "../agents/auth-profiles/runtime-snapshots.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayPluginReloadResult } from "./server-reload-handlers.js";
 import { startManagedGatewayConfigReloader } from "./server-reload-handlers.js";
 

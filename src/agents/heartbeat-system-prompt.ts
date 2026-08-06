@@ -1,7 +1,7 @@
 /**
  * Builds heartbeat-specific guidance for agent system prompts.
  */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   DEFAULT_HEARTBEAT_EVERY,
   HEARTBEAT_CRON_TASK_GUIDANCE,
@@ -9,7 +9,7 @@ import {
 } from "../auto-reply/heartbeat.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { listAgentEntries, resolveAgentConfig, resolveDefaultAgentId } from "./agent-scope.js";
 

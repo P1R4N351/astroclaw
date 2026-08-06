@@ -1,6 +1,6 @@
 // Effective tools methods resolve the tools available to a session by combining
 // bundled tools, MCP tools, plugin policy, model context, and cache state.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   ErrorCodes,
   errorShape,
@@ -14,7 +14,7 @@ import type {
 } from "../../agents/tools-effective-inventory.types.js";
 import { buildRuntimeCompatibleMcpToolInventory } from "../../agents/tools-effective-mcp-inventory.js";
 import type { SessionToolOverrides } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { toErrorObject } from "../../infra/errors.js";
 import { pruneMapToMaxSize } from "../../infra/map-size.js";
 import { logDebug, logWarn } from "../../logger.js";

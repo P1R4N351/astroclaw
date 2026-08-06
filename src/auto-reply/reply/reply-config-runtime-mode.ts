@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 // Reply completeness is process-local metadata. Keep it off config objects so
 // frozen runtime snapshots and identity-keyed caches remain valid.

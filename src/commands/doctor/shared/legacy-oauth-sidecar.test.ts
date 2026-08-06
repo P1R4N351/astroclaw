@@ -5,7 +5,7 @@ import { loggingState } from "../../../logging/state.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../../test-utils/openclaw-test-state.js";
+} from "../../../test-utils/astroclaw-test-state.js";
 import {
   legacyOAuthSidecarTestUtils,
   loadLegacyOAuthSidecarMaterial,

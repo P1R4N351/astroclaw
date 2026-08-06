@@ -6,7 +6,7 @@ import {
 } from "openclaw/plugin-sdk/llm";
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
 import { groqMediaUnderstandingProvider } from "./media-understanding-provider.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 const GROQ_OVERSIZED_RECOVERY_MODEL_ID = "llama-3.3-70b-versatile";
 const GROQ_FALLBACK_MAX_TOKENS = 1_024;

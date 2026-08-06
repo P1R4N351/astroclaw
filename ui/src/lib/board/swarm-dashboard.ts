@@ -1,4 +1,4 @@
-import { asNullableRecord } from "@openclaw/normalization-core/record-coerce";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { GatewaySessionRow } from "../../api/types.ts";
 import { t } from "../../i18n/index.ts";
 import type { SessionCapability } from "../sessions/index.ts";

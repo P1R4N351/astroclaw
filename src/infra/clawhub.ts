@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { prerelease as parseSemverPrerelease, satisfies as satisfiesSemver } from "semver";
 import { hasValidIsoCalendarComponents } from "../shared/iso-time.js";
 import { retryClawHubRead } from "./clawhub-retry.js";

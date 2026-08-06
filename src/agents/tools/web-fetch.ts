@@ -3,15 +3,15 @@
  *
  * Fetches HTTP(S) content through SSRF guards, provider config, caching, and bounded extraction.
  */
-import { resolveIntegerOption } from "@openclaw/normalization-core/number-coercion";
+import { resolveIntegerOption } from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+} from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { Type } from "typebox";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { sha256Hex } from "../../infra/crypto-digest.js";
 import {
   mergeSsrFPolicies,

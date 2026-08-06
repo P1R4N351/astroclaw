@@ -1,5 +1,5 @@
 // Fetches and normalizes DeepSeek provider usage records.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   buildUsageHttpErrorSnapshot,
   discardUsageResponseBody,

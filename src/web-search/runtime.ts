@@ -2,8 +2,8 @@
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
-} from "@openclaw/normalization-core/string-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import {
   hasWebProviderEntryCredential,
   providerRequiresCredential,
@@ -17,7 +17,7 @@ import {
   getRuntimeConfigSourceSnapshot,
   selectApplicableRuntimeConfig,
 } from "../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { logVerbose } from "../globals.js";
 import { resolveManifestContractOwnerPluginId } from "../plugins/plugin-registry-contributions.js";
 import type { PluginWebSearchProviderEntry } from "../plugins/types.js";

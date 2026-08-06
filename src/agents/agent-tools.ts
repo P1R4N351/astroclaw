@@ -12,7 +12,7 @@ import { messageToolOwnsVisibleReply } from "../auto-reply/source-reply-delivery
 import type { ChatType } from "../channels/chat-type.js";
 import type { InboundEventKind } from "../channels/inbound-event/kind.js";
 import type { ModelCompatConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { DiagnosticTraceContext } from "../infra/diagnostic-trace-context.js";
 import { resolveEventSessionRoutingPolicy } from "../infra/event-session-routing.js";
 import { applyExecPolicyLayer } from "../infra/exec-policy.js";
@@ -64,8 +64,8 @@ import {
 } from "./local-model-lean.js";
 import { createMemoryWriteProvenanceObserver } from "./memory-write-provenance.js";
 import type { ModelAuthMode } from "./model-auth.js";
-import { resolveOpenClawPluginToolsForOptions } from "./openclaw-plugin-tools.js";
-import { createOpenClawTools, filterToolsByClientCaps } from "./openclaw-tools.js";
+import { resolveOpenClawPluginToolsForOptions } from "./astroclaw-plugin-tools.js";
+import { createOpenClawTools, filterToolsByClientCaps } from "./astroclaw-tools.js";
 import type { PreparedModelRuntimeSnapshot } from "./prepared-model-runtime.js";
 import type { SandboxContext } from "./sandbox.js";
 import type { ScheduledToolPolicyContext } from "./scheduled-tool-policy.js";

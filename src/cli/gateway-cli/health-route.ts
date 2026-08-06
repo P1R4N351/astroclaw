@@ -1,5 +1,5 @@
 // Route-first machine-readable Gateway health command.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../../runtime.js";
 
 type GatewayHealthRpcOpts = Parameters<

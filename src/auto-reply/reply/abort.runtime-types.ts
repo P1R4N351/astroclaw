@@ -1,5 +1,5 @@
 // Shared abort runtime types for cancellation and cutoff persistence.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { FinalizedRuntimeMsgContext } from "../templating.js";
 
 /** Result from the fast abort path before normal reply dispatch starts. */

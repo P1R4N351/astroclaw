@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 
-import { reduceSessionProjection } from "@openclaw/gateway-client/browser";
-import { expectDefined } from "@openclaw/normalization-core";
+import { reduceSessionProjection } from "@astroclaw/gateway-client/browser";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { GatewayRequestError } from "../../api/gateway.ts";
 import type { GatewaySessionRow, SessionsListResult } from "../../api/types.ts";

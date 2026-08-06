@@ -2,8 +2,8 @@
 // normalized planning APIs instead of reaching into provider-index internals.
 export { loadOpenClawProviderIndex } from "./provider-index/index.js";
 export { planManifestModelCatalogSuppressions } from "./manifest-planner.js";
-import type { ModelCatalogProvider } from "@openclaw/model-catalog-core/model-catalog-types";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { ModelCatalogProvider } from "@astroclaw/model-catalog-core/model-catalog-types";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   planManifestModelCatalogRows,
   type ManifestModelCatalogRowSelection,

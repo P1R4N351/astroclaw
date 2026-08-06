@@ -1,5 +1,5 @@
 import type { AuthProfileStore } from "../../../agents/auth-profiles/types.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import "./stale-auth-order.js";
 
 type TestApi = {

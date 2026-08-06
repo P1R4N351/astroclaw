@@ -1,14 +1,14 @@
 /**
  * Model-level auth diagnostics and request-header preparation.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import {
   getRuntimeConfigSnapshot,
   getRuntimeConfigSourceSnapshot,
   selectApplicableRuntimeConfig,
 } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { coerceSecretRef } from "../config/types.secrets.js";
 import type { Model } from "../llm/types.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

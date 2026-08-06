@@ -1,6 +1,6 @@
 // Shared harness for dispatch-from-config tests and mocked runtimes.
 import { vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { SessionBindingRecord } from "../../infra/outbound/session-binding-service.js";
 import type { StuckSessionRecoveryOutcome } from "../../logging/diagnostic-session-recovery.js";
 import type {

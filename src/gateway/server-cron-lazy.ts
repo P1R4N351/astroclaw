@@ -1,7 +1,7 @@
 // Gateway cron lazy loader.
 // Defers scheduler startup until cron is touched by runtime or API handlers.
 import type { CliDeps } from "../cli/deps.types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveCronJobsStorePathFromConfig } from "../cron/store.js";
 import { createLazyPromiseLoader } from "../shared/lazy-runtime.js";
 import type { GatewayCronServiceContract } from "./server-cron-contract.js";

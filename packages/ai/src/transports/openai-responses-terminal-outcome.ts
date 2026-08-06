@@ -1,5 +1,5 @@
-import type { Model } from "@openclaw/llm-core";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import type { Model } from "@astroclaw/llm-core";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type OpenAI from "openai";
 import type { ResponseCreateParamsStreaming } from "openai/resources/responses/responses.js";
 // Terminal-outcome recording for the agent-side Responses stream.

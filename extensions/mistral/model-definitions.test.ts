@@ -1,7 +1,7 @@
 // Mistral tests cover model definitions plugin behavior.
 import { describe, expect, it } from "vitest";
 import { buildMistralModelDefinition, MISTRAL_DEFAULT_MODEL_ID } from "./model-definitions.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { buildMistralProvider } from "./provider-catalog.js";
 
 function buildCatalogModels() {

@@ -1,7 +1,7 @@
 // Doctor-only runtime policy repair for migrated cron Codex model refs.
-import { asOptionalRecord } from "@openclaw/normalization-core/record-coerce";
+import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import { tryResolveDefaultAgentId } from "../../../agents/agent-scope-config.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 import {
   isBlockedLegacyCodexModelRef,

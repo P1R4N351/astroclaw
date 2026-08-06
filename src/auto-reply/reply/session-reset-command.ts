@@ -1,5 +1,5 @@
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { normalizeCommandBody } from "../commands-registry.js";
 import type { MsgContext } from "../templating.js";
 import { parseSoftResetCommand } from "./commands-reset-mode.js";

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/openclaw-test-instance.js";
+} from "./helpers/astroclaw-test-instance.js";
 
 const API_KEY = "clawrouter-e2e-secret";
 const MODEL_ID = "openai/gpt-5.5";

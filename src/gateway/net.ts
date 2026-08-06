@@ -8,8 +8,8 @@ import {
   isLoopbackIpAddress,
   isPrivateOrLoopbackIpAddress,
   normalizeIpAddress,
-} from "@openclaw/net-policy/ip";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/net-policy/ip";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import type { GatewayBindMode } from "../config/types.gateway.js";
 import { isContainerEnvironment } from "../infra/container-environment.js";
 import {

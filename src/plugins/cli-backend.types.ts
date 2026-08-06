@@ -1,5 +1,5 @@
 /** Type contracts for plugin-owned CLI backend integrations. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ContextEngineHostCapability } from "../context-engine/types.js";
 
 /** Static command adapter owned by a CLI backend plugin registration. */

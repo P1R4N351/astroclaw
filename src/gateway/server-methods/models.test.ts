@@ -1,7 +1,7 @@
 // Models method tests cover slow catalog timeouts, configured/all views,
 // validation errors, and protocol response shapes.
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it, vi } from "vitest";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import {
@@ -9,10 +9,10 @@ import {
   replaceRuntimeAuthProfileStoreSnapshots,
 } from "../../agents/auth-profiles.js";
 import { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { createDeferred } from "../../test-utils/deferred.js";
 import { withEnvAsync } from "../../test-utils/env.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { modelsHandlers } from "./models.js";
 import type { RespondFn } from "./types.js";
 

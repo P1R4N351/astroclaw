@@ -11,7 +11,7 @@
 import { Buffer } from "node:buffer";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import {
   clearMemoryPluginState,
   getMemoryCapabilityRegistration,

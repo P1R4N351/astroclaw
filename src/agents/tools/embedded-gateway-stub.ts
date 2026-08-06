@@ -3,12 +3,12 @@
  *
  * Implements only the Gateway calls needed by session tools and rejects unsupported methods.
  */
-import { normalizeFastMode, type FastMode } from "@openclaw/normalization-core/string-coerce";
+import { normalizeFastMode, type FastMode } from "@astroclaw/normalization-core/string-coerce";
 import type {
   SessionsListParams,
   SessionsResolveParams,
 } from "../../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { CallGatewayOptions } from "../../gateway/call.js";
 import type {
   ReadSessionMessagesAsyncOptions,

@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { requireActivePluginRegistry } from "../../plugins/runtime.js";
 import { buildAgentRunTerminalOutcome } from "../agent-run-terminal-outcome.js";
 import { ensureSelectedAgentHarnessPlugin } from "../harness/runtime-plugin.js";

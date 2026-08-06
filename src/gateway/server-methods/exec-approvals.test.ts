@@ -1,4 +1,4 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it, vi } from "vitest";
 import type { ExecApprovalsFile } from "../../infra/exec-approvals.js";
 

@@ -5,7 +5,7 @@ import type {
   WorkerLiveEventResult,
 } from "../../../packages/gateway-protocol/src/schema/worker-admission.js";
 import { onSessionIdentityMutation } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   emitAgentEventIfCurrent,
   emitAgentEventForOwner,

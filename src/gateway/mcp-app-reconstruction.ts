@@ -1,5 +1,5 @@
 import { type CallToolResult, ContentBlockSchema } from "@modelcontextprotocol/sdk/types.js";
-import { asOptionalRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { asOptionalRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { BoardMcpAppDescriptor } from "../../packages/gateway-protocol/src/index.js";
 import { getOrCreateSessionMcpRuntime } from "../agents/agent-bundle-mcp-runtime.js";
 import type { SessionMcpRuntime } from "../agents/agent-bundle-mcp-types.js";
@@ -9,7 +9,7 @@ import {
   getMcpAppViewLease,
   type McpAppViewLease,
 } from "../agents/mcp-ui-resource.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import { getOrCreatePromise } from "../shared/lazy-promise.js";
 import { visitSessionMessagesAsync } from "./session-transcript-readers.js";

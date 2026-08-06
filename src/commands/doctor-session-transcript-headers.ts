@@ -15,7 +15,7 @@ import {
   isCanonicalSessionTranscriptEntry,
   isSessionTranscriptLeafControl,
 } from "../config/sessions/transcript-tree.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { executeSqliteQueryTakeFirstSync } from "../infra/kysely-sync.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";

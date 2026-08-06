@@ -1,7 +1,7 @@
 // Loads plugin doctor contracts from manifest-owned metadata.
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { asNullableRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import type { LegacyConfigRule } from "../config/legacy.shared.js";
 import type { OpenClawConfig } from "../config/types.js";
 import type {

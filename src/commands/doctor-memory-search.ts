@@ -2,9 +2,9 @@ import fsSync from "node:fs";
 import {
   findNormalizedProviderValue,
   normalizeProviderId,
-} from "@openclaw/model-catalog-core/provider-id";
-import { formatByteSize } from "@openclaw/normalization-core";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/model-catalog-core/provider-id";
+import { formatByteSize } from "@astroclaw/normalization-core";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { note } from "../../packages/terminal-core/src/note.js";
 import {
   listAgentIds,
@@ -24,7 +24,7 @@ import {
   resolveUsableCustomProviderApiKey,
 } from "../agents/model-auth.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { DoctorMemoryEmbeddingRuntimePayload } from "../gateway/server-methods/doctor.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {

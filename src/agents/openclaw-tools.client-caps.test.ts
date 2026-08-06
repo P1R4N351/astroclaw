@@ -2,12 +2,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { withEnv } from "../test-utils/env.js";
 
-vi.mock("./openclaw-plugin-tools.js", () => ({
+vi.mock("./astroclaw-plugin-tools.js", () => ({
   resolveOpenClawPluginToolsForOptions: () => [],
 }));
 
 import { createOpenClawCodingTools } from "./agent-tools.js";
-import { createOpenClawTools } from "./openclaw-tools.js";
+import { createOpenClawTools } from "./astroclaw-tools.js";
 
 function hasWidget(tools: readonly { name: string }[]): boolean {
   return tools.some((tool) => tool.name === "show_widget");

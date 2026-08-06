@@ -4,7 +4,7 @@ import type { AmbientEnvTriggerPolicy } from "../channels/config-presence.js";
 import type { CliDeps } from "../cli/deps.types.js";
 import { resolveStateDir } from "../config/paths.js";
 import type { GatewayTailscaleMode } from "../config/types.gateway.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { hasConfiguredInternalHooks } from "../hooks/configured.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { hasRestartSentinel } from "../infra/restart-sentinel.js";
@@ -793,7 +793,7 @@ export async function startGatewaySidecars(params: {
         const [{ getAcpSessionManager }, { ACP_SESSION_IDENTITY_RENDERER_VERSION }] =
           await Promise.all([
             import("../acp/control-plane/manager.js"),
-            import("@openclaw/acp-core/runtime/session-identifiers"),
+            import("@astroclaw/acp-core/runtime/session-identifiers"),
           ]);
         const result = await getAcpSessionManager().reconcilePendingSessionIdentities({
           cfg: params.cfg,

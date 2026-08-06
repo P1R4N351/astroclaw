@@ -4,8 +4,8 @@ import path from "node:path";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+} from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { resolveBundledPluginInstallCommandHint } from "../../../plugins/bundled-sources.js";
 
 /** Resolves the install command hint shown when the configured ACP backend is missing. */

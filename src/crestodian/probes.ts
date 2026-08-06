@@ -1,5 +1,5 @@
 // Crestodian probes check local tools and Gateway health with bounded subprocess/network work.
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { runCommandWithTimeout } from "../process/exec.js";
 
 /**

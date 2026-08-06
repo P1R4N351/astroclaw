@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 export function canonicalizeSetupMigrationValue(value: unknown): unknown {
   if (Array.isArray(value)) {

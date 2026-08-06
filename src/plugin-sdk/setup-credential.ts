@@ -2,7 +2,7 @@ import type {
   ChannelSetupWizardCredential,
   ChannelSetupWizardTextInput,
 } from "../channels/plugins/setup-wizard-types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { hasConfiguredSecretInput } from "../config/types.secrets.js";
 
 type ResolvedCredentialAccount = {

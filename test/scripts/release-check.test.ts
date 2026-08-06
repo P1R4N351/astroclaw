@@ -80,8 +80,8 @@ describe("release-check", () => {
       expect(manifest.private).toBe(true);
       expect(manifest.dependencies).toEqual({
         "@openclaw/ai": "file:///tmp/openclaw-ai.tgz",
-        "@openclaw/gateway-client": "file:///tmp/openclaw-gateway-client.tgz",
-        "@openclaw/gateway-protocol": "file:///tmp/openclaw-gateway-protocol.tgz",
+        "@astroclaw/gateway-client": "file:///tmp/openclaw-gateway-client.tgz",
+        "@astroclaw/gateway-protocol": "file:///tmp/openclaw-gateway-protocol.tgz",
         openclaw: "file:///tmp/openclaw.tgz",
       });
     } finally {
@@ -102,8 +102,8 @@ describe("release-check", () => {
         dependencies?: Record<string, string>;
       };
       expect(manifest.dependencies).toEqual({
-        "@openclaw/gateway-client": "file:///tmp/openclaw-gateway-client.tgz",
-        "@openclaw/gateway-protocol": "file:///tmp/openclaw-gateway-protocol.tgz",
+        "@astroclaw/gateway-client": "file:///tmp/openclaw-gateway-client.tgz",
+        "@astroclaw/gateway-protocol": "file:///tmp/openclaw-gateway-protocol.tgz",
         openclaw: "file:///tmp/openclaw.tgz",
       });
     } finally {

@@ -1,5 +1,5 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import {
   getLoadedChannelPlugin,
@@ -10,7 +10,7 @@ import type {
   ExecApprovalForwardingConfig,
   ExecApprovalForwardTarget,
 } from "../config/types.approvals.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   buildApprovalResolvedReplyPayload,

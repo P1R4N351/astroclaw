@@ -1,7 +1,7 @@
 // Covers context-token lookup caches, catalog warmup, and provider-qualified
 // model resolution.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { replaceDiscoveredContextTokenCache } from "./context-cache.js";
 import { ANTHROPIC_CONTEXT_1M_TOKENS } from "./context-resolution.js";
 import { CONTEXT_WINDOW_RUNTIME_STATE } from "./context-runtime-state.js";

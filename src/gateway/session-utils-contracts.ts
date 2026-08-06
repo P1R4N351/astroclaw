@@ -1,7 +1,7 @@
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import type { resolveSessionModelRef } from "../agents/session-model-ref.js";
 import type { SubagentRunReadIndex } from "../agents/subagent-registry-queries.js";
 import type { SubagentRunReadRecord } from "../agents/subagent-registry.types.js";

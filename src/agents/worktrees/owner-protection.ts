@@ -1,5 +1,5 @@
 import { resolveSessionEntryAccessTarget } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { IDLE_GC_MS } from "./service.js";
 import type { ManagedWorktreeOwnerKind } from "./types.js";
 

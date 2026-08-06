@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { SessionDiscussionProvider } from "../../plugins/session-discussion-registry.js";
 import { sessionDiscussionHandlers } from "./session-discussion.js";
 

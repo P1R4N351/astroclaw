@@ -1,4 +1,4 @@
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveAgentConfig } from "../agents/agent-scope-config.js";
 // Summarizes extra security audit findings for user-facing output.
 import {
@@ -9,7 +9,7 @@ import { parseModelRef } from "../agents/model-selection-normalize.js";
 import { resolveSandboxConfigForAgent } from "../agents/sandbox/config.js";
 import type { SandboxToolPolicy } from "../agents/sandbox/types.js";
 import { isToolAllowedByPolicies } from "../agents/tool-policy-match.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import { hasConfiguredInternalHooks } from "../hooks/configured.js";
 import { normalizePluginsConfigWithResolver } from "../plugins/config-normalization-shared.js";

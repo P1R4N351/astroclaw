@@ -12,7 +12,7 @@ import {
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import {
   executeSqliteQuerySync,
   executeSqliteQueryTakeFirstSync,
@@ -59,8 +59,8 @@ vi.mock("../model-catalog/remote-refresh.js", async () => {
   return { ...actual, refreshRemoteModelCatalog: refreshRemoteModelCatalogMock };
 });
 
-vi.mock("./openclaw-root.js", async () => {
-  const actual = await vi.importActual<typeof import("./openclaw-root.js")>("./openclaw-root.js");
+vi.mock("./astroclaw-root.js", async () => {
+  const actual = await vi.importActual<typeof import("./astroclaw-root.js")>("./astroclaw-root.js");
   return {
     ...actual,
     resolveOpenClawPackageRoot: vi.fn(),
@@ -147,7 +147,7 @@ describe("update-startup", () => {
   let tempDir: string;
   let testState: OpenClawTestState;
 
-  let resolveOpenClawPackageRoot: (typeof import("./openclaw-root.js"))["resolveOpenClawPackageRoot"];
+  let resolveOpenClawPackageRoot: (typeof import("./astroclaw-root.js"))["resolveOpenClawPackageRoot"];
   let checkUpdateStatus: (typeof import("./update-check.js"))["checkUpdateStatus"];
   let resolveNpmChannelTag: (typeof import("./update-check.js"))["resolveNpmChannelTag"];
   let runCommandWithTimeout: (typeof import("../process/exec.js"))["runCommandWithTimeout"];
@@ -249,7 +249,7 @@ describe("update-startup", () => {
 
     // Perf: load mocked modules once (after timers/env are set up).
     if (!loaded) {
-      ({ resolveOpenClawPackageRoot } = await import("./openclaw-root.js"));
+      ({ resolveOpenClawPackageRoot } = await import("./astroclaw-root.js"));
       ({ checkUpdateStatus, resolveNpmChannelTag } = await import("./update-check.js"));
       ({ runCommandWithTimeout } = await import("../process/exec.js"));
       ({

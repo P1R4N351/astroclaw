@@ -16,7 +16,7 @@ import { requireNodeSqlite } from "../infra/node-sqlite.js";
 import { listOpenFileDescriptorsForPath } from "../infra/open-file-descriptors.test-support.js";
 import { readSqliteNumberPragma } from "../infra/sqlite-pragma.test-support.js";
 import { loadTaskRegistryStateFromSqlite } from "../tasks/task-registry.store.sqlite.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { VERSION } from "../version.js";
 import { FIRST_USE_STATE_TABLES } from "./openclaw-state-db-contract.js";
 import {

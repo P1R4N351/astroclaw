@@ -309,10 +309,10 @@ export const DEPRECATION_MARKING_COMPAT_RECORDS = [
     replacement: "canonical memory cache/FTS tables and getRuntimeConfig or caller-provided config",
     docsPath: "/plugins/sdk-migration#compatibility-policy",
     surfaces: [
-      "@openclaw/memory-host-sdk ensureMemoryIndexSchema.embeddingCacheTable",
-      "@openclaw/memory-host-sdk ensureMemoryIndexSchema.ftsTable",
-      "@openclaw/memory-host-sdk/runtime-core loadConfig",
-      "@openclaw/memory-host-sdk/host/openclaw-runtime loadConfig",
+      "@astroclaw/memory-host-sdk ensureMemoryIndexSchema.embeddingCacheTable",
+      "@astroclaw/memory-host-sdk ensureMemoryIndexSchema.ftsTable",
+      "@astroclaw/memory-host-sdk/runtime-core loadConfig",
+      "@astroclaw/memory-host-sdk/host/openclaw-runtime loadConfig",
     ],
     diagnostics: [
       "TypeScript @deprecated annotations on memory-host SDK compatibility fields",

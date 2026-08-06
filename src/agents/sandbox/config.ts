@@ -3,9 +3,9 @@
  *
  * Merges global and agent settings into normalized Docker, SSH, browser, prune, scope, and tool-policy config.
  */
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { SandboxSshSettings } from "../../config/types.sandbox.js";
 import { normalizeSecretInputString } from "../../config/types.secrets.js";
 import { resolveAgentConfig } from "../agent-scope.js";

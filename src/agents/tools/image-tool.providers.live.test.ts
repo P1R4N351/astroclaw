@@ -3,10 +3,10 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ModelApi } from "../../config/types.models.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resizeToJpeg } from "../../media/media-services.js";
 import { encodePngRgba, fillPixel } from "../../media/png-encode.js";
 import {

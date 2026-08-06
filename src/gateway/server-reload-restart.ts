@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from "node:util";
 import { isRestartEnabled } from "../config/commands.flags.js";
 import { getConfigValueAtPath } from "../config/config-paths.js";
 import { setRuntimeConfigAppliedHash } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayRestartIntent } from "../infra/restart-intent.js";
 import {
   deferGatewayRestartUntilIdle,

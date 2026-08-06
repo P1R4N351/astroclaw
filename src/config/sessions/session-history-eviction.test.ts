@@ -11,7 +11,7 @@ import {
   createOpenClawTestState,
   type OpenClawTestState,
   withOpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 import { appendSqliteTrajectoryRuntimeEvents } from "../../trajectory/runtime-store.sqlite.js";
 import type { TrajectoryEvent } from "../../trajectory/types.js";
 import { measureSessionPhysicalDiskUsage } from "./disk-budget.js";

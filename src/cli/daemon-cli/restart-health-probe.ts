@@ -1,9 +1,9 @@
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { createConfigIO } from "../../config/io.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { PluginHealthErrorSummary } from "../../gateway/health/types.js";
 import { resolveGatewayProbeAuthSafeWithSecretInputs } from "../../gateway/probe-auth.js";
 import { probeGateway } from "../../gateway/probe.js";

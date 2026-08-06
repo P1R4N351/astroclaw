@@ -1,5 +1,5 @@
 import type { Server } from "node:http";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { PluginHookToolRequesterContext } from "../../plugins/hook-types.js";
 import type {
   BeforeToolCallFailureDisposition,

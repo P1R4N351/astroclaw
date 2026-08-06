@@ -1,5 +1,5 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { sliceUtf16Safe, truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { SKILL_AUTHORING_STANDARDS_PROMPT } from "./skill-authoring-standards.js";
 
 const EXPERIENCE_REVIEW_MAX_TRANSCRIPT_CHARS = 60_000;

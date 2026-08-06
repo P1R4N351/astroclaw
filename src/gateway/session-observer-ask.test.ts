@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GatewayErrorDetailCodes } from "../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { SessionObserverAskError } from "./session-observer-contract.js";
 import { sessionObserverHandlers } from "./session-observer-rpc.js";
 import {

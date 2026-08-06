@@ -1,7 +1,7 @@
 // Shared plugin CLI helpers for install logging, file specs, and hooks.
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { theme } from "../../packages/terminal-core/src/theme.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { HOOK_INSTALL_ERROR_CODE } from "../hooks/install.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 export { quietPluginJsonLogger } from "./plugins-json-logger.js";

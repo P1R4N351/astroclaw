@@ -1,6 +1,6 @@
 import fs from "node:fs";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString as normalizeString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString as normalizeString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveAgentDir } from "../../../agents/agent-scope.js";
 import {
   areOAuthCredentialsEquivalent,
@@ -18,7 +18,7 @@ import {
 } from "../../../config/sessions/session-accessor.js";
 import { resolveAllAgentSessionStoreTargetsSync } from "../../../config/sessions/targets.js";
 import type { SessionEntry } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { loadJsonFile } from "../../../infra/json-file.js";
 import {
   loadLegacySessionStore,

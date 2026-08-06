@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createOpenClawCodingTools } from "./agent-tools.js";
 import type { AnyAgentTool } from "./agent-tools.types.js";
 
-vi.mock("./openclaw-plugin-tools.js", () => ({
+vi.mock("./astroclaw-plugin-tools.js", () => ({
   resolveOpenClawPluginToolsForOptions: () => [{ name: "browser" }],
 }));
 

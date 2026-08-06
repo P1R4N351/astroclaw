@@ -1,6 +1,6 @@
 // Model list result building resolves visible model catalogs for an agent and
 // strips runtime-only provider params before sending the browse API payload.
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   resolveAgentDir,
   resolveAgentEffectiveModelPrimary,
@@ -47,7 +47,7 @@ import { publishedModelCatalogOwnerMatchesAgent } from "../../agents/prepared-mo
 import { resolveProviderIdForAuth } from "../../agents/provider-auth-aliases.js";
 import { resolveDefaultAgentWorkspaceDir } from "../../agents/workspace.js";
 import { getRuntimeConfigSourceSnapshot } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { getCurrentPluginMetadataSnapshot } from "../../plugins/current-plugin-metadata-snapshot.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
 import { loadPluginRegistrySnapshotWithMetadata } from "../../plugins/plugin-registry.js";

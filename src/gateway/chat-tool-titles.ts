@@ -14,7 +14,7 @@
  * never re-bills the same calls.
  */
 import { createHash } from "node:crypto";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { resolveAgentConfig } from "../agents/agent-scope.js";
 import { isOpenAIProvider } from "../agents/openai-routing.js";
 import {
@@ -22,7 +22,7 @@ import {
   prepareSimpleCompletionModelForAgent,
   resolveSimpleCompletionSelectionForAgent,
 } from "../agents/simple-completion-runtime.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { logVerbose } from "../globals.js";
 import { executeSqliteQuerySync, getNodeSqliteKysely } from "../infra/kysely-sync.js";
 import type { DB as OpenClawAgentKyselyDatabase } from "../state/openclaw-agent-db.generated.js";

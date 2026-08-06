@@ -1,6 +1,6 @@
 // Secret input parsing shared by memory provider config and gateway-resolved snapshots.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { hasNonEmptyString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { hasNonEmptyString } from "@astroclaw/normalization-core/string-coerce";
 
 /** Supported secret reference backing stores. */
 type SecretRefSource = "env" | "file" | "exec";

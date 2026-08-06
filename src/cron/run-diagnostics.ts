@@ -1,6 +1,6 @@
 /** Builds bounded, redacted diagnostics for cron run logs and UI surfaces. */
-import { asOptionalObjectRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { asOptionalObjectRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { isToolAllowedByPolicyName } from "../agents/tool-policy-match.js";
 import { normalizeToolName as normalizePolicyToolName } from "../agents/tool-policy.js";
 import { getReplyPayloadMetadata } from "../auto-reply/reply-payload.js";

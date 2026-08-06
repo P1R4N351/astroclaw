@@ -1,6 +1,6 @@
 // Gateway startup logging helpers.
 // Produces the compact ready banner with resolved model and safety state.
-import { normalizeSortedUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { normalizeSortedUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import chalk from "chalk";
 import { sanitizeForLog } from "../../packages/terminal-core/src/ansi.js";
 import { resolveDefaultAgentId, resolveAgentConfig } from "../agents/agent-scope.js";
@@ -14,7 +14,7 @@ import {
 } from "../agents/model-selection-shared.js";
 import { resolveThinkingDefault } from "../agents/model-thinking-default.js";
 import type { AmbientEnvTriggerPolicy } from "../channels/config-presence.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { getResolvedLoggerSettings } from "../logging.js";
 import type { PluginManifestRecord } from "../plugins/manifest-registry.js";
 import { collectEnabledInsecureOrDangerousFlagsFromCurrentSnapshot } from "../security/dangerous-config-flags-current.js";

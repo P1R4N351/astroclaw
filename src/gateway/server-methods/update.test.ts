@@ -1,9 +1,9 @@
 // Update method tests cover update.run/status, restart sentinel metadata,
 // managed-service handoff, restart scheduling, and delivery context preservation.
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { RestartSentinelPayload } from "../../infra/restart-sentinel.js";
 import type { RespawnSupervisor } from "../../infra/supervisor-markers.js";
 import type { UpdateChannel } from "../../infra/update-channels.js";
@@ -104,9 +104,9 @@ vi.mock("../../config/sessions.js", () => ({
   },
 }));
 
-vi.mock("../../infra/openclaw-root.js", async () => {
-  const actual = await vi.importActual<typeof import("../../infra/openclaw-root.js")>(
-    "../../infra/openclaw-root.js",
+vi.mock("../../infra/astroclaw-root.js", async () => {
+  const actual = await vi.importActual<typeof import("../../infra/astroclaw-root.js")>(
+    "../../infra/astroclaw-root.js",
   );
   return {
     ...actual,

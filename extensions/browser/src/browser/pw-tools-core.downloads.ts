@@ -4,7 +4,7 @@
  */
 import path from "node:path";
 import type { FileChooser, Page } from "playwright-core";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { DEFAULT_BROWSER_DOWNLOAD_TIMEOUT_MS } from "./constants.js";
 import type { BrowserDownloadResult } from "./download-types.js";
 import type { BrowserNavigationPolicyOptions } from "./navigation-guard.js";

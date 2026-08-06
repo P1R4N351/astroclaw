@@ -1,4 +1,4 @@
-import type { UiCommandParams } from "@openclaw/gateway-protocol";
+import type { UiCommandParams } from "@astroclaw/gateway-protocol";
 
 export const TERMINAL_PANEL_TOGGLE_EVENT = "openclaw:terminal-toggle";
 export const BROWSER_PANEL_TOGGLE_EVENT = "openclaw:browser-toggle";

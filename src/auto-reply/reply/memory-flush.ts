@@ -1,11 +1,11 @@
 // Builds memory flush prompts when conversation context exceeds model budget.
-import { asOptionalRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { asOptionalRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import { resolveContextTokensForModel } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { legacyModelKey, modelKey } from "../../agents/model-ref-shared.js";
 import { parseNonNegativeByteSize } from "../../config/byte-size.js";
 import { resolveFreshSessionTotalTokens, type SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 export function resolveMemoryFlushContextWindowTokens(params: {
   modelId?: string;

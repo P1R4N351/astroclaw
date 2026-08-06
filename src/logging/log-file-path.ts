@@ -5,7 +5,7 @@ import type { OpenClawConfig } from "../config/types.js";
 import {
   DEFAULT_POSIX_TMP_ROOT,
   resolvePreferredOpenClawTmpDir,
-} from "../infra/tmp-openclaw-dir.js";
+} from "../infra/tmp-astroclaw-dir.js";
 import { canUseNodeFs, formatLocalDate, LOG_PREFIX, LOG_SUFFIX } from "./log-file-shared.js";
 
 const ROLLING_LOG_FILE_RE = /^(openclaw(?:-[a-z0-9-]+)?)-(\d{4}-\d{2}-\d{2})\.log$/u;

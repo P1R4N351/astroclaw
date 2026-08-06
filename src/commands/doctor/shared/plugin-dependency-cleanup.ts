@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../../../config/paths.js";
 import type { HealthFinding } from "../../../flows/health-checks.js";
-import { resolveOpenClawPackageRootSync } from "../../../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../../../infra/astroclaw-root.js";
 import { resolveConfigDir, resolveUserPath } from "../../../utils.js";
 import { removeStalePluginRuntimeSymlinks } from "./plugin-runtime-symlinks.js";
 

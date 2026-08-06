@@ -1,7 +1,7 @@
 // Tests inbound metadata normalization before prompt injection.
 import { describe, expect, it, vi } from "vitest";
 import type { SessionEntry, SessionGoalStatus } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { withEnv } from "../../test-utils/env.js";

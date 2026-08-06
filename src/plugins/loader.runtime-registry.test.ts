@@ -1,7 +1,7 @@
 // Verifies plugin loader runtime registry behavior.
 import { afterEach, describe, expect, it } from "vitest";
 import { createPluginMetadataSnapshot } from "../config/plugin-auto-enable.test-helpers.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { setCurrentPluginMetadataSnapshot } from "./current-plugin-metadata-snapshot.js";
 import {

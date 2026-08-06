@@ -8,7 +8,7 @@ import { resolveUtilityModelRefForAgent } from "../../agents/utility-model.js";
 import { PROGRESS_STATUS_PREAMBLE_FRESH_MS } from "../../channels/progress-draft-compositor.js";
 import { sanitizeProgressStatusText } from "../../channels/progress-draft-status-text.js";
 import { isChannelProgressDraftWorkToolName, isCommandToolName } from "../../channels/streaming.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { logVerbose } from "../../globals.js";
 import type { AgentEventPayload, AgentEventStream } from "../../infra/agent-events.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";

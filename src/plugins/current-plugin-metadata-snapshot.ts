@@ -1,6 +1,6 @@
 /** Tracks the current plugin metadata snapshot for control-plane lookups. */
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import {
   currentPluginMetadataConfigIdentityCache,

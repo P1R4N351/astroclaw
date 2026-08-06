@@ -9,7 +9,7 @@ import {
   openOpenClawAgentDatabase,
 } from "../state/openclaw-agent-db.js";
 import { openOpenClawStateDatabase } from "../state/openclaw-state-db.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { resetPluginBlobStoreForTests, type OpenBlobStoreOptions } from "./plugin-blob-store.js";
 import { resetPluginStateStoreForTests } from "./plugin-state-store.js";
 

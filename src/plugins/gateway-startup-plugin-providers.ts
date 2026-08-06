@@ -1,17 +1,17 @@
 // Collects configured model, generation, voice, and memory provider ownership.
-import { listModelRefsFromConfigValue } from "@openclaw/model-catalog-core/configured-model-refs";
+import { listModelRefsFromConfigValue } from "@astroclaw/model-catalog-core/configured-model-refs";
 import {
   buildModelCatalogMergeKey,
   parseModelCatalogRef,
-} from "@openclaw/model-catalog-core/model-catalog-refs";
+} from "@astroclaw/model-catalog-core/model-catalog-refs";
 import {
   findNormalizedProviderValue,
   normalizeProviderId,
-} from "@openclaw/model-catalog-core/provider-id";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/model-catalog-core/provider-id";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentEntries } from "../agents/agent-scope-config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { planEffectiveModelCatalogRows } from "../model-catalog/index.js";
 import { resolveConfiguredGenericEmbeddingProviderId } from "./embedding-provider-config.js";
 import { listRegisteredEmbeddingProviders } from "./embedding-providers.js";

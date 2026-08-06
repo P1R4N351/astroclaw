@@ -1,4 +1,4 @@
-import { isRecord as isPlainRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord as isPlainRecord } from "@astroclaw/normalization-core/record-coerce";
 import JSON5 from "json5";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";
 import { parseConfigPathArrayIndex } from "../shared/path-array-index.js";

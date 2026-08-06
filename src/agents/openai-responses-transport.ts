@@ -34,8 +34,8 @@ import {
   isImageWithMediaPayload,
   stripSystemPromptCacheBoundary,
 } from "@openclaw/ai/internal/shared";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import OpenAI, { AzureOpenAI } from "openai";
 import type {
   FunctionTool,

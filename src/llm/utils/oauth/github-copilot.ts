@@ -5,7 +5,7 @@
 import {
   MAX_DATE_TIMESTAMP_MS,
   resolveTimerTimeoutMs,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import {
   assertOkOrThrowProviderError,
   readProviderJsonResponse,

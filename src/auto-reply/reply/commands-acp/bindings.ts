@@ -2,8 +2,8 @@
 import {
   resolveAcpSessionCwd,
   resolveAcpThreadSessionDetailLines,
-} from "@openclaw/acp-core/runtime/session-identifiers";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/acp-core/runtime/session-identifiers";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { getChannelPlugin, normalizeChannelId } from "../../../channels/plugins/index.js";
 import {
   resolveThreadBindingIntroText,
@@ -19,7 +19,7 @@ import {
   resolveThreadBindingSpawnPolicy,
 } from "../../../channels/thread-bindings-policy.js";
 import type { SessionAcpMeta } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { formatErrorMessage } from "../../../infra/errors.js";
 import { normalizeConversationRef } from "../../../infra/outbound/session-binding-normalization.js";
 import {

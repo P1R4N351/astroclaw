@@ -1,8 +1,8 @@
 import {
   validateAndSanitizeRemoteModelCatalogBundle,
   type RemoteModelCatalogBundle,
-} from "@openclaw/model-catalog-core";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+} from "@astroclaw/model-catalog-core";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { compareOpenClawVersions } from "../config/version.js";
 import { readResponseWithLimit } from "../infra/http-body.js";
 import {

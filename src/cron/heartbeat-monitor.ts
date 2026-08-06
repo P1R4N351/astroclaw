@@ -1,6 +1,6 @@
 /** Canonical projection from heartbeat config to system-owned cron monitor jobs. */
 import { DEFAULT_HEARTBEAT_EVERY } from "../auto-reply/heartbeat.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   resolveHeartbeatAgents,
   resolveHeartbeatSchedulerSeed,

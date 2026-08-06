@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveAgentDir } from "../agents/agent-scope-config.js";
 import {
@@ -16,7 +16,7 @@ import {
   type AgentExecutionAuthBinding,
 } from "../agents/execution-auth-binding.js";
 import { detectInferenceBackends } from "../commands/onboard-inference.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { withoutPluginInstallRecords } from "../plugins/installed-plugin-index-records.js";
 import { hasRetainedManagedNpmInstallMarker } from "../plugins/managed-npm-retention.js";

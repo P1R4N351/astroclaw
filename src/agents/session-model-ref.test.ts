@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveSessionModelIdentityRef, resolveSessionModelRef } from "./session-model-ref.js";
 
 function modelConfig(primary: string, models?: Record<string, object>): OpenClawConfig {

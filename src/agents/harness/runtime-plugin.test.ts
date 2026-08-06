@@ -1,6 +1,6 @@
 // Verifies harness ownership, payload availability, and run-owned registry lookup.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { createEmptyPluginRegistry } from "../../plugins/registry-empty.js";
 import { resolveAgentRuntimePluginLoadPlan } from "./runtime-plugin-load-plan.js";
 import {

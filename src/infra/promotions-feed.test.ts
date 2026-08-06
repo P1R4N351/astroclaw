@@ -10,7 +10,7 @@ import { useMockHttp } from "../test-utils/mock-http.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import { executeSqliteQuerySync, getNodeSqliteKysely } from "./kysely-sync.js";
 import {
   listLivePromotionEntries,

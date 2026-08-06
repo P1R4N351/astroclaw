@@ -1,10 +1,10 @@
 // Gateway chat attachment parser.
 // Normalizes image attachments, offloads large media, and reports unsupported payloads.
-import { estimateBase64DecodedBytes } from "@openclaw/media-core/base64";
-import { MAX_IMAGE_BYTES } from "@openclaw/media-core/constants";
-import { extensionForMime, mimeTypeFromFilePath } from "@openclaw/media-core/mime";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { estimateBase64DecodedBytes } from "@astroclaw/media-core/base64";
+import { MAX_IMAGE_BYTES } from "@astroclaw/media-core/constants";
+import { extensionForMime, mimeTypeFromFilePath } from "@astroclaw/media-core/mime";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import type { PromptImageOrderEntry } from "../media/prompt-image-order.js";
 import { sniffMimeFromBase64 } from "../media/sniff-mime-from-base64.js";

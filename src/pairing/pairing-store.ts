@@ -5,7 +5,7 @@ import {
   normalizeNullableString,
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { getPairingAdapter } from "../channels/plugins/pairing.js";
 import type { ChannelPairingAdapter } from "../channels/plugins/pairing.types.js";
 import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";

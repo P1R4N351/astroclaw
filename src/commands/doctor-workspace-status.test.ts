@@ -1,8 +1,8 @@
 // Doctor workspace status tests cover workspace inspection and status output.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it, vi } from "vitest";
 import * as noteModule from "../../packages/terminal-core/src/note.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginVersionDriftReport } from "../plugins/plugin-version-drift.js";
 import {
   createPluginLoadResult,

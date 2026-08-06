@@ -2,7 +2,7 @@
 // Coordinates hooks, drains, sockets, sidecars, plugins, and runtime cleanup.
 import type { Server as HttpServer } from "node:http";
 import { cleanupSessionResources } from "@openclaw/ai/internal/runtime";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { WebSocketServer } from "ws";
 import { disposeAllSessionMcpRuntimes } from "../agents/agent-bundle-mcp-tools.js";
 import { disposeRegisteredAgentHarnesses } from "../agents/harness/registry.js";

@@ -6,7 +6,7 @@ import { promptYesNo } from "../../cli/prompt.js";
 import { readConfigFileSnapshot, replaceConfigFile } from "../../config/config.js";
 import { formatConfigIssueLines } from "../../config/issue-format.js";
 import type { AgentModelEntryConfig } from "../../config/types.agent-defaults.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   ClawHubRequestError,
   fetchClawHubPromotion,

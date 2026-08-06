@@ -1,7 +1,7 @@
 // Config-keyed chat.startup projections shared across session switches.
 import type { ModelCatalogEntry } from "../../agents/model-catalog.types.js";
 import { hashRuntimeConfigValue } from "../../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { GatewayModelCatalogSnapshot } from "../server-model-catalog.types.js";
 import { listAgentsForGateway } from "../session-utils.js";
 import type { GatewayRequestContext } from "./types.js";

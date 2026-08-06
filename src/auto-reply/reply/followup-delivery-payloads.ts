@@ -1,7 +1,7 @@
 import { hasOutboundReplyContent } from "openclaw/plugin-sdk/reply-payload";
 import type { MessagingToolSend } from "../../agents/embedded-agent-messaging.types.js";
 import type { ReplyToMode } from "../../config/types.base.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { stripHeartbeatToken } from "../heartbeat.js";
 import { copyReplyPayloadMetadata, setReplyPayloadMetadata } from "../reply-payload.js";
 import type { OriginatingChannelType } from "../templating.js";

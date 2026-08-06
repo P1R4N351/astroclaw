@@ -1,7 +1,7 @@
 // Resolves effective exec approval policy from config and policy files.
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { listAgentEntries, resolveDefaultAgentId } from "../agents/agent-scope-config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   DEFAULT_EXEC_APPROVAL_ASK_FALLBACK,
   resolveExecApprovalAllowedDecisions,

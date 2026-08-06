@@ -15,7 +15,7 @@ import {
   normalizeOptionalString,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { isChutesModelDiscoveryTestEnvironment } from "./model-discovery-env.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 const CHUTES_MANIFEST_CATALOG = manifest.modelCatalog.providers.chutes;
 

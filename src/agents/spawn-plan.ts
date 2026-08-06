@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   resolveChannelDefaultBindingPlacement,
   resolveInboundConversationResolution,
@@ -16,7 +16,7 @@ import {
   DEFAULT_SUBAGENT_MAX_CHILDREN_PER_AGENT,
   DEFAULT_SUBAGENT_MAX_SPAWN_DEPTH,
 } from "../config/agent-limits.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { getSessionBindingService } from "../infra/outbound/session-binding-service.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 import { resolveChildAdmission, type ChildAdmissionCap } from "./child-admission.js";

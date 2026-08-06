@@ -9,7 +9,7 @@ import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../src/utils/message
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/openclaw-test-instance.js";
+} from "./helpers/astroclaw-test-instance.js";
 
 const E2E_TIMEOUT_MS = 180_000;
 const CHAT_FINAL_TIMEOUT_MS = 45_000;

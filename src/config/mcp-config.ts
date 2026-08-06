@@ -1,6 +1,6 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 // Normalizes MCP server config for runtime launch and validation.
-import { stableStringify } from "@openclaw/normalization-core";
+import { stableStringify } from "@astroclaw/normalization-core";
 import { markClawMcpServerIndependentlyOwned } from "../state/claw-mcp-adoption.js";
 import { isRecord } from "../utils.js";
 import { readSourceConfigSnapshot } from "./io.js";
@@ -12,7 +12,7 @@ import { replaceConfigFile } from "./mutate.js";
 import { redactSensitiveArgv } from "./redact-argv.js";
 import { REDACTED_SENTINEL, restoreRedactedValues } from "./redact-snapshot.js";
 import { buildConfigSchema } from "./schema.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
 
 type ConfigMcpServers = ReturnType<typeof normalizeConfiguredMcpServers>;

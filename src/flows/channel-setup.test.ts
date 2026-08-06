@@ -1,6 +1,6 @@
 // Channel setup tests cover setup flow prompts and config output.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import { WizardCancelledError, WizardNavigationError } from "../wizard/prompts.js";
 import {

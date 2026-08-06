@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { resetConfigRuntimeState, setRuntimeConfigSnapshot } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveAgentRuntimeToolConfig } from "./tool-runtime-config.js";
 import { resolveAgentToolSearchRuntimeConfig } from "./tool-search-runtime-config.js";
 

@@ -4,7 +4,7 @@ import {
   getRuntimeConfigSnapshotMetadata,
   getRuntimeConfigSourceSnapshot,
 } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   clearSecretsRuntimeSnapshot,
   getActiveSecretsRuntimeSnapshot,

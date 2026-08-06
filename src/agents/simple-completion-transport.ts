@@ -4,7 +4,7 @@ import type { ApiRegistry } from "@openclaw/ai";
  *
  * Registers provider-specific stream functions and rewrites models that need OpenClaw-managed transport semantics.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { Api, Model } from "../llm/types.js";
 import { wrapProviderSimpleCompletionStreamFn } from "../plugins/provider-runtime.js";
 import { createAnthropicVertexStreamFnForModel } from "./anthropic-vertex-stream.js";

@@ -42,7 +42,7 @@ function buildFocusSessionBindingService() {
   };
 }
 
-vi.mock("@openclaw/acp-core/runtime/session-identifiers", () => ({
+vi.mock("@astroclaw/acp-core/runtime/session-identifiers", () => ({
   resolveAcpSessionCwd: () => undefined,
   resolveAcpThreadSessionDetailLines: (params: {
     meta?: { identity?: Record<string, unknown> };

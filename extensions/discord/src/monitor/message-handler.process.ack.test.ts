@@ -1,5 +1,5 @@
 // Discord message processing coverage split by cohesive behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { DEFAULT_EMOJIS, DEFAULT_TIMING } from "openclaw/plugin-sdk/channel-feedback";
 import { describe, expect, it, vi } from "vitest";
 import {

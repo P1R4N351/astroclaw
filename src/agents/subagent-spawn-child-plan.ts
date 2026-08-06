@@ -1,5 +1,5 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isIncognitoSessionKey } from "../routing/session-key.js";
 import { resolveUserPath } from "../utils.js";
 import { resolveAgentDir } from "./agent-scope-config.js";

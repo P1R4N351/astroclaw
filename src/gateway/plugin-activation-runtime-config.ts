@@ -2,7 +2,7 @@
 // Carries activation enablement into runtime config without copying stale state.
 import type { AmbientEnvTriggerPolicy } from "../channels/config-presence.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginDiscoveryResult } from "../plugins/discovery.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { isRecord } from "../utils.js";

@@ -7,7 +7,7 @@ import {
   loadResolvedPublishedModelCatalogOwner,
 } from "../agents/prepared-model-catalog.js";
 import type { CliDeps } from "../cli/deps.types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { CronService } from "../cron/service.js";
 import { resolveCronJobsStorePath } from "../cron/store.js";
 import { getChildLogger } from "../logging/logger.js";

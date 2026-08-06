@@ -1,7 +1,7 @@
 /** Prepared plugin metadata handoff for runtime model normalization. */
 import { normalizeModelRef } from "../../agents/model-selection.js";
 import { RUNTIME_MODEL_VISIBILITY_NORMALIZATION } from "../../agents/model-visibility-policy.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { getCurrentPluginMetadataSnapshot } from "../../plugins/current-plugin-metadata-snapshot.js";
 
 export type RuntimeModelNormalization = NonNullable<Parameters<typeof normalizeModelRef>[2]>;

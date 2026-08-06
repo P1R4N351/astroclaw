@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { expect } from "vitest";
 import { loadPersistedAuthProfileStore } from "../../../../src/agents/auth-profiles/persisted.js";
-import type { OpenClawTestInstance } from "../../../helpers/openclaw-test-instance.js";
+import type { OpenClawTestInstance } from "../../../helpers/astroclaw-test-instance.js";
 
 const OAUTH_PROFILE_ID = "openai:qa-oauth";
 const LEGACY_OAUTH_PROFILE_ID = "openai-codex:qa-oauth";

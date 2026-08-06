@@ -1,7 +1,7 @@
 // Shares plugin config normalization helpers across control-plane paths.
-import { normalizeArrayBackedTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeArrayBackedTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import { normalizeChatChannelId } from "../channels/ids.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeSlotValue, resolveSlotSelection } from "./slots.js";
 
 /** Canonical plugin config shape consumed by runtime policy and loaders. */

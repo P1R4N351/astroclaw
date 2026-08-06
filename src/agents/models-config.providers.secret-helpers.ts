@@ -1,8 +1,8 @@
 /**
  * Resolves configured provider secrets from env, profiles, and SecretRefs.
  */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { coerceSecretRef, resolveSecretInputRef } from "../config/types.secrets.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";

@@ -1,4 +1,4 @@
-import { addTimerTimeoutGraceMs } from "@openclaw/normalization-core/number-coercion";
+import { addTimerTimeoutGraceMs } from "@astroclaw/normalization-core/number-coercion";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
 import type {
   MeetingBrowserRequestCaller,

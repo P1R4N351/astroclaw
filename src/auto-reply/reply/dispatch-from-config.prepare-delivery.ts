@@ -1,4 +1,4 @@
-import { isParentOwnedBackgroundAcpSession } from "@openclaw/acp-core/session-interaction-mode";
+import { isParentOwnedBackgroundAcpSession } from "@astroclaw/acp-core/session-interaction-mode";
 import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
 import { readAcpSessionMeta } from "../../acp/runtime/session-meta.js";
 import { logVerbose } from "../../globals.js";

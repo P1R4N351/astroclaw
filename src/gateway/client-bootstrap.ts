@@ -1,6 +1,6 @@
 // Gateway client bootstrap resolver.
 // Collects URL, auth, and handshake settings before constructing a GatewayClient.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { buildGatewayConnectionDetailsWithResolvers } from "./connection-details.js";
 import { resolveGatewayCredentialsWithSecretInputs } from "./credentials-secret-inputs.js";
 import type { ExplicitGatewayAuth } from "./credentials.js";

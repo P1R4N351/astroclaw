@@ -11,7 +11,7 @@ import { mutateConfigFileWithRetry } from "../../config/config.js";
 import { resolveSessionTranscriptsDirForAgent } from "../../config/sessions.js";
 import type { AgentConfig } from "../../config/types.agents.js";
 import type { IdentityConfig } from "../../config/types.base.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 type AgentDeleteMutationResult = {
   workspaceDir: string;

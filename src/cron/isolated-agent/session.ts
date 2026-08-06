@@ -16,7 +16,7 @@ import {
 } from "../../config/sessions/reset-policy.js";
 import { listSessionEntries, loadSessionEntry } from "../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 const FRESH_CRON_CARRIED_PREFERENCE_FIELDS = [
   "chatType",

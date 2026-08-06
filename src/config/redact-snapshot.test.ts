@@ -1,6 +1,6 @@
 // Covers config snapshot redaction and restoration behavior.
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import JSON5 from "json5";
 import { describe, expect, it } from "vitest";
 import { redactSnapshotTestHints as mainSchemaHints } from "../../test/helpers/config/redact-snapshot-test-hints.js";
@@ -13,7 +13,7 @@ import {
   type TestSnapshot,
 } from "./redact-snapshot.test-helpers.js";
 import { buildConfigSchema } from "./schema.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "./types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "./types.astroclaw.js";
 
 function expectNestedPairValue(
   source: Record<string, Record<string, Record<string, unknown>>>,

@@ -1,5 +1,5 @@
 /** Canonical provider-key handling shared by models.json merge boundaries. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 
 export function normalizeProviderMapKeys<T>(
   providers: Record<string, T> | null | undefined,

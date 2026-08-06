@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   listAgentIds,
   listAgentEntries,
@@ -19,7 +19,7 @@ import { getChannelPlugin } from "../channels/plugins/index.js";
 import type { ChannelId, ChannelPlugin } from "../channels/plugins/types.public.js";
 import type { SessionEntry } from "../config/sessions/types.js";
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { getActivePluginChannelRegistry } from "../plugins/runtime.js";
 import { normalizeAgentId } from "../routing/session-key.js";

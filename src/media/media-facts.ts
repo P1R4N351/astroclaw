@@ -1,11 +1,11 @@
-import type { MediaKind } from "@openclaw/media-core/constants";
+import type { MediaKind } from "@astroclaw/media-core/constants";
 import {
   getFileExtension,
   kindFromMime,
   mimeTypeFromFilePath,
   normalizeMimeType,
-} from "@openclaw/media-core/mime";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/media-core/mime";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { PromptImageOrderEntry } from "./prompt-image-order.js";
 
 /** One ordered runtime attachment; array position is its alignment identity. */

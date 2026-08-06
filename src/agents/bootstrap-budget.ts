@@ -3,7 +3,7 @@
  * was truncated before an agent sees it.
  */
 import path from "node:path";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { EmbeddedContextFile } from "./embedded-agent-helpers.js";
 import { USER_BOOTSTRAP_MAX_CHARS } from "./embedded-agent-helpers/bootstrap.js";
 import type { WorkspaceBootstrapFile } from "./workspace.js";

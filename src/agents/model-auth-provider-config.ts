@@ -1,7 +1,7 @@
 /**
  * Provider-entry configuration and stored-profile binding for model auth.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   getRuntimeConfigSnapshot,
   getRuntimeConfigSourceSnapshot,
@@ -9,7 +9,7 @@ import {
 } from "../config/config.js";
 import { resolveMergedModelProviderConfig } from "../config/model-provider-config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { coerceSecretRef } from "../config/types.secrets.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
 import { resolveDefaultSecretProviderAlias } from "../secrets/ref-contract.js";

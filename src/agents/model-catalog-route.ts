@@ -1,10 +1,10 @@
 /** Projects physical catalog rows for browse/presentation; never runtime execution. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   resolveMergedModelProviderConfig,
   resolveMergedModelProviderModels,
 } from "../config/model-provider-config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ProviderModelRouteCandidate } from "../plugin-sdk/provider-model-types.js";
 import type { ModelCatalogEntry } from "./model-catalog.types.js";
 import { splitTrailingAuthProfile } from "./model-ref-profile.js";

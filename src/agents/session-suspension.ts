@@ -9,7 +9,7 @@ import { resolveAgentMaxConcurrent, resolveSubagentMaxConcurrent } from "../conf
 import { resolveCronMaxConcurrentRuns } from "../config/cron-limits.js";
 import { patchSessionEntry } from "../config/sessions/session-accessor.js";
 import type { QuotaSuspension } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { setCommandLaneConcurrency } from "../process/command-queue.js";
 import { CommandLane } from "../process/lanes.js";

@@ -3,7 +3,7 @@
  * Exercises provider-family fallbacks, plugin replay hooks, and policy caching.
  */
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ProviderRuntimeModel } from "../plugins/provider-runtime-model.types.js";
 
 vi.mock("../plugins/provider-hook-runtime.js", async () => {

@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { replaceSessionEntry } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import * as windowsEncoding from "../infra/windows-encoding.js";
 import {
   findUnsupportedSchemaKeywords,
@@ -30,7 +30,7 @@ import {
 } from "../plugins/memory-state.js";
 import "./test-helpers/fast-bash-tools.js";
 import "./test-helpers/fast-coding-tools.js";
-import "./test-helpers/fast-openclaw-tools.js";
+import "./test-helpers/fast-astroclaw-tools.js";
 import { isPluginToolAllowed } from "../plugins/tool-grant-allowlist.js";
 import { wrapToolWithBeforeToolCallHook } from "./agent-tools.before-tool-call.js";
 import { createOpenClawCodingTools } from "./agent-tools.js";
@@ -43,8 +43,8 @@ import {
 import { runWithAgentRingZeroTools } from "./agent-tools.ring-zero-context.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";
 import { resolveConversationCapabilityProfile } from "./conversation-capability-profile.js";
-import * as openClawPluginTools from "./openclaw-plugin-tools.js";
-import { createOpenClawTools } from "./openclaw-tools.js";
+import * as openClawPluginTools from "./astroclaw-plugin-tools.js";
+import { createOpenClawTools } from "./astroclaw-tools.js";
 import { expectReadWriteEditTools } from "./test-helpers/agent-tools-fs-helpers.js";
 import { createAgentToolsSandboxContext } from "./test-helpers/agent-tools-sandbox-context.js";
 import { stubTool } from "./test-helpers/fast-tool-stubs.js";

@@ -2,7 +2,7 @@
 // shared delivery hook, target routing, Markdown rendering, and media captions
 // cannot drift apart unnoticed.
 import http from "node:http";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { sendDurableMessageBatch } from "openclaw/plugin-sdk/channel-outbound";
 import {
   createTestRegistry,

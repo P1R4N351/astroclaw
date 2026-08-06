@@ -1,6 +1,6 @@
 // Regression tests: provider auth failures re-prompt instead of killing the wizard.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { WizardCancelledError, type WizardPrompter } from "./prompts.js";
 import { runSetupModelAuthStep } from "./setup.model-auth.js";

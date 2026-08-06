@@ -1,5 +1,5 @@
 import type { StreamFn } from "../agents/runtime/index.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ProviderRuntimeModel } from "./provider-runtime-model.types.js";
 import type { ProviderPrepareExtraParamsContext } from "./provider-runtime.types.js";
 

@@ -1,5 +1,5 @@
 // Package-owned transcript transform used by providers and the inert transport host.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { resolveModelBoundThinkingReplayMode } from "./providers/anthropic-model-contract.js";
 import type {
   Api,

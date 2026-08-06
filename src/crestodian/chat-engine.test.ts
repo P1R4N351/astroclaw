@@ -2,14 +2,14 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   fingerprintAuthProfileCredential,
   fingerprintOpaqueRuntimeOwner,
   fingerprintResolvedProviderAuth,
 } from "../agents/execution-auth-binding.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { runCrestodianAgentTurnWithDeps } from "./agent-turn.js";
 import { classifyCrestodianApprovalText } from "./approval-intent.js";

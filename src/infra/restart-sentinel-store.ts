@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { isRecord as isPlainRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord as isPlainRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { DB as OpenClawStateKyselyDatabase } from "../state/openclaw-state-db.generated.js";
 import {
   executeSqliteQuerySync,

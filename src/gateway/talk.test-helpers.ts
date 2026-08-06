@@ -1,4 +1,4 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 /**
  * Direct talk method invocation helpers for gateway speech tests.
  */

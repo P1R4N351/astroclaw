@@ -1,6 +1,6 @@
 // Owns config snapshots, include boundaries, and recovery for plugin installation.
 import { readConfigFileSnapshotForWrite } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   resolveInstallConfigMutationPreflights,
   selectInstallMutationWriteOptions,

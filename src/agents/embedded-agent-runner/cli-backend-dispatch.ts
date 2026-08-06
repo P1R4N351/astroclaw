@@ -11,7 +11,7 @@
  * tolerate CLI latency opt in via `cliBackendDispatch: "subscription-auth"`
  * to run through the CLI backend on plan limits instead.
  */
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { onAgentEvent } from "../../infra/agent-events.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { stripOpenClawMcpToolPrefix } from "../cli-runner/tool-policy.js";

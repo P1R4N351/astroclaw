@@ -2,8 +2,8 @@
  * Watchdog and supervisor key helpers for CLI runner reliability.
  */
 import path from "node:path";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { CliBackendConfig } from "../../plugins/cli-backend.types.js";
 import {
   CLI_FRESH_WATCHDOG_DEFAULTS,

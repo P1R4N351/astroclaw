@@ -15,7 +15,7 @@ import {
   listOpenClawRegisteredAgentDatabases,
 } from "../../state/openclaw-agent-db-registry.js";
 import { resolveStateDir } from "../paths.js";
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import { resolveAgentsDirFromSessionStorePath, resolveStorePath } from "./paths.js";
 import { readSqliteSessionEntryKeys } from "./session-accessor.sqlite-entry-store.js";
 import {

@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { createAbortError } from "../../infra/abort-signal.js";
 import { resolveSubagentCompletionResultText } from "../subagent-completion-result.js";
 import { onSubagentRegistryPersisted } from "../subagent-registry-state.js";

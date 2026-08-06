@@ -9,7 +9,7 @@ import type {
   TextContent,
   Tool,
   ToolResultMessage,
-} from "@openclaw/llm-core";
+} from "@astroclaw/llm-core";
 // Agent Core type module defines shared TypeScript contracts.
 import type { Static, TSchema } from "typebox";
 

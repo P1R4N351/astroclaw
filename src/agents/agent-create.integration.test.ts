@@ -2,9 +2,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { mutateConfigFileWithRetry } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
-import { createOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { createOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { createAgent } from "./agent-create.js";
 import {
   DEFAULT_IDENTITY_FILENAME,

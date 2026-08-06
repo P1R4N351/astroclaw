@@ -1,5 +1,5 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import {
   ErrorCodes,
   errorShape,
@@ -13,7 +13,7 @@ import {
   validateSessionsCatalogListParams,
   validateSessionsCatalogReadParams,
 } from "../../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { pruneMapToMaxSize } from "../../infra/map-size.js";
 import { getPluginRegistryRuntime } from "../../plugins/registry-runtime-binding.js";
 import type { PluginRegistry } from "../../plugins/registry-types.js";

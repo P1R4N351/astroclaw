@@ -1,7 +1,7 @@
 // Config gateway methods: validation, redaction, secrets, reload planning.
 import { isDeepStrictEqual } from "node:util";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import {
   ErrorCodes,
   errorShape,
@@ -36,7 +36,7 @@ import { normalizeConfigPatchReplacePaths } from "../../config/patch-replace-pat
 import { redactConfigObject, restoreRedactedValues } from "../../config/redact-snapshot.js";
 import { loadGatewayRuntimeConfigSchema } from "../../config/runtime-schema.js";
 import { lookupConfigSchema, type ConfigSchemaResponse } from "../../config/schema.js";
-import type { ConfigValidationIssue, OpenClawConfig } from "../../config/types.openclaw.js";
+import type { ConfigValidationIssue, OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   validateConfigObjectRawWithPlugins,
   validateConfigObjectWithPlugins,

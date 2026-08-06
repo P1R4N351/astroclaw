@@ -3,7 +3,7 @@ import {
   createAgentToAgentPolicy,
   createSessionVisibilityGuard,
 } from "../agents/tools/sessions-helpers.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { SessionCompanionAskError } from "./session-companion-ask.js";
 import {
   buildSessionCompanionRunConfig,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { migratePersistedImplicitMainRoster } from "../../config/legacy.roster.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { runWithAgentRingZeroTools } from "../agent-tools.ring-zero-context.js";
 import { createStubTool } from "../test-helpers/agent-tool-stubs.js";
 import {

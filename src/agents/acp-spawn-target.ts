@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeOptionalAgentId } from "../routing/session-key.js";
 import { listAgentEntries } from "./agent-scope-config.js";
 import { listAgentIds } from "./agent-scope.js";

@@ -3,7 +3,7 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
 import { resolveRuntimeConfigCacheKey } from "../../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { withActivatedPluginIds } from "../../plugins/activation-context.js";
 import { resolveDiscoverableScopedChannelPluginIds } from "../../plugins/channel-plugin-ids.js";
 import { loadPluginRegistryHandle } from "../../plugins/loader.js";

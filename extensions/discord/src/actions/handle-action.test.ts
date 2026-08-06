@@ -1,5 +1,5 @@
 // Discord tests cover handle action plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

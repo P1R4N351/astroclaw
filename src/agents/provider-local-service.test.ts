@@ -6,11 +6,11 @@ import http from "node:http";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
+import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 import type { Model } from "astroclaw/plugin-sdk/llm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { mintSecretSentinel } from "../secrets/sentinel.js";
 import { killPidIfAlive, readPidFile, waitForPidToExit } from "../test-utils/process-tree.js";
 import {

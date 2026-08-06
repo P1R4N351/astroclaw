@@ -5,12 +5,12 @@
  */
 import fsSync, { promises as fs } from "node:fs";
 import path from "node:path";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { DEFAULT_SUBAGENT_ARCHIVE_AFTER_MINUTES } from "../config/agent-limits.js";
 import { getRuntimeConfig } from "../config/config.js";
 import { resolveAgentIdFromSessionKey, resolveStorePath } from "../config/sessions.js";
 import { patchSessionEntry } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { computeBackoff } from "../infra/backoff.js";
 import { defaultRuntime } from "../runtime.js";
 import { truncateUtf8Prefix } from "../utils/utf8-truncate.js";

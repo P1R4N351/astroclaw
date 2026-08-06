@@ -1,4 +1,4 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import type { AgentCommandOpts } from "../../agents/command/types.js";
 import { agentCommandFromIngress } from "../../commands/agent.js";
@@ -7,7 +7,7 @@ import {
   resolveAgentMainSessionKey,
   type SessionEntry,
 } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveAgentDeliveryPlanWithSessionRoute } from "../../infra/outbound/agent-delivery.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";

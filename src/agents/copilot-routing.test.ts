@@ -1,6 +1,6 @@
 // Covers when model selection should install the Copilot runtime plugin.
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { modelSelectionShouldEnsureCopilotRuntimePlugin } from "./copilot-routing.js";
 
 function withDefaultRoster(config: OpenClawConfig = {}): OpenClawConfig {

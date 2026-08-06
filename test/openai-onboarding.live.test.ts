@@ -14,7 +14,7 @@ import {
   loadTranscriptEvents,
   resolveTranscriptSessionKeyBySessionId,
 } from "../src/config/sessions/session-accessor.js";
-import { createOpenClawTestState } from "../src/test-utils/openclaw-test-state.js";
+import { createOpenClawTestState } from "../src/test-utils/astroclaw-test-state.js";
 import { getDeterministicFreePortBlock } from "../src/test-utils/ports.js";
 
 const execFileAsync = promisify(execFile);

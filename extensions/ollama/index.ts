@@ -1,6 +1,6 @@
 // Ollama plugin entrypoint registers its OpenClaw integration.
 import { createHash } from "node:crypto";
-import { collectConfiguredModelRefValues } from "@openclaw/model-catalog-core/configured-model-refs";
+import { collectConfiguredModelRefValues } from "@astroclaw/model-catalog-core/configured-model-refs";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
 import {

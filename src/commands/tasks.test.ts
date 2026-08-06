@@ -25,8 +25,8 @@ import {
   resetTaskRegistryDeliveryRuntimeForTests,
   resetTaskRegistryForTests,
 } from "../tasks/task-runtime.test-helpers.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
-import type { OpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import type { OpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import type { TaskSystemAuditCode, TaskSystemAuditSeverity } from "./tasks-audit-system.js";
 import {
   tasksAuditCommand,

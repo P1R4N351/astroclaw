@@ -1,7 +1,7 @@
 // Runtime LLM tests cover plugin provider hooks inside the model runtime adapter.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveContextEngineCapabilities } from "../../agents/embedded-agent-runner/context-engine-capabilities.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { withPluginRuntimePluginIdScope } from "./gateway-request-scope.js";
 import { createRuntimeLlm } from "./runtime-llm.runtime.js";
 import type { RuntimeLogger } from "./types-core.js";

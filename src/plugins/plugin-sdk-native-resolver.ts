@@ -52,10 +52,10 @@ type InstallOpenClawPluginSdkNativeResolverOptions = {
 
 const moduleWithResolver = Module as ModuleWithResolver;
 const nodeResolveFilenameProperty = "_resolveFilename" as const;
-const PLUGIN_SDK_PACKAGE_PREFIXES = ["openclaw/plugin-sdk", "@openclaw/plugin-sdk"] as const;
+const PLUGIN_SDK_PACKAGE_PREFIXES = ["openclaw/plugin-sdk", "@astroclaw/plugin-sdk"] as const;
 const INTERNAL_CORE_PACKAGE_ALIASES = [
   {
-    packageName: "@openclaw/markdown-core",
+    packageName: "@astroclaw/markdown-core",
     packageDir: "markdown-core",
     subpaths: [
       ["", "index.ts"],
@@ -91,7 +91,7 @@ const INTERNAL_CORE_PACKAGE_ALIASES = [
     ],
   },
   {
-    packageName: "@openclaw/media-core",
+    packageName: "@astroclaw/media-core",
     packageDir: "media-core",
     subpaths: [
       ["", "index.ts"],
@@ -107,7 +107,7 @@ const INTERNAL_CORE_PACKAGE_ALIASES = [
     ],
   },
   {
-    packageName: "@openclaw/llm-core",
+    packageName: "@astroclaw/llm-core",
     packageDir: "llm-core",
     subpaths: [
       ["", "index.ts"],

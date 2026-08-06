@@ -6,7 +6,7 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import { clampPositiveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { clampPositiveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { isToolAllowedByPolicyName } from "../agents/tool-policy-match.js";
 import {
   attachToolAllowlistIntersection,

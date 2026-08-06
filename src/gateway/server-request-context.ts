@@ -6,7 +6,7 @@ import {
   hasGatewayClientCap,
   type GatewayClientId,
 } from "../../packages/gateway-protocol/src/client-info.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayServerLiveState } from "./server-live-state.js";
 import type { GatewayClient, GatewayRequestContext } from "./server-methods/types.js";
 import { disconnectAllSharedGatewayAuthClients } from "./server-shared-auth-generation.js";

@@ -2,7 +2,7 @@
 import {
   resolveIntegerOption as resolveSharedIntegerOption,
   resolveNonNegativeIntegerOption as resolveSharedNonNegativeIntegerOption,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 
 // Numeric option facades keep legacy infra imports aligned with shared
 // normalization-core semantics.

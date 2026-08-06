@@ -1,7 +1,7 @@
 // Persists short-lived gateway restart handoff metadata.
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { DB as OpenClawStateKyselyDatabase } from "../state/openclaw-state-db.generated.js";
 import {

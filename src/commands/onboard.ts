@@ -7,7 +7,7 @@
 import { formatCliCommand } from "../cli/command-format.js";
 import { formatInvalidPortOption } from "../cli/error-format.js";
 import { readConfigFileSnapshot, resolveGatewayPort } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isValidEnvSecretRefId } from "../config/types.secrets.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";

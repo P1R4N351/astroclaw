@@ -8,7 +8,7 @@ import {
 import { readConfigFileSnapshot } from "../config/config.js";
 import { createMergePatch } from "../config/merge-patch.js";
 import { applyMergePatch } from "../config/merge-patch.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 function isInjectedMainRoster(config: OpenClawConfig): boolean {
   const roster = listAgentEntries(config);

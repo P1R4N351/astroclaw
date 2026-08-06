@@ -1,5 +1,5 @@
 // Handles native slash commands before full get-reply pipeline execution.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   resolveModelRefFromString,
   resolveThinkingDefaultWithRuntimeCatalog,

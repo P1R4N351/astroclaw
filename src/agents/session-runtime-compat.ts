@@ -4,7 +4,7 @@
  * Resolves persisted runtime overrides without leaking provider-specific CLI runtime bindings across model routes.
  */
 import type { SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isDefaultAgentRuntimeId } from "./agent-runtime-id.js";
 import { normalizeOptionalAgentRuntimeId } from "./agent-runtime-id.js";
 import { isCliRuntimeAliasForProvider } from "./model-runtime-aliases.js";

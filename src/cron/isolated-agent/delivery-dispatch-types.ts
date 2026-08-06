@@ -1,6 +1,6 @@
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
 import type { CliDeps } from "../../cli/outbound-send-deps.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { TtsAutoMode } from "../../config/types.tts.js";
 import type { SourceDeliveryOutcome } from "../../infra/outbound/source-delivery-plan.js";
 import type { CronJob, CronRunTelemetry } from "../types.js";

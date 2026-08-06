@@ -4,7 +4,7 @@ import {
   type OpenedLocalAgentAvatarFile,
 } from "../agents/identity-avatar-file.js";
 import type { AgentAvatarResolution } from "../agents/identity-avatar.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isRenderableAvatarImageDataUrl } from "../shared/avatar-limits.js";
 import {
   hasAvatarUriScheme,

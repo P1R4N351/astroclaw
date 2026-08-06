@@ -1,15 +1,15 @@
 /**
  * Resolves memory-search source, sync, and ranking configuration.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   MAX_TIMER_TIMEOUT_MS,
   resolvePositiveTimerTimeoutMs,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeStringEntries,
   uniqueStrings,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import type { OpenClawConfig, MemorySearchConfig } from "../config/config.js";
 import type { SecretInput } from "../config/types.secrets.js";
 import { resolveRememberAcrossConversations } from "../memory-host-sdk/host/config-utils.js";

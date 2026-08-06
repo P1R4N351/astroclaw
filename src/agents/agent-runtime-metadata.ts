@@ -1,5 +1,5 @@
 /** Resolves agent runtime metadata from model/provider policy and ACP session overlays. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { applyAcpRuntimeOverlay, type AgentRuntimeMetadata } from "./acp-runtime-overlay.js";
 import { isDefaultAgentRuntimeId } from "./agent-runtime-id.js";
 import { resolveAgentHarnessPolicy } from "./harness/policy.js";

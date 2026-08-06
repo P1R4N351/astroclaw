@@ -1,5 +1,5 @@
 // Mattermost tests cover client plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
 import { describe, expect, it, vi } from "vitest";
 

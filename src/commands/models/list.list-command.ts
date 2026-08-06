@@ -1,5 +1,5 @@
 /** Implementation of `openclaw models list`. */
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import { parseModelRef } from "../../agents/model-selection-normalize.js";
 import { requestExitAfterOneShotOutput } from "../../cli/one-shot-exit.js";

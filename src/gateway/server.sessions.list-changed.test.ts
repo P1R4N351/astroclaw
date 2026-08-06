@@ -2,7 +2,7 @@
  * Gateway sessions.list changed-state tests.
  */
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, expect, test, vi } from "vitest";
 import { loadSessionEntry } from "../config/sessions/session-accessor.js";
 import { subscribePluginSessionsChanged } from "../plugins/gateway-events.js";

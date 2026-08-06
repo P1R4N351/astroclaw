@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { collectManifestModelIdNormalizationPolicies } from "@openclaw/model-catalog-core/provider-model-id-normalization";
+import { collectManifestModelIdNormalizationPolicies } from "@astroclaw/model-catalog-core/provider-model-id-normalization";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import { ensureOwnerDisplaySecret } from "../agents/owner-display.js";
 import {

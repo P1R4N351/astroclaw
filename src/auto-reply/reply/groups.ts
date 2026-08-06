@@ -2,12 +2,12 @@
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { getLoadedChannelPluginForRead } from "../../channels/plugins/registry-loaded.js";
 import { findChatChannelMeta, normalizeChatChannelId } from "../../channels/registry.js";
 import { resolveChannelGroupRequireMention } from "../../config/group-policy.js";
 import type { GroupKeyResolution, SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import type { SilentReplyPolicy } from "../../shared/silent-reply-policy.js";
 import { isInternalMessageChannel } from "../../utils/message-channel.js";

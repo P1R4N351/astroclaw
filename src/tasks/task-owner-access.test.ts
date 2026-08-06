@@ -1,7 +1,7 @@
 // Verifies requester and owner access checks for task records.
 import { afterEach, describe, expect, it } from "vitest";
 import { captureEnv } from "../test-utils/env.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import {
   findLatestTaskForRelatedSessionKeyForOwner,
   findTaskByRunIdForOwner,

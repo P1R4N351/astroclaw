@@ -13,13 +13,13 @@ const USE_CANONICAL_DECLARATIONS = process.env.OPENCLAW_PLUGIN_SDK_CANONICAL_DTS
 
 function isBareImportSpecifier(id: string): boolean {
   if (
-    id === "@openclaw/llm-core" ||
-    id.startsWith("@openclaw/llm-core/") ||
-    id === "@openclaw/model-catalog-core/model-catalog-types" ||
+    id === "@astroclaw/llm-core" ||
+    id.startsWith("@astroclaw/llm-core/") ||
+    id === "@astroclaw/model-catalog-core/model-catalog-types" ||
     id === "@openclaw/retry" ||
-    id.startsWith("@openclaw/normalization-core/") ||
-    id.startsWith("@openclaw/media-core/") ||
-    id.startsWith("@openclaw/acp-core/")
+    id.startsWith("@astroclaw/normalization-core/") ||
+    id.startsWith("@astroclaw/media-core/") ||
+    id.startsWith("@astroclaw/acp-core/")
   ) {
     return false;
   }

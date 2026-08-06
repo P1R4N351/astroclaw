@@ -5,7 +5,7 @@
 import {
   findNormalizedProviderValue,
   normalizeProviderId,
-} from "@openclaw/model-catalog-core/provider-id";
+} from "@astroclaw/model-catalog-core/provider-id";
 import type { OpenClawConfig } from "../config/types.js";
 
 type ProviderModelRef = {

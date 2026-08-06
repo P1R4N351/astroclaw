@@ -1,6 +1,6 @@
 // Isolated runtime.llm.complete tests cover zero-tool dispatch and policy enforcement.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { withPluginRuntimePluginIdScope } from "./gateway-request-scope.js";
 import { createRuntimeLlm } from "./runtime-llm.runtime.js";
 

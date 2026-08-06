@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { sanitizeSurrogates } from "@openclaw/ai/internal/shared";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveUserPath } from "../utils.js";
 import { parseBooleanValue } from "../utils/boolean.js";
 import { safeJsonStringify } from "../utils/safe-json.js";

@@ -1,4 +1,4 @@
-import { normalizeSortedUniqueTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeSortedUniqueTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import {
   GATEWAY_CLIENT_IDS,
   GATEWAY_CLIENT_MODES,

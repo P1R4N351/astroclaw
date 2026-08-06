@@ -7,7 +7,7 @@ import {
   hasModelPolicyAllowlistMigrationMarker,
   isExplicitModelPolicy,
 } from "./model-policy-allowlist-migration.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 /** Metadata keys automatically stamped on config writes. */
 const AUTO_MANAGED_CONFIG_META_FIELDS = {

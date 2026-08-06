@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { resolveExpiresAtMsFromDurationMs } from "@openclaw/normalization-core/number-coercion";
+import { resolveExpiresAtMsFromDurationMs } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeTalkSection } from "../config/talk.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { createPluginRuntime } from "../plugins/runtime/index.js";

@@ -1,8 +1,8 @@
 // Builds diagnostics for Codex plugin config and provider wiring.
-import { collectConfiguredModelRefs } from "@openclaw/model-catalog-core/configured-model-refs";
-import { parseModelCatalogRef } from "@openclaw/model-catalog-core/model-catalog-refs";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { collectConfiguredModelRefs } from "@astroclaw/model-catalog-core/configured-model-refs";
+import { parseModelCatalogRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import {
   isDefaultAgentRuntimeId,
   normalizeOptionalAgentRuntimeId,
@@ -26,7 +26,7 @@ import {
 import { resolveOpenAIImplicitAgentRuntime } from "../agents/openai-routing.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { resolveAgentModelFallbackValues } from "./model-input.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 const CODEX_PLUGIN_ID = "codex";
 const OPENAI_PROVIDER_ID = "openai";

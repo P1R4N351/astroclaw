@@ -1,6 +1,6 @@
 // Browser residue doctor tests cover detection of stale browser state.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { CORE_HEALTH_CHECKS } from "./doctor-core-checks.js";
 import type { HealthRepairContext } from "./health-checks.js";
 

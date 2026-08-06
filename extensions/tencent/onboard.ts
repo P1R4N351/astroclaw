@@ -8,7 +8,7 @@ import {
   TOKENPLAN_MODEL_CATALOG,
   TOKENPLAN_PROVIDER_ID,
 } from "./models.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 const TOKENHUB_PREVIEW_MODEL_REF = `${TOKENHUB_PROVIDER_ID}/hy3-preview`;
 export const TOKENHUB_DEFAULT_MODEL_REF = readManifestProviderDefaultModelRef(

@@ -1,12 +1,12 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 /**
  * Mention-pattern policy resolver.
  *
  * Applies provider and conversation allow/deny rules to mention pattern matching.
  */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { MentionPatternsMode, MentionPatternsPolicyConfig } from "../config/types.messages.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 /**
  * Inputs for resolving whether mention-pattern matching is enabled in a conversation.

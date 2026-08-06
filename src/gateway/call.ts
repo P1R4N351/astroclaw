@@ -1,9 +1,9 @@
 // Gateway RPC call helper.
 // Builds a GatewayClient, resolves auth/scopes, and performs one request.
 import { randomUUID } from "node:crypto";
-import { isLoopbackIpAddress } from "@openclaw/net-policy/ip";
-import { redactSensitiveUrlLikeString } from "@openclaw/net-policy/redact-sensitive-url";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { isLoopbackIpAddress } from "@astroclaw/net-policy/ip";
+import { redactSensitiveUrlLikeString } from "@astroclaw/net-policy/redact-sensitive-url";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   GATEWAY_CLIENT_MODES,
   GATEWAY_CLIENT_NAMES,
@@ -24,7 +24,7 @@ import {
   resolveStateDir as resolveStateDirFromPaths,
 } from "../config/paths.js";
 import { getRuntimeConfigSnapshot } from "../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createAbortError } from "../infra/abort-signal.js";
 import { loadDeviceAuthToken } from "../infra/device-auth-store.js";
 import { loadOrCreateDeviceIdentity, type DeviceIdentity } from "../infra/device-identity.js";

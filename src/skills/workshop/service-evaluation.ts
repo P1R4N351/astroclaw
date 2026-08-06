@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type {
   PluginHookSkillEvaluationFinding,
   PluginHookSkillProposalEvaluateResult,

@@ -2,7 +2,7 @@
  * BytePlus model catalog helpers derived from the plugin manifest.
  */
 import { buildManifestProviderCatalogFamily } from "openclaw/plugin-sdk/provider-catalog-shared";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 export const BYTEPLUS_PROVIDER_CATALOG = buildManifestProviderCatalogFamily({
   surfaces: [

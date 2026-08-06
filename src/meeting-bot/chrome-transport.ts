@@ -1,5 +1,5 @@
-import { addTimerTimeoutGraceMs } from "@openclaw/normalization-core/number-coercion";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { addTimerTimeoutGraceMs } from "@astroclaw/normalization-core/number-coercion";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginRuntime, RuntimeLogger } from "../plugins/runtime/types.js";
 import { resolveTranscriptsConfig } from "../transcripts/config.js";
 import type { createMeetingRealtimeEngineBindings } from "./agent-consult.js";

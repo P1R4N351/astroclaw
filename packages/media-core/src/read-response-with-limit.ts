@@ -1,6 +1,6 @@
 // Media Core module implements read response with limit behavior.
-import { toErrorObject } from "@openclaw/normalization-core/error-coercion";
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { toErrorObject } from "@astroclaw/normalization-core/error-coercion";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 
 /** Reads one chunk, rejecting and cancelling the reader after an idle timeout. */
 export async function readChunkWithIdleTimeout(

@@ -1,8 +1,8 @@
 /** Provider alias canonicalization for model catalog rows. */
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   loadPluginManifestRegistry,
   type PluginManifestRecord,

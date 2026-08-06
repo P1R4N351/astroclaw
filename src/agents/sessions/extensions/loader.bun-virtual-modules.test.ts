@@ -66,11 +66,11 @@ describe("loadExtensionsCached in Bun binary mode", () => {
     expect(virtualModulesCase.virtualModuleIds).toEqual(
       expect.arrayContaining([
         "openclaw/plugin-sdk/agent-core",
-        "@openclaw/plugin-sdk/agent-core",
+        "@astroclaw/plugin-sdk/agent-core",
         "openclaw/plugin-sdk/llm",
-        "@openclaw/plugin-sdk/llm",
+        "@astroclaw/plugin-sdk/llm",
         "openclaw/plugin-sdk/agent-sessions",
-        "@openclaw/plugin-sdk/agent-sessions",
+        "@astroclaw/plugin-sdk/agent-sessions",
       ]),
     );
   });

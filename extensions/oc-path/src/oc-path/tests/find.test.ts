@@ -1,5 +1,5 @@
 // OC Path tests cover find plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it } from "vitest";
 import { findOcPaths } from "../find.js";
 import { parseJsonc } from "../jsonc/parse.js";

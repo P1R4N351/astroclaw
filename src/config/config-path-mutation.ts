@@ -1,7 +1,7 @@
 // Applies immutable path removals to config-like objects.
 import { isDeepStrictEqual } from "node:util";
-import { expectDefined } from "@openclaw/normalization-core";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";
 import { parseConfigPathArrayIndex } from "../shared/path-array-index.js";
 import type { OpenClawConfig } from "./types.js";

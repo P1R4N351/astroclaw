@@ -1,7 +1,7 @@
 // Hook update tests cover updating installed hook records and config.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HookInstallRecord } from "../config/types.hooks.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HookNpmIntegrityDriftParams } from "./install.js";
 
 const installHooksFromNpmSpecMock = vi.fn();

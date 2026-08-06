@@ -2,7 +2,7 @@
  * Builds extension factories available to embedded-agent runtime sessions.
  */
 import { randomUUID } from "node:crypto";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ProviderRuntimeModel } from "../../plugins/provider-runtime-model.types.js";
 import { normalizeAcceptedSessionSpawnResult } from "../accepted-session-spawn.js";
 import { setCompactionSafeguardRuntime } from "../agent-hooks/compaction-safeguard-runtime.js";

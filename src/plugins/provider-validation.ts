@@ -1,6 +1,6 @@
 /** Validates and normalizes provider plugin definitions before registry registration. */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeUniqueTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeUniqueTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import type { PluginDiagnostic } from "./manifest-types.js";
 import type { ProviderAuthMethod, ProviderPlugin } from "./types.js";
 import { pushPluginValidationDiagnostic } from "./validation-diagnostics.js";

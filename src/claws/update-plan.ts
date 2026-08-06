@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { lstat } from "node:fs/promises";
 import { stableStringify } from "../agents/stable-stringify.js";
 import { normalizeConfiguredMcpServers } from "../config/mcp-config-normalize.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { root as fsSafeRoot } from "../infra/fs-safe.js";
 import {
   openExistingOpenClawStateDatabaseReadOnly,

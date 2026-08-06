@@ -4,7 +4,7 @@
  */
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { sliceUtf16Safe, truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import {
   resolveSessionFilePath,
   resolveSessionFilePathOptions,
@@ -14,7 +14,7 @@ import {
   scanSessionTranscriptTree,
   selectSessionTranscriptLeafControlledPath,
 } from "../../config/sessions/transcript-tree.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { readFileWindowFully } from "../../infra/file-read.js";
 import { isPathInside } from "../../infra/path-guards.js";

@@ -1,4 +1,4 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveTrustedGroupId } from "../../agents/agent-tools.policy.js";
 import { clearAllCliSessions } from "../../agents/cli-session.js";
 import { buildMainSessionRecoveryClearPatch } from "../../agents/main-session-recovery-clear.js";
@@ -12,7 +12,7 @@ import {
 import { hasProviderOwnedSession } from "../../config/sessions/entry-freshness.js";
 import { resolveSessionEntryAccessTarget } from "../../config/sessions/session-accessor.js";
 import { isRecoverableTerminalSessionStatus } from "../../config/sessions/terminal-status.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   deliveryContextFromSession,
   mergeDeliveryContext,

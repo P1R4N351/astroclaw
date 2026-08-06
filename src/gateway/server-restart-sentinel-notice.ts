@@ -1,7 +1,7 @@
 // Durable outbound notice ownership for restart-sentinel recovery.
 import { sendDurableMessageBatch } from "../channels/message/runtime.js";
 import type { CliDeps } from "../cli/deps.types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   findPlatformMessageRejectedError,
   isProvenDeliveryNotSentError,

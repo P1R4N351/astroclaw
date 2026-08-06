@@ -10,7 +10,7 @@ import {
   hasSessionEntriesByStatusReadOnly,
   type SessionTranscriptTurnExpectedState,
 } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveAgentSessionDirs } from "./session-dirs.js";
 

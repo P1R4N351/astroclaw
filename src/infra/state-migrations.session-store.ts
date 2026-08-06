@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { writeAcpSessionMetaForMigration } from "../acp/runtime/session-meta.js";
 import { listAgentEntries } from "../agents/agent-scope-config.js";
 import { resolveStateDir } from "../config/paths.js";
@@ -15,7 +15,7 @@ import {
   resolveSessionStoreTargets,
 } from "../config/sessions/targets.js";
 import type { SessionScope } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   collectRelevantDoctorPluginIds,
   listPluginDoctorSessionStoreAgentIds,

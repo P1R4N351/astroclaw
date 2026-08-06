@@ -3,8 +3,8 @@
  *
  * Applies logging redaction rules to persisted messages while preserving unchanged object identity.
  */
-import { findNormalizedProviderValue } from "@openclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { findNormalizedProviderValue } from "@astroclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { readLoggingConfig } from "../logging/config.js";
 import {
   getDefaultRedactPatterns,

@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import type { MediaKind } from "@openclaw/media-core/constants";
+import type { MediaKind } from "@astroclaw/media-core/constants";
 import { runFfprobe } from "./ffmpeg-exec.js";
 
 export type MediaProbeKind = Extract<MediaKind, "audio" | "video">;

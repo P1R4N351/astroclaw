@@ -8,7 +8,7 @@ import {
   parseStreamingJson,
   type SseByteGuard,
 } from "@openclaw/ai/internal/runtime";
-import { resolvePositiveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { resolvePositiveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { readResponseWithLimit } from "../../infra/http-body.js";
 // Internal import for JSON parsing utility
 import type {

@@ -1,6 +1,6 @@
-import { asPositiveSafeInteger } from "@openclaw/normalization-core/number-coercion";
-import { asOptionalRecord as readRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { asPositiveSafeInteger } from "@astroclaw/normalization-core/number-coercion";
+import { asOptionalRecord as readRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { isOpenClawDeliveryMirrorAssistantMessage } from "../shared/transcript-only-openclaw-assistant.js";
 import { stripInlineDirectiveTagsForDisplay } from "../utils/directive-tags.js";
 import {

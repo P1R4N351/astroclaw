@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { listAgentEntries, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { loadAuthProfileStoreForRuntime } from "../agents/auth-profiles/store.js";
 import { resolveCliBackendConfig } from "../agents/cli-backends.js";
@@ -13,7 +13,7 @@ import {
 import { resolveProviderIdForAuth } from "../agents/provider-auth-aliases.js";
 import { buildAgentRuntimeAuthPlan } from "../agents/runtime-plan/auth.js";
 import { GEMINI_CLI_DEFAULT_MODEL_REF } from "../commands/onboard-inference.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ProviderAuthResult } from "../plugins/types.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import {

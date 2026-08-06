@@ -5,7 +5,7 @@ import {
   type ChannelPluginCatalogEntry,
 } from "../../channels/plugins/catalog.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   normalizePluginsConfig,
   resolveEffectivePluginActivationState,

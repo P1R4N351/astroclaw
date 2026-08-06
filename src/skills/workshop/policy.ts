@@ -1,8 +1,8 @@
 // Workshop policy helpers validate generated skill drafts against workspace policy.
-import { asNullableRecord } from "@openclaw/normalization-core/record-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { PLUGIN_APPROVAL_DESCRIPTION_MAX_LENGTH } from "../../infra/plugin-approvals.js";
 import { logDebug } from "../../logger.js";
 import type { PluginHookBeforeToolCallResult } from "../../plugins/hook-before-tool-call-result.js";

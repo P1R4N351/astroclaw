@@ -17,7 +17,7 @@ import {
   listMemoryMigrationProviders,
   planProviderMemoryImport,
 } from "../../commands/migrate/memory-import.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { formatErrorMessage as errorMessage } from "../../infra/errors.js";
 import { summarizeMigrationItems } from "../../plugin-sdk/migration.js";
 import type { MigrationItem, MigrationPlan, MigrationProviderPlugin } from "../../plugins/types.js";

@@ -1,6 +1,6 @@
 import type { AgentMessage } from "../agents/runtime/index.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ProviderRuntimeModel } from "./provider-runtime-model.types.js";
 
 type ProviderReplaySanitizeMode = "full" | "images-only";

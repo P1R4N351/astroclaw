@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createAccountListHelpers } from "../channels/plugins/account-helpers.js";
 import { replaceSessionEntry } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createAccountCronScheduledToolPolicy } from "../cron/scheduled-tool-policy.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";

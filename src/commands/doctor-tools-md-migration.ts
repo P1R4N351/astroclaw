@@ -7,7 +7,7 @@ import { note } from "../../packages/terminal-core/src/note.js";
 import { DEFAULT_AGENTS_FILENAME, DEFAULT_TOOLS_FILENAME } from "../agents/workspace.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HealthFinding } from "../flows/health-checks.js";
 import { publishFileNoClobber, syncDirectoryIfSupported } from "../infra/directory-durability.js";
 import { formatErrorMessage as errorMessage } from "../infra/errors.js";

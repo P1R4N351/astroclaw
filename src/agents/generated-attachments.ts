@@ -1,9 +1,9 @@
 /**
  * Formats generated attachment references for agent-visible output.
  */
-import { basenameFromAnyPath } from "@openclaw/media-core/file-name";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { basenameFromAnyPath } from "@astroclaw/media-core/file-name";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 
 // Shared helpers for generated media/file attachments returned by tools or

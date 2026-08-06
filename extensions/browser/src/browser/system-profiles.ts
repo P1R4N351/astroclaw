@@ -5,7 +5,7 @@ import path from "node:path";
 import { openNodeSqliteDatabase } from "openclaw/plugin-sdk/sqlite-runtime";
 import type { OpenClawConfig } from "../config/config.js";
 import { getRuntimeConfig } from "../config/config.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { resolveOpenClawUserDataDir } from "./chrome.js";
 import { usesOpenClawMockKeychain } from "./chrome.profile-decoration.js";
 import { BrowserProfileUnavailableError } from "./errors.js";

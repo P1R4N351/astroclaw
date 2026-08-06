@@ -1,9 +1,9 @@
 /** Filesystem discovery and bounded JSON readers for local secret storage audits. */
 import fs from "node:fs";
 import path from "node:path";
-import { isRecord as isJsonObject } from "@openclaw/normalization-core/record-coerce";
+import { isRecord as isJsonObject } from "@astroclaw/normalization-core/record-coerce";
 import { listAgentIds, resolveAgentDir } from "../agents/agent-scope.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { resolveUserPath } from "../utils.js";
 import { listAuthProfileStoreAgentDirs as listAuthProfileStoreAgentDirsFromAuthStorePaths } from "./auth-store-paths.js";

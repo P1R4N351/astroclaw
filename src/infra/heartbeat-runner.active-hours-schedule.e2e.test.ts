@@ -3,7 +3,7 @@
 // `source: "interval"` and assert the runner's `nextDueMs` seek defers
 // quiet-hours pokes and admits in-window ones.
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { startHeartbeatRunner } from "./heartbeat-runner.js";

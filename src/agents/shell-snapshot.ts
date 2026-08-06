@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 import { withTempWorkspace } from "../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { killProcessTree } from "../process/kill-tree.js";
 
 const SNAPSHOT_VERSION = 1;

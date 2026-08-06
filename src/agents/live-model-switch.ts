@@ -1,8 +1,8 @@
 /**
  * Resolves and persists live-session model switch requests.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import {
   loadSessionEntry,
@@ -10,7 +10,7 @@ import {
   patchSessionEntry,
 } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveSessionAgentId } from "./agent-scope.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
 import {

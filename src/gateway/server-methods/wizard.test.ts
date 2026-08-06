@@ -1,5 +1,5 @@
 // Wizard server-method tests cover stable lifecycle errors for process-local sessions.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it, vi } from "vitest";
 import type { RuntimeEnv } from "../../runtime.js";
 import { createDeferred } from "../../shared/deferred.js";

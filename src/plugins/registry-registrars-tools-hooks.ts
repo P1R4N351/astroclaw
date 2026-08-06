@@ -2,7 +2,7 @@ import path from "node:path";
 import {
   normalizeStringEntries,
   uniqueValues,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { InternalHookHandler } from "../hooks/internal-hook-types.js";
 import type { HookEntry } from "../hooks/types.js";

@@ -4,7 +4,7 @@
 // `/v1/inference` values here so no request-time compat remap is needed.
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { asObjectRecord } from "openclaw/plugin-sdk/runtime-doctor";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 const PROVIDER_PATH = "models.providers.deepinfra";
 const NATIVE_INFERENCE_PATH = "/v1/inference";

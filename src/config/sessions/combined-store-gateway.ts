@@ -1,7 +1,7 @@
 // Builds the gateway-visible combined session store across agent-specific stores.
 // Gateway callers need canonical per-agent keys even when stores are split by `{agentId}`.
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { listAgentEntries, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import {
   resolveSessionStoreKey,
@@ -14,7 +14,7 @@ import {
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
 import { listOpenIncognitoAgentDatabases } from "../../state/openclaw-agent-db.js";
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import { resolveStorePath } from "./paths.js";
 import {
   countSessionEntryRowsReadOnly,

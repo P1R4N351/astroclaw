@@ -4,7 +4,7 @@
  * resolves secrets or loads a provider runtime.
  */
 import { resolveMergedModelProviderConfig } from "../../config/model-provider-config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { coerceSecretRef } from "../../config/types.secrets.js";
 import type { ProviderRouteOverridePresence } from "../../plugin-sdk/provider-model-types.js";
 import {

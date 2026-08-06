@@ -1,5 +1,5 @@
 // Telegram tests cover outbound adapter plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { verifyDurableFinalCapabilityProofs } from "astroclaw/plugin-sdk/channel-outbound";
 import { adaptMessagePresentationForChannel } from "astroclaw/plugin-sdk/interactive-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";

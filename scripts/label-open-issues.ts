@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { isRecord } from "../src/utils.js";
 import { readBoundedResponseText as readBoundedBodyText } from "./lib/bounded-response.ts";
 import { parseStrictIntegerOption } from "./lib/dev-tooling-safety.ts";

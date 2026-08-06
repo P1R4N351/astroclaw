@@ -1,5 +1,5 @@
 // Removes MCP server entries whose names are reserved by config validation.
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { isRecord, type JsonRecord } from "./legacy-config-record-shared.js";
 
 const RESERVED_MCP_SERVER_NAME = "__proto__";

@@ -5,7 +5,7 @@
  */
 import { AsyncLocalStorage } from "node:async_hooks";
 import { isDeepStrictEqual } from "node:util";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { isSecretRef } from "../../config/types.secrets.js";
 import { asDateTimestampMs } from "../../shared/number-coercion.js";
 import {

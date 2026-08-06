@@ -1,8 +1,8 @@
 /** Policy and execution pipeline for approved node-host system.run requests. */
 import crypto from "node:crypto";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveAgentConfig } from "../agents/agent-scope-config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   describeInterpreterInlineEval,
   type InterpreterInlineEvalHit,

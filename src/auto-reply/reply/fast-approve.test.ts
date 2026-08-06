@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { buildTestCtx } from "./test-ctx.js";
 
 const { handleApproveCommandFromContextMock } = vi.hoisted(() => ({

@@ -2,7 +2,7 @@
 // auth, decisions, and structured extraction inputs.
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
 import type { ModelProviderConfig } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 /** Agent-owned runtime handle carried opaquely through media provider requests. */
 type MediaPreparedModelRuntime = Readonly<{

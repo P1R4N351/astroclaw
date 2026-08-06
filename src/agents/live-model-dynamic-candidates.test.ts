@@ -3,7 +3,7 @@
  * Verifies provider hooks, normalization, de-duping, and prioritized refs.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { Model } from "../llm/types.js";
 
 const providerRuntimeMocks = vi.hoisted(() => ({

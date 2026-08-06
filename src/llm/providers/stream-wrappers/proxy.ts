@@ -2,7 +2,7 @@
 import {
   normalizeOptionalLowercaseString,
   readStringValue,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { resolveProviderRequestPolicy } from "../../../agents/provider-attribution.js";
 import { resolveProviderRequestPolicyConfig } from "../../../agents/provider-request-config.js";
 import type { StreamFn } from "../../../agents/runtime/index.js";

@@ -1,4 +1,4 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   ErrorCodes,
   errorShape,
@@ -12,7 +12,7 @@ import {
   type SessionEntry,
 } from "../config/sessions.js";
 import { listSessionEntries } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isIncognitoSessionKey } from "../routing/session-key.js";
 import { verifyBoardViewTicket } from "./board-view-ticket.js";
 import { gatewayClientSessionCreator } from "./server-methods/gateway-client-identity.js";

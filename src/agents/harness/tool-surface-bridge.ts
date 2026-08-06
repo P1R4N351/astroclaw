@@ -1,5 +1,5 @@
 import { messageToolOwnsVisibleReply } from "../../auto-reply/source-reply-delivery-mode.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { HookContext } from "../agent-tools.before-tool-call.js";
 import {
   CODE_MODE_EXEC_TOOL_NAME,

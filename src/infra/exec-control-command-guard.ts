@@ -1,6 +1,6 @@
-import { expectDefined } from "@openclaw/normalization-core";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { splitShellArgs } from "../utils/shell-argv.js";
 import { buildCommandPayloadCandidates } from "./command-analysis/risks.js";
 import { explainShellCommand } from "./command-explainer/extract.js";

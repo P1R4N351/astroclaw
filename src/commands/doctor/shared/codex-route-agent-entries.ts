@@ -1,5 +1,5 @@
-import { asOptionalRecord as asMutableRecord } from "@openclaw/normalization-core/record-coerce";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import { asOptionalRecord as asMutableRecord } from "@astroclaw/normalization-core/record-coerce";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 import type { MutableRecord } from "./codex-route-types.js";
 

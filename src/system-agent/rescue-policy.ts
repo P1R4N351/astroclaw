@@ -1,6 +1,6 @@
 import { resolveAgentEntry } from "../agents/agent-scope-config.js";
 // OpenClaw rescue policy gates remote writes by owner, DM, sandbox, and YOLO posture.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveExecModePolicy } from "../infra/exec-approvals.js";
 
 /**

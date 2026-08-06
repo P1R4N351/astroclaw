@@ -1,7 +1,7 @@
 // Qqbot tests cover stt plugin behavior.
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { withTempDir } from "openclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

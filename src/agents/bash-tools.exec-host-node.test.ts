@@ -5,7 +5,7 @@
  */
 import crypto from "node:crypto";
 import { setImmediate } from "node:timers/promises";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExecAllowlistEntry } from "../infra/exec-approvals.types.js";
 import { createDeferred } from "../test-utils/deferred.js";

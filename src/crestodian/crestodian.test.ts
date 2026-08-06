@@ -1,6 +1,6 @@
 // Crestodian tests cover main rescue and audit command behavior.
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { runCrestodian, type RunCrestodianOptions } from "./crestodian.js";
 import {
   createCrestodianTestRuntime,

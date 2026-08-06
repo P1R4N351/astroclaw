@@ -3,7 +3,7 @@
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
 import { resolveStorePath } from "../../config/sessions.js";
 import { loadSessionEntryReadOnly } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { TtsAutoMode } from "../../config/types.tts.js";
 import { createLazyRuntimeModule } from "../../shared/lazy-runtime.js";
 import { shouldAttemptTtsPayload } from "../../tts/tts-config.js";

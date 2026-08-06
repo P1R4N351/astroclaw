@@ -1,5 +1,5 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import type { ClawHubTrustErrorCode } from "../infra/clawhub-install-trust.js";
 import { parseClawHubPluginSpec } from "../infra/clawhub-spec.js";

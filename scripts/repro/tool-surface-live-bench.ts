@@ -4,7 +4,7 @@
 import { performance } from "node:perf_hooks";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { Type, type TSchema } from "typebox";
 import type { Model } from "../../packages/agent-core/src/llm.js";
 import type { AgentEvent, AgentTool } from "../../packages/agent-core/src/types.js";

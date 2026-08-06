@@ -1,6 +1,6 @@
 // Runtime bridge for plugin-owned memory hooks and state.
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveUserPath } from "../utils.js";
 import { normalizePluginsConfig } from "./config-state.js";
 import { loadPluginRegistryHandle, resolvePluginRegistryLoadCacheKey } from "./loader.js";

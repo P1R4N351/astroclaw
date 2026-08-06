@@ -3,10 +3,10 @@
  * hot paths share. Keep this internal: it prepares existing config/state, not a
  * new public access-profile config surface.
  */
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import type { ChatType } from "../channels/chat-type.js";
 import { normalizeChatType } from "../channels/chat-type.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RuntimePluginToolGrant } from "../plugins/runtime/tool-grant.js";
 import type { InputProvenance } from "../sessions/input-provenance.js";
 import type { SkillSnapshot } from "../skills/types.js";

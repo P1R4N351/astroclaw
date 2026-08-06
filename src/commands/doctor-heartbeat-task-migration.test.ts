@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import * as sessionAccessor from "../config/sessions/session-accessor.js";
 import { replaceSessionEntry } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveHeartbeatMonitorSpecs } from "../cron/heartbeat-monitor.js";
 import { heartbeatTaskDeclarationKey, isHeartbeatTaskCronJob } from "../cron/heartbeat-task.js";
 import { readCronJobScratchState, writeCronJobScratch } from "../cron/scratch-store.js";

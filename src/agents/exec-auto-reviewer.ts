@@ -4,10 +4,10 @@
  * This wraps a small reviewer prompt around pending exec requests and converts
  * the model response into conservative allow-once or ask decisions.
  */
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { z } from "zod";
 import type { AgentModelConfig } from "../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   buildExecAutoReviewFailureDecision,
   defaultExecAutoReviewer,

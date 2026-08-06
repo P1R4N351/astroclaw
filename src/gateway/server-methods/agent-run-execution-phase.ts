@@ -28,7 +28,7 @@ import {
 } from "../../auto-reply/reply/source-turn-id.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { resolveAgentIdFromSessionKey } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { MediaFact } from "../../media/media-facts.js";
 import type { PromptImageOrderEntry } from "../../media/prompt-image-order.js";
 import { retainGatewayRootWorkAdmissionContinuation } from "../../process/gateway-work-admission.js";

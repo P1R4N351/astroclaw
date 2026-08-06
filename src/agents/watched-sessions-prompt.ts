@@ -5,9 +5,9 @@
  * session, but the model only acts on that when the prompt names them. Prepare
  * runs before synchronous prompt assembly, mirroring prepareAgentMemoryPrompt.
  */
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { loadExactSessionEntryReadOnly } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { deriveSessionTitle } from "../gateway/session-utils.js";
 import { resolveSandboxSessionToolsVisibility } from "../plugin-sdk/session-visibility.js";
 import { buildAgentMainSessionKey, parseAgentSessionKey } from "../routing/session-key.js";

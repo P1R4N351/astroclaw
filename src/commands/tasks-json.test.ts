@@ -11,7 +11,7 @@ import {
   resetTaskRegistryDeliveryRuntimeForTests,
   resetTaskRegistryForTests,
 } from "../tasks/task-runtime.test-helpers.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { tasksAuditJsonCommand, tasksListJsonCommand } from "./tasks-json.js";
 
 function createRuntime(): RuntimeEnv {

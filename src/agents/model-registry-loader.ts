@@ -1,5 +1,5 @@
 /** Lifecycle-backed model-registry view for command paths. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   loadPreparedAgentModelRegistry,
   type LoadPreparedAgentModelRegistryOptions,

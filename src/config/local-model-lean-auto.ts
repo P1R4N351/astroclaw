@@ -1,6 +1,6 @@
-import { isCloudModelRef } from "@openclaw/model-catalog-core/model-catalog-refs";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import { isCloudModelRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 const AUTO_LOCAL_MODEL_LEAN_PROVIDER_IDS = new Set(["lmstudio", "ollama"]);
 

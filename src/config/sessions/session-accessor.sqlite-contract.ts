@@ -1,5 +1,5 @@
 import type { SessionTranscriptUpdate } from "../../sessions/transcript-events.js";
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import type {
   DeletedAgentSessionEntryPurgeParams,
   DeleteSessionEntryLifecycleParams,

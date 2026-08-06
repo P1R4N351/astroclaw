@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { withSecureTestNodeCommand } from "../secrets/test-node-command.test-support.js";
 import type { SkillStatusEntry } from "../skills/discovery/status.js";
 import { withEnvAsync } from "../test-utils/env.js";

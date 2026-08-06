@@ -1,5 +1,5 @@
-import { expectDefined } from "@openclaw/normalization-core";
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { listAgentEntries, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { redactChannelStatusSummaryBaseUrl } from "../../channels/account-snapshot-fields.js";
 import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.js";
@@ -7,7 +7,7 @@ import { listReadOnlyChannelPluginsForConfig } from "../../channels/plugins/read
 import { buildChannelAccountSnapshotFromAccount } from "../../channels/plugins/status.js";
 import type { ChannelAccountSnapshot } from "../../channels/plugins/types.public.js";
 import { resolveStorePath } from "../../config/sessions/paths.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { listContextEngineQuarantines } from "../../context-engine/registry.js";
 import { isDiagnosticFlagEnabled } from "../../infra/diagnostic-flags.js";
 import { formatErrorMessage } from "../../infra/errors.js";

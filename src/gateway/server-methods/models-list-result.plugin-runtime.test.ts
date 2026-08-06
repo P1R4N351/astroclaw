@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModelCatalogEntry, ModelCatalogSnapshot } from "../../agents/model-catalog.types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import type { GatewayRequestContext } from "./types.js";
 
 const getCurrentPluginMetadataSnapshotMock = vi.hoisted(() => vi.fn());

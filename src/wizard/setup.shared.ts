@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import type { GatewayAuthChoice, OnboardOptions } from "../commands/onboard-types.js";
 import { createConfigIO, replaceConfigFile, resolveGatewayPort } from "../config/config.js";
 import type { ConfigWriteAfterWrite } from "../config/runtime-snapshot.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   commitConfigWriteWithPendingPluginInstalls,
   hasPendingPluginInstallRecords,

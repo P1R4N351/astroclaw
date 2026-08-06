@@ -1,6 +1,6 @@
 // Manifest tool-availability tests cover config, auth, environment, and base-URL gates.
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";
 import {
   hasManifestToolAvailability,

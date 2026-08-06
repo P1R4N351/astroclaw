@@ -1,6 +1,6 @@
 // Model picker flow lets users select provider models for config defaults.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { resolveAgentConfig, resolveDefaultAgentDir } from "../agents/agent-scope.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { resolveAgentHarnessPolicy } from "../agents/harness/policy.js";
@@ -38,7 +38,7 @@ import {
   resolveAgentModelPrimaryValue,
 } from "../config/model-input.js";
 import { computeModelPolicyAllowlist } from "../config/model-policy-allowlist-migration.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveOwningPluginIdsForProviderRef } from "../plugins/providers.js";
 import type { ProviderPlugin } from "../plugins/types.js";
 import type { RuntimeEnv } from "../runtime.js";

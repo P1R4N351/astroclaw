@@ -1,5 +1,5 @@
 import type { cleanupBrowserSessionsForLifecycleEnd } from "../browser-lifecycle-cleanup.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { callGateway as defaultCallGateway } from "../gateway/call.js";
 import type { DetachedTaskFindResult } from "../tasks/detached-task-runtime-contract.js";
 import type { SubagentLifecycleEndedReason } from "./subagent-lifecycle-events.js";

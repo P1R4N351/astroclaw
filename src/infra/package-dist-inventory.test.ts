@@ -1,7 +1,7 @@
 // Covers package dist inventory collection and validation.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it } from "vitest";
 import {
   isLegacyPluginDependencyInstallStagePath,

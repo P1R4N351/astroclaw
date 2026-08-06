@@ -238,17 +238,17 @@ function shouldAlwaysBundleDependency(id: string): boolean {
     id === "astroclaw/plugin-sdk/ssrf-runtime-internal" ||
     id === "@openclaw/fs-safe" ||
     id.startsWith("@openclaw/fs-safe/") ||
-    id === "@openclaw/normalization-core" ||
-    id.startsWith("@openclaw/normalization-core/") ||
+    id === "@astroclaw/normalization-core" ||
+    id.startsWith("@astroclaw/normalization-core/") ||
     id === "@openclaw/retry" ||
-    id === "@openclaw/media-core" ||
-    id.startsWith("@openclaw/media-core/") ||
+    id === "@astroclaw/media-core" ||
+    id.startsWith("@astroclaw/media-core/") ||
     [
-      "@openclaw/acp-core",
+      "@astroclaw/acp-core",
       "@openclaw/session-url-contract",
       "@openclaw/workboard-contract",
     ].includes(id) ||
-    id.startsWith("@openclaw/acp-core/") ||
+    id.startsWith("@astroclaw/acp-core/") ||
     id === "zod" ||
     id.startsWith("zod/")
   );
@@ -427,8 +427,8 @@ function shouldExternalizeAgentCoreDependency(id: string): boolean {
   return (
     id === "@openclaw/ai" ||
     id.startsWith("@openclaw/ai/") ||
-    id === "@openclaw/llm-core" ||
-    id.startsWith("@openclaw/llm-core/") ||
+    id === "@astroclaw/llm-core" ||
+    id.startsWith("@astroclaw/llm-core/") ||
     id === "ignore" ||
     id === "openclaw" ||
     id.startsWith("openclaw/") ||
@@ -444,7 +444,7 @@ function shouldExternalizeGatewayProtocolDependency(id: string): boolean {
 }
 
 function shouldExternalizeGatewayClientDependency(id: string): boolean {
-  return ["ws", "@openclaw/gateway-protocol"].some(
+  return ["ws", "@astroclaw/gateway-protocol"].some(
     (dependency) => id === dependency || id.startsWith(`${dependency}/`),
   );
 }

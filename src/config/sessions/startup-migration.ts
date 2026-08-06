@@ -4,7 +4,7 @@ import {
   isOpenClawAgentDatabaseOpen,
   openOpenClawAgentDatabase,
 } from "../../state/openclaw-agent-db.js";
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import { setCanonicalSqliteSessionMainKey } from "./session-canonical-key.js";
 import { resolveSqliteTargetFromSessionStorePath } from "./session-sqlite-target.js";
 import { sweepOrphanSessionStoreTemps } from "./store-temp-cleanup.js";

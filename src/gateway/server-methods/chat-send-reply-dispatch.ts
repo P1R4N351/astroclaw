@@ -1,4 +1,4 @@
-import { isAudioFileName } from "@openclaw/media-core/mime";
+import { isAudioFileName } from "@astroclaw/media-core/mime";
 import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
 import { getReplyPayloadMetadata, type ReplyPayload } from "../../auto-reply/reply-payload.js";
 import type { ReplyDispatcherOptions } from "../../auto-reply/reply/reply-dispatcher.js";

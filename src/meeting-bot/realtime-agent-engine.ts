@@ -1,5 +1,5 @@
 // Shared STT plus agent-consult meeting engine.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import type { PluginRuntime, RuntimeLogger } from "../plugins/runtime/types.js";
 import type { RealtimeTranscriptionProviderPlugin } from "../plugins/types.js";

@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginKind } from "./plugin-kind.types.js";
 import { loadPluginMetadataSnapshot } from "./plugin-metadata-snapshot.js";
 import { applyExclusiveSlotSelection } from "./slots.js";

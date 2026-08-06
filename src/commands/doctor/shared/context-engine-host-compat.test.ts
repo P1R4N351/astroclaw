@@ -1,6 +1,6 @@
 // Context engine host compatibility tests cover doctor warnings for host/context mismatches.
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import {
   getContextEngineRegistration,
   registerContextEngineForOwner,

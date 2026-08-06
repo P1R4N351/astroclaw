@@ -6,7 +6,7 @@ import { connectGatewayClient } from "../../src/gateway/test-helpers.e2e.js";
 import { loadOrCreateDeviceIdentity } from "../../src/infra/device-identity.js";
 import { sleep } from "../../src/utils.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../../src/utils/message-channel.js";
-import { createOpenClawTestInstance, type OpenClawTestInstance } from "./openclaw-test-instance.js";
+import { createOpenClawTestInstance, type OpenClawTestInstance } from "./astroclaw-test-instance.js";
 
 export type GatewayInstance = OpenClawTestInstance;
 

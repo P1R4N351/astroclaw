@@ -54,7 +54,7 @@ import { resolveNpmRunner } from "./npm-runner.mjs";
 import {
   collectInstalledPackageErrors,
   normalizeInstalledBinaryVersion,
-} from "./openclaw-npm-postpublish-verify.ts";
+} from "./astroclaw-npm-postpublish-verify.ts";
 import { resolvePnpmRunner } from "./pnpm-runner.mjs";
 import { listStaticExtensionAssetOutputs } from "./runtime-postbuild.mjs";
 import { sparkleBuildFloorsFromShortVersion, type SparkleBuildFloors } from "./sparkle-build.ts";
@@ -464,10 +464,10 @@ export function resolveReleaseCheckLocalPackageTarballs(
     (tarballPath) => localPackageNameForTarball(tarballPath) === "@openclaw/ai",
   );
   const gatewayProtocolTarballs = tarballs.filter(
-    (tarballPath) => localPackageNameForTarball(tarballPath) === "@openclaw/gateway-protocol",
+    (tarballPath) => localPackageNameForTarball(tarballPath) === "@astroclaw/gateway-protocol",
   );
   const gatewayClientTarballs = tarballs.filter(
-    (tarballPath) => localPackageNameForTarball(tarballPath) === "@openclaw/gateway-client",
+    (tarballPath) => localPackageNameForTarball(tarballPath) === "@astroclaw/gateway-client",
   );
   const recognizedTarballs =
     aiTarballs.length + gatewayProtocolTarballs.length + gatewayClientTarballs.length;
@@ -505,10 +505,10 @@ function localPackageNameForTarball(tarballPath: string): string | undefined {
     return "@openclaw/ai";
   }
   if (/^openclaw-gateway-protocol(?:-.+)?\.tgz$/.test(filename)) {
-    return "@openclaw/gateway-protocol";
+    return "@astroclaw/gateway-protocol";
   }
   if (/^openclaw-gateway-client(?:-.+)?\.tgz$/.test(filename)) {
-    return "@openclaw/gateway-client";
+    return "@astroclaw/gateway-client";
   }
   return undefined;
 }

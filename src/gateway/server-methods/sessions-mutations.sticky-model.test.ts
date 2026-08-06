@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadSessionEntry, upsertSessionEntry } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { closeOpenClawAgentDatabasesForTest } from "../../state/openclaw-agent-db.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import type { GatewayClient, GatewayRequestContext, RespondFn } from "./types.js";
 
 const effects = vi.hoisted(() => ({

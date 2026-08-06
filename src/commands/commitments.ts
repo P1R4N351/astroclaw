@@ -1,8 +1,8 @@
 // Implements commitment listing and dismissal commands for scheduled follow-up records.
-import { timestampMsToIsoString } from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { timestampMsToIsoString } from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { isRich, theme } from "../../packages/terminal-core/src/theme.js";
 import { formatCliCommand } from "../cli/command-format.js";

@@ -22,7 +22,7 @@ import {
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import { createTrackedTempDirs } from "../test-utils/tracked-temp-dirs.js";
 import { migrateLegacySkillWorkshopProposals } from "./doctor-skill-workshop-sqlite.js";
 

@@ -3,10 +3,10 @@ import { ensureSystemPromptCacheBoundary } from "@openclaw/ai/internal/shared";
  * Prepares CLI backend run context: backend config, prompts, bootstrap context,
  * MCP, auth epoch, and reusable session metadata.
  */
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { messageToolOwnsVisibleReply } from "../../auto-reply/source-reply-delivery-mode.js";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   assertContextEngineHostSupport,
   buildGenericCliContextEngineHostSupport,

@@ -7,7 +7,7 @@ import type {
   WorkerLiveEventParams as Params,
 } from "../../../packages/gateway-protocol/src/schema/worker-admission.js";
 import * as sessions from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig as Config } from "../../config/types.openclaw.js";
+import type { OpenClawConfig as Config } from "../../config/types.astroclaw.js";
 import {
   emitAgentEvent,
   getAgentEventLifecycleGeneration,

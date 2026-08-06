@@ -1,7 +1,7 @@
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { executeSqliteQuerySync } from "../../infra/kysely-sync.js";
 import { openOpenClawAgentDatabase } from "../../state/openclaw-agent-db.js";
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import type { ConversationIdentity, ConversationKind } from "./conversation-identity.js";
 import { resolveStorePath } from "./paths.js";
 import { upsertConversationIdentity } from "./session-accessor.sqlite-conversation.js";

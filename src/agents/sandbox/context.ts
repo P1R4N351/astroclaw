@@ -4,7 +4,7 @@
  * Prepares workspace layout, backend handle, filesystem bridge, browser bridge, and registry state for one run.
  */
 import fs from "node:fs/promises";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   ensureBrowserControlAuth,
   resolveBrowserControlAuth,

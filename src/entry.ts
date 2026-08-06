@@ -28,7 +28,7 @@ import { buildCliRespawnPlan, runCliRespawnPlan } from "./entry.respawn.js";
 import { tryHandleRootVersionFastPath } from "./entry.version-fast-path.js";
 import { normalizeEnv } from "./infra/env.js";
 import { isMainModule } from "./infra/is-main.js";
-import { ensureOpenClawExecMarkerOnProcess } from "./infra/openclaw-exec-env.js";
+import { ensureOpenClawExecMarkerOnProcess } from "./infra/astroclaw-exec-env.js";
 import { installProcessWarningFilter } from "./infra/warning-filter.js";
 import { defaultRuntime } from "./runtime.js";
 

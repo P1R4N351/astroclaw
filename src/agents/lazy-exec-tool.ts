@@ -1,5 +1,5 @@
 import { resolveExecCommandHighlighting } from "../config/exec-command-highlighting.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { applyExecPolicyLayer } from "../infra/exec-policy.js";
 import { resolveMergedSafeBinProfileFixtures } from "../infra/exec-safe-bin-runtime-policy.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";

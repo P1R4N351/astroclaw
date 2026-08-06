@@ -1,12 +1,12 @@
 /** Session self-service tool. */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { Type } from "typebox";
 import { SESSION_AGENT_ATTENTION_ICON_IDS } from "../../../packages/gateway-protocol/src/session-icon.js";
 import { getRuntimeConfig } from "../../config/config.js";
 import { resolveAgentMainSessionKey } from "../../config/sessions/main-session.js";
 import { resolveStorePath } from "../../config/sessions/paths.js";
 import { loadSessionEntry } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { GatewayTransportError } from "../../gateway/call.js";
 import { withAgentSessionModelPatchOrigin } from "../../gateway/session-model-patch-origin.js";
 import { formatErrorMessage } from "../../infra/errors.js";

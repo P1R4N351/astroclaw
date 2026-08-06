@@ -1,7 +1,7 @@
 // Launchd tests cover macOS service plist generation and command handling.
 import fs from "node:fs/promises";
 import { PassThrough } from "node:stream";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PortListener } from "../infra/ports-types.js";
 import { deleteTestEnvValue, setTestEnvValue } from "../test-utils/env.js";

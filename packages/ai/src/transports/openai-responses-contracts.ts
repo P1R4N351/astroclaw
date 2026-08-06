@@ -1,4 +1,4 @@
-import type { Api } from "@openclaw/llm-core";
+import type { Api } from "@astroclaw/llm-core";
 import type {
   FunctionTool,
   ResponseCreateParamsStreaming,

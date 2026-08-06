@@ -5,9 +5,9 @@
  * context without launching a full agent consult; otherwise callers may fall
  * back to the normal consult flow.
  */
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import type { MemorySearchResult } from "../memory-host-sdk/host/types.js";
 import {

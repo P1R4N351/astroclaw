@@ -1,7 +1,7 @@
 // Verifies snapshot/load materialization parity for prepared-runtime config matching.
 import { describe, expect, it } from "vitest";
 import { materializeRuntimeConfig } from "./materialize.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 describe("materializeRuntimeConfig", () => {
   it("materializes snapshot and load identically when defaults must be injected", () => {

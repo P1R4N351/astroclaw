@@ -1,6 +1,6 @@
 // Firecrawl Compare script supports OpenClaw repository automation.
 import { pathToFileURL } from "node:url";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { fetchFirecrawlContent } from "../extensions/firecrawl/api.ts";
 import { formatErrorMessage } from "../src/infra/errors.ts";
 import { extractReadableContent } from "../src/web-fetch/content-extractors.runtime.js";

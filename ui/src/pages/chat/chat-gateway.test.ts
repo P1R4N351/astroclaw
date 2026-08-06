@@ -1,6 +1,6 @@
 // @vitest-environment node
 // Control UI tests cover chat behavior.
-import { reduceSessionProjection } from "@openclaw/gateway-client/browser";
+import { reduceSessionProjection } from "@astroclaw/gateway-client/browser";
 import { describe, expect, it, vi } from "vitest";
 import { GatewayRequestError } from "../../api/gateway.ts";
 import { handleChatGatewayEvent, type ChatEventPayload } from "./chat-gateway.ts";

@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { normalizeUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { normalizeUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import pMap from "p-map";
 import {
   resolveAgentDir,
@@ -40,7 +40,7 @@ import { loadPreparedModelCatalog } from "../../agents/prepared-model-catalog.js
 import { resolveProviderIdForAuth } from "../../agents/provider-auth-aliases.js";
 import { resolveDefaultAgentWorkspaceDir } from "../../agents/workspace.js";
 import { resolveStorePath } from "../../config/sessions/paths.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   coerceSecretRef,
   hasConfiguredSecretInput,

@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from "vitest";
 
 const manifest = JSON.parse(
-  fs.readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf-8"),
+  fs.readFileSync(new URL("../astroclaw.plugin.json", import.meta.url), "utf-8"),
 ) as { configSchema: JsonSchemaObject };
 
 describe("memory-core manifest config schema", () => {

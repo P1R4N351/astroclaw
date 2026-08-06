@@ -1,7 +1,7 @@
 import {
   readSessionMessageIdentity,
   readSessionMessageSequence,
-} from "@openclaw/gateway-client/browser";
+} from "@astroclaw/gateway-client/browser";
 import type {
   ApplicationInitialUserMessage,
   ApplicationInitialUserMessageHandoff,

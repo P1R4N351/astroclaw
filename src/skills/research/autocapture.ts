@@ -6,7 +6,7 @@ import {
   recordSessionSkillSuggestion,
   releaseSessionSkillCaptureSignals,
 } from "../../config/sessions/skill-suggestions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { sha256Hex } from "../../infra/crypto-digest.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 // Research autocapture helpers coordinate replay-safe capture and suggestion state.

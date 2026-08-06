@@ -1,8 +1,8 @@
 /** Resolves provider environment variable candidates and auth evidence from core/plugin metadata. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { resolveProviderAuthAliasMap } from "../agents/provider-auth-aliases.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizePluginsConfig } from "../plugins/config-state.js";
 import { getCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
 import { isInstalledPluginEnabled } from "../plugins/installed-plugin-index.js";

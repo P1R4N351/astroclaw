@@ -4,7 +4,7 @@
  */
 import { Type } from "typebox";
 import { getAgentToolExecutionContext } from "../../packages/agent-core/src/tool-execution-context.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HookContext } from "./agent-tools.before-tool-call.js";
 import {
   codeModeReplayIdForToolCall,

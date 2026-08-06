@@ -2,8 +2,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { z } from "zod";
 import { resolveStateDir } from "../config/paths.js";
 import { readFileDescriptorBoundedSync } from "../infra/boundary-file-read.js";

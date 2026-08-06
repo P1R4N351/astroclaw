@@ -1,8 +1,8 @@
 // Resolves event-triggered work to the correct session key and target.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import type { SessionScope } from "../config/types.base.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import {
   buildAgentMainSessionKey,

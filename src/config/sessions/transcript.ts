@@ -20,7 +20,7 @@ import {
   OPENCLAW_TRANSCRIPT_ARTIFACT_PROVIDER,
   isTranscriptOnlyOpenClawAssistantModel,
 } from "../../shared/transcript-only-openclaw-assistant.js";
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import {
   parseSqliteSessionFileMarker,
   type SqliteSessionFileMarker,

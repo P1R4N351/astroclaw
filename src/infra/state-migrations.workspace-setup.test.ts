@@ -10,7 +10,7 @@ import {
   readWorkspaceStateSnapshot,
   resolveWorkspaceStateIdentity,
 } from "../agents/workspace-state-store.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   closeOpenClawStateDatabaseForTest,
   openOpenClawStateDatabase,

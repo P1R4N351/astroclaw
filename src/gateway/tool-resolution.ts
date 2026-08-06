@@ -12,7 +12,7 @@ import {
   type ExecSessionDefaults,
 } from "../agents/exec-defaults.js";
 import { createLazyExecTool, resolveExecToolConfig } from "../agents/lazy-exec-tool.js";
-import { createOpenClawTools } from "../agents/openclaw-tools.js";
+import { createOpenClawTools } from "../agents/astroclaw-tools.js";
 import { resolveRequesterToolPolicies } from "../agents/requester-tool-policy.js";
 import { resolveSandboxRuntimeStatus } from "../agents/sandbox/runtime-status.js";
 import type { ScheduledToolPolicyContext } from "../agents/scheduled-tool-policy.js";
@@ -41,7 +41,7 @@ import type {
 } from "../auto-reply/get-reply-options.types.js";
 import type { InboundEventKind } from "../channels/inbound-event/kind.js";
 import type { ConversationReadInvocationOrigin } from "../channels/plugins/conversation-read-origin.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveEventSessionRoutingPolicy } from "../infra/event-session-routing.js";
 import { logWarn } from "../logger.js";
 import type { PluginHookChannelContext } from "../plugins/hook-types.js";

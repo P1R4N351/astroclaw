@@ -1,5 +1,5 @@
-import { formatErrorMessage } from "@openclaw/normalization-core";
-import { asNullableRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { formatErrorMessage } from "@astroclaw/normalization-core";
+import { asNullableRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import { html, nothing } from "lit";
 import type { GatewayBrowserClient } from "../../api/gateway.ts";
 import type {

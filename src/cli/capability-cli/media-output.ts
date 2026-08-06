@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { detectMime, extensionForMime, normalizeMimeType } from "@openclaw/media-core/mime";
+import { detectMime, extensionForMime, normalizeMimeType } from "@astroclaw/media-core/mime";
 import { writeSiblingTempFile } from "../../infra/sibling-temp-file.js";
 import { saveMediaBuffer } from "../../media/store.js";
 

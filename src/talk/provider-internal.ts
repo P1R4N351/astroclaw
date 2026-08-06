@@ -5,7 +5,7 @@
  * public Plugin SDK. External providers continue to implement only the stable
  * RealtimeVoiceProviderPlugin contract.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RealtimeVoiceProviderPlugin } from "../plugins/types.js";
 import type {
   RealtimeVoiceBrowserSession,

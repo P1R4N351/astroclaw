@@ -4,7 +4,7 @@ import {
   type OnboardingPluginInstallEntry,
 } from "../commands/onboarding-plugin-install.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {
   listAvailableManifestContractPlugins,

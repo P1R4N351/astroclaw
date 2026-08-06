@@ -1,8 +1,8 @@
 import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { withTempDir } from "../../test-helpers/temp-dir.js";
-import { createOpenClawTools } from "../openclaw-tools.js";
+import { createOpenClawTools } from "../astroclaw-tools.js";
 import {
   resetSubagentRegistryForTests,
   testing as registryTesting,

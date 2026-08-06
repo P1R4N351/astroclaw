@@ -1,7 +1,7 @@
 // Implements identity metadata updates for configured agents.
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   listAgentIds,
   resolveAgentWorkspaceDir,
@@ -13,7 +13,7 @@ import { replaceConfigFile } from "../config/config.js";
 import { migratePersistedImplicitMainRoster } from "../config/legacy.roster.js";
 import { logConfigUpdated } from "../config/logging.js";
 import type { AgentConfig, IdentityConfig } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";

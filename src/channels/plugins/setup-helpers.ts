@@ -3,7 +3,7 @@
  *
  * Applies account names and validates setup results for channel onboarding adapters.
  */
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
 import { resolveSingleAccountKeysToMove } from "./setup-promotion-helpers.js";
 import type { ChannelSetupAdapter } from "./types.adapters.js";

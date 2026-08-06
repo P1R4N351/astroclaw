@@ -1,12 +1,12 @@
 // Resolves and checks packaged Control UI assets.
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import * as controlUiFsRuntime from "./control-ui-assets.fs.runtime.js";
-import { resolveOpenClawPackageRoot, resolveOpenClawPackageRootSync } from "./openclaw-root.js";
+import { resolveOpenClawPackageRoot, resolveOpenClawPackageRootSync } from "./astroclaw-root.js";
 
 const CONTROL_UI_DIST_PATH_SEGMENTS = ["dist", "control-ui", "index.html"] as const;
 

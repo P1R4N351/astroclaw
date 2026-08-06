@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { tryResolveDefaultAgentId } from "../agents/agent-scope.js";
 import { getRuntimeConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
@@ -17,7 +17,7 @@ import {
   type SessionStoreTarget,
 } from "../config/sessions/targets.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveStoredSessionOwnerAgentId } from "../gateway/session-store-key.js";
 import { readFileDescriptorBoundedSync } from "../infra/boundary-file-read.js";
 import { resolveSqliteDatabaseFilePaths } from "../infra/sqlite-files.js";

@@ -1,7 +1,7 @@
 // Doctor checks and repairs for exec safeBins profiles and trusted binary directories.
 import { sanitizeForLog } from "../../../../packages/terminal-core/src/ansi.js";
 import { listAgentEntriesWithSource } from "../../../agents/agent-scope-config.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { resolveCommandResolutionFromArgv } from "../../../infra/exec-command-resolution.js";
 import {
   normalizeConfiguredSafeBins,

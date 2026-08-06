@@ -2,8 +2,8 @@
 import {
   setCurrentManifestModelIdNormalizationRecords,
   type ManifestModelIdNormalizationRecord,
-} from "@openclaw/model-catalog-core/provider-model-id-normalization";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+} from "@astroclaw/model-catalog-core/provider-model-id-normalization";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 let currentPluginMetadataSnapshot: unknown;
 let currentPluginMetadataSnapshotConfigFingerprint: string | undefined;

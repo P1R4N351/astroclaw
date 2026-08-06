@@ -1,4 +1,4 @@
-import { sliceUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { sliceUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { formatErrorMessage, readErrorName } from "../infra/errors.js";
 import type {
   SubagentRegistryLifecycleParams,

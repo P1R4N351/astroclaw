@@ -1,4 +1,4 @@
-import type { AgentMessage } from "@openclaw/agent-core";
+import type { AgentMessage } from "@astroclaw/agent-core";
 /**
  * Tool call id normalization and extraction helpers.
  *

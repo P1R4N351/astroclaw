@@ -1,7 +1,7 @@
 import { resolveInlineAgentImageAttachments } from "../../auto-reply/reply/agent-turn-attachments.js";
 import type { CliDeps } from "../../cli/deps.types.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { assertAgentRunLifecycleGenerationCurrent } from "../../infra/agent-events.js";
 import { registerAgentRunContext } from "../../infra/agent-run-registry.js";
 import { formatErrorMessage } from "../../infra/errors.js";

@@ -20,7 +20,7 @@ import {
   MIN_CLIENT_PROTOCOL_VERSION,
 } from "../../../../packages/gateway-protocol/src/version.js";
 import { runGatewaySmoke } from "../../../../scripts/dev/gateway-smoke.js";
-import type { OpenClawConfig } from "../../../../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../../src/config/types.astroclaw.js";
 import { formatErrorMessage } from "../../../../src/infra/errors.js";
 import { createMcpClientTempState } from "./mcp-client-temp-state.fixture.ts";
 import { createQaScriptEvidenceWriter, type QaScriptEvidenceStatus } from "./script-evidence.ts";

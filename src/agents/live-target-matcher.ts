@@ -3,13 +3,13 @@
  * follow plugin ownership aliases so scoped live runs include equivalent
  * provider IDs.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeGooglePreviewModelId } from "@openclaw/model-catalog-core/provider-model-id-normalize";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeGooglePreviewModelId } from "@astroclaw/model-catalog-core/provider-model-id-normalize";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
-} from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+} from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { liveProvidersShareOwningPlugin } from "./live-provider-owner.js";
 
 type ModelTarget = {

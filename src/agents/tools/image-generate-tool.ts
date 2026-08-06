@@ -1,9 +1,9 @@
 /** Runs image generation, persistence, and detached completion. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { Type } from "typebox";
 import { findCapabilityProviderById } from "../../../packages/media-generation-core/src/capability-model-ref.js";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveImageGenerationMaxInputImages } from "../../image-generation/capabilities.js";
 import { parseImageGenerationModelRef } from "../../image-generation/model-ref.js";
 import {

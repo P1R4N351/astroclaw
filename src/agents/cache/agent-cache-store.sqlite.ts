@@ -7,7 +7,7 @@ import {
   isFutureDateTimestampMs,
   resolveDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import type { Selectable } from "kysely";
 import {
   executeSqliteQuerySync,

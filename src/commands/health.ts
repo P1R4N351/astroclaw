@@ -1,5 +1,5 @@
 /** Collects and renders gateway health for channels, agents, plugins, and sessions. */
-import { asNullableRecord } from "@openclaw/normalization-core/record-coerce";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import { styleHealthChannelLine } from "../../packages/terminal-core/src/health-style.js";
 import { isRich } from "../../packages/terminal-core/src/theme.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
@@ -7,7 +7,7 @@ import { listReadOnlyChannelPluginsForConfig } from "../channels/plugins/read-on
 import { probeGatewayStatus } from "../cli/daemon-cli/probe.js";
 import { withProgress } from "../cli/progress.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   buildGatewayConnectionDetails,
   buildGatewayProbeConnectionDetails,

@@ -14,7 +14,7 @@ vi.mock("../agents/simple-completion-runtime.js", () => ({
   resolveSimpleCompletionSelectionForAgent,
 }));
 
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { closeOpenClawAgentDatabases } from "../state/openclaw-agent-db.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import { generateToolCallTitles } from "./chat-tool-titles.js";

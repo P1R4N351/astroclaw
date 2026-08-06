@@ -6,12 +6,12 @@
 import {
   asOptionalObjectRecord,
   asOptionalRecord as readRecordField,
-} from "@openclaw/normalization-core/record-coerce";
+} from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeOptionalLowercaseString,
   readStringValue,
-} from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+} from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import {
   HEARTBEAT_RESPONSE_TOOL_NAME,
   normalizeHeartbeatToolResponse,

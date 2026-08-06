@@ -27,7 +27,7 @@ vi.mock("../plugins/plugin-registry.js", () => ({
           {
             pluginId: "ollama",
             manifestPath: fileURLToPath(
-              new URL("../../extensions/ollama/openclaw.plugin.json", import.meta.url),
+              new URL("../../extensions/ollama/astroclaw.plugin.json", import.meta.url),
             ),
             manifestHash: "ollama-model-auth-fixture",
             rootDir,

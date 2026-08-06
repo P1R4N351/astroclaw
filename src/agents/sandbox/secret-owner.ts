@@ -1,5 +1,5 @@
 /** Guards SSH sandbox use against unresolved runtime SecretRefs. */
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { coerceSecretRef } from "../../config/types.secrets.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 import { secretRefKey } from "../../secrets/ref-contract.js";

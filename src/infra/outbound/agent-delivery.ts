@@ -1,12 +1,12 @@
 // Agent delivery planning resolves final reply destinations from explicit
 // options, session history, turn source, bindings, and channel route hooks.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.js";
 import type { ChannelOutboundTargetMode } from "../../channels/plugins/types.public.js";
 import type { ChannelId } from "../../channels/plugins/types.public.js";
 import { listRouteBindings } from "../../config/bindings.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { normalizeRouteBindingChannelId } from "../../routing/binding-scope.js";
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
 import { buildAgentMainSessionKey, normalizeAgentId } from "../../routing/session-key.js";

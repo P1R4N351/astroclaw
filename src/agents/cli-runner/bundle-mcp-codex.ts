@@ -3,7 +3,7 @@
  */
 import { normalizeConfiguredMcpServers } from "../../config/mcp-config-normalize.js";
 import type { SessionToolOverrides } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { BundleMcpConfig, BundleMcpServerConfig } from "../../plugins/bundle-mcp.js";
 import { isValidAgentId, normalizeAgentId } from "../../routing/session-key.js";
 import { isRecord } from "../bundle-mcp-adapter.js";

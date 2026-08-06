@@ -1,5 +1,5 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { GatewayBrowserClient } from "../../api/gateway.ts";
 import { requestSessionCreate } from "../sessions/index.ts";
 import { normalizeAgentId } from "../sessions/session-key.ts";

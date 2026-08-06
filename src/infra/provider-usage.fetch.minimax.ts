@@ -1,6 +1,6 @@
 // Fetches and normalizes MiniMax provider usage records.
-import { asDateTimestampMs } from "@openclaw/normalization-core/number-coercion";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { asDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { readProviderJsonResponse } from "../agents/provider-http-errors.js";
 import { isRecord } from "../utils.js";
 import { readTrimmedStringAlias } from "../utils/string-readers.js";

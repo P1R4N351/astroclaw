@@ -3,9 +3,9 @@
  * Normalizes legacy JSON stores, SQLite/raw payloads, runtime state metadata,
  * legacy OAuth files, and merged main/agent stores.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { coerceSecretRef } from "../../config/types.secrets.js";
 import type { OpenClawAgentDatabase } from "../../state/openclaw-agent-db.js";
 import { asBoolean } from "../../utils/boolean.js";

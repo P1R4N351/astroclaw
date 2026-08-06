@@ -1,6 +1,6 @@
 /** Lightweight direct loader for bundled provider policy public artifacts. */
 import type { ModelProviderConfig } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type {
   ProviderModelRouteResolution,
   ProviderNormalizeModelCatalogIdContext,

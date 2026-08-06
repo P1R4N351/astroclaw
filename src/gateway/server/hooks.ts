@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import {
   resolveDateTimestampMs,
   resolveTimestampMsToIsoString,
-} from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+} from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.js";
 import type { CliDeps } from "../../cli/deps.types.js";
@@ -16,7 +16,7 @@ import {
   resolveMainSessionKey,
   resolveMainSessionKeyFromConfig,
 } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type {
   CronAgentAdmissionDisposition,
   RunCronAgentTurnResult,

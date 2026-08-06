@@ -1,5 +1,5 @@
 export { consume } from "@lit/context";
-export { asNullableRecord as catalogRawRecord } from "@openclaw/normalization-core/record-coerce";
+export { asNullableRecord as catalogRawRecord } from "@astroclaw/normalization-core/record-coerce";
 export { html, nothing } from "lit";
 export { property, state as litState } from "lit/decorators.js";
 export {

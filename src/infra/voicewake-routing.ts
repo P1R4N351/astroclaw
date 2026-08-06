@@ -1,6 +1,6 @@
 // Persists and resolves voice wake routing rules.
-import { isRecord as isPlainObject } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord as isPlainObject } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   classifySessionKeyShape,
   isValidAgentId,

@@ -3,7 +3,7 @@ import {
   completeWithPreparedSimpleCompletionModel,
   prepareSimpleCompletionModelForAgent,
 } from "../../agents/simple-completion-runtime.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { logVerbose } from "../../globals.js";
 import type { TextContent } from "../../llm/types.js";
 

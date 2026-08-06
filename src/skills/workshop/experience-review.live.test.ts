@@ -3,7 +3,7 @@ import { isLiveTestEnabled } from "../../agents/live-test-helpers.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import { formatSkillExperienceReviewTranscript } from "./experience-review-prompt.js";
 import { runSkillExperienceReview, type ExperienceReviewCandidate } from "./experience-review.js";

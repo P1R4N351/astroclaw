@@ -10,7 +10,7 @@ import { resolveProviderToolPolicyEntry } from "../../agents/provider-tool-polic
 import { isToolAllowedByPolicyName } from "../../agents/tool-policy-match.js";
 import type { ToolPolicyFilterEvent } from "../../agents/tool-policy-pipeline.js";
 import type { AnyAgentTool } from "../../agents/tools/common.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { AgentToolsConfig } from "../../config/types.tools.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 

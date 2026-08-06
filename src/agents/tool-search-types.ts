@@ -1,6 +1,6 @@
-import type { Result } from "@openclaw/normalization-core/result";
+import type { Result } from "@astroclaw/normalization-core/result";
 import type { TSchema } from "typebox";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginToolMcpMeta } from "../plugins/tools.js";
 import type { HookContext } from "./agent-tools.before-tool-call.js";
 import type { CodeModeSkill } from "./code-mode-skills.js";

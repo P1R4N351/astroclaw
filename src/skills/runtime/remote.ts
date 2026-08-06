@@ -1,7 +1,7 @@
 // Remote skill runtime helpers send skill refresh and snapshot state across remotes.
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentWorkspaceDirs } from "../../agents/workspace-dirs.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { NodeRegistry, NodeSession } from "../../gateway/node-registry.js";
 import { listNodePairing, updatePairedNodeBins } from "../../infra/node-pairing.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";

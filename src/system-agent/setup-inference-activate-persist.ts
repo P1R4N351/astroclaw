@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from "node:util";
 import type { AgentExecutionAuthBinding } from "../agents/execution-auth-binding.js";
 import { applyAutoLocalModelLean } from "../config/local-model-lean-auto.js";
 import { applyMergePatch } from "../config/merge-patch.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { normalizePluginTargetConfig } from "../plugins/config-state.js";
 import { enablePluginInConfig } from "../plugins/enable.js";

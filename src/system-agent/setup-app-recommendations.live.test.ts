@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { getSetupAppRecommendations } from "./setup-app-recommendations.js";
 import { completeSetupInferenceConfig } from "./setup-inference.js";

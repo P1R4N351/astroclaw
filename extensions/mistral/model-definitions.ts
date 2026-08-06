@@ -3,7 +3,7 @@ import {
   readManifestProviderDefaultModelRef,
 } from "openclaw/plugin-sdk/provider-catalog-shared";
 import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-model-shared";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 const MISTRAL_MANIFEST_CATALOG = manifest.modelCatalog.providers.mistral;
 

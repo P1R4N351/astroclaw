@@ -7,7 +7,7 @@ import { heartbeatRunnerTelegramPlugin } from "../../test/helpers/infra/heartbea
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { listSessionEntries, replaceSessionEntry } from "../config/sessions/session-accessor.js";
 import type { InternalSessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { writeCronJobScratch } from "../cron/scratch-store.js";
 import { CronService } from "../cron/service.js";
 import { resolveCronJobsStorePath } from "../cron/store.js";

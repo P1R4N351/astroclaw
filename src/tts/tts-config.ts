@@ -1,11 +1,11 @@
 // TTS config helpers read and normalize text-to-speech provider settings.
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { isRecord as isPlainObject } from "@openclaw/normalization-core/record-coerce";
+import { isRecord as isPlainObject } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { resolveAgentConfig } from "../agents/agent-scope-config.js";
 import type { OpenClawConfig } from "../config/types.js";
 import type { TtsAutoMode, TtsConfig, TtsMode } from "../config/types.tts.js";

@@ -7,7 +7,7 @@ import {
   type ConversationRecord,
   type ConversationRegistryScope,
 } from "../config/sessions/conversation-registry.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveOutboundChannelPlugin } from "../infra/outbound/channel-resolution.js";
 import {
   ConversationDeliveryRejectedError,

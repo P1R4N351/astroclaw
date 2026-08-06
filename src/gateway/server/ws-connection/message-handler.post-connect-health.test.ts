@@ -14,7 +14,7 @@ import {
   type DiagnosticTraceContext,
 } from "../../../infra/diagnostic-trace-context.js";
 import { setAvatar } from "../../../state/user-profiles.js";
-import { withOpenClawTestState } from "../../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../../test-utils/astroclaw-test-state.js";
 import { mintAgentRuntimeIdentityToken } from "../../agent-runtime-identity-token.js";
 import type { AuthRateLimiter } from "../../auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "../../auth.js";

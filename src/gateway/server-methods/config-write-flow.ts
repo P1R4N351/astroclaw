@@ -8,7 +8,7 @@ import {
   resolveConfigSnapshotHash,
 } from "../../config/config.js";
 import { extractDeliveryInfo } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   formatDoctorNonInteractiveHint,
   type RestartSentinelPayload,

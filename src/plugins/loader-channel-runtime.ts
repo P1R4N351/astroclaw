@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { describeRootFileOpenFailure, openRootFileSync } from "../infra/boundary-file-read.js";
 import type { NormalizedPluginsConfig } from "./config-state.js";
 import {

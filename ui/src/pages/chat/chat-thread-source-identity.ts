@@ -1,5 +1,5 @@
-import { readSessionMessageIdentity } from "@openclaw/gateway-client/browser";
-import { asNullableRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { readSessionMessageIdentity } from "@astroclaw/gateway-client/browser";
+import { asNullableRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 
 /** Native transcript metadata remains authoritative over event and legacy IDs. */
 export function readChatThreadSourceMessageId(message: unknown): string | null {

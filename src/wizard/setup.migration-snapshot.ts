@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { withFileLock } from "../infra/file-lock.js";
 import { isNotFoundPathError } from "../infra/path-guards.js";
 import type { MigrationPlan } from "../plugins/types.js";

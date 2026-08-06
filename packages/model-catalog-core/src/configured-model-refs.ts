@@ -1,5 +1,5 @@
 // Collects configured model references from OpenClaw config-shaped objects.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 
 /** One configured model reference plus its config path. */
 export type ConfiguredModelRef = {

@@ -5,8 +5,8 @@ import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 
 const resolvePreferredOpenClawTmpDirMock = vi.hoisted(() => vi.fn());
 
-vi.mock("./tmp-openclaw-dir.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./tmp-openclaw-dir.js")>();
+vi.mock("./tmp-astroclaw-dir.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./tmp-astroclaw-dir.js")>();
   return {
     ...actual,
     resolvePreferredOpenClawTmpDir: resolvePreferredOpenClawTmpDirMock,

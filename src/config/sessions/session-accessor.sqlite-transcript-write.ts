@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { resolveTimestampMsToIsoString } from "@openclaw/normalization-core/number-coercion";
+import { resolveTimestampMsToIsoString } from "@astroclaw/normalization-core/number-coercion";
 import {
   openOpenClawAgentDatabase,
   resolveOpenClawAgentSqlitePath,
@@ -319,7 +319,7 @@ export async function appendSqliteExpectedSessionTranscriptTurn(
   scope: SessionTranscriptWriteScope,
   options: {
     atomicGroup?: boolean;
-    config?: import("../types.openclaw.js").OpenClawConfig;
+    config?: import("../types.astroclaw.js").OpenClawConfig;
     cwd?: string;
     expectedLifecycleRevision?: string;
     expectedSessionState?: SessionTranscriptTurnExpectedState;

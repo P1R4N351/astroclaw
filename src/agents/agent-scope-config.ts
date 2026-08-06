@@ -1,6 +1,6 @@
 /** Resolves configured agent ids, directories, workspaces, and merged agent defaults. */
 import path from "node:path";
-import { readStringValue } from "@openclaw/normalization-core/string-coerce";
+import { readStringValue } from "@astroclaw/normalization-core/string-coerce";
 import { hasExplicitModelPolicyAllow } from "../config/model-policy-allowlist-migration.js";
 import { resolveStateDir } from "../config/paths.js";
 import type {

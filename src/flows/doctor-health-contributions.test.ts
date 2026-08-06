@@ -3,11 +3,11 @@ import fs from "node:fs";
 import nodePath from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DoctorPrompter } from "../commands/doctor-prompter.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { LEGACY_SECRETREF_ENV_MARKER_PREFIX } from "../config/types.secrets.js";
 import { migrateLegacySecretRefEnvMarkers } from "../secrets/legacy-secretref-env-marker.js";
 import { readConfigMachineState } from "../state/config-machine-state.js";
-import { createOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { createOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { CORE_HEALTH_CHECKS } from "./doctor-core-checks.js";
 import { resolveDoctorContributionHealthChecks } from "./doctor-health-contributions.js";
 import {

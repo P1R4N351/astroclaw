@@ -12,7 +12,7 @@ import {
 import { clearSessionStoreCacheForTest } from "../config/sessions/store-writer-state.js";
 import { resolveSessionTranscriptFile } from "../config/sessions/transcript.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { buildOutboundSessionContext } from "../infra/outbound/session-context.js";
 import { normalizeSessionDeliveryState } from "../utils/delivery-context.shared.js";
 

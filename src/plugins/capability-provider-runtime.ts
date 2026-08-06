@@ -1,6 +1,6 @@
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { resolveVoiceModelRefs } from "../../packages/speech-core/voice-models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   getLoadedRuntimePluginRegistry,
   registryContainsRuntimePluginIds,

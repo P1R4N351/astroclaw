@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import { withoutPluginInstallRecords } from "../plugins/installed-plugin-index-records.js";
 
 const mocks = vi.hoisted(() => ({

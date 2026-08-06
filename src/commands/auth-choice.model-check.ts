@@ -1,5 +1,5 @@
 // Post-selection model/auth sanity checks shown during onboarding and agent setup.
-import { normalizeProviderIdForAuth } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderIdForAuth } from "@astroclaw/model-catalog-core/provider-id";
 import {
   resolveAgentDir,
   resolveAgentWorkspaceDir,
@@ -14,7 +14,7 @@ import { publishPreparedModelRuntimeSnapshot } from "../agents/prepared-model-ru
 import { buildProviderAuthRecoveryHint } from "../agents/provider-auth-recovery-hint.js";
 import { canonicalizeProviderModelId } from "../agents/provider-model-route.js";
 import type { ModelApi } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ProviderModelRouteAuthRequirement } from "../plugin-sdk/provider-model-types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 

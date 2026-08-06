@@ -9,7 +9,7 @@ import {
   fingerprintResolvedAuthProfileCredential,
   fingerprintResolvedProviderAuth,
 } from "../agents/execution-auth-binding.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginOrigin } from "../plugins/types.js";
 import { resolveSystemAgentConfiguredRouteFromConfig } from "./inference-route.js";
 import { resolvePersistentApplyInference } from "./setup-inference.js";

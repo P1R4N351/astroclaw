@@ -1,7 +1,7 @@
 // Fetches and normalizes Z.ai provider usage records.
-import { asFiniteNumber } from "@openclaw/normalization-core/number-coercion";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   buildUsageHttpErrorSnapshot,
   discardUsageResponseBody,

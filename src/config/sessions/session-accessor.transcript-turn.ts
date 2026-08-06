@@ -271,7 +271,7 @@ async function resolveTranscriptTurnTarget(
     sessionEntry?: SessionEntry;
     sessionStore?: Record<string, SessionEntry>;
   },
-  config?: import("../types.openclaw.js").OpenClawConfig,
+  config?: import("../types.astroclaw.js").OpenClawConfig,
 ): Promise<
   SessionTranscriptTurnWriteContext & {
     sessionEntry: SessionEntry | undefined;

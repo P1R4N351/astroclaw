@@ -1,7 +1,7 @@
 // Config snapshots and pre/post-update config restoration.
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { createPreUpdateConfigSnapshot } from "../../config/backup-rotation.js";
 import {
@@ -13,7 +13,7 @@ import { resolveConfigEnvVars } from "../../config/env-substitution.js";
 import { resolveConfigIncludes } from "../../config/includes.js";
 import { asResolvedSourceConfig, asRuntimeConfig } from "../../config/materialize.js";
 import { CONFIG_PATH, resolveIncludeRoots } from "../../config/paths.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import { normalizeUpdateChannel, type UpdateChannel } from "../../infra/update-channels.js";
 import type { PreUpdateConfigRestoreInput } from "../../infra/update-post-core-context.js";

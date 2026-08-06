@@ -1,15 +1,15 @@
 import {
   findNormalizedProviderValue,
   normalizeProviderId,
-} from "@openclaw/model-catalog-core/provider-id";
+} from "@astroclaw/model-catalog-core/provider-id";
 import {
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   normalizeTrimmedStringList,
   uniqueStrings,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import type { AuthProfileCredential } from "../agents/auth-profiles/types.js";
 import { upsertAuthProfileWithLock } from "../agents/auth-profiles/upsert-with-lock.js";
 import { CUSTOM_LOCAL_AUTH_MARKER, isNonSecretApiKeyMarker } from "../agents/model-auth-markers.js";
@@ -25,7 +25,7 @@ import {
   SELF_HOSTED_DEFAULT_MAX_TOKENS,
 } from "../agents/self-hosted-provider-defaults.js";
 import type { ModelDefinitionConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 // Builds setup metadata for self-hosted provider plugins.
 import { fetchWithSsrFGuard } from "../infra/net/fetch-guard.js";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";

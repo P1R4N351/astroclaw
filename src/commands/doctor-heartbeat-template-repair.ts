@@ -5,7 +5,7 @@ import { note } from "../../packages/terminal-core/src/note.js";
 import { listAgentIds, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolveWorkspaceTemplateDir } from "../agents/workspace-templates.js";
 import { DEFAULT_HEARTBEAT_FILENAME } from "../agents/workspace.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HealthFinding } from "../flows/health-checks.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { writeTextAtomic } from "../infra/json-files.js";

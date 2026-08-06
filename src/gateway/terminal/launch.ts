@@ -9,7 +9,7 @@ import {
   resolveDefaultAgentId,
 } from "../../agents/agent-scope-config.js";
 import { resolveSandboxConfigForAgent } from "../../agents/sandbox/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 import { isTerminalConfigEnabled } from "./enabled.js";
 

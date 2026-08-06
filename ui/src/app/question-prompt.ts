@@ -1,5 +1,5 @@
 // Control UI module owns transient operator question state.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type {
   Question,
   QuestionAnswers,

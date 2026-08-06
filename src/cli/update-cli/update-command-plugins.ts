@@ -5,7 +5,7 @@ import { stylePromptMessage } from "../../../packages/terminal-core/src/prompt-s
 import { sanitizeTerminalText } from "../../../packages/terminal-core/src/safe-text.js";
 import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { readConfigFileSnapshot } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import type { ClawHubRiskAcknowledgementRequest } from "../../infra/clawhub-install-trust.js";
 import type { UpdateChannel } from "../../infra/update-channels.js";

@@ -23,8 +23,8 @@ import {
   withFirstStreamEventTimeout,
 } from "@openclaw/ai/internal/runtime";
 import { stripSystemPromptCacheBoundary } from "@openclaw/ai/internal/shared";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import OpenAI from "openai";
 import type { ChatCompletionChunk } from "openai/resources/chat/completions.js";
 import type { Context, Model } from "../llm/types.js";

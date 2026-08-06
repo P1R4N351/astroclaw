@@ -2,9 +2,9 @@
 import {
   findNormalizedProviderValue,
   normalizeProviderId,
-} from "@openclaw/model-catalog-core/provider-id";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import type { AuthProfileCredential, OAuthCredential } from "../agents/auth-profiles/types.js";
 import { resolveGpt5SystemPromptContribution } from "../agents/gpt5-prompt-overlay.js";
 import { getRegisteredAgentHarness } from "../agents/harness/registry.js";
@@ -15,7 +15,7 @@ import {
 import { unwrapSecretSentinelsForProviderEgress } from "../agents/provider-secret-egress.js";
 import type { ProviderSystemPromptContribution } from "../agents/system-prompt-contribution.js";
 import type { ModelProviderConfig } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { UsageProviderId } from "../infra/provider-usage.types.js";
 import { getCurrentPluginMetadataSnapshot } from "./current-plugin-metadata-snapshot.js";
 import { normalizeProviderModelIdWithManifest } from "./manifest-model-id-normalization.js";

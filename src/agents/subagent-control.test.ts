@@ -15,7 +15,7 @@ import {
   replaceSessionEntrySync,
 } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { CallGatewayOptions } from "../gateway/call.js";
 import { rotateAgentEventLifecycleGeneration } from "../infra/agent-events.js";
 import {

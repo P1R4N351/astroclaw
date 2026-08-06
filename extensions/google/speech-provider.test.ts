@@ -8,7 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 const transcodeAudioBufferToOpusMock = vi.hoisted(() => vi.fn());
 
 vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
-  const { canonicalizeBase64 } = await import("@openclaw/media-core/base64");
+  const { canonicalizeBase64 } = await import("@astroclaw/media-core/base64");
   return {
     canonicalizeBase64,
     transcodeAudioBufferToOpus: transcodeAudioBufferToOpusMock,

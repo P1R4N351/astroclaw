@@ -7,7 +7,7 @@ import {
   resolveAllAgentSessionStoreTargetsSync,
   type SessionStoreTarget,
 } from "../config/sessions/targets.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { withPluginHostCleanupTimeout } from "./host-hook-cleanup-timeout.js";
 import {
   cleanupPluginSessionSchedulerJobs,

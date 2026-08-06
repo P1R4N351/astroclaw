@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { Model } from "../../llm/types.js";
 import type { AuthProfileStore } from "../auth-profiles.js";
 import { resolveAgentHarnessPreparedAuthSupport } from "../harness/support.js";

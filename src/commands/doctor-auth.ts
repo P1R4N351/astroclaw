@@ -31,7 +31,7 @@ import {
 } from "../agents/auth-profiles/oauth-refresh-failure.js";
 import { resolveAuthStorePathForDisplay } from "../agents/auth-profiles/path-resolve.js";
 import { buildProviderAuthRecoveryHint } from "../agents/provider-auth-recovery-hint.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HealthFinding } from "../flows/health-checks.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { isRecord } from "../utils.js";

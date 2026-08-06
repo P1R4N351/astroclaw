@@ -1,8 +1,8 @@
 // Crestodian gateway tests cover activation serialization and chat sessions.
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { CrestodianChatEngine } from "../../crestodian/chat-engine.js";
 import { createCrestodianVerifiedInferenceTestFixture } from "../../crestodian/crestodian.test-helpers.js";
 import { CrestodianInferenceUnavailableError } from "../../crestodian/inference-error.js";

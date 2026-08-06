@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { shouldLoadChannelPluginInSetupRuntime } from "./loader-channel-setup.js";
 import type { ChannelPluginLoadIntent } from "./loader-types.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";

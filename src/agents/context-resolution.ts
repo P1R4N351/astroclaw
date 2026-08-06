@@ -2,9 +2,9 @@ import {
   resolveClaudeOpus5ModelIdentity,
   resolveClaudeSonnet5ModelIdentity,
   supportsClaude1MContext,
-} from "@openclaw/llm-core";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+} from "@astroclaw/llm-core";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   lookupCachedContextTokens,
   lookupCachedContextWindow,

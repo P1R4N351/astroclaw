@@ -28,7 +28,7 @@ import { resolveChannelResetConfig, resolveSessionResetType } from "../../config
 import { listSessionEntries } from "../../config/sessions/session-accessor.js";
 import { resolveSessionKey } from "../../config/sessions/session-key.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   classifySessionKeyShape,
   isUnscopedSessionKeySentinel,

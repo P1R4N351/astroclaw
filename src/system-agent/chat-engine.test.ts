@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   fingerprintAuthProfileCredential,
@@ -10,7 +10,7 @@ import {
   fingerprintResolvedProviderAuth,
 } from "../agents/execution-auth-binding.js";
 import { hashSystemAgentOperation } from "../agents/tools/system-agent-tool.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { runSetupMemoryImportStep } from "../wizard/setup.memory-import.js";
 import { runSystemAgentTurnWithDeps } from "./agent-turn.test-support.js";

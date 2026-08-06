@@ -1,6 +1,6 @@
 import path from "node:path";
-import { isCanonicalDottedDecimalIPv4, isLoopbackIpAddress } from "@openclaw/net-policy/ip";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { isCanonicalDottedDecimalIPv4, isLoopbackIpAddress } from "@astroclaw/net-policy/ip";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { sanitizeForLog } from "../../packages/terminal-core/src/ansi.js";
 import {
   listAgentEntriesWithSource,

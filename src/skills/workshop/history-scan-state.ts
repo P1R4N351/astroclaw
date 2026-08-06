@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { resolveStorePath } from "../../config/sessions/paths.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   createCorePluginStateSyncKeyedStore,
   MAX_PLUGIN_STATE_ENTRIES_PER_PLUGIN,

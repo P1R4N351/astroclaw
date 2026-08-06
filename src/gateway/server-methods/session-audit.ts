@@ -1,6 +1,6 @@
 import { SessionManager } from "../../agents/sessions/session-manager.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 export async function appendSessionAudit(params: {
   cfg: OpenClawConfig;

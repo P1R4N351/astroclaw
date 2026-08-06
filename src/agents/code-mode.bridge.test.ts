@@ -1,6 +1,6 @@
 /** Tests Code Mode bridge settlement and cancellation. */
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../shared/deferred.js";

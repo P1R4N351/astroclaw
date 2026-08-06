@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../src/config/types.astroclaw.js";
 import {
   connectGatewayClient,
   disconnectGatewayClient,
@@ -13,7 +13,7 @@ import {
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/openclaw-test-instance.js";
+} from "./helpers/astroclaw-test-instance.js";
 
 const PLUGIN_ID = "cron-registry-owner-proof";
 const SCHEDULE_METHOD = `${PLUGIN_ID}.schedule`;

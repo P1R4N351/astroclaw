@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 // Inference backend detection shared by onboarding bootstrap and OpenClaw setup.
 import os from "node:os";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { resolveAgentConfig, resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import {
   formatCliBackendVersionAdvisory,
@@ -16,7 +16,7 @@ import {
 } from "../agents/cli-credentials.js";
 import { resolveDefaultModelForAgent } from "../agents/model-selection.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { probeLocalCommand, type LocalCommandProbe } from "../system-agent/probes.js";
 import {
   CLAUDE_CLI_DEFAULT_MODEL_REF,

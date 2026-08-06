@@ -26,7 +26,7 @@ vi.mock("../../plugins/bundled-dir.js", () => ({
   resolveSourceCheckoutDependencyDiagnostic: () => null,
 }));
 
-vi.mock("../../infra/openclaw-root.js", () => ({
+vi.mock("../../infra/astroclaw-root.js", () => ({
   resolveOpenClawPackageRootSync: () => packageRootMock.value,
   resolveOpenClawPackageRoot: async () => packageRootMock.value,
 }));

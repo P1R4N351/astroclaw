@@ -2,7 +2,7 @@
 import {
   normalizeSortedUniqueTrimmedStringList,
   uniqueStrings,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import {
   buildPairingConnectCloseReason,
   buildPairingConnectErrorDetails,

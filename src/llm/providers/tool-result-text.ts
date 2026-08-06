@@ -1,4 +1,4 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { redactSecrets, redactToolPayloadText } from "../../logging/redact.js";
 import { truncateUtf16Safe } from "../../shared/utf16-slice.js";
 import { sanitizeSurrogates } from "../utils/sanitize-unicode.js";

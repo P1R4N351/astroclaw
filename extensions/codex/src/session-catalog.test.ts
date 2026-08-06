@@ -126,7 +126,7 @@ const config = {} as OpenClawConfig;
 
 async function normalizeCodexManifestConfig(value: unknown): Promise<Record<string, unknown>> {
   const manifest = JSON.parse(
-    await fs.readFile(new URL("../openclaw.plugin.json", import.meta.url), "utf8"),
+    await fs.readFile(new URL("../astroclaw.plugin.json", import.meta.url), "utf8"),
   ) as { configSchema: JsonSchemaObject };
   const result = validateJsonSchemaValue({
     cacheKey: "codex.session-catalog.manifest-config",

@@ -7,16 +7,16 @@ describe("buildVitestCapabilityShimAliasMap", () => {
     const aliasMap = buildVitestCapabilityShimAliasMap();
 
     expect(aliasMap["openclaw/plugin-sdk/config-runtime"]).toBe(
-      aliasMap["@openclaw/plugin-sdk/config-runtime"],
+      aliasMap["@astroclaw/plugin-sdk/config-runtime"],
     );
     expect(aliasMap["openclaw/plugin-sdk/media-runtime"]).toBe(
-      aliasMap["@openclaw/plugin-sdk/media-runtime"],
+      aliasMap["@astroclaw/plugin-sdk/media-runtime"],
     );
     expect(aliasMap["openclaw/plugin-sdk/provider-onboard"]).toBe(
-      aliasMap["@openclaw/plugin-sdk/provider-onboard"],
+      aliasMap["@astroclaw/plugin-sdk/provider-onboard"],
     );
     expect(aliasMap["openclaw/plugin-sdk/speech-core"]).toBe(
-      aliasMap["@openclaw/plugin-sdk/speech-core"],
+      aliasMap["@astroclaw/plugin-sdk/speech-core"],
     );
   });
 });

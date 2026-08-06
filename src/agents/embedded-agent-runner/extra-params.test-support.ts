@@ -1,5 +1,5 @@
 // Shared harness for extra-params wrapper tests.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { Context, Model, SimpleStreamOptions } from "../../llm/types.js";
 import type {
   prepareProviderExtraParams,

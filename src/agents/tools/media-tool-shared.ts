@@ -1,18 +1,18 @@
 /** Shared media tool routing, auth, path, and reference helpers. */
-import { normalizeInboundPathRoots } from "@openclaw/media-core/inbound-path-policy";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { parseBoolean } from "@openclaw/normalization-core/boolean-coercion";
+import { normalizeInboundPathRoots } from "@astroclaw/media-core/inbound-path-policy";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { parseBoolean } from "@astroclaw/normalization-core/boolean-coercion";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import {
   findCapabilityProviderById,
   resolveCapabilityModelRefForProviders,
 } from "../../../packages/media-generation-core/src/capability-model-ref.js";
 import type { AgentModelConfig } from "../../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { SsrFPolicy } from "../../infra/net/ssrf.js";
 import type { Model } from "../../llm/types.js";
 import { resolveChannelInboundAttachmentRootsForChannel } from "../../media/channel-inbound-roots.js";

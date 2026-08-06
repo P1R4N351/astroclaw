@@ -1,5 +1,5 @@
 /** Compatibility helpers that auto-enable bundled plugins for legacy and Vitest flows. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginEntryConfig } from "../config/types.plugins.js";
 import { readBundledDiscoveryMode } from "./bundled-discovery-state.js";
 import { hasExplicitPluginConfig } from "./config-policy.js";

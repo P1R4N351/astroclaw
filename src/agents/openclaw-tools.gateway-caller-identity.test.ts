@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   observedIdentities: [] as Array<unknown>,
 }));
 
-vi.mock("./openclaw-plugin-tools.js", () => ({
+vi.mock("./astroclaw-plugin-tools.js", () => ({
   resolveOpenClawPluginToolsForOptions: () => [
     {
       name: "synthetic_direct_cron_plugin",
@@ -21,7 +21,7 @@ vi.mock("./openclaw-plugin-tools.js", () => ({
   ],
 }));
 
-import { createOpenClawTools } from "./openclaw-tools.js";
+import { createOpenClawTools } from "./astroclaw-tools.js";
 
 function requireTool(name: string, overrides?: Parameters<typeof createOpenClawTools>[0]) {
   const tool = createOpenClawTools({

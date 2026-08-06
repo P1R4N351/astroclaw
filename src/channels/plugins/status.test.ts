@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { buildChannelAccountSnapshotFromAccount } from "./status.js";
 import type { ChannelPlugin } from "./types.plugin.js";
 

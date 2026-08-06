@@ -17,7 +17,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
 const workspaceSourceAliases = [
   {
-    find: "@openclaw/gateway-client/browser",
+    find: "@astroclaw/gateway-client/browser",
     replacement: path.resolve(repoRoot, "packages/gateway-client/src/browser.ts"),
   },
   {
@@ -41,7 +41,7 @@ const workspaceSourceAliases = [
     replacement: path.resolve(repoRoot, "packages/model-catalog-core/src/$1.ts"),
   },
   {
-    find: "@openclaw/model-catalog-core",
+    find: "@astroclaw/model-catalog-core",
     replacement: path.resolve(repoRoot, "packages/model-catalog-core/src/index.ts"),
   },
   {
@@ -49,7 +49,7 @@ const workspaceSourceAliases = [
     replacement: path.resolve(repoRoot, "packages/normalization-core/src/$1"),
   },
   {
-    find: "@openclaw/normalization-core",
+    find: "@astroclaw/normalization-core",
     replacement: path.resolve(repoRoot, "packages/normalization-core/src/index.ts"),
   },
   {
@@ -57,7 +57,7 @@ const workspaceSourceAliases = [
     replacement: path.resolve(repoRoot, "packages/media-core/src/$1"),
   },
   {
-    find: "@openclaw/media-core",
+    find: "@astroclaw/media-core",
     replacement: path.resolve(repoRoot, "packages/media-core/src/index.ts"),
   },
   {
@@ -77,7 +77,7 @@ const workspaceSourceAliases = [
     replacement: path.resolve(repoRoot, "packages/net-policy/src/$1"),
   },
   {
-    find: "@openclaw/net-policy",
+    find: "@astroclaw/net-policy",
     replacement: path.resolve(repoRoot, "packages/net-policy/src/index.ts"),
   },
 ];

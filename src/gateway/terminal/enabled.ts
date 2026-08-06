@@ -5,7 +5,7 @@
 // agents stay refused. Lives outside launch.ts so eagerly-loaded HTTP/CSP
 // paths can import it without defeating the lazy import of the launch policy
 // in server-runtime-state-prepare.ts.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 export function isTerminalConfigEnabled(config: OpenClawConfig | undefined): boolean {
   return config?.gateway?.terminal?.enabled !== false;

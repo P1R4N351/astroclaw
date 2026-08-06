@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { applySkillProposal } from "./service.js";
 import type { SkillProposalApplyResult } from "./types.js";

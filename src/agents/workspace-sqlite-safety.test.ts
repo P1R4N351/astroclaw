@@ -11,7 +11,7 @@ import { makeTempWorkspace } from "../test-helpers/workspace.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import { resetLegacyWorkspaceStateCheckForTest } from "./workspace-legacy-state.test-support.js";
 import {
   mergeWorkspaceSetupState,

@@ -1,5 +1,5 @@
 /** Lifecycle-owned auth/model discovery snapshots for agent runs. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { isReservedSystemAgentId } from "../system-agent/agent-id.js";
 import { registerRuntimeAuthProfileStoreMutationListener } from "./auth-profiles/runtime-snapshots.js";

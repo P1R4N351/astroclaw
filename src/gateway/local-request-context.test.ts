@@ -7,7 +7,7 @@ import path from "node:path";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import * as preparedModelCatalog from "../agents/prepared-model-catalog.js";
 import type { CliDeps } from "../cli/deps.types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { getPluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway-request-scope.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import { withLocalGatewayRequestScope } from "./local-request-context.js";

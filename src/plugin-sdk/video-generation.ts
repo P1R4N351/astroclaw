@@ -4,7 +4,7 @@
 // emitted declaration surface stays stable for package-boundary consumers.
 
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   DASHSCOPE_WAN_VIDEO_CATALOG_BY_MODEL,
   DASHSCOPE_WAN_VIDEO_CAPABILITIES,

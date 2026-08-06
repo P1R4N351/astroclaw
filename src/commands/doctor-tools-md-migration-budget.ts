@@ -1,7 +1,7 @@
 import path from "node:path";
 import { listAgentIds, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolveBootstrapMaxChars } from "../agents/embedded-agent-helpers.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 type ToolsMdMigrationWorkspaceTarget = {
   primaryAgentId: string;

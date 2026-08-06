@@ -3,15 +3,15 @@ import type { Stats } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString as readOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString as readOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { parse as parseYaml } from "yaml";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { hasErrnoCode } from "./errors.js";
 import type { NpmSpecResolution } from "./install-source-utils.js";
 import { readJson, readJsonIfExists, writeJson } from "./json-files.js";
 import type { ParsedRegistryNpmSpec } from "./npm-registry-spec.js";
-import { resolveOpenClawPackageRootSync } from "./openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "./astroclaw-root.js";
 import { createSafeNpmInstallArgs, createSafeNpmInstallEnv } from "./safe-package-install.js";
 
 // Managed npm roots are private package roots used for installed plugins. This

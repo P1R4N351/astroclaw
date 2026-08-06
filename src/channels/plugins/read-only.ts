@@ -7,11 +7,11 @@ import { createHash } from "node:crypto";
 import {
   sortUniqueStrings,
   uniqueStrings,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import { sanitizeForLog } from "../../../packages/terminal-core/src/ansi.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { resolveRuntimeConfigCacheKey } from "../../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { pruneMapToMaxSize } from "../../infra/map-size.js";
 import { isBlockedObjectKey } from "../../infra/prototype-keys.js";

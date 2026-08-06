@@ -1,13 +1,13 @@
 // Loads gateway dispatch config from runtime state and files.
 import fs from "node:fs";
 import path from "node:path";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { parseJsonWithJson5Fallback } from "../utils/parse-json-compat.js";
 import { applyConfigEnvVars } from "./config-env-vars.js";
 import { resolveConfigEnvVars } from "./env-substitution.js";
 import { readConfigIncludeFileWithGuards, resolveConfigIncludes } from "./includes.js";
 import { resolveConfigPath, resolveIncludeRoots } from "./paths.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 const GATEWAY_DISPATCH_SHELL_ENV_EXPECTED_KEYS = [
   "OPENCLAW_GATEWAY_TOKEN",

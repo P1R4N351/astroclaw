@@ -1,7 +1,7 @@
 import {
   hasSessionProjectionAcceptedFinal,
   reduceSessionProjectionRunEvent,
-} from "@openclaw/gateway-client/browser";
+} from "@astroclaw/gateway-client/browser";
 import { isAssistantHeartbeatAckForDisplay } from "../../lib/chat/heartbeat-display.ts";
 import { extractText } from "../../lib/chat/message-extract.ts";
 // Control UI page module reconciles Chat Gateway events into Chat state.

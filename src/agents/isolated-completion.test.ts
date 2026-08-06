@@ -56,7 +56,7 @@ vi.mock("../infra/private-temp-workspace.js", () => ({
   withTempWorkspace: async (_options: unknown, run: (value: { dir: string }) => unknown) =>
     await run({ dir: "/tmp/isolated" }),
 }));
-vi.mock("../infra/tmp-openclaw-dir.js", () => ({
+vi.mock("../infra/tmp-astroclaw-dir.js", () => ({
   resolvePreferredOpenClawTmpDir: () => "/tmp",
 }));
 

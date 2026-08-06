@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { isGatewayArgv } from "../infra/gateway-process-argv.js";
 import { inspectPortUsage, type PortListener } from "../infra/ports.js";
 import { parseTcpPort, parseTcpPortFromArgs } from "../infra/tcp-port.js";

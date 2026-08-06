@@ -1,7 +1,7 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentEntries } from "../../../agents/agent-scope-config.js";
 import type { AgentRouteBinding } from "../../../config/types.agents.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { normalizeRouteBindingChannelId } from "../../../routing/binding-scope.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 import { isRecord } from "../../../utils.js";

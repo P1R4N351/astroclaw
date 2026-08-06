@@ -4,7 +4,7 @@ import { EventEmitter } from "node:events";
 import { createServer, type Server as HttpServer } from "node:http";
 import http2 from "node:http2";
 import net from "node:net";
-import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
+import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../test-utils/deferred.js";
 import { startProxy, stopProxy, type ProxyHandle } from "./net/proxy/proxy-lifecycle.js";

@@ -1,11 +1,11 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   formatThinkingLevels,
   normalizeThinkLevel,
   normalizeVerboseLevel,
 } from "../../auto-reply/thinking.js";
 import { formatCliCommand } from "../../cli/command-format.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveAgentExplicitRecipientSession } from "../../infra/outbound/agent-delivery.js";
 import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
 import { parseStrictNonNegativeInteger } from "../../infra/parse-finite-number.js";

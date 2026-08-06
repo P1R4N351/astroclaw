@@ -3,8 +3,8 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import {
   resolveDefaultAgentId,
   resolveAgentWorkspaceDir,
@@ -13,7 +13,7 @@ import {
 import { runEmbeddedAgent } from "../agents/embedded-agent.js";
 import { SessionManager } from "../agents/sessions/index.js";
 import { resolveAgentTimeoutMs } from "../agents/timeout.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   extractLeadingHttpStatus,

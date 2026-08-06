@@ -1,6 +1,6 @@
 // Toggles plugin enablement config for channels and agents.
 import { normalizeChatChannelId } from "../channels/ids.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginEntryConfig } from "../config/types.plugins.js";
 import { mergeDeep } from "../infra/deep-merge.js";
 import { normalizePluginId, normalizePluginTargetConfig } from "./config-state.js";

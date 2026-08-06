@@ -6,7 +6,7 @@
 import type { ApiRegistry } from "@openclaw/ai";
 import "./ai-transport-runtime-host.js";
 import { createTransportAwareStreamFnForModel } from "@openclaw/ai/transports";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { getModelLlmRuntime } from "../llm/model-runtime-binding.js";
 import type { Api, Model } from "../llm/types.js";
 import { resolveProviderStreamFn } from "../plugins/provider-runtime.js";

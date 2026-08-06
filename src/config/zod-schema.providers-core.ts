@@ -1,6 +1,6 @@
 // Defines core provider schema fragments for config parsing.
-import { isValidInboundPathRootPattern } from "@openclaw/media-core/inbound-path-policy";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { isValidInboundPathRootPattern } from "@astroclaw/media-core/inbound-path-policy";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { z } from "zod";
 import { buildGroupEntrySchema } from "../channels/plugins/config-schema.js";
 import { isSafeScpRemoteHost } from "../infra/scp-host.js";

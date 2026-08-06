@@ -1,7 +1,7 @@
 // image_generate tool tests cover provider/model selection, edit inputs,
 // background task handling, media saving, and duplicate-generation guards.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 const taskRuntimeInternalMocks = vi.hoisted(() => {
   const mocks = {

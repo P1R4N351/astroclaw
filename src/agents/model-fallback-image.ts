@@ -1,5 +1,5 @@
 /** Runs image model candidates through the shared fallback attempt machinery. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {
   type ModelFallbackErrorHandler,

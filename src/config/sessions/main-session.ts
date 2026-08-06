@@ -5,7 +5,7 @@ import {
   normalizeMainKey,
   resolveAgentIdFromSessionKey,
 } from "../../routing/session-key.js";
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import type { SessionScope } from "./types.js";
 
 const FALLBACK_DEFAULT_AGENT_ID = "main";

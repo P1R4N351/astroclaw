@@ -1,5 +1,5 @@
 // Defines task control runtime contracts exposed to command surfaces.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { DetachedTaskTerminalState } from "./detached-task-runtime-contract.js";
 
 type KillSubagentTargetState =

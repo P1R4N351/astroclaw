@@ -1,7 +1,7 @@
-import { finiteSecondsToTimerSafeMilliseconds } from "@openclaw/normalization-core/number-coercion";
+import { finiteSecondsToTimerSafeMilliseconds } from "@astroclaw/normalization-core/number-coercion";
 import { resolveThreadBindingSpawnPolicy } from "../channels/thread-bindings-policy.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { SubagentSpawnPreparation } from "../context-engine/types.js";
 import { summarizeSpawnError } from "./spawn-pipeline.js";
 import { getSubagentSpawnDeps } from "./subagent-spawn-deps.js";

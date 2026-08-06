@@ -57,7 +57,7 @@ import {
   buildOpenAIChatGPTAuthMethods,
   buildOpenAICodexProviderHooks,
 } from "./openai-chatgpt-provider.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { resolveAuthoredOpenAIProviderConfig } from "./provider-policy-api.js";
 import {
   buildOpenAIResponsesProviderHooks,

@@ -1,6 +1,6 @@
 /** Resolves SecretRef assignments atomically by owning runtime surface. */
 import { isDeepStrictEqual } from "node:util";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { SecretRef } from "../config/types.secrets.js";
 import { toErrorObject } from "../infra/errors.js";
 import { registerSecretValueForRedaction } from "../logging/secret-redaction-registry.js";

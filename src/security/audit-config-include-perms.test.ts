@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
-import type { ConfigFileSnapshot } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot } from "../config/types.astroclaw.js";
 import { collectIncludeFilePermFindings } from "./audit-extra.async.js";
 
 describe("security audit config include permissions", () => {

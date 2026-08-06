@@ -1,10 +1,10 @@
 /** Doctor diagnostics for pending, paired, and locally cached device auth state. */
-import { normalizeUniqueSingleOrTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeUniqueSingleOrTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import { note } from "../../packages/terminal-core/src/note.js";
 import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { quoteCliArg } from "../cli/quote-cli-arg.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HealthFinding } from "../flows/health-checks.js";
 import { callGateway } from "../gateway/call.js";
 import { loadDeviceAuthTokens } from "../infra/device-auth-store.js";

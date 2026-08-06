@@ -10,13 +10,13 @@ import {
   isCloudMetadataIpAddress,
   isLinkLocalIpAddress,
   parseCanonicalIpAddress,
-} from "@openclaw/net-policy/ip";
+} from "@astroclaw/net-policy/ip";
 import {
   asFiniteNumberInRange,
   clampTimerTimeoutMs,
   parseStrictFiniteNumber,
   parseStrictNonNegativeInteger,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import {
   fetchWithSsrFGuard,
   withTrustedEnvProxyGuardedFetchMode,

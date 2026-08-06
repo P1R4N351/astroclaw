@@ -1,8 +1,8 @@
 // Attachment policy tests guard the numbers advertised on `hello-ok` against the
 // ceilings the parser actually enforces.
-import { MAX_IMAGE_BYTES } from "@openclaw/media-core/constants";
+import { MAX_IMAGE_BYTES } from "@astroclaw/media-core/constants";
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   DEFAULT_CHAT_ATTACHMENT_MAX_BYTES,
   resolveChatAttachmentMaxBytes,

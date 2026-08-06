@@ -1,5 +1,5 @@
-import { expectDefined } from "@openclaw/normalization-core";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeSkillIndexName } from "../discovery/skill-index.js";
 import {
   readProposalSupportFiles,

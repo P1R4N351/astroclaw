@@ -1,8 +1,8 @@
 /**
  * Formats configured model aliases for prompt-visible model guidance.
  */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 /** Builds deterministic prompt lines for configured model aliases. */
 export function buildModelAliasLines(cfg?: OpenClawConfig) {

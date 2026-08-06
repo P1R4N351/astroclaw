@@ -1,7 +1,7 @@
 // Normalizes model selection directives into provider and model ids.
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { expectDefined } from "@openclaw/normalization-core";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { modelKey } from "../../agents/model-ref-shared.js";
 import {
   isModelKeyAllowedBySet,
@@ -9,7 +9,7 @@ import {
   resolveConfiguredModelPolicyAllow,
   resolveModelRefFromString,
 } from "../../agents/model-selection-shared.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 export { modelKey };
 export type { ModelAliasIndex };
 

@@ -1,7 +1,7 @@
 import path from "node:path";
 import process from "node:process";
 import { execa, type Options as ExecaOptions, type ResultPromise } from "execa";
-import { markOpenClawExecEnv } from "../infra/openclaw-exec-env.js";
+import { markOpenClawExecEnv } from "../infra/astroclaw-exec-env.js";
 import { resolveSafeChildProcessInvocation } from "./windows-command.js";
 
 export const COMMAND_PROCESS_TREE_KILL_GRACE_MS = 300;

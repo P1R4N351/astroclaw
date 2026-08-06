@@ -1,7 +1,7 @@
 // Directory cache stores short-lived projections partitioned by config identity.
-import { resolveNonNegativeIntegerOption } from "@openclaw/normalization-core/number-coercion";
+import { resolveNonNegativeIntegerOption } from "@astroclaw/normalization-core/number-coercion";
 import type { ChannelDirectoryEntryKind, ChannelId } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { pruneMapToMaxSize } from "../map-size.js";
 
 type CacheEntry<T> = {

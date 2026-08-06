@@ -2,7 +2,7 @@
  * Tests plugin hook delivery when subagent sessions end.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway-request-scope.test-fixtures.js";
 import type { GatewayRequestContext, GatewayRequestOptions } from "./server-methods/types.js";
 

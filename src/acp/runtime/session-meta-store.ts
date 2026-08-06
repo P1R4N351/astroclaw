@@ -1,5 +1,5 @@
 /** Store binding for ACP session metadata: resolves which session-store row owns a key. */
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { resolveDefaultAgentId } from "../../agents/agent-scope-config.js";
 import { getRuntimeConfig } from "../../config/config.js";
 import { resolveStorePath } from "../../config/sessions/paths.js";
@@ -8,7 +8,7 @@ import {
   loadExactSessionEntryReadOnly,
 } from "../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { parseAgentSessionKey } from "../../routing/session-key.js";
 
 /**

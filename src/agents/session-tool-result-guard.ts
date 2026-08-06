@@ -3,10 +3,10 @@
  *
  * Caps large tool results, repairs missing results, applies redaction, and emits transcript update events.
  */
-import { resolveIntegerOption } from "@openclaw/normalization-core/number-coercion";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { sliceUtf16Safe, truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { resolveIntegerOption } from "@astroclaw/normalization-core/number-coercion";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { publishTranscriptUpdate } from "../config/sessions/session-accessor.js";
 import {
   boundedJsonUtf8Bytes,

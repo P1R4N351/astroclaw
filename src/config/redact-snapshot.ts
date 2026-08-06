@@ -3,9 +3,9 @@ import {
   hasSensitiveUrlHintTag,
   isSensitiveUrlConfigPath,
   redactSensitiveUrlLikeString,
-} from "@openclaw/net-policy/redact-sensitive-url";
-import { isRecord as isObjectRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/net-policy/redact-sensitive-url";
+import { isRecord as isObjectRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { ConfigUiHints } from "../shared/config-ui-hints-types.js";
 import { containsEnvVarReference } from "./env-substitution.js";
@@ -15,7 +15,7 @@ import {
 } from "./redact-snapshot.raw.js";
 import { isSecretRefShape, redactSecretRefId } from "./redact-snapshot.secret-ref.js";
 import { isSensitiveConfigPath } from "./sensitive-paths.js";
-import type { ConfigFileSnapshot } from "./types.openclaw.js";
+import type { ConfigFileSnapshot } from "./types.astroclaw.js";
 
 const log = createSubsystemLogger("config/redaction");
 const ENV_VAR_PLACEHOLDER_PATTERN = /^\$\{[^}]*\}$/;

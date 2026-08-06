@@ -1,5 +1,5 @@
 // Discord tests cover reply delivery plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
 import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";

@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { isBackgroundExecTask } from "./background-exec-task-contract.js";
 import { CRON_TASK_KIND } from "./cron-task-contract.js";

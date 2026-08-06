@@ -11,7 +11,7 @@ import { getRegistryWorktree } from "../agents/worktrees/registry.js";
 import { managedWorktrees } from "../agents/worktrees/service.js";
 import { upsertSqliteSessionEntry } from "../config/sessions/session-accessor.sqlite.js";
 import { clearSessionStoreCacheForTest } from "../config/sessions/store-writer-state.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import { testing as agentCommandTesting } from "./agent.js";
 import { createThrowingTestRuntime } from "./test-runtime-config-helpers.js";

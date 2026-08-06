@@ -6,10 +6,10 @@ import path from "node:path";
 import {
   asDateTimestampMs,
   timestampMsToIsoString,
-} from "@openclaw/normalization-core/number-coercion";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/number-coercion";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   refreshRemoteModelCatalog,
   REMOTE_MODEL_CATALOG_TTL_MS,
@@ -31,7 +31,7 @@ import {
   executeSqliteQueryTakeFirstSync,
   getNodeSqliteKysely,
 } from "./kysely-sync.js";
-import { resolveOpenClawPackageRoot } from "./openclaw-root.js";
+import { resolveOpenClawPackageRoot } from "./astroclaw-root.js";
 import {
   resolveGatewayRestartDeferralTimeoutMs,
   scheduleGatewaySigusr1Restart,

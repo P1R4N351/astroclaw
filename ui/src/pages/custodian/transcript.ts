@@ -1,7 +1,7 @@
 import type {
   SystemAgentChatHistoryResult,
   SystemAgentChatHistoryTurn,
-} from "@openclaw/gateway-protocol";
+} from "@astroclaw/gateway-protocol";
 import { html, nothing } from "lit";
 import type { GatewayBrowserClient } from "../../api/gateway.ts";
 import type { WizardStep } from "../../api/types.ts";

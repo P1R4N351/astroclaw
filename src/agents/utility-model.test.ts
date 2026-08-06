@@ -1,7 +1,7 @@
 // Utility-model resolution tests cover explicit/disabled/auto settings and
 // provider-declared default derivation.
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
 import { readUtilityModelSetting, resolveUtilityModelRefForAgent } from "./utility-model.js";
 

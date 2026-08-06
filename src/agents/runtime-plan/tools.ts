@@ -4,7 +4,7 @@
  * and emit provider diagnostics.
  */
 import type { TSchema } from "typebox";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ProviderRuntimePluginHandle } from "../../plugins/provider-hook-runtime.js";
 import type { ProviderRuntimeModel } from "../../plugins/provider-runtime-model.types.js";
 import { copyAgentToolMetadata } from "../agent-tool-metadata.js";

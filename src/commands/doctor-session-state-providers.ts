@@ -1,6 +1,6 @@
 /** Doctor repair for stale plugin-owned routing state persisted in session entries. */
-import { normalizeOptionalString as normalizeString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntriesLower } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalString as normalizeString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntriesLower } from "@astroclaw/normalization-core/string-normalization";
 import { note } from "../../packages/terminal-core/src/note.js";
 import {
   resolveAgentModelFallbacksOverride,
@@ -15,7 +15,7 @@ import {
 } from "../agents/model-selection.js";
 import { resolveAgentModelFallbackValues } from "../config/model-input.js";
 import type { SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { updateLegacySessionStore } from "../infra/state-migrations.legacy-session-store.js";
 import { listPluginDoctorSessionRouteStateOwners } from "../plugins/doctor-contract-registry.js";
 import type { DoctorSessionRouteStateOwner } from "../plugins/doctor-session-route-state-owner-types.js";

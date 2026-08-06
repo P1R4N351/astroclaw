@@ -7,8 +7,8 @@ import type {
   Context,
   EventStream,
   ToolResultMessage,
-} from "@openclaw/llm-core";
-import type { EventStream as SourceEventStream } from "@openclaw/llm-core";
+} from "@astroclaw/llm-core";
+import type { EventStream as SourceEventStream } from "@astroclaw/llm-core";
 import { TranscriptNotContinuableError } from "./errors.js";
 import { uuidv7 } from "./harness/session/uuid.js";
 import { resolveAgentReasoningOption } from "./reasoning.js";

@@ -2,7 +2,7 @@ import type { SessionToolOverrides } from "../config/sessions/types.js";
 /**
  * Shared types for projecting bundle MCP config into Codex app-server threads.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { BundleMcpDiagnostic } from "../plugins/bundle-mcp.js";
 
 /** Codex app-server `mcp_servers` config map. */

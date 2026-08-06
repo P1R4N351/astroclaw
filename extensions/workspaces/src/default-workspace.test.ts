@@ -1,4 +1,4 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it } from "vitest";
 import { DATA_READ_RPC_ALLOWLIST } from "./binding-contract.js";
 import { DEFAULT_WORKSPACE } from "./default-workspace.js";

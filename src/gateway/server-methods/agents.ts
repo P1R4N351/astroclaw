@@ -2,7 +2,7 @@
 // reads/writes, identity merging, and safe deletion for operator clients.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { normalizeOptionalString as resolveOptionalStringParam } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString as resolveOptionalStringParam } from "@astroclaw/normalization-core/string-coerce";
 import {
   GATEWAY_CLIENT_CAPS,
   hasGatewayClientCap,
@@ -71,7 +71,7 @@ import {
 import { purgeAgentSessionStoreEntries } from "../../config/sessions.js";
 import { resolveSessionTranscriptsDirForAgent } from "../../config/sessions/paths.js";
 import type { IdentityConfig } from "../../config/types.base.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { withAgentExecApprovalsRemoved } from "../../infra/exec-approvals.js";
 import { root, FsSafeError, type ReadResult } from "../../infra/fs-safe.js";
 import { isPathInside } from "../../infra/path-guards.js";

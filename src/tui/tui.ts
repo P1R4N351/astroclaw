@@ -85,7 +85,7 @@ export {
   shouldEnableWindowsGitBashPasteFallback,
 } from "./tui-submit.js";
 
-const OPENCLAW_CLI_WRAPPER_PATH = fileURLToPath(new URL("../../openclaw.mjs", import.meta.url));
+const OPENCLAW_CLI_WRAPPER_PATH = fileURLToPath(new URL("../../astroclaw.mjs", import.meta.url));
 const OPENCLAW_RUN_NODE_SCRIPT_PATH = fileURLToPath(
   new URL("../../scripts/run-node.mjs", import.meta.url),
 );

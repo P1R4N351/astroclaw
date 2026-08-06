@@ -1,8 +1,8 @@
 /**
  * Classifies incomplete terminal assistant turns and retry instructions.
  */
-import { asFiniteNumber } from "@openclaw/normalization-core/number-coercion";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import {
   isSilentReplyPayloadText,
   isSilentReplyText,

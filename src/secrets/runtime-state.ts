@@ -25,7 +25,7 @@ import {
   setRuntimeConfigSnapshotRefreshHandler,
   type RuntimeConfigSnapshotRefreshHandler,
 } from "../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { coerceSecretRef, isSecretRef, type SecretRef } from "../config/types.secrets.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import type { PluginOrigin } from "../plugins/plugin-origin.types.js";

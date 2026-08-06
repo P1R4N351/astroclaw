@@ -1,7 +1,7 @@
 /**
  * Auth-profile forwarding shared by normal and narrow CLI-backed agent runs.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveAuthProfileOrder } from "./auth-profiles/order.js";
 import { loadAuthProfileStoreForRuntime } from "./auth-profiles/store.js";
 import { resolveCliBackendConfig } from "./cli-backends.js";

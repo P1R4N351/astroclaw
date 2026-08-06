@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { Tool as SdkTool, ToolInvocation, ToolResultObject } from "@github/copilot-sdk";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import {
   type AnyAgentTool,

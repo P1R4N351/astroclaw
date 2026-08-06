@@ -3,8 +3,8 @@ import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import { uniqueValues } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { uniqueValues } from "@astroclaw/normalization-core/string-normalization";
 import { enqueueKeyedTask } from "openclaw/plugin-sdk/keyed-async-queue";
 import { parseByteSize } from "../cli/parse-bytes.js";
 import type { CronConfig } from "../config/types.cron.js";

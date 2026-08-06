@@ -1,7 +1,7 @@
 // Verifies generated models.json preserves source secret markers from runtime snapshots.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createFixtureSuite } from "../test-utils/fixture-suite.js";
 import { NON_ENV_SECRETREF_MARKER } from "./model-auth-markers.js";
 import {

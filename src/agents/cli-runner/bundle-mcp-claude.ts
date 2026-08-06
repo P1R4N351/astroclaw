@@ -2,8 +2,8 @@
  * Claude CLI argument helpers for OpenClaw-managed bundle MCP config.
  */
 import fs from "node:fs/promises";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { withOpenClawMcpCaptureHeader } from "./bundle-mcp-runtime.js";
 
 /** Find existing Claude `--mcp-config` argument values. */

@@ -1,4 +1,4 @@
-import type { BoardOp, BoardSnapshot, BoardWidget } from "@openclaw/gateway-protocol";
+import type { BoardOp, BoardSnapshot, BoardWidget } from "@astroclaw/gateway-protocol";
 import type { SessionObserverDigest } from "../../../../packages/gateway-protocol/src/schema/sessions.js";
 
 export type BoardGrantDecision = "granted" | "rejected";

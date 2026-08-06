@@ -1,5 +1,5 @@
 /** Commands for viewing and editing per-agent provider auth profile order. */
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import {
   type AuthProfileStore,
   externalCliDiscoveryForProviderAuth,
@@ -10,7 +10,7 @@ import {
 import { findNormalizedProviderValue, normalizeProviderId } from "../../agents/model-selection.js";
 import { resolveProviderIdForAuth } from "../../agents/provider-auth-aliases.js";
 import { formatCliCommand } from "../../cli/command-format.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../../runtime.js";
 import { shortenHomePath } from "../../utils.js";
 import { loadModelsConfig } from "./load-config.js";

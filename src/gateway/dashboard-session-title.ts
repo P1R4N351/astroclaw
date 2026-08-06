@@ -1,4 +1,4 @@
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 // Dashboard session titles use the shared utility-model completion path.
 import { resolveAgentEffectiveModelPrimary } from "../agents/agent-scope.js";
 import { splitTrailingAuthProfile } from "../agents/model-ref-profile.js";
@@ -7,7 +7,7 @@ import { resolveUtilityModelRefForAgent } from "../agents/utility-model.js";
 import { generateConversationLabelWithFallback } from "../auto-reply/reply/conversation-label-generator.js";
 import { updateSessionEntry } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { parseAgentSessionKey } from "../sessions/session-key-utils.js";
 import { getOrCreatePromise } from "../shared/lazy-promise.js";
 

@@ -8,7 +8,7 @@ import {
   listSessionEntriesReadOnly,
   type SessionEntrySummary,
 } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { SessionCatalogEntrySnapshot } from "../../plugins/session-catalog.js";
 import { normalizeAgentId, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { resolveStoredSessionKeyForAgentStore } from "../session-store-key.js";

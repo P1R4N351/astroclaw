@@ -3,14 +3,14 @@
  *
  * Resolves whether a session is sandboxed and explains policy blocks before tool execution.
  */
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import { sliceUtf16Safe, truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { formatCliCommand } from "../../cli/command-format.js";
 import {
   canonicalizeMainSessionAlias,
   resolveAgentMainSessionKey,
 } from "../../config/sessions/main-session.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { auditSandboxToolPolicyBlock, escapeControlCharsVisible } from "../tool-policy-audit.js";
 import { resolveSandboxConfigForAgent } from "./config.js";

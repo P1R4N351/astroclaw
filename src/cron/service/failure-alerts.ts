@@ -1,6 +1,6 @@
 /** Resolves and emits cron failure-alert notifications. */
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { FailoverReason } from "../../agents/embedded-agent-helpers/types.js";
 import { normalizeAnyChannelId } from "../../channels/registry-normalize.js";
 import {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createOpenClawTools } from "./openclaw-tools.js";
+import { createOpenClawTools } from "./astroclaw-tools.js";
 
 function mobileUiTool(modelHasVision?: boolean) {
   return createOpenClawTools({

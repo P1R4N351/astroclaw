@@ -1,5 +1,5 @@
 // Audits code paths for deep safety risks that require manual review.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createLazyRuntimeModule } from "../shared/lazy-runtime.js";
 import type { SecurityAuditFinding } from "./audit.types.js";
 

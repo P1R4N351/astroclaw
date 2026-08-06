@@ -11,7 +11,7 @@ import {
   expectedForwardedAuthProfile,
 } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveOpenAIRuntimeProvider } from "./openai-routing.js";
 import { resolveProviderIdForAuth } from "./provider-auth-aliases.js";
 import { resetProviderAuthAliasMapCacheForTest } from "./provider-auth-aliases.test-support.js";

@@ -1,8 +1,8 @@
 // Orchestrates security audit collection and report formatting.
 import path from "node:path";
-import { asNullableRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { hasAgentRosterProperty, listAgentEntries } from "../agents/agent-scope-config.js";
 import { resolveAgentWorkspaceDir, tryResolveDefaultAgentId } from "../agents/agent-scope.js";
 import { resolveExecDefaults } from "../agents/exec-defaults.js";
@@ -12,7 +12,7 @@ import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { ConfigFileSnapshot, OpenClawConfig } from "../config/config.js";
 import { resolveConfigPath, resolveStateDir } from "../config/paths.js";
 import type { GatewayAuthConfig } from "../config/types.gateway.js";
-import type { SecurityAuditSuppression } from "../config/types.openclaw.js";
+import type { SecurityAuditSuppression } from "../config/types.astroclaw.js";
 import {
   canMaterializeGatewayAuthSecretRefsWithoutExec,
   materializeGatewayAuthSecretRefs,

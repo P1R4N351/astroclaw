@@ -4,12 +4,12 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../src/config/types.astroclaw.js";
 import { connectGatewayClient, disconnectGatewayClient } from "../src/gateway/test-helpers.e2e.js";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/openclaw-test-instance.js";
+} from "./helpers/astroclaw-test-instance.js";
 
 const PLUGIN_ID = "session-end-shutdown-proof";
 const SESSION_KEY = "agent:main:dashboard:session-end-shutdown-proof";

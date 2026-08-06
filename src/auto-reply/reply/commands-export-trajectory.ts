@@ -10,7 +10,7 @@ import {
   buildCurrentOpenClawCliArgv,
   buildCurrentOpenClawCliCommand,
   buildCurrentOpenClawCliExecEnv,
-} from "./commands-openclaw-cli.js";
+} from "./commands-astroclaw-cli.js";
 import {
   deliverPrivateCommandReply,
   readCommandDeliveryTarget,

@@ -1,4 +1,4 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createModelVisibilityPolicy } from "../../agents/model-visibility-policy.js";
 import type { OpenClawConfig } from "../../config/config.js";

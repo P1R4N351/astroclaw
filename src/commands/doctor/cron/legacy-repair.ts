@@ -1,7 +1,7 @@
 // Doctor cron storage repair mechanics for legacy stores, run logs, payloads, and Codex refs.
 import { normalizeOptionalString } from "../../../../packages/normalization-core/src/string-coerce.js";
 import { formatCliCommand } from "../../../cli/command-format.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { getInvalidPersistedCronJobReason } from "../../../cron/persisted-shape.js";
 import {
   loadCronJobsStoreWithConfigJobs,

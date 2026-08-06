@@ -3,10 +3,10 @@ import type { Dirent } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { isRecord as hasRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString as normalizeString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord as hasRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString as normalizeString } from "@astroclaw/normalization-core/string-coerce";
 import { collectConfiguredAgentHarnessRuntimes } from "../../../agents/harness-runtimes.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 
 type CodexNativeAssetHit = {
   /** Native Codex asset category discovered under Codex or personal agent homes. */

@@ -1,5 +1,5 @@
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   isThinkingLevelSupported,
   resolveSupportedThinkingLevel,
@@ -8,7 +8,7 @@ import {
 } from "../auto-reply/thinking.js";
 /** Resolves the concrete harness runtime that owns the next agent turn. */
 import type { SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveAgentHarnessPolicy } from "./harness/policy.js";
 import { resolveAutoAgentHarnessId } from "./harness/support.js";
 import { resolveSessionRuntimeOverrideForProvider } from "./session-runtime-compat.js";

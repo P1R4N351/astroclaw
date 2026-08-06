@@ -8,7 +8,7 @@ import {
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 import { createSkillProposalEvent } from "./plugin-hooks.js";
 import { listSkillProposalEvents, listSkillProposals, proposeCreateSkill } from "./service.js";
 import { parseSkillProposalEvaluation } from "./store-record.js";

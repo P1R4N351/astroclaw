@@ -91,7 +91,7 @@ describe("check-package-dist-imports", () => {
   });
 
   it.each([
-    "../../openclaw.mjs",
+    "../../astroclaw.mjs",
     "../../scripts/run-node.mjs",
     "../../dist/entry.js",
     "../../dist/entry.mjs",

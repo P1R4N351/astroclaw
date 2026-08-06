@@ -6,7 +6,7 @@ import { listAgentEntries } from "../agents/agent-scope.js";
 import { stableStringify } from "../agents/stable-stringify.js";
 import { transformConfigFileWithRetry } from "../config/config.js";
 import type { AgentConfig } from "../config/types.agents.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolvePathViaExistingAncestorSync } from "../infra/boundary-path.js";
 import { normalizeWindowsPathForComparison } from "../infra/path-guards.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../routing/session-key.js";

@@ -3,7 +3,7 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../config/sessions.js";
 import type {
@@ -15,7 +15,7 @@ import {
   runWithOwnedSessionTranscriptWriteLock,
   withOwnedSessionTranscriptWrites,
 } from "../config/sessions/transcript-write-context.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayRecoveryRuntime } from "../gateway/server-instance-runtime.types.js";
 import type { AgentEventPayload } from "../infra/agent-events.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";

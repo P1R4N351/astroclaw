@@ -2,7 +2,7 @@
 import { chmodSync, existsSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { MAX_DATE_TIMESTAMP_MS } from "@openclaw/normalization-core/number-coercion";
+import { MAX_DATE_TIMESTAMP_MS } from "@astroclaw/normalization-core/number-coercion";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearOpenClawDatabaseQuarantine,
@@ -19,7 +19,7 @@ import {
   createOpenClawTestState,
   withOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import {
   closePluginStateDatabase,
   countPluginStateLiveEntries,

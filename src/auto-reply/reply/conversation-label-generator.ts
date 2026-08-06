@@ -1,5 +1,5 @@
 // Generates short labels for sessions from conversation context.
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { splitTrailingAuthProfile } from "../../agents/model-ref-profile.js";
 import {
@@ -7,7 +7,7 @@ import {
   prepareSimpleCompletionModelForAgent,
   resolveSimpleCompletionSelectionForAgent,
 } from "../../agents/simple-completion-runtime.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { logVerbose } from "../../globals.js";
 import type { TextContent } from "../../llm/types.js";
 

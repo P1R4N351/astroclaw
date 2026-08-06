@@ -8,7 +8,7 @@ import {
   resolveSqliteFilesystemPath,
 } from "./node-sqlite.js";
 import { createPrivateSqliteTempDirectory } from "./sqlite-private-directory.js";
-import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "./tmp-astroclaw-dir.js";
 
 const MAX_SNAPSHOT_ATTEMPTS = 10;
 const COPY_BUFFER_BYTES = 1024 * 1024;

@@ -1,4 +1,4 @@
-import type { ErrorShape, EventFrame, HelloOk } from "@openclaw/gateway-protocol";
+import type { ErrorShape, EventFrame, HelloOk } from "@astroclaw/gateway-protocol";
 export type GatewayProtocolSocket = {
   isOpen: () => boolean;
   send: (data: string) => void;

@@ -1,4 +1,4 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it, vi } from "vitest";
 import type { TerminalBackend } from "./backend.js";
 import { TerminalSessionManager } from "./session-manager.js";

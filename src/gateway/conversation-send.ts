@@ -7,7 +7,7 @@ import {
   resolveConversation,
   resolveConversationRegistryScope,
 } from "../config/sessions/conversation-registry.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   ConversationDeliveryRejectedError,
   defaultConversationDeliveryDeps,

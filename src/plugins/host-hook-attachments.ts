@@ -5,13 +5,13 @@ import {
   detectMime,
   FILE_TYPE_SNIFF_MAX_BYTES,
   normalizeMimeType,
-} from "@openclaw/media-core/mime";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/media-core/mime";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolvePathFromInput } from "../agents/path-policy.js";
 import { resolveWorkspaceRoot } from "../agents/workspace-dir.js";
 import { extractDeliveryInfo } from "../config/sessions/delivery-info.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import { createLazyRuntimeModule } from "../shared/lazy-runtime.js";

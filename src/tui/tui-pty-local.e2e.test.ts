@@ -9,11 +9,11 @@ import { afterAll, beforeAll, describe, expect, it, type TestFunction } from "vi
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "../../test/helpers/openclaw-test-instance.js";
+} from "../../test/helpers/astroclaw-test-instance.js";
 import { loadPersistedAuthProfileStore } from "../agents/auth-profiles/persisted.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
 import type { ModelProviderConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { connectGatewayClient } from "../gateway/test-helpers.e2e.js";
 import { runExec } from "../process/exec.js";
 import { createDeferred } from "../test-utils/deferred.js";

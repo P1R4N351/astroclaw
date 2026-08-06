@@ -128,7 +128,7 @@ describe("worker bundle producer", () => {
           version: "1.2.3",
           type: "module",
           files: ["dist/"],
-          dependencies: { json5: "2.2.3", "@openclaw/gateway-protocol": "workspace:*" },
+          dependencies: { json5: "2.2.3", "@astroclaw/gateway-protocol": "workspace:*" },
           devDependencies: { vitest: "4.0.0" },
           scripts: { prepare: "node scripts/prepare.mjs" },
           pnpm: { patchedDependencies: {} },
@@ -170,7 +170,7 @@ describe("worker bundle producer", () => {
           dependencies: {
             json5: "2.2.3",
             "@openclaw/fake-pkg": "workspace:*",
-            "@openclaw/gateway-protocol": "workspace:*",
+            "@astroclaw/gateway-protocol": "workspace:*",
           },
         })}\n`,
         "utf8",

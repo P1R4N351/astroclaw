@@ -1,5 +1,5 @@
-import { err as resultError, ok, type Result } from "@openclaw/normalization-core/result";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { err as resultError, ok, type Result } from "@astroclaw/normalization-core/result";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import { resolveChannelSetupExecutionAdapter } from "./setup-contract.js";

@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import {
   isFutureDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type {
   SubagentCompletionToolHandoffRegistration,
   TrustedSubagentCompletionHandoff,

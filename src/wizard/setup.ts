@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveOnboardingAgentTarget } from "../commands/onboard-agent-target.js";
 import type { GatewayAuthChoice, OnboardMode, OnboardOptions } from "../commands/onboard-types.js";
@@ -8,7 +8,7 @@ import { ConfigMutationConflictError, resolveGatewayPort } from "../config/confi
 import { createMergePatch } from "../config/merge-patch.js";
 import { applyMergePatch } from "../config/merge-patch.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeSecretInputString } from "../config/types.secrets.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {

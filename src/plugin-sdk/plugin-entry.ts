@@ -1,5 +1,5 @@
 // Plugin entry contracts define the manifest-facing hooks implemented by plugin packages.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { emptyPluginConfigSchema } from "../plugins/config-schema.js";
 import type {
   AgentHarness as _AgentHarness,
@@ -305,7 +305,7 @@ export type {
   UnifiedModelCatalogEntry,
   UnifiedModelCatalogKind,
   UnifiedModelCatalogSource,
-} from "@openclaw/model-catalog-core/model-catalog-types";
+} from "@astroclaw/model-catalog-core/model-catalog-types";
 export type { OpenClawConfig };
 
 export {

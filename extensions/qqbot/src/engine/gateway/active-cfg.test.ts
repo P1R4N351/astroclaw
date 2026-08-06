@@ -1,5 +1,5 @@
 // Qqbot tests cover active cfg plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { createActiveCfgProvider } from "./active-cfg.js";

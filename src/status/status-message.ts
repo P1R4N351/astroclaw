@@ -4,7 +4,7 @@ import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { resolveContextTokensForModel } from "../agents/context.js";
 import { resolveCronStyleNow } from "../agents/current-time.js";
 import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
@@ -46,7 +46,7 @@ import {
   hasSessionActiveAutoModelFallback,
   hasSessionAutoModelFallbackProvenance,
 } from "../config/sessions/model-override-provenance.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { readRecentSessionUsageFromTranscript } from "../gateway/session-transcript-readers.js";
 import { formatDurationCompact } from "../infra/format-time/format-duration.ts";
 import { formatTimeAgo } from "../infra/format-time/format-relative.ts";

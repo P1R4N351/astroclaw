@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { writeJson } from "../../src/infra/json-files.ts";
 import {
   collectPackageDistInventory,

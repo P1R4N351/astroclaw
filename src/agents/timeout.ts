@@ -6,8 +6,8 @@
 import {
   clampTimerTimeoutMs,
   MAX_TIMER_TIMEOUT_MS,
-} from "@openclaw/normalization-core/number-coercion";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+} from "@astroclaw/normalization-core/number-coercion";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 const DEFAULT_AGENT_TIMEOUT_SECONDS = 48 * 60 * 60;
 export const DEFAULT_AGENT_TIMEOUT_MS = DEFAULT_AGENT_TIMEOUT_SECONDS * 1000;

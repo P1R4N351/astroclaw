@@ -3,7 +3,7 @@ import { wrapToolWithBeforeToolCallHook } from "../agents/agent-tools.before-too
 import { BEFORE_TOOL_CALL_HOOK_CONTEXT } from "../agents/before-tool-call-metadata.js";
 import type { CodeModeHeadlessResult } from "../agents/code-mode.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createCronScriptRuntime } from "./trigger-script.js";
 
 type EvaluatorDeps = Parameters<typeof createCronScriptRuntime>[0];

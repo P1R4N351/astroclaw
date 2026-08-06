@@ -14,7 +14,7 @@ import type { registerProviderStreamForModel } from "../../agents/provider-strea
 import type { prepareSimpleCompletionModel } from "../../agents/simple-completion-runtime.js";
 import { resolveSimpleCompletionModelResolverWorkspace } from "../../agents/simple-completion-scope.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { onTrustedInternalDiagnosticEvent } from "../../infra/diagnostic-events.js";
 import { bindModelLlmRuntime } from "../../llm/model-runtime-binding.js";
 import type { AssistantMessage, Model, StreamFn, Usage } from "../../llm/types.js";

@@ -52,7 +52,7 @@ beforeAll(async () => {
 
 function compileManifestConfigSchema() {
   const manifest = JSON.parse(
-    fs.readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf8"),
+    fs.readFileSync(new URL("../astroclaw.plugin.json", import.meta.url), "utf8"),
   ) as { configSchema: JsonSchemaObject };
   return (value: unknown) =>
     validateJsonSchemaValue({
@@ -398,7 +398,7 @@ describe("diffs plugin schema surfaces", () => {
 
   it("keeps the runtime json schema in sync with the manifest config schema", () => {
     const manifest = JSON.parse(
-      fs.readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf8"),
+      fs.readFileSync(new URL("../astroclaw.plugin.json", import.meta.url), "utf8"),
     ) as { configSchema?: unknown };
 
     expect(diffsPluginConfigSchema.jsonSchema).toEqual(manifest.configSchema);

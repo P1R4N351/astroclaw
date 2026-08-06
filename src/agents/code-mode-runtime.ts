@@ -1,7 +1,7 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { uniqueValues } from "@openclaw/normalization-core/string-normalization";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { uniqueValues } from "@astroclaw/normalization-core/string-normalization";
 import { parse, tokenizer } from "acorn";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { createLazyPromiseLoader } from "../shared/lazy-runtime.js";
 import { clampNumber } from "../utils.js";

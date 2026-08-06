@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { upsertSessionEntry } from "../../config/sessions/session-accessor.js";
 import { closeOpenClawAgentDatabasesForTest } from "../../state/openclaw-agent-db.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { sessionSuggestionHandlers } from "./sessions-suggestions.js";
 import type { GatewayClient, GatewayRequestContext, RespondFn } from "./types.js";
 

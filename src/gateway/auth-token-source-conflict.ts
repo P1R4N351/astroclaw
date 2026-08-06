@@ -1,7 +1,7 @@
 // Gateway auth-token source conflict detector.
 // Warns when local env auth can diverge from managed gateway config auth.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeSecretInputString, resolveSecretInputRef } from "../config/types.secrets.js";
 
 const GATEWAY_ENV_TOKEN = "OPENCLAW_GATEWAY_TOKEN";

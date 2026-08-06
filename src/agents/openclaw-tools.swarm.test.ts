@@ -1,7 +1,7 @@
 // Verifies Swarm tools remain absent by default and appear only for gated runs.
 import { describe, expect, it } from "vitest";
 import { createOpenClawCodingTools } from "./agent-tools.js";
-import { createOpenClawTools } from "./openclaw-tools.js";
+import { createOpenClawTools } from "./astroclaw-tools.js";
 
 function toolNames(options: NonNullable<Parameters<typeof createOpenClawTools>[0]>) {
   const config = options.config ?? {};

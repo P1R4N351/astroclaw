@@ -9,13 +9,13 @@ let monolithicSdk = null;
 let diagnosticEventsModule = null;
 const moduleLoaders = new Map();
 const pluginSdkSubpathsCache = new Map();
-const pluginSdkPackageNames = ["openclaw/plugin-sdk", "@openclaw/plugin-sdk"];
+const pluginSdkPackageNames = ["openclaw/plugin-sdk", "@astroclaw/plugin-sdk"];
 const pluginSdkSourceExtensions = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"];
 const privateQaExcludedPluginSdkSubpaths = new Set(["ssrf-runtime-internal"]);
 // Subpath -> source entry for private/bundled workspace packages that internal
 // source imports by package name. Dist paths mirror each package's export map.
 const workspacePackageAliasEntries = {
-  "@openclaw/llm-core": {
+  "@astroclaw/llm-core": {
     dir: "llm-core",
     subpaths: {
       "": { srcFile: "src/index.ts", distFile: "dist/index.mjs" },
@@ -59,7 +59,7 @@ const workspacePackageAliasEntries = {
       },
     },
   },
-  "@openclaw/markdown-core": {
+  "@astroclaw/markdown-core": {
     dir: "markdown-core",
     subpaths: {
       "": { srcFile: "src/index.ts", distFile: "dist/index.mjs" },
@@ -76,7 +76,7 @@ const workspacePackageAliasEntries = {
       types: { srcFile: "src/types.ts", distFile: "dist/types.mjs" },
     },
   },
-  "@openclaw/normalization-core": {
+  "@astroclaw/normalization-core": {
     dir: "normalization-core",
     subpaths: {
       "": { srcFile: "src/index.ts", distFile: "dist/index.mjs" },

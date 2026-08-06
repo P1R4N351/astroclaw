@@ -1,8 +1,8 @@
 /** SQLite-backed ACP session metadata storage keyed through session-store entries. */
 import type { DatabaseSync } from "node:sqlite";
-import { safeParseJson } from "@openclaw/normalization-core";
-import { asOptionalRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { safeParseJson } from "@astroclaw/normalization-core";
+import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import type { Insertable, Selectable } from "kysely";
 import { getRuntimeConfig } from "../../config/config.js";
 import { patchSessionEntryWithKey } from "../../config/sessions/session-accessor.js";
@@ -13,7 +13,7 @@ import {
   type SessionAcpMeta,
   type SessionEntry,
 } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   executeSqliteQuerySync,
   executeSqliteQueryTakeFirstSync,

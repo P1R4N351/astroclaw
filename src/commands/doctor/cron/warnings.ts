@@ -1,12 +1,12 @@
 // Doctor cron warnings for model overrides and stale WhatsApp crontab health scripts.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "../../../../packages/normalization-core/src/string-coerce.js";
 import { note } from "../../../../packages/terminal-core/src/note.js";
 import { normalizeChatChannelId } from "../../../channels/ids.js";
 import { listReadOnlyChannelPluginsForConfig } from "../../../channels/plugins/read-only.js";
 import { formatCliCommand } from "../../../cli/command-format.js";
 import { resolveAgentModelPrimaryValue } from "../../../config/model-input.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { resolveCronDeliveryPlan } from "../../../cron/delivery-plan.js";
 import type { CronJob } from "../../../cron/types.js";
 import { runExec } from "../../../process/exec.js";

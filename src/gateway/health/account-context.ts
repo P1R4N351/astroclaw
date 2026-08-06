@@ -1,11 +1,11 @@
-import { asNullableRecord } from "@openclaw/normalization-core/record-coerce";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import { inspectChannelAccount } from "../../channels/account-inspection.js";
 import {
   resolveChannelAccountConfigured,
   resolveChannelAccountEnabled,
 } from "../../channels/account-summary.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 
 const PUBLIC_IMESSAGE_FULL_DISK_ACCESS_ERROR =

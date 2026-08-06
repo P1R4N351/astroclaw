@@ -1,5 +1,5 @@
 // Test-only bridge that feeds legacy fixture values through the canonical mediaModels owner.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 type MediaCapability = "image" | "music" | "video";
 type LegacyMediaModelKey = "imageGenerationModel" | "musicGenerationModel" | "videoGenerationModel";

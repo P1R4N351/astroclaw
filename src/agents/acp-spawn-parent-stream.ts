@@ -1,7 +1,7 @@
 /** Relays child ACP session stream updates back into the requester parent session. */
-import { asFiniteNumber } from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { sliceUtf16Safe, truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import {
   isAcpTagVisible,
   resolveAcpProjectionSettings,
@@ -11,7 +11,7 @@ import {
   resolveChannelStreamingProgressCommentary,
   type StreamingCompatEntry,
 } from "../channels/streaming.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { onAgentEvent } from "../infra/agent-events.js";
 import {
   type EventSessionRoutingPolicy,

@@ -3,7 +3,7 @@
  *
  * Stores target-family consumers that compile and materialize configured binding rules.
  */
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveGlobalMap } from "../../shared/global-singleton.js";
 import type {
   CompiledConfiguredBinding,

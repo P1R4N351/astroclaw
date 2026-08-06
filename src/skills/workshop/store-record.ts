@@ -1,5 +1,5 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { err, ok, type Result } from "@openclaw/normalization-core/result";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { err, ok, type Result } from "@astroclaw/normalization-core/result";
 import type {
   PluginHookSkillEvaluationFinding,
   PluginHookSkillProposalEvaluateResult,

@@ -1,7 +1,7 @@
 /** Configured provider rows own exact model ids before plugin normalization. */
-import { findNormalizedProviderValue } from "@openclaw/model-catalog-core/provider-id";
+import { findNormalizedProviderValue } from "@astroclaw/model-catalog-core/provider-id";
 import type { ModelProviderConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizePluginsConfig } from "../plugins/config-state.js";
 
 type ConfiguredProviderModelParams = {

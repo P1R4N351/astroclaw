@@ -1,7 +1,7 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 // Channel streaming config normalization and progress-draft formatting helpers.
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import {
   formatToolDetail,
   isShellToolDisplayName,

@@ -3,12 +3,12 @@ import { existsSync } from "node:fs";
 import {
   asDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "@openclaw/normalization-core/number-coercion";
-import { asNullableObjectRecord as readRecord } from "@openclaw/normalization-core/record-coerce";
+} from "@astroclaw/normalization-core/number-coercion";
+import { asNullableObjectRecord as readRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { logVerbose } from "../globals.js";
 import { runExec } from "../process/exec.js";
 import { toErrorObject } from "./errors.js";

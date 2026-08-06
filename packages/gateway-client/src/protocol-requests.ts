@@ -1,4 +1,4 @@
-import type { ResponseFrame } from "@openclaw/gateway-protocol";
+import type { ResponseFrame } from "@astroclaw/gateway-protocol";
 import {
   GatewayProtocolRequestError,
   type GatewayProtocolClientOptions,

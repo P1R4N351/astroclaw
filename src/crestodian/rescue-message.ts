@@ -5,10 +5,10 @@ import path from "node:path";
 import {
   asDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import type { CommandContext } from "../auto-reply/reply/commands-types.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { tryReadJson, writeJson } from "../infra/json-files.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { classifyCrestodianApprovalText } from "./approval-intent.js";

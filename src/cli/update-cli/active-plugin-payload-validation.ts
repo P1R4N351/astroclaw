@@ -1,5 +1,5 @@
 // Boot-local plugin payload verification without repair, install, or catalog imports.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import { normalizePluginsConfig, resolveEffectiveEnableState } from "../../plugins/config-state.js";
 import {

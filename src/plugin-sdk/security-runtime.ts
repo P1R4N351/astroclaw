@@ -79,7 +79,7 @@ export {
   resolveStrictExistingPathsWithinRoot,
 } from "../infra/root-paths.js";
 
-export { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+export { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 export { redactSensitiveText } from "../logging/redact.js";
 export { safeEqualSecret } from "../security/secret-equal.js";
 

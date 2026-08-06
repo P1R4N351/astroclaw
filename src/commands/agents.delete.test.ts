@@ -10,7 +10,7 @@ import {
 import { resolveStorePath } from "../config/sessions.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { listSessionEntries, replaceSessionEntry } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import { withStateDirEnv } from "../test-helpers/state-dir-env.js";
 import { baseConfigSnapshot, createTestRuntime } from "./test-runtime-config-helpers.js";

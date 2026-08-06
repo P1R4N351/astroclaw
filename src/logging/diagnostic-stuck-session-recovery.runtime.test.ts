@@ -6,7 +6,7 @@ import {
   replaceSessionEntry,
 } from "../config/sessions/session-accessor.js";
 import { saveCronStore } from "../cron/store.js";
-import { createOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { createOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 
 const mocks = vi.hoisted(() => ({
   abortEmbeddedAgentRun: vi.fn(),

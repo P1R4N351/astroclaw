@@ -12,7 +12,7 @@ import {
   validateConnectParams,
   type ConnectParams,
 } from "../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   getBoundDeviceBootstrapProfile,
   redeemDeviceBootstrapTokenProfile,

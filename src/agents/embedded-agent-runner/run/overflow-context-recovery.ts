@@ -1,5 +1,5 @@
 import { isContextOverflow } from "@openclaw/ai/internal/runtime";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { ContextEngine } from "../../../context-engine/types.js";
 import { formatErrorMessage } from "../../../infra/errors.js";
 import type { AssistantMessage } from "../../../llm/types.js";

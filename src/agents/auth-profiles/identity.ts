@@ -3,8 +3,8 @@
  * Keeps profile id construction and human metadata lookup centralized for auth
  * status, storage, and provider selection.
  */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { AuthProfileStore } from "./types.js";
 
 // Metadata can be configured separately from stored credentials. Config wins so

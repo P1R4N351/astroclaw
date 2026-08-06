@@ -12,7 +12,7 @@ import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
 import { hasConfiguredSecretInput } from "openclaw/plugin-sdk/secret-input";
 import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 import { asPositiveSafeInteger } from "openclaw/plugin-sdk/string-coerce-runtime";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 const log = createSubsystemLogger("deepinfra-models");
 

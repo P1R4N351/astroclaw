@@ -5,7 +5,7 @@ import {
   CODEX_APP_SERVER_DEFAULT_MODEL_REF,
   GEMINI_CLI_DEFAULT_MODEL_REF,
 } from "../commands/onboard-inference.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { CrestodianOverview } from "./overview.js";
 
 /**

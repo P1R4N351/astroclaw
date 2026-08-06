@@ -1,7 +1,7 @@
 // Lightweight static projections for deciding whether plugin repair can be skipped.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { BUNDLED_OFFICIAL_EXTERNAL_PLUGIN_CATALOG_ENTRIES } from "./official-external-plugin-bundled-catalogs.js";
 
 type StaticProvider = {

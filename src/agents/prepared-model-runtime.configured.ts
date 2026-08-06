@@ -1,10 +1,10 @@
 import {
   collectConfiguredModelRefs,
   type ConfiguredModelRef,
-} from "@openclaw/model-catalog-core/configured-model-refs";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+} from "@astroclaw/model-catalog-core/configured-model-refs";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { MODEL_APIS } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
 import {
   normalizePluginDiscoveryResult,

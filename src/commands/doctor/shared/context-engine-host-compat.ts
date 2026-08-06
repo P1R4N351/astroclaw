@@ -1,6 +1,6 @@
 // Doctor checks for context engine host requirements against configured agent runtimes.
-import { parseModelCatalogRef } from "@openclaw/model-catalog-core/model-catalog-refs";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { parseModelCatalogRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { normalizeEmbeddedAgentRuntime } from "../../../agents/agent-runtime-id.js";
 import {
   listAgentEntriesWithSource,
@@ -10,7 +10,7 @@ import { resolveCliBackendConfig } from "../../../agents/cli-backends.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../../agents/defaults.js";
 import { resolveAgentHarnessPolicy } from "../../../agents/harness/policy.js";
 import { getRegisteredAgentHarness } from "../../../agents/harness/registry.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import {
   buildGenericCliContextEngineHostSupport,
   CODEX_APP_SERVER_CONTEXT_ENGINE_HOST,

@@ -25,7 +25,7 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout: (...args: unknown[]) => runCommandWithTimeoutMock(...args),
 }));
 
-vi.mock("../infra/openclaw-root.js", () => ({
+vi.mock("../infra/astroclaw-root.js", () => ({
   resolveOpenClawPackageRootSync: (...args: unknown[]) =>
     resolveOpenClawPackageRootSyncMock(...args),
 }));

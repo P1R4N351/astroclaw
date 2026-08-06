@@ -26,7 +26,7 @@ import {
 import type { AuthProfileStore } from "../../../agents/auth-profiles/types.js";
 import { resolveProviderIdForAuth } from "../../../agents/provider-auth-aliases.js";
 import { resolveStateDir } from "../../../config/paths.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 import {
   inspectOpenClawAgentDatabaseOwner,

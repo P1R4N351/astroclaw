@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { executeSystemAgentOperation } from "./operations.js";
 import { createSystemAgentTestRuntime } from "./system-agent.test-helpers.js";
 

@@ -1,10 +1,10 @@
 /**
  * Formats user-facing auth labels for resolved provider/model credentials.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import type { SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   externalCliDiscoveryForProviderAuth,
   ensureAuthProfileStore,

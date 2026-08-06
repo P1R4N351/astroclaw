@@ -1,6 +1,6 @@
 import type { InternalSessionEntry as SessionEntry } from "../config/sessions.js";
 import { loadSessionEntry } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayRecoveryRuntime } from "../gateway/server-instance-runtime.types.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import type { MainSessionRecoveryObservation } from "./main-session-recovery-state.js";

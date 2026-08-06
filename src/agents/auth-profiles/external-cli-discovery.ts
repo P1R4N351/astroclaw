@@ -3,8 +3,8 @@
  * Converts provider/config lookup contexts into scoped discovery options for
  * auth profile store loading.
  */
-import { normalizeTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { normalizeTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   resolveExternalCliAuthScopeFromConfig,
   type ExternalCliAuthScope,

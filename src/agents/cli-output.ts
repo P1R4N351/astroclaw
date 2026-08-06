@@ -3,9 +3,9 @@
  * JSONL streaming, Claude stream-json dialects, usage metadata, and tool event
  * reconstruction.
  */
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import {
   createReasoningTagTextPartitioner,
   scanReasoningTags,

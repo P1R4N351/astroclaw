@@ -1,6 +1,6 @@
-import { parseModelCatalogRef } from "@openclaw/model-catalog-core/model-catalog-refs";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { parseModelCatalogRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 
 const MODEL_POLICY_COMPAT_SELECTORS = new Set(["openrouter:auto", "openrouter:free"]);
 

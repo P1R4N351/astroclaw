@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { MigrationPlan, MigrationProviderPlugin } from "../../plugins/types.js";
 import { planProviderMemoryImport } from "./memory-import.js";
 

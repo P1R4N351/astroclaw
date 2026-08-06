@@ -1,7 +1,7 @@
 /**
  * Normalizes and delivers agent command results to outbound channels.
  */
-import { hasNonEmptyString } from "@openclaw/normalization-core/string-coerce";
+import { hasNonEmptyString } from "@astroclaw/normalization-core/string-coerce";
 import {
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
@@ -27,7 +27,7 @@ import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/ind
 import { createReplyPrefixContext } from "../../channels/reply-prefix.js";
 import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { formatErrorMessage, toErrorObject } from "../../infra/errors.js";
 import {
   resolveAgentDeliveryPlanWithSessionRoute,

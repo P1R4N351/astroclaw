@@ -2,8 +2,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { getWindowsCmdExePath } from "../infra/windows-install-roots.js";
 import { decodeWindowsLauncherScript } from "../infra/windows-launcher-encoding.js";
 import { parseCmdScriptCommandLine, quoteCmdScriptArg } from "./cmd-argv.js";

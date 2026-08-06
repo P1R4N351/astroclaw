@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { baseUrlTextInput, defineTokenCredential } from "./setup-credential.js";
 
 type DemoAccount = {

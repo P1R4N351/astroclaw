@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { InputProvenance } from "../sessions/input-provenance.js";
 import { resolveEffectiveToolPolicy, resolveGroupToolPolicy } from "./agent-tools.policy.js";
 import { resolveRequesterToolPolicies } from "./requester-tool-policy.js";

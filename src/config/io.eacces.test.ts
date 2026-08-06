@@ -2,12 +2,12 @@
 import fsNode from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { withEnvAsync } from "../test-utils/env.js";
 import { createConfigIO, resetConfigRuntimeState, writeConfigFile } from "./io.js";
 import type { ConfigWriteOptions } from "./io.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 function makeEaccesFs(configPath: string) {
   const eaccesErr = Object.assign(new Error(`EACCES: permission denied, open '${configPath}'`), {

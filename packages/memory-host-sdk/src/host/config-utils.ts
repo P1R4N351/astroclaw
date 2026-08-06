@@ -2,17 +2,17 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { normalizeAgentId } from "@openclaw/normalization-core/agent-id";
+import { normalizeAgentId } from "@astroclaw/normalization-core/agent-id";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   normalizeStringEntries,
   uniqueStrings,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 export { normalizeAgentId };
-export { splitShellArgs } from "./openclaw-runtime-io.js";
+export { splitShellArgs } from "./astroclaw-runtime-io.js";
 
 // Shared OpenClaw config helpers used by memory host, QMD, and agent context code.
 

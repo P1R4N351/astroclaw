@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { withTempConfig } from "../../gateway/test-temp-config.js";
 import { emitAgentEvent, resetAgentEventsForTest } from "../../infra/agent-events.js";
 import { loadSessionStore, updateSessionStore } from "../../plugin-sdk/session-store-runtime.js";
-import { createOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { createOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { runPluginHostCleanup } from "../host-hook-cleanup.js";
 import {
   clearPluginHostRuntimeState,

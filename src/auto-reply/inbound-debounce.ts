@@ -2,9 +2,9 @@
 import {
   resolveNonNegativeIntegerOption,
   resolveOptionalIntegerOption,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import type { InboundDebounceByProvider } from "../config/types.messages.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { toErrorObject } from "../infra/errors.js";
 
 const resolveMs = (value: unknown): number | undefined =>

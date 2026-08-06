@@ -1,5 +1,5 @@
 /** Registry for image-generation providers contributed by plugin capabilities. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import * as capabilityProviderRuntime from "../plugins/capability-provider-runtime.js";
 import {
   buildCapabilityProviderMaps,

@@ -1,7 +1,7 @@
 // Session store facade coordinates reads, writes, maintenance, delivery metadata, and exports.
 import fs from "node:fs";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { writeTextAtomic } from "../../infra/json-files.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import {
@@ -11,7 +11,7 @@ import {
 } from "../../sessions/agent-harness-session-key.js";
 import { createLazyRuntimeModule } from "../../shared/lazy-runtime.js";
 import { getFileStatSnapshot } from "../cache-utils.js";
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import type { SessionUnreferencedArtifactSweepResult } from "./disk-budget.js";
 import type { SessionResetBoundaryReason } from "./session-reset-boundary-event.js";
 import { resolveSessionStorePathForScope } from "./session-store-path.js";

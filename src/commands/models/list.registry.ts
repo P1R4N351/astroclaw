@@ -5,7 +5,7 @@ import {
 } from "../../agents/model-suppression.js";
 /** Model registry access helpers for `openclaw models list`. */
 import { loadPreparedAgentModelRegistry as loadAgentModelRegistry } from "../../agents/prepared-model-registry.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ModelRegistry } from "../../llm/model-registry.js";
 import type { Model } from "../../llm/types.js";
 import {

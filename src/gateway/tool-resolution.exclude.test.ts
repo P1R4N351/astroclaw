@@ -7,7 +7,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { replaceSessionEntry } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 type CreateOpenClawToolsArg = {
   clientCaps?: string[];
@@ -86,7 +86,7 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock("../agents/openclaw-tools.js", () => ({
+vi.mock("../agents/astroclaw-tools.js", () => ({
   createOpenClawTools: (args: CreateOpenClawToolsArg) => hoisted.createOpenClawToolsMock(args),
 }));
 

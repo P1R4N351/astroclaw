@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { recordChannelFeedbackEvent, runChannelFeedbackReflection } from "./feedback-reflection.js";
 
 const appendTranscriptEvent = vi.hoisted(() => vi.fn(async () => undefined));

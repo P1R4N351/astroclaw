@@ -2,11 +2,11 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeNullableString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import type {
   SystemRunApprovalFileOperand,
   SystemRunApprovalPlan,

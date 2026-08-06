@@ -4,7 +4,7 @@
  * Resolves model, thinking, and timeout choices before the sessions_spawn executor launches work.
  */
 import { formatThinkingLevels } from "../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { FastMode } from "../shared/fast-mode.js";
 import {
   resolveDefaultModelForAgent,

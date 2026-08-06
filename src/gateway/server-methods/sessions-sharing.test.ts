@@ -16,7 +16,7 @@ import {
   resolveIncognitoOpenClawAgentSqlitePath,
 } from "../../state/openclaw-agent-db.js";
 import { ensureProfileForEmail, listProfiles, setDisplayName } from "../../state/user-profiles.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { createBoardViewTicket } from "../board-view-ticket.js";
 import {
   authorizeResolvedSessionMutation,

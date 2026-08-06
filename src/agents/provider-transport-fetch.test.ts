@@ -1,5 +1,5 @@
 // Verifies guarded provider fetch wiring, stream cleanup, proxy, and local service behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
+import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 import type { Model } from "astroclaw/plugin-sdk/llm";
 import { Stream } from "openai/streaming";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

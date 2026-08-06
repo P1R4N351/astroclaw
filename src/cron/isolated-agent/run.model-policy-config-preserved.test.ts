@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveAgentConfig } from "../../agents/agent-scope.js";
 import { resolveAllowedModelRef } from "../../agents/model-selection-resolve.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { buildCronAgentDefaultsConfig } from "./run-config.js";
 
 function buildCronConfig(cfg: OpenClawConfig, agentId: string): OpenClawConfig {

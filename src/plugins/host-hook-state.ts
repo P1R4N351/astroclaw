@@ -1,12 +1,12 @@
 // Tracks host hook state and scheduled turn identifiers.
 import { randomUUID } from "node:crypto";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { SessionEntry } from "../config/sessions.js";
 import {
   resolveSessionEntryAccessTarget,
   updateResolvedSessionEntry,
 } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   buildPluginAgentTurnPrepareContext,

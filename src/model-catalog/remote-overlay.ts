@@ -2,9 +2,9 @@ import {
   validateAndSanitizeRemoteModelCatalogBundle,
   type RemoteModelCatalogBundle,
   type RemoteModelCatalogPricing,
-} from "@openclaw/model-catalog-core";
-import type { ModelCatalogProvider } from "@openclaw/model-catalog-core/model-catalog-types";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+} from "@astroclaw/model-catalog-core";
+import type { ModelCatalogProvider } from "@astroclaw/model-catalog-core/model-catalog-types";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { compareOpenClawVersions } from "../config/version.js";
 import { VERSION } from "../version.js";
 import { bundledCatalogGeneratedAt } from "./bundled-catalog-stamp.js";

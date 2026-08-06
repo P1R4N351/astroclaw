@@ -1,5 +1,5 @@
 /** Shared plan construction for plugin-owned SecretRef setup commands. */
-import { isValidAgentId } from "@openclaw/normalization-core/agent-id";
+import { isValidAgentId } from "@astroclaw/normalization-core/agent-id";
 import type { PluginIntegrationSecretProviderConfig, SecretRef } from "../config/types.secrets.js";
 import type { SecretsApplyPlan, SecretsPlanTarget } from "./plan.js";
 import { resolveSecretPlanTargetByPath } from "./target-registry-query.js";

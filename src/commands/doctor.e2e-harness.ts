@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { afterEach, beforeEach, vi } from "vitest";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import type { MockFn } from "../test-utils/vitest-mock-fn.js";
@@ -482,8 +482,8 @@ vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   }),
 }));
 
-vi.mock("../infra/openclaw-root.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../infra/openclaw-root.js")>();
+vi.mock("../infra/astroclaw-root.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../infra/astroclaw-root.js")>();
   return {
     ...actual,
     resolveOpenClawPackageRoot,

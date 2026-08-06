@@ -1,8 +1,8 @@
 // Plans first-start plugin convergence without loading the repair/catalog runtime.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentEntries } from "../../../agents/agent-scope.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../../../config/types.plugins.js";
 import { inspectBundledPluginStartupMetadata } from "../../../plugins/bundled-plugin-startup-metadata.js";
 import { resolveConfiguredGenericEmbeddingProviderId } from "../../../plugins/embedding-provider-config.js";

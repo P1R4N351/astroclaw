@@ -5,7 +5,7 @@ import {
 } from "../../auto-reply/envelope.js";
 import { resolveStorePath } from "../../config/sessions/paths.js";
 import { readSessionUpdatedAt } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   resolveAgentRoute,
   type ResolvedAgentRoute,

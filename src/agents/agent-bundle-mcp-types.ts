@@ -6,7 +6,7 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { TSchema } from "typebox";
 import type { SessionToolOverrides } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import type { AnyAgentTool } from "./tools/common.js";
 

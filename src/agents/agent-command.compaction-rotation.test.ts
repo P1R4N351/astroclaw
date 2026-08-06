@@ -10,7 +10,7 @@ import {
   loadTranscriptEvents,
   replaceSessionEntry,
 } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { rotateAgentEventLifecycleGeneration } from "../infra/agent-events.js";
 import type { runAgentAttempt } from "./command/attempt-execution.runtime.js";
 import type { EmbeddedAgentRunResult } from "./embedded-agent.js";

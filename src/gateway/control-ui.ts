@@ -2,16 +2,16 @@ import { createHmac, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
-import { detectMime, kindFromMime } from "@openclaw/media-core/mime";
+import { detectMime, kindFromMime } from "@astroclaw/media-core/mime";
 import {
   asDateTimestampMs,
   resolveTimestampMsToIsoString,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import {
   type AgentAvatarResolution,
   resolvePublicAgentAvatarSource,
 } from "../agents/identity-avatar.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { matchRootFileOpenFailure, openRootFileSync } from "../infra/boundary-file-read.js";
 import { readFileDescriptorBounded } from "../infra/boundary-file-read.js";
 import { resolveDevInstallGitBranch } from "../infra/dev-install-branch.js";

@@ -1,7 +1,7 @@
-import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
+import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 import type { SessionTranscriptRuntimeTarget } from "../config/sessions/session-accessor.types.js";
 import { resolveSqliteTargetFromSessionStorePath } from "../config/sessions/session-sqlite-target.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolvePathViaExistingAncestorSync } from "../infra/boundary-path.js";
 import { readWindowsProcessStartTimeSync } from "../infra/windows-port-pids.js";
 import { LEGACY_IMPLICIT_AGENT_ID, resolveAgentIdFromSessionKey } from "../routing/session-key.js";

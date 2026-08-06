@@ -1,5 +1,5 @@
 // Workboard tests cover command plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { OpenClawPluginCommandDefinition } from "openclaw/plugin-sdk/core";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi } from "../api.js";

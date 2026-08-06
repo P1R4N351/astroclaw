@@ -2,21 +2,21 @@ import { createLlmRuntime, type LlmRuntime } from "@openclaw/ai";
 import type { OpenAICompletionsOptions } from "@openclaw/ai/internal/openai";
 import { getEnvApiKey } from "@openclaw/ai/internal/runtime";
 import { registerBuiltInApiProviders } from "@openclaw/ai/providers";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   asDateTimestampMs,
   asPositiveSafeInteger,
   resolveTimerTimeoutMs,
-} from "@openclaw/normalization-core/number-coercion";
-import { asOptionalRecord } from "@openclaw/normalization-core/record-coerce";
+} from "@astroclaw/normalization-core/number-coercion";
+import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   normalizeStringEntries,
   uniqueStrings,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import pMap from "p-map";
 import { Type } from "typebox";
 import { formatErrorMessage } from "../infra/errors.js";

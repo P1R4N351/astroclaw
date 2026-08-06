@@ -1,6 +1,6 @@
 // Builds OpenAI-compatible embedding provider entries for plugins.
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { readProviderJsonResponse } from "../agents/provider-http-errors.js";
 import { normalizeSecretInputString } from "../config/types.secrets.js";
 import { resolveConfiguredSecretInputString } from "../gateway/resolve-configured-secret-input-string.js";

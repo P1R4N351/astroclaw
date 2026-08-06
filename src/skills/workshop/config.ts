@@ -1,6 +1,6 @@
 // Workshop config helpers resolve skill workshop settings from OpenClaw config.
-import { asNullableRecord } from "@openclaw/normalization-core/record-coerce";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { SkillsWorkshopAutonomousMode } from "../../config/types.skills.js";
 
 /** Runtime configuration for the skill workshop proposal flow. */

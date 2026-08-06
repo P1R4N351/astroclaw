@@ -57,7 +57,7 @@ vi.mock("../plugins/tools.js", () => ({
   getPluginToolMeta: noPluginToolMeta,
 }));
 
-vi.mock("../agents/openclaw-tools.js", () => {
+vi.mock("../agents/astroclaw-tools.js", () => {
   const tools = [
     {
       name: "automations",

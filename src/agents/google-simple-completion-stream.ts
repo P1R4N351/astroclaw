@@ -6,7 +6,7 @@ import type { ApiRegistry } from "@openclaw/ai";
  * backend but sanitizes unsupported thinking payload options for simple models.
  */
 import { clampThinkingLevel } from "@openclaw/ai/internal/runtime";
-import type { StreamFn } from "@openclaw/llm-core";
+import type { StreamFn } from "@astroclaw/llm-core";
 import {
   sanitizeGoogleThinkingPayload,
   type GoogleThinkingInputLevel,

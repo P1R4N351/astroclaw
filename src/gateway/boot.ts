@@ -19,7 +19,7 @@ import {
 } from "../config/sessions/main-session.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { preserveTemporarySessionMapping } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { readRegularFile } from "../infra/regular-file.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

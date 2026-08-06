@@ -1,5 +1,5 @@
 // Registry refresh helper shared by plugin config mutations that need post-write discovery repair.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { loadInstalledPluginIndexInstallRecords } from "./installed-plugin-index-records.js";
 import type { InstalledPluginIndexRefreshReason } from "./installed-plugin-index.js";

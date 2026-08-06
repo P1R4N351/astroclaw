@@ -4,7 +4,7 @@ import type {
   ChannelMessageSendCommitContext,
   ChannelMessageUnknownSendReconciliationResult,
 } from "../../channels/message/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import {
   createDeliveryRecoveryCoordinator,

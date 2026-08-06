@@ -29,7 +29,7 @@ describe("syncPluginVersions", () => {
       version: "2026.3.30",
     });
     writeJson(path.join(rootDir, "packages/llm-core/package.json"), {
-      name: "@openclaw/llm-core",
+      name: "@astroclaw/llm-core",
       version: "0.0.0-private",
       private: true,
     });
@@ -77,7 +77,7 @@ describe("syncPluginVersions", () => {
 
     expect(summary.updated).toContain("@openclaw/imessage");
     expect(summary.updated).toContain("@openclaw/ai");
-    expect(summary.updated).not.toContain("@openclaw/llm-core");
+    expect(summary.updated).not.toContain("@astroclaw/llm-core");
     expect(
       JSON.parse(fs.readFileSync(path.join(rootDir, "packages/ai/package.json"), "utf8")),
     ).toMatchObject({ version: "2026.4.1" });

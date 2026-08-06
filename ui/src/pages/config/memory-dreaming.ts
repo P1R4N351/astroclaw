@@ -1,7 +1,7 @@
 // Pure view for the Dreaming tab of the Memory settings page: the global
 // schedule/storage/phase knobs. The controller (context, config writes, agent
 // picker) lives in memory-dreaming-page.ts, mirroring memory.ts/memory-page.ts.
-import { asNullableRecord as asConfigRecord } from "@openclaw/normalization-core/record-coerce";
+import { asNullableRecord as asConfigRecord } from "@astroclaw/normalization-core/record-coerce";
 import { html, nothing, type TemplateResult } from "lit";
 import {
   renderSettingsDefaultState,

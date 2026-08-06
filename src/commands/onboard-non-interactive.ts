@@ -9,7 +9,7 @@ import { formatCliCommand } from "../cli/command-format.js";
 import { ConfigMutationConflictError, replaceConfigFile } from "../config/config.js";
 import { readConfigFileSnapshot } from "../config/io.js";
 import { logConfigUpdated } from "../config/logging.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { createNonInteractiveLoggingPrompter } from "./non-interactive-prompter.js";

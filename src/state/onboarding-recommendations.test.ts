@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import {
   createOnboardingRecommendationsStore,
   type OnboardingRecommendationMatch,

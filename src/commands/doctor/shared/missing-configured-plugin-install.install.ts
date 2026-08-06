@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { stripAnsi } from "../../../../packages/terminal-core/src/ansi.js";
 import { sanitizeTerminalText } from "../../../../packages/terminal-core/src/safe-text.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../../../config/types.plugins.js";
 import { isOpenClawOrgNpmSpec, parseRegistryNpmSpec } from "../../../infra/npm-registry-spec.js";
 import type { UpdateChannel } from "../../../infra/update-channels.js";

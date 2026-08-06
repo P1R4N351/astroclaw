@@ -2,7 +2,7 @@
 // (prepareGatewayPluginBootstrap) and the /status plugins should-run drift check.
 import { describe, expect, it, vi } from "vitest";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveGatewayStartupPluginActivationConfig } from "./plugin-activation-runtime-config.js";
 import { resolveGatewayReloadPluginActivationCandidate } from "./plugin-activation-runtime-config.js";
 

@@ -8,7 +8,7 @@ import {
   resolveSqliteReadScope,
   toDatabaseOptions,
 } from "../config/sessions/session-accessor.sqlite-scope.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveDoctorContributionHealthChecks } from "../flows/doctor-health-contributions.js";
 import { runDoctorHealthRepairs } from "../flows/doctor-repair-flow.js";
 import { executeSqliteQuerySync } from "../infra/kysely-sync.js";

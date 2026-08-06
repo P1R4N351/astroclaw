@@ -3,7 +3,7 @@ import { readConfiguredProviderCatalogEntries } from "openclaw/plugin-sdk/provid
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
 import { buildProviderReplayFamilyHooks } from "openclaw/plugin-sdk/provider-model-shared";
 import { applyKilocodeConfig, KILOCODE_DEFAULT_MODEL_REF } from "./onboard.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { buildKilocodeProvider, buildKilocodeProviderWithDiscovery } from "./provider-catalog.js";
 import { wrapKilocodeProviderStream } from "./stream.js";
 

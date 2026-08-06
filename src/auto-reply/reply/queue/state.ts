@@ -1,5 +1,5 @@
 // Tracks queue state for active, pending, and recently deduped reply runs.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { ModelFallbackRouteResolution } from "../../../agents/model-fallback.types.js";
 import { resolveGlobalMap } from "../../../shared/global-singleton.js";
 import { applyQueueRuntimeSettings } from "../../../utils/queue-helpers.js";

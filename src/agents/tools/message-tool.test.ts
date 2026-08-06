@@ -18,7 +18,7 @@ import {
 } from "../../plugin-sdk/message-tool-delivery-hints.js";
 import { wrapToolWithBeforeToolCallHook } from "../agent-tools.before-tool-call.js";
 type CreateMessageTool = typeof import("./message-tool.js").createMessageTool;
-type CreateOpenClawTools = typeof import("../openclaw-tools.js").createOpenClawTools;
+type CreateOpenClawTools = typeof import("../astroclaw-tools.js").createOpenClawTools;
 type ResetPluginRuntimeStateForTest =
   typeof import("../../plugins/runtime.js").resetPluginRuntimeStateForTest;
 type SetActivePluginRegistry = typeof import("../../plugins/runtime.js").setActivePluginRegistry;
@@ -371,7 +371,7 @@ beforeAll(async () => {
     await import("../../plugins/runtime.js"));
   ({ createTestRegistry } = await import("../../test-utils/channel-plugins.js"));
   ({ createMessageTool } = await import("./message-tool.js"));
-  ({ createOpenClawTools } = await import("../openclaw-tools.js"));
+  ({ createOpenClawTools } = await import("../astroclaw-tools.js"));
 });
 
 const mintedTurnCapabilities: string[] = [];

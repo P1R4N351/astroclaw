@@ -4,7 +4,7 @@ import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import { configureNodeHost } from "./config.js";
 import { resolveLocalNodeId } from "./local-id.js";
 

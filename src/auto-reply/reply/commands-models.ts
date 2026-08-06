@@ -1,9 +1,9 @@
 // Implements model listing and provider catalog commands.
-import { parseStrictPositiveInteger } from "@openclaw/normalization-core/number-coercion";
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   resolveAgentDir,
   resolveAgentWorkspaceDir,
@@ -38,7 +38,7 @@ import { loadPreparedModelCatalogSnapshot } from "../../agents/prepared-model-ca
 import { resolveDefaultAgentWorkspaceDir } from "../../agents/workspace.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveAgentRuntimeLabel } from "../../status/agent-runtime-label.js";
 import type { ReplyPayload } from "../types.js";
 import { rejectUnauthorizedCommand } from "./command-gates.js";

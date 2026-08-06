@@ -1,6 +1,6 @@
 // CLI session binding lookup shared by session lifecycle and agent runtime code.
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { CliSessionBinding, CliSessionReseedReceipt, SessionEntry } from "./types.js";
 
 const CLAUDE_CLI_BACKEND_ID = "claude-cli";

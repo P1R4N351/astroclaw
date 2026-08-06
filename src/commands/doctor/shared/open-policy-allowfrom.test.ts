@@ -1,7 +1,7 @@
 // Open policy allow-from tests cover doctor handling of open allowlist policy.
 import { describe, expect, it } from "vitest";
 import type { GoogleChatConfig } from "../../../config/types.googlechat.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { GoogleChatConfigSchema } from "../../../config/zod-schema.providers-googlechat.js";
 import {
   collectOpenPolicyAllowFromWarnings,

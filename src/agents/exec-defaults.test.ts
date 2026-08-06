@@ -1,7 +1,7 @@
 // Verifies exec host, sandbox, and approval-default resolution for embedded agents.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import * as execApprovals from "../infra/exec-approvals.js";
 import { resolveExecDefaults, resolveNodeExecEligibility } from "./exec-defaults.js";
 

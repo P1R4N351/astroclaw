@@ -1,5 +1,5 @@
-import type { Model } from "@openclaw/llm-core";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import type { Model } from "@astroclaw/llm-core";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { emitModelTransportDebug, resolveModelSseDebugMode } from "./model-transport-debug.js";
 import { stringifyRedactedEvent } from "./openai-responses-debug.js";
 import type { OpenAIResponsesStreamEvent } from "./openai-responses-stream-internal.js";

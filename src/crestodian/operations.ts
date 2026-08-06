@@ -1,5 +1,5 @@
 // Crestodian operations parse, approve, execute, and audit setup-helper commands.
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { ConfigSetOptions } from "../cli/config-set-input.js";
 import type { DoctorOptions } from "../commands/doctor.types.js";
 import { isSensitiveConfigPath } from "../config/sensitive-paths.js";

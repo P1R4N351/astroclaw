@@ -1,4 +1,4 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { readAcpSessionMeta } from "../acp/runtime/session-meta.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import {
@@ -7,7 +7,7 @@ import {
   resolveSessionTranscriptRuntimeTarget,
 } from "../config/sessions/session-accessor.js";
 import type { SessionAcpMeta, SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { getSessionBindingService } from "../infra/outbound/session-binding-service.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

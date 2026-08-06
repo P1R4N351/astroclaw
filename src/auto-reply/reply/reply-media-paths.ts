@@ -1,6 +1,6 @@
 // Resolves media paths from reply payloads into runtime attachment metadata.
 import path from "node:path";
-import { isPassThroughRemoteMediaSource } from "@openclaw/media-core/media-source-url";
+import { isPassThroughRemoteMediaSource } from "@astroclaw/media-core/media-source-url";
 import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolvePathFromInput, toRelativeWorkspacePath } from "../../agents/path-policy.js";
@@ -10,7 +10,7 @@ import {
   resolveSandboxedMediaSource,
 } from "../../agents/sandbox-paths.js";
 import { ensureSandboxWorkspaceForSession } from "../../agents/sandbox.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { logVerbose } from "../../globals.js";
 import { resolveOutboundMediaMaxBytes } from "../../media/configured-max-bytes.js";
 import { resolveOutboundAttachmentFromUrl } from "../../media/outbound-attachment.js";

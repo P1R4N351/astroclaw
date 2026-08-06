@@ -55,7 +55,7 @@ export async function execDockerRaw(
   return await execContainerRaw(DOCKER_SANDBOX_ENGINE, args, opts);
 }
 
-import { markOpenClawExecEnv } from "../../infra/openclaw-exec-env.js";
+import { markOpenClawExecEnv } from "../../infra/astroclaw-exec-env.js";
 import { KeyedAsyncQueue } from "../../plugin-sdk/keyed-async-queue.js";
 import { computeSandboxConfigHash } from "./config-hash.js";
 import { DEFAULT_SANDBOX_IMAGE, SANDBOX_DOCKER_CREATE_ARGS_EPOCH } from "./constants.js";

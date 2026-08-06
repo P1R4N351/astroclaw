@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 import type { SessionObserverDigest } from "../../packages/gateway-protocol/src/schema/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { AgentEventPayload } from "../infra/agent-events.js";
 import {
   createSessionEventSubscriberRegistry,

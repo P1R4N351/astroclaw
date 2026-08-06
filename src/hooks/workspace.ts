@@ -1,9 +1,9 @@
 // Hook workspace helpers resolve hook roots and workspace-local hook files.
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import { MANIFEST_KEY } from "../compat/legacy-names.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { openRootFileSync } from "../infra/boundary-file-read.js";
 import { readFileDescriptorBoundedSync } from "../infra/boundary-file-read.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

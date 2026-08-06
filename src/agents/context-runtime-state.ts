@@ -3,7 +3,7 @@
  * Keeps discovery loads, config backoff, and token cache reset behavior
  * shared across module reloads and runtime seams.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createLazyImportLoader, type LazyPromiseLoader } from "../shared/lazy-promise.js";
 import { clearContextWindowCaches, REUSED_CONTEXT_WINDOW_CACHE_STATE } from "./context-cache.js";
 

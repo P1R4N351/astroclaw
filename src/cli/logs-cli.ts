@@ -1,7 +1,7 @@
 // Gateway logs CLI with RPC tailing, local file fallback, and systemd journal fallback.
 import { setTimeout as delay } from "node:timers/promises";
-import { resolveIntegerOption } from "@openclaw/normalization-core/number-coercion";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { resolveIntegerOption } from "@astroclaw/normalization-core/number-coercion";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import type { Command } from "commander";
 import {
   GATEWAY_CLIENT_MODES,

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { asOptionalRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { asOptionalRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { executeSqliteQueryTakeFirstSync } from "../../infra/kysely-sync.js";
 import { pruneMapToMaxSize } from "../../infra/map-size.js";
 import { extractAssistantVisibleText } from "../../shared/chat-message-content.js";

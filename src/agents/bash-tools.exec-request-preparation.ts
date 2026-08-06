@@ -1,5 +1,5 @@
 /** Prepares exec workdir and environment facts before policy and host dispatch. */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeChatChannelId } from "../channels/ids.js";
 import type { ExecHost } from "../infra/exec-approvals.js";
 import {
@@ -8,7 +8,7 @@ import {
   normalizeHostOverrideEnvVarKey,
   sanitizeHostExecEnvWithDiagnostics,
 } from "../infra/host-env-security.js";
-import { OPENCLAW_CLI_ENV_VAR } from "../infra/openclaw-exec-env.js";
+import { OPENCLAW_CLI_ENV_VAR } from "../infra/astroclaw-exec-env.js";
 import {
   getShellPathFromLoginShell,
   resolveShellEnvFallbackTimeoutMs,

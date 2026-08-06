@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   resolveAgentConfig,
   resolveAgentDir,
@@ -40,7 +40,7 @@ import {
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import { ensureAgentWorkspace } from "../agents/workspace.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import type { PluginRegistry } from "../plugins/registry-types.js";
 import { withPluginRuntimeRegistryScope } from "../plugins/runtime/gateway-request-scope.js";

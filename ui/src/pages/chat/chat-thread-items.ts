@@ -1,5 +1,5 @@
-import { readSessionMessageIdentity } from "@openclaw/gateway-client/browser";
-import { asNullableRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { readSessionMessageIdentity } from "@astroclaw/gateway-client/browser";
+import { asNullableRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import { resolveToolUseId } from "../../../../src/chat/tool-content.js";
 import { escapeRegExp } from "../../../../src/shared/regexp.js";
 import type {

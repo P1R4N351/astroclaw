@@ -1,5 +1,5 @@
 /** Resolves the selected native harness from a run-owned plugin registry. */
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ProviderRouteOverridePresence } from "../../plugin-sdk/provider-model-types.js";
 import type { PluginRegistry } from "../../plugins/registry-types.js";
 import {

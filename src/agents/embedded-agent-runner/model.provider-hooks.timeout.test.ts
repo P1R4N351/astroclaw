@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import { withFirstStreamEventTimeout } from "@openclaw/ai/internal/runtime";
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ProviderRuntimeModel } from "../../plugins/provider-runtime-model.types.js";
 import type { StreamFn } from "../runtime/index.js";
 import { resolveModelAsync } from "./model.js";

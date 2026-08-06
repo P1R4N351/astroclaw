@@ -6,7 +6,7 @@ import path from "node:path";
 import * as tar from "tar";
 import { resolveStateDir } from "../../config/paths.js";
 import { isExactSemverVersion, resolveNpmJsonEntries } from "../../infra/npm-registry-spec.js";
-import { resolveOpenClawPackageRootSync } from "../../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../../infra/astroclaw-root.js";
 import { runCommandWithTimeout } from "../../process/exec.js";
 import { VERSION } from "../../version.js";
 import {

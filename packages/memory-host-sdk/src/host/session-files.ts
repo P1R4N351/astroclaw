@@ -4,7 +4,7 @@ import path from "node:path";
 import { normalizeAgentId } from "./config-utils.js";
 import { readRegularFile, statRegularFile } from "./fs-utils.js";
 import { hashText } from "./hash.js";
-import { createSubsystemLogger, redactSensitiveText } from "./openclaw-runtime-io.js";
+import { createSubsystemLogger, redactSensitiveText } from "./astroclaw-runtime-io.js";
 import {
   DREAMING_NARRATIVE_RUN_PREFIX,
   isDreamingNarrativeSessionStoreKey,
@@ -29,7 +29,7 @@ import {
   resolveSessionTranscriptsDirForAgent,
   stripInboundMetadata,
   stripInternalRuntimeContext,
-} from "./openclaw-runtime-session.js";
+} from "./astroclaw-runtime-session.js";
 import { retryTransientMemoryRead } from "./read-retry.js";
 import {
   listSessionTranscriptCorpusEntriesForAgent,

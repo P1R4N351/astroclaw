@@ -1,9 +1,9 @@
-import { AGENT_MODEL_CONFIG_KEYS } from "@openclaw/model-catalog-core/configured-model-refs";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { asOptionalRecord as asMutableRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString as normalizeString } from "@openclaw/normalization-core/string-coerce";
+import { AGENT_MODEL_CONFIG_KEYS } from "@astroclaw/model-catalog-core/configured-model-refs";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { asOptionalRecord as asMutableRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString as normalizeString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveModelRuntimePolicy } from "../../../agents/model-runtime-policy.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 import { listMutableCodexRouteAgentEntries } from "./codex-route-agent-entries.js";
 import {

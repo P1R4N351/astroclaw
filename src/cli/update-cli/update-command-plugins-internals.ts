@@ -1,6 +1,6 @@
 import path from "node:path";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import { pathExists } from "../../infra/fs-safe.js";
 import type { UpdateRunResult } from "../../infra/update-runner.js";

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 vi.mock("../model-fallback-candidates.js", () => ({
   resolveModelCandidateChain: (params: { provider: string; model: string }) => [

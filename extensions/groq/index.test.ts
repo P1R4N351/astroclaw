@@ -9,7 +9,7 @@ import { buildManifestModelProviderConfig } from "astroclaw/plugin-sdk/provider-
 import { describe, expect, it } from "vitest";
 import { resolveGroqReasoningCompatPatch } from "./api.js";
 import plugin from "./index.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 describe("groq provider compat", () => {
   it("recovers only matching implicit-budget rejections without changing normal tools", async () => {

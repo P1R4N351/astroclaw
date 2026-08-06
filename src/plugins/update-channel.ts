@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { readInstalledPackageVersion } from "../infra/package-update-utils.js";
 import type { UpdateChannel } from "../infra/update-channels.js";
 import { resolveBundledPluginSources } from "./bundled-sources.js";

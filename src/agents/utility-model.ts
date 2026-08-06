@@ -1,7 +1,7 @@
 // Resolves the utility model used for short internal tasks (titles, progress
 // narration). Unset config derives the provider-declared small model from the
 // agent's primary provider; an explicit empty string disables utility routing.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { getCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
 import { resolveAgentConfig, resolveAgentEffectiveModelPrimary } from "./agent-scope.js";

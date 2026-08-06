@@ -1,6 +1,6 @@
 // Agent scope tests cover which per-agent fields may flatten into runtime defaults.
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   listAgentEntriesWithSource,
   listAgentIds,

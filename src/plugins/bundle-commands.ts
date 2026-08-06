@@ -4,12 +4,12 @@ import path from "node:path";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   parseFrontmatterBlock,
   stripFrontmatterBlock,
 } from "../../packages/markdown-core/src/frontmatter.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { readRootJsonObjectSync } from "../infra/json-files.js";
 import { readRegularFileSync } from "../infra/regular-file.js";

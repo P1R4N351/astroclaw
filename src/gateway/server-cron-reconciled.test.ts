@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createGatewayCronReconciliation } from "./server-cron-reconciled.js";
 
 type RunHook = Parameters<typeof createGatewayCronReconciliation>[0]["runHook"];

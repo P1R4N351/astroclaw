@@ -1,6 +1,6 @@
 // Gateway credential secret-input resolver.
 // Resolves SecretRefs before applying Gateway credential precedence rules.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { resolveSecretInputString } from "../secrets/resolve-secret-input-string.js";
 import {

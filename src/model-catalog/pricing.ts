@@ -1,9 +1,9 @@
 import { isIP } from "node:net";
-import type { RemoteModelCatalogPricing } from "@openclaw/model-catalog-core";
-import type { ModelCatalogCost } from "@openclaw/model-catalog-core/model-catalog-types";
+import type { RemoteModelCatalogPricing } from "@astroclaw/model-catalog-core";
+import type { ModelCatalogCost } from "@astroclaw/model-catalog-core/model-catalog-types";
 import { modelKey, normalizeModelRef } from "../agents/model-selection.js";
 import type { ModelDefinitionConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isInstalledPluginEnabled } from "../plugins/installed-plugin-index.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import {

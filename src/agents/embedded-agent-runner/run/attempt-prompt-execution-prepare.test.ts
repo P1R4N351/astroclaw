@@ -11,7 +11,7 @@ const hoisted = vi.hoisted(() => ({
   withSessionWriteLock: vi.fn(async (operation: () => unknown) => await operation()),
 }));
 
-vi.mock("@openclaw/media-core/constants", () => ({
+vi.mock("@astroclaw/media-core/constants", () => ({
   MAX_IMAGE_BYTES: 1_234,
   mediaKindFromMime: (mime?: string) =>
     mime ? (mime.startsWith("image/") ? "image" : "unknown") : undefined,

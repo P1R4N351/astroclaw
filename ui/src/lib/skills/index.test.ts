@@ -1,6 +1,6 @@
 // @vitest-environment node
 // Control UI tests cover skills behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it, vi } from "vitest";
 import { waitForFast } from "../../test-helpers/wait-for.ts";
 import { createRuntimeConfigCapability } from "../config/index.ts";

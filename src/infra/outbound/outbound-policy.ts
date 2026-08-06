@@ -1,6 +1,6 @@
 // Outbound policy enforces message-tool allowlists and cross-context delivery
 // markers/decorations before channel dispatch.
-import { normalizeUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { normalizeUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { resolveAgentConfig } from "../../agents/agent-scope-config.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type {
@@ -8,7 +8,7 @@ import type {
   ChannelMessageActionName,
   ChannelThreadingToolContext,
 } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { MessageToolsConfig } from "../../config/types.tools.js";
 import type { MessagePresentation } from "../../interactive/payload.js";
 import { normalizeTargetForProvider } from "./target-normalization.js";

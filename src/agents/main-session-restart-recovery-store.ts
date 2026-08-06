@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   type InternalSessionEntry as SessionEntry,
   resolveSessionWorkStartError,
@@ -9,7 +9,7 @@ import {
   listSessionEntriesByStatus,
   loadExactSessionEntry,
 } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayRecoveryRuntime } from "../gateway/server-instance-runtime.types.js";
 import { readSessionMessagesAsync } from "../gateway/session-transcript-readers.js";
 import { resolveGatewaySessionStoreTarget } from "../gateway/session-utils.js";

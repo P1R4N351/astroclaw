@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { runWithGatewayIndependentRootWorkAdmission } from "../process/gateway-work-admission.js";
 import { getActiveSecretsRuntimeSnapshotRevision } from "../secrets/runtime-state.js";
 import { invalidateConfigGetResponseCache } from "./config-get-response.js";

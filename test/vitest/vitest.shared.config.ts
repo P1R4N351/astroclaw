@@ -216,27 +216,27 @@ export const sharedVitestConfig = {
         replacement: path.join(repoRoot, "extensions", "whatsapp", "api.ts"),
       },
       {
-        find: "@openclaw/gateway-client/browser",
+        find: "@astroclaw/gateway-client/browser",
         replacement: path.join(repoRoot, "packages", "gateway-client", "src", "browser.ts"),
       },
       {
-        find: "@openclaw/gateway-client/readiness",
+        find: "@astroclaw/gateway-client/readiness",
         replacement: path.join(repoRoot, "packages", "gateway-client", "src", "readiness.ts"),
       },
       {
-        find: "@openclaw/gateway-client/timeouts",
+        find: "@astroclaw/gateway-client/timeouts",
         replacement: path.join(repoRoot, "packages", "gateway-client", "src", "timeouts.ts"),
       },
       {
-        find: "@openclaw/gateway-client",
+        find: "@astroclaw/gateway-client",
         replacement: path.join(repoRoot, "packages", "gateway-client", "src", "index.ts"),
       },
       {
-        find: "@openclaw/gateway-protocol/client-info",
+        find: "@astroclaw/gateway-protocol/client-info",
         replacement: path.join(repoRoot, "packages", "gateway-protocol", "src", "client-info.ts"),
       },
       {
-        find: "@openclaw/gateway-protocol/connect-error-details",
+        find: "@astroclaw/gateway-protocol/connect-error-details",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -246,11 +246,11 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/gateway-protocol/frame-guards",
+        find: "@astroclaw/gateway-protocol/frame-guards",
         replacement: path.join(repoRoot, "packages", "gateway-protocol", "src", "frame-guards.ts"),
       },
       {
-        find: "@openclaw/gateway-protocol/gateway-error-details",
+        find: "@astroclaw/gateway-protocol/gateway-error-details",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -260,11 +260,11 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/gateway-protocol/schema",
+        find: "@astroclaw/gateway-protocol/schema",
         replacement: path.join(repoRoot, "packages", "gateway-protocol", "src", "schema.ts"),
       },
       {
-        find: "@openclaw/gateway-protocol/startup-unavailable",
+        find: "@astroclaw/gateway-protocol/startup-unavailable",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -274,11 +274,11 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/gateway-protocol/version",
+        find: "@astroclaw/gateway-protocol/version",
         replacement: path.join(repoRoot, "packages", "gateway-protocol", "src", "version.ts"),
       },
       {
-        find: "@openclaw/gateway-protocol",
+        find: "@astroclaw/gateway-protocol",
         replacement: path.join(repoRoot, "packages", "gateway-protocol", "src", "index.ts"),
       },
       {
@@ -314,23 +314,23 @@ export const sharedVitestConfig = {
         replacement: path.join(repoRoot, "packages", "ai", "src", "index.ts"),
       },
       {
-        find: "@openclaw/llm-core/diagnostics",
+        find: "@astroclaw/llm-core/diagnostics",
         replacement: path.join(repoRoot, "packages", "llm-core", "src", "utils", "diagnostics.ts"),
       },
       {
-        find: "@openclaw/llm-core/event-stream",
+        find: "@astroclaw/llm-core/event-stream",
         replacement: path.join(repoRoot, "packages", "llm-core", "src", "utils", "event-stream.ts"),
       },
       {
-        find: "@openclaw/llm-core/validation",
+        find: "@astroclaw/llm-core/validation",
         replacement: path.join(repoRoot, "packages", "llm-core", "src", "validation.ts"),
       },
       {
-        find: "@openclaw/llm-core",
+        find: "@astroclaw/llm-core",
         replacement: path.join(repoRoot, "packages", "llm-core", "src", "index.ts"),
       },
       {
-        find: "@openclaw/model-catalog-core/configured-model-refs",
+        find: "@astroclaw/model-catalog-core/configured-model-refs",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -340,7 +340,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/model-catalog-core/model-catalog-refs",
+        find: "@astroclaw/model-catalog-core/model-catalog-refs",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -350,7 +350,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/model-catalog-core/model-catalog-normalize",
+        find: "@astroclaw/model-catalog-core/model-catalog-normalize",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -360,7 +360,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/model-catalog-core/model-catalog-types",
+        find: "@astroclaw/model-catalog-core/model-catalog-types",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -370,11 +370,11 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/model-catalog-core/provider-id",
+        find: "@astroclaw/model-catalog-core/provider-id",
         replacement: path.join(repoRoot, "packages", "model-catalog-core", "src", "provider-id.ts"),
       },
       {
-        find: "@openclaw/model-catalog-core/provider-model-id-normalization",
+        find: "@astroclaw/model-catalog-core/provider-model-id-normalization",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -384,7 +384,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/model-catalog-core/provider-model-id-normalize",
+        find: "@astroclaw/model-catalog-core/provider-model-id-normalize",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -394,19 +394,19 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/model-catalog-core",
+        find: "@astroclaw/model-catalog-core",
         replacement: path.join(repoRoot, "packages", "model-catalog-core", "src", "index.ts"),
       },
       {
-        find: "@openclaw/net-policy/ip",
+        find: "@astroclaw/net-policy/ip",
         replacement: path.join(repoRoot, "packages", "net-policy", "src", "ip.ts"),
       },
       {
-        find: "@openclaw/net-policy/ipv4",
+        find: "@astroclaw/net-policy/ipv4",
         replacement: path.join(repoRoot, "packages", "net-policy", "src", "ipv4.ts"),
       },
       {
-        find: "@openclaw/net-policy/redact-sensitive-url",
+        find: "@astroclaw/net-policy/redact-sensitive-url",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -416,23 +416,23 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/net-policy/url-protocol",
+        find: "@astroclaw/net-policy/url-protocol",
         replacement: path.join(repoRoot, "packages", "net-policy", "src", "url-protocol.ts"),
       },
       {
-        find: "@openclaw/net-policy/url-userinfo",
+        find: "@astroclaw/net-policy/url-userinfo",
         replacement: path.join(repoRoot, "packages", "net-policy", "src", "url-userinfo.ts"),
       },
       {
-        find: "@openclaw/net-policy",
+        find: "@astroclaw/net-policy",
         replacement: path.join(repoRoot, "packages", "net-policy", "src", "index.ts"),
       },
       {
-        find: "@openclaw/normalization-core/agent-id",
+        find: "@astroclaw/normalization-core/agent-id",
         replacement: path.join(repoRoot, "packages", "normalization-core", "src", "agent-id.ts"),
       },
       {
-        find: "@openclaw/normalization-core/boolean-coercion",
+        find: "@astroclaw/normalization-core/boolean-coercion",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -442,11 +442,11 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/normalization-core/cjk-chars",
+        find: "@astroclaw/normalization-core/cjk-chars",
         replacement: path.join(repoRoot, "packages", "normalization-core", "src", "cjk-chars.ts"),
       },
       {
-        find: "@openclaw/normalization-core/error-coercion",
+        find: "@astroclaw/normalization-core/error-coercion",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -456,11 +456,11 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/normalization-core/json-schema",
+        find: "@astroclaw/normalization-core/json-schema",
         replacement: path.join(repoRoot, "packages", "normalization-core", "src", "json-schema.ts"),
       },
       {
-        find: "@openclaw/normalization-core/number-coercion",
+        find: "@astroclaw/normalization-core/number-coercion",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -470,7 +470,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/normalization-core/phone-presentation",
+        find: "@astroclaw/normalization-core/phone-presentation",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -480,7 +480,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/normalization-core/record-coerce",
+        find: "@astroclaw/normalization-core/record-coerce",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -490,11 +490,11 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/normalization-core/result",
+        find: "@astroclaw/normalization-core/result",
         replacement: path.join(repoRoot, "packages", "normalization-core", "src", "result.ts"),
       },
       {
-        find: "@openclaw/normalization-core/stable-node-path",
+        find: "@astroclaw/normalization-core/stable-node-path",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -504,7 +504,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/normalization-core/string-coerce",
+        find: "@astroclaw/normalization-core/string-coerce",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -514,7 +514,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/normalization-core/string-normalization",
+        find: "@astroclaw/normalization-core/string-normalization",
         replacement: path.join(
           repoRoot,
           "packages",
@@ -524,7 +524,7 @@ export const sharedVitestConfig = {
         ),
       },
       {
-        find: "@openclaw/normalization-core/utf16-slice",
+        find: "@astroclaw/normalization-core/utf16-slice",
         replacement: path.join(repoRoot, "packages", "normalization-core", "src", "utf16-slice.ts"),
       },
       {

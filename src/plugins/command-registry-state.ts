@@ -1,5 +1,5 @@
 // Stores plugin command registry state for the current process lifecycle.
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeAgentPromptSurfaceKind } from "./agent-prompt-surface-kind.js";
 import { getActivePluginGatewayCommandRegistry, requireActivePluginRegistry } from "./runtime.js";
 import type {

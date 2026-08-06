@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { applyCodeModeCatalog, createCodeModeTools } from "../../code-mode.js";
 import { createStubTool } from "../../test-helpers/agent-tool-stubs.js";
 import {

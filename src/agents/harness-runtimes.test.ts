@@ -1,7 +1,7 @@
 // Covers config scanning for agent harness runtime requirements.
 import { describe, expect, it } from "vitest";
 import { migratePersistedImplicitMainRoster } from "../config/legacy.roster.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { collectConfiguredAgentHarnessRuntimes as collectConfiguredAgentHarnessRuntimesBase } from "./harness-runtimes.js";
 
 function collectConfiguredAgentHarnessRuntimes(

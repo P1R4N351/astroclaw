@@ -1,7 +1,7 @@
 /** Applies agent compaction settings and small-context overflow guards. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import type { AgentCompactionMode } from "../config/types.agent-defaults.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ContextEngineInfo } from "../context-engine/types.js";
 import { MIN_PROMPT_BUDGET_RATIO, MIN_PROMPT_BUDGET_TOKENS } from "./agent-compaction-constants.js";
 import { resolveProviderEndpoint } from "./provider-attribution.js";

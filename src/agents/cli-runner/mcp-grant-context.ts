@@ -1,6 +1,6 @@
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { canonicalizeMainSessionAlias } from "../../config/sessions/main-session.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { McpLoopbackRequestContext } from "../../gateway/mcp-grant-store.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import type { RunCliAgentParams } from "./types.js";

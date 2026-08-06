@@ -1,5 +1,5 @@
 /** Delivery planning, prompt policy, and delivery trace construction for cron runs. */
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type {
   SourceDeliveryOutcome,
   SourceDeliveryVisibleDelivery,

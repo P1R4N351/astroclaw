@@ -1,5 +1,5 @@
 // Summarizes heartbeat config for CLI and UI display.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   listAgentEntries,
   resolveAgentConfig,
@@ -12,7 +12,7 @@ import {
 } from "../auto-reply/heartbeat.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 
 // Heartbeat summaries merge default and per-agent heartbeat config for CLI/UI

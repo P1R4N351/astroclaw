@@ -1,7 +1,7 @@
 // Collects configured startup channels, slots, paths, and validation references.
-import { collectConfiguredModelRefs } from "@openclaw/model-catalog-core/configured-model-refs";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { collectConfiguredModelRefs } from "@astroclaw/model-catalog-core/configured-model-refs";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentEntries } from "../agents/agent-scope-config.js";
 import { splitTrailingAuthProfile } from "../agents/model-ref-profile.js";
 import {
@@ -9,7 +9,7 @@ import {
   listPotentialConfiguredChannelIds,
   type AmbientEnvTriggerPolicy,
 } from "../channels/config-presence.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   DEFAULT_MEMORY_DREAMING_PLUGIN_ID,
   resolveMemoryDreamingConfig,

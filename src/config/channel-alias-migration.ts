@@ -11,7 +11,7 @@ import {
 } from "./channel-compat-normalization.js";
 import { materializeInheritedAccountStreaming } from "./channel-doctor-helpers.js";
 import type { LegacyConfigRule } from "./legacy.shared.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 export type StreamingAliasMode = "off" | "partial" | "block" | "progress";
 

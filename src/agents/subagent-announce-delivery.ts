@@ -3,11 +3,11 @@
  *
  * Routes completion payloads through gateway/channel/session paths and records delivery evidence.
  */
-import { clampTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeUniqueTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { clampTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeUniqueTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import { completionRequiresMessageToolDelivery } from "../auto-reply/reply/completion-delivery-policy.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isFastTestRuntimeEnv } from "../infra/env.js";
 import { isOutboundDeliveryError } from "../infra/outbound/deliver-types.js";
 import { sourceDeliveryTargetsMatch } from "../infra/outbound/source-delivery-plan.js";

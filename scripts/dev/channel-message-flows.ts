@@ -20,7 +20,7 @@ import {
 } from "../../extensions/telegram/src/rich-message.js";
 import { formatReasoningMessage } from "../../src/agents/embedded-agent-utils.js";
 import { getRuntimeConfig } from "../../src/config/config.js";
-import type { OpenClawConfig } from "../../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../../src/config/types.astroclaw.js";
 import { formatChannelProgressDraftText } from "../../src/plugin-sdk/channel-outbound.js";
 
 type SupportedChannel = "telegram";

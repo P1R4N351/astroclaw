@@ -1,4 +1,4 @@
-import { asOptionalRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { asOptionalRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   consumeTrackedToolExecutionStarted,
   peekAdjustedParamsForToolCall,

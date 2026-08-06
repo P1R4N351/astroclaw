@@ -1,5 +1,5 @@
 // Applies Tool Search overlays on top of the selected runtime config.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { applyLocalModelLeanToolSearchDefaults } from "./local-model-lean.js";
 import { resolveAgentRuntimeToolConfig } from "./tool-runtime-config.js";
 

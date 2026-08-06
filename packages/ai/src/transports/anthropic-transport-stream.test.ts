@@ -1,10 +1,10 @@
-import type { Model } from "@openclaw/llm-core";
+import type { Model } from "@astroclaw/llm-core";
 /**
  * Tests Anthropic Messages transport streaming.
  * Covers request construction, SSE parsing, aborts, tool calls, usage, and
  * provider transport hooks.
  */
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configureAiTransportHost,

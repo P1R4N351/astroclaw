@@ -1,11 +1,11 @@
 // E2E: hook dispatch uses every free slot inside the shared cron budget.
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../src/config/types.astroclaw.js";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/openclaw-test-instance.js";
+} from "./helpers/astroclaw-test-instance.js";
 
 const TEST_TIMEOUT_MS = 180_000;
 const MODEL_REF = "hook-concurrency/hook-concurrency";

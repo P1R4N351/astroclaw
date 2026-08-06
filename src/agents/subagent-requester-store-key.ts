@@ -7,7 +7,7 @@ import {
   resolveAgentIdFromSessionKey,
   resolveMainSessionKey,
 } from "../config/sessions/main-session.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeMainKey } from "../routing/session-key.js";
 import { resolveDefaultAgentId } from "./agent-scope-config.js";
 

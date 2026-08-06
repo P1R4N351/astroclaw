@@ -1,11 +1,11 @@
-import { isFutureDateTimestampMs } from "@openclaw/normalization-core/number-coercion";
+import { isFutureDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import {
   AGENT_RUN_RESTART_ABORT_STOP_REASON,
   createAgentRunRestartAbortError,
 } from "../../agents/run-termination.js";
 import { resolveSessionWorkStartError } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { getAgentEventLifecycleGeneration } from "../../infra/agent-events.js";
 import {
   beginSessionWorkAdmission,

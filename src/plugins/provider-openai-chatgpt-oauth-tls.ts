@@ -1,11 +1,11 @@
 /** TLS helpers for ChatGPT OAuth provider discovery in plugin runtime code. */
 import path from "node:path";
 import { inspectTlsCertificateError } from "@openclaw/ai/internal/shared";
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
-import { asNullableObjectRecord } from "@openclaw/normalization-core/record-coerce";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
+import { asNullableObjectRecord } from "@astroclaw/normalization-core/record-coerce";
 import { note } from "../../packages/terminal-core/src/note.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 const OPENAI_AUTH_PROBE_URL =
   "https://auth.openai.com/oauth/authorize?response_type=code&client_id=openclaw-preflight&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&scope=openid+profile+email";

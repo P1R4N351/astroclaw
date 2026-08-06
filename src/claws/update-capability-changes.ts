@@ -5,7 +5,7 @@ import { resolveSandboxConfigForAgent } from "../agents/sandbox/config.js";
 import { stableStringify } from "../agents/stable-stringify.js";
 import { expandToolGroups, resolveToolProfilePolicy } from "../agents/tool-policy-shared.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveHeartbeatSummaryForAgent } from "../infra/heartbeat-summary.js";
 import { resolveRememberAcrossConversations } from "../memory-host-sdk/host/config-utils.js";
 

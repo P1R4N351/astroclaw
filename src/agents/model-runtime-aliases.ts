@@ -1,10 +1,10 @@
 /**
  * Resolves CLI runtime aliases to provider/model auth labels and execution ids.
  */
-import { parseModelCatalogRef } from "@openclaw/model-catalog-core/model-catalog-refs";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { parseModelCatalogRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   isCliRuntimeModelBackendForProvider,
   listCliRuntimeModelBackendBindings,

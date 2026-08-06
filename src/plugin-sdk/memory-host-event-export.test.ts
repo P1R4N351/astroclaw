@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { root as createFsSafeRoot } from "../infra/fs-safe.js";
 import { resetPluginStateStoreForTests } from "../plugin-state/plugin-state-store.js";
 import { clearMemoryPluginState } from "../plugins/memory-state.test-fixtures.js";
-import { createOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { createOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { listMemoryHostPublicArtifacts } from "./memory-host-core.js";
 import {
   memoryHostEventExportOwnerContent,

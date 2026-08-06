@@ -8,7 +8,7 @@ import {
 import { resolveChannelModelOverride } from "../../channels/model-overrides.js";
 import { resolveSessionModelOverrideRouteResolution } from "../../config/sessions/model-override-provenance.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { requireActivePluginRegistry } from "../../plugins/runtime.js";
 import { isSubagentSessionKey } from "../../routing/session-key.js";
 import { isValidAgentHarnessSessionStoreEntry } from "../../sessions/agent-harness-session-key.js";

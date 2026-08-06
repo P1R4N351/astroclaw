@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   ErrorCodes,
   type ErrorShape,
@@ -35,7 +35,7 @@ import {
 } from "../auto-reply/thinking.js";
 import type { SessionEntry, SessionToolOverrides } from "../config/sessions.js";
 import { projectCanonicalSessionEntryShape } from "../config/sessions/store-entry-shape.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeExecTarget } from "../infra/exec-approvals.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
 import {

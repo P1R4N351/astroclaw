@@ -1,11 +1,11 @@
 // Source reply mirroring records successful same-conversation message-tool
 // sends back into the owning session transcript.
-import { asOptionalRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { asOptionalRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import { normalizeOptionalTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { normalizeOptionalTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type { ChannelId } from "../../channels/plugins/types.public.js";
@@ -19,7 +19,7 @@ import {
   completeRestartRecoveryTerminalDelivery,
   type RestartRecoveryTerminalDeliveryScope,
 } from "../../config/sessions/restart-recovery-receipt.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { normalizeAccountId, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { readTrimmedStringAlias } from "../../utils/string-readers.js";
 import { createOutboundPayloadPlan, projectOutboundPayloadPlanForMirror } from "./payloads.js";

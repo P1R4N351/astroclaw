@@ -117,8 +117,8 @@ vi.mock("./channel-tools.js", () => ({
   listChannelAgentTools: () => [],
 }));
 
-vi.mock("./openclaw-tools.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./openclaw-tools.js")>();
+vi.mock("./astroclaw-tools.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./astroclaw-tools.js")>();
   return {
     createOpenClawTools: () => [],
     filterToolsByClientCaps: actual.filterToolsByClientCaps,

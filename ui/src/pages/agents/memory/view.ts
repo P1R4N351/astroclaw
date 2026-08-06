@@ -1,6 +1,6 @@
 // Control UI view renders dreaming screen content.
 import "../../../styles/lobster-pet.css";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { html, nothing } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { renderHubTabs } from "../../../components/hub-tabs.ts";

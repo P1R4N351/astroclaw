@@ -1,5 +1,5 @@
 // Ollama tests cover discovery shared plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
 import { describe, expect, it, vi } from "vitest";
 import {

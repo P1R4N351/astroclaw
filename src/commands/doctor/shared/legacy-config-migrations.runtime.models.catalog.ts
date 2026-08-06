@@ -2,8 +2,8 @@ import { isDeepStrictEqual } from "node:util";
 import type {
   ModelCatalog,
   NormalizedModelCatalogRow,
-} from "@openclaw/model-catalog-core/model-catalog-types";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+} from "@astroclaw/model-catalog-core/model-catalog-types";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   modelTransportRoutesMatch,
   resolveUniqueCatalogModelRoute,

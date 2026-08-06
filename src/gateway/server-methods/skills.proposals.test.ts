@@ -8,7 +8,7 @@ import { readSkillProposalEvents } from "../../skills/workshop/store-evaluation.
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import { callGatewayHandler } from "./skills.test-helpers.js";
 

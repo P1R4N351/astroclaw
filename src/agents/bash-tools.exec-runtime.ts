@@ -1,6 +1,6 @@
 import path from "node:path";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { emitDiagnosticEventWithTrustedTraceContext } from "../infra/diagnostic-events.js";
 import {
   type EventSessionRoutingPolicy,

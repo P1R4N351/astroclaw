@@ -1,5 +1,5 @@
 import { isLegacyParentWritableUpdateDoctorPass } from "../commands/doctor/shared/update-phase.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { DoctorHealthFlowContext } from "./doctor-health-contribution-types.js";
 
 export function isUpdateDoctorRun(

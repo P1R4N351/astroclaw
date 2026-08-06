@@ -1,6 +1,6 @@
 /** Reads persisted generated catalogs without constructing a model registry. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { ModelCatalogEntry, ModelInputType } from "../../agents/model-catalog.types.js";
 import {
   filterGeneratedPluginModelCatalogProviders,

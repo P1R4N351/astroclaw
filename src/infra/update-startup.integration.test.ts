@@ -5,11 +5,11 @@ import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import type { UpdateCheckResult } from "./update-check.js";
 
-vi.mock("./openclaw-root.js", async () => {
-  const actual = await vi.importActual<typeof import("./openclaw-root.js")>("./openclaw-root.js");
+vi.mock("./astroclaw-root.js", async () => {
+  const actual = await vi.importActual<typeof import("./astroclaw-root.js")>("./astroclaw-root.js");
   return {
     ...actual,
     resolveOpenClawPackageRoot: vi.fn(async () => "/opt/openclaw"),

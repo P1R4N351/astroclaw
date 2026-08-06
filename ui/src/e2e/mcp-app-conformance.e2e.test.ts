@@ -26,7 +26,7 @@ import {
   clearRuntimeConfigSnapshot,
   readConfigFileSnapshotWithPluginMetadata,
 } from "../../../src/config/config.js";
-import type { OpenClawConfig } from "../../../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../src/config/types.astroclaw.js";
 import { startGatewayServer } from "../../../src/gateway/server.js";
 import { getFreeGatewayPort } from "../../../src/gateway/test-helpers.e2e.js";
 import { captureEnv, setTestEnvValue } from "../../../src/test-utils/env.js";

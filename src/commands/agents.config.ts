@@ -2,8 +2,8 @@
 import {
   normalizeOptionalString,
   resolvePrimaryStringValue,
-} from "@openclaw/normalization-core/string-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import {
   listAgentEntries,
   resolveAgentDir,
@@ -16,7 +16,7 @@ import type { AgentIdentityFile } from "../agents/identity-file.js";
 import { identityHasValues, loadAgentIdentityFromWorkspace } from "../agents/identity-file.js";
 import { listRouteBindings } from "../config/bindings.js";
 import type { IdentityConfig } from "../config/types.base.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 
 export type AgentSummary = {

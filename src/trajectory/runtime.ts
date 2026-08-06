@@ -1,6 +1,6 @@
 // Trajectory runtime records bounded session events into SQLite-backed storage.
 import path from "node:path";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { sanitizeDiagnosticPayload } from "../agents/payload-redaction.js";
 import type {
   QueuedFileWriter,
@@ -9,7 +9,7 @@ import type {
 import { parseSqliteSessionFileMarker } from "../config/sessions/legacy-sqlite-marker.js";
 import { loadSessionEntry } from "../config/sessions/session-accessor.js";
 import type { SessionTranscriptRuntimeTarget } from "../config/sessions/session-accessor.types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { redactSecrets } from "../logging/redact.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import { parseBooleanValue } from "../utils/boolean.js";

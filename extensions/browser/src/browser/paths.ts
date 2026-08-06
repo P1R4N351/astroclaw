@@ -6,7 +6,7 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import {
   resolveExistingPathsWithinRoot,
   resolveStrictExistingPathsWithinRoot,

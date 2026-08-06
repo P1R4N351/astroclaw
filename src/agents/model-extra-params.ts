@@ -1,6 +1,6 @@
-import { normalizeFastMode } from "@openclaw/normalization-core/string-coerce";
+import { normalizeFastMode } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeThinkLevel } from "../auto-reply/thinking.shared.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { modelKey } from "../shared/model-key.js";
 import { resolveAgentConfig } from "./agent-scope-config.js";
 

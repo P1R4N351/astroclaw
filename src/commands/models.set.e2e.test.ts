@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createModelVisibilityPolicy } from "../agents/model-visibility-policy.js";
 import { stampConfigWriteMetadata } from "../config/io.meta.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 const mocks = vi.hoisted(() => ({
   currentConfig: {} as Record<string, unknown>,

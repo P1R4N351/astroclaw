@@ -7,7 +7,7 @@
 
 import { type ChildProcess, spawn } from "node:child_process";
 import process from "node:process";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { killProcessTree } from "../process/kill-tree.js";

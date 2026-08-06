@@ -3,7 +3,7 @@ import type {
   QuestionGetResult,
   QuestionResolveResult,
 } from "../../packages/gateway-protocol/src/schema/questions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { callGateway } from "../gateway/call.js";
 
 const QUESTION_RECORD_ID_PATTERN = /^ask_[a-f0-9]{32}$/u;

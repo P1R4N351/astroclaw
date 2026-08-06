@@ -7,7 +7,7 @@ import {
   errorShape,
   validateDevicePairSetupCodeParams,
 } from "../../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { renderQrPngDataUrl } from "../../media/qr-image.js";
 import { encodePairingSetupCode, resolvePairingSetupFromConfig } from "../../pairing/setup-code.js";
 import { runCommandWithTimeout } from "../../process/exec.js";

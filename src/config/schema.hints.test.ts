@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 // Verifies schema hint metadata and sensitive path handling.
-import { isSensitiveUrlConfigPath } from "@openclaw/net-policy/redact-sensitive-url";
+import { isSensitiveUrlConfigPath } from "@astroclaw/net-policy/redact-sensitive-url";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { buildSecretInputSchema } from "../plugin-sdk/secret-input-schema.js";

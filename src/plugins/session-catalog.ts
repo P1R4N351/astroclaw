@@ -7,7 +7,7 @@ import type {
   SessionsCatalogReadResult,
 } from "../../packages/gateway-protocol/src/schema/sessions-catalog.js";
 import { listAgentIds, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginRuntime } from "./runtime/types.js";
 
 export type SessionCatalogListProviderParams = {

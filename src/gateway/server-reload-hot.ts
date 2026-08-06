@@ -8,7 +8,7 @@ import {
   type PreparedModelRuntimeReplacementGateId,
 } from "../agents/prepared-model-runtime.js";
 import { isRestartEnabled } from "../config/commands.flags.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { resetDirectoryCache } from "../infra/outbound/target-resolver.js";

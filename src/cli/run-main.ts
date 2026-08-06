@@ -2,10 +2,10 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { Command as CommanderCommand, Option as CommanderOption } from "commander";
 import { resolveStateDir } from "../config/paths.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import { isLoopbackAddress, isSecureWebSocketUrl } from "../gateway/net.js";
 import {
   consumeRootOptionToken,

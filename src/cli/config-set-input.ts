@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import JSON5 from "json5";
 import { hasErrnoCode } from "../infra/errors.js";
 import { readFileDescriptorBoundedSync } from "../infra/file-descriptor-read.js";

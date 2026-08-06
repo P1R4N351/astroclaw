@@ -14,7 +14,7 @@ import {
   closeOpenClawAgentDatabasesForTest,
   openOpenClawAgentDatabase,
 } from "../../state/openclaw-agent-db.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { loadGatewaySessionRow } from "../session-utils.js";
 import { sessionMutationHandlers } from "./sessions-mutations.js";
 import { sessionLog } from "./sessions-shared.js";

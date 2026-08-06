@@ -1,5 +1,5 @@
 // Runtime registry loader assembles process-root plugin runtimes from config metadata.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { withActivatedPluginIds } from "../activation-context.js";
 import {
   resolveChannelPluginIds,

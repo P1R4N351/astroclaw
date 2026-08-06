@@ -2,7 +2,7 @@ import type {
   SessionCatalogTranscriptItem,
   SessionsCatalogReadResult,
 } from "../../packages/gateway-protocol/src/schema/sessions-catalog.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { AgentMessage } from "../plugin-sdk/agent-core.js";
 import { withSessionTranscriptWriteLock } from "../plugin-sdk/session-transcript-runtime.js";
 

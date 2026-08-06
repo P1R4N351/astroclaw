@@ -8,7 +8,7 @@ import { connectGatewayStatusClient, postJson } from "../../../helpers/gateway-e
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "../../../helpers/openclaw-test-instance.js";
+} from "../../../helpers/astroclaw-test-instance.js";
 import { runCodexAuthDoctorMigrationProof } from "./codex-auth-product-proof.test-support.js";
 
 const oauthAccess = "test-oauth-access";

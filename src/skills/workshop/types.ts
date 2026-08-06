@@ -1,5 +1,5 @@
 // Workshop types define generated skill draft, policy, and config contracts.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { PluginHookSkillProposalEvaluationOutcome } from "../../plugins/hook-types.js";
 import type { SkillScanFinding } from "../security/scanner.js";
 

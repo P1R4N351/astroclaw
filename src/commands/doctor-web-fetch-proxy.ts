@@ -2,7 +2,7 @@
 import tls from "node:tls";
 import { note } from "../../packages/terminal-core/src/note.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveGatewayService, type GatewayService } from "../daemon/service.js";
 import { hasEnvHttpProxyConfigured } from "../infra/net/proxy-env.js";
 

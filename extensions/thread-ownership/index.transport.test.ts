@@ -1,7 +1,7 @@
 // Real-transport proof: ownership 200 path is status-only and must cancel unread bodies.
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi } from "./api.js";
 import register from "./index.js";

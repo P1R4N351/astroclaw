@@ -4,8 +4,8 @@
  */
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   listAgentEntries,
   resolveAgentDir,
@@ -15,7 +15,7 @@ import { modelKey, normalizeModelRef, normalizeProviderId } from "../agents/mode
 import type { NormalizedUsage } from "../agents/usage.js";
 import { resolveStateDir } from "../config/paths.js";
 import type { ModelProviderConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { tryReadJsonSync } from "../infra/json-files.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import {

@@ -1,8 +1,8 @@
 // Checks install policy constraints for package and plugin operations.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
-import type { OpenClawConfig, SecurityConfig } from "../config/types.openclaw.js";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import type { OpenClawConfig, SecurityConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { normalizePositiveInt, normalizePositiveTimerMs } from "../secrets/shared.js";

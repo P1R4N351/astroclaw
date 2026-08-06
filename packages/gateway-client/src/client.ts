@@ -4,22 +4,22 @@ import {
   GATEWAY_CLIENT_NAMES,
   type GatewayClientMode,
   type GatewayClientName,
-} from "@openclaw/gateway-protocol/client-info";
+} from "@astroclaw/gateway-protocol/client-info";
 import {
   ConnectErrorDetailCodes,
   formatConnectErrorMessage,
   readConnectErrorDetailCode,
-} from "@openclaw/gateway-protocol/connect-error-details";
+} from "@astroclaw/gateway-protocol/connect-error-details";
 import type {
   ConnectParams,
   ErrorShape,
   EventFrame,
   HelloOk,
-} from "@openclaw/gateway-protocol/frame-guards";
-import { resolveGatewayStartupRetryAfterMs } from "@openclaw/gateway-protocol/startup-unavailable";
-import { MIN_CLIENT_PROTOCOL_VERSION, PROTOCOL_VERSION } from "@openclaw/gateway-protocol/version";
-import { isLoopbackIpAddress, type ParsedIpAddress } from "@openclaw/net-policy/ip";
-import { isWssUrl } from "@openclaw/net-policy/url-protocol";
+} from "@astroclaw/gateway-protocol/frame-guards";
+import { resolveGatewayStartupRetryAfterMs } from "@astroclaw/gateway-protocol/startup-unavailable";
+import { MIN_CLIENT_PROTOCOL_VERSION, PROTOCOL_VERSION } from "@astroclaw/gateway-protocol/version";
+import { isLoopbackIpAddress, type ParsedIpAddress } from "@astroclaw/net-policy/ip";
+import { isWssUrl } from "@astroclaw/net-policy/url-protocol";
 import { WebSocket, type ClientOptions, type CertMeta } from "ws";
 import {
   isSensitiveUrlQueryParamName,

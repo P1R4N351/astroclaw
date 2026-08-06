@@ -3,7 +3,7 @@
  *
  * Owner ids are rendered raw; no config or secret is required.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 const MAX_OWNER_PROMPT_SENDERS = 16;
 export const MAX_OWNER_PROMPT_CONTENT_BYTES = 980;

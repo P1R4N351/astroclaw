@@ -1,10 +1,10 @@
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import {
   appendTranscriptEvent,
   loadSessionEntryReadOnly,
 } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { buildChannelInboundEventContext } from "./inbound-event/context.js";
 import { createChannelInboundEnvelopeBuilder } from "./inbound-event/envelope.js";
 import { dispatchChannelInboundTurn } from "./turn/kernel.js";

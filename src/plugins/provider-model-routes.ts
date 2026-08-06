@@ -1,12 +1,12 @@
 /** Generic adapter for provider-owned model route public artifacts. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   resolveMergedModelProviderConfig,
   resolveMergedModelProviderModels,
   resolveModelProviderRouteOverridePresence,
 } from "../config/model-provider-config.js";
 import type { ModelApi, ModelDefinitionConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type {
   ProviderModelRouteResolution,
   ProviderModelRouteSource,

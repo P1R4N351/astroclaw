@@ -6,7 +6,7 @@ import {
   type ModelAuthAvailabilityRef,
 } from "../../agents/model-auth-availability.js";
 import type { createOpenAIModelRoutesResolver } from "../../agents/openai-model-routes.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
 
 export type ModelListAuthRef = ModelAuthAvailabilityRef;

@@ -1,12 +1,12 @@
 import fs from "node:fs";
 /** Doctor warnings for heartbeat.session values that resolve to missing delivery sessions. */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentEntries, listAgentIds, resolveAgentConfig } from "../agents/agent-scope.js";
 import { canonicalizeMainSessionAlias } from "../config/sessions/main-session.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { loadSessionEntryReadOnly } from "../config/sessions/session-accessor.js";
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveHeartbeatIntervalMs } from "../infra/heartbeat-summary.js";
 import { resolveHeartbeatDeliveryTarget } from "../infra/outbound/targets.js";
 import { loadLegacySessionStore } from "../infra/state-migrations.legacy-session-store.js";

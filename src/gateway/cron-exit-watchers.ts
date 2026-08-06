@@ -1,5 +1,5 @@
 import type { CronJob } from "../cron/types.js";
-import { markOpenClawExecEnv } from "../infra/openclaw-exec-env.js";
+import { markOpenClawExecEnv } from "../infra/astroclaw-exec-env.js";
 import type { ManagedRun, ProcessSupervisor } from "../process/supervisor/index.js";
 import { resolveExitWatchShell } from "./cron-exit-watch-shell.js";
 

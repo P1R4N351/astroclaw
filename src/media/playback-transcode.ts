@@ -2,13 +2,13 @@
 import { createHash } from "node:crypto";
 import fs, { type FileHandle } from "node:fs/promises";
 import path from "node:path";
-import { maxBytesForKind, type MediaKind } from "@openclaw/media-core/constants";
-import { extensionForMime, normalizeMimeType } from "@openclaw/media-core/mime";
+import { maxBytesForKind, type MediaKind } from "@astroclaw/media-core/constants";
+import { extensionForMime, normalizeMimeType } from "@astroclaw/media-core/mime";
 import { fileStore } from "../infra/file-store.js";
 import { openLocalFileSafely } from "../infra/fs-safe.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import { withTempWorkspace } from "../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { getOrCreatePromise } from "../shared/lazy-promise.js";
 import { runFfmpeg } from "./ffmpeg-exec.js";
 import { probePlaybackMediaFileDescriptor, type PlaybackMediaProbeResult } from "./media-probe.js";

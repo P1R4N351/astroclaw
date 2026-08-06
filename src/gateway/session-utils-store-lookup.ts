@@ -1,4 +1,4 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentIds } from "../agents/agent-scope.js";
 import {
   isConfiguredSessionStoreAgentId,
@@ -16,7 +16,7 @@ import {
 } from "../config/sessions/session-accessor.js";
 import type { SessionEntryListScope } from "../config/sessions/session-accessor.types.js";
 import { canonicalSessionKeyMigrationRequiredError } from "../config/sessions/session-canonical-key.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   DEFAULT_AGENT_ID,
   isIncognitoSessionKey,

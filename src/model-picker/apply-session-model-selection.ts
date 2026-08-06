@@ -23,7 +23,7 @@ import {
   sessionModelOverrideChangesApplied,
 } from "../config/sessions/session-snapshot-merge.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { triggerSessionPatchHook } from "../gateway/session-patch-hooks.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import {

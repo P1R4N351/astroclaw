@@ -4,7 +4,7 @@ import type {
   ConfigFileSnapshot,
   ConfigValidationIssue,
   OpenClawConfig,
-} from "../config/types.openclaw.js";
+} from "../config/types.astroclaw.js";
 import { createPluginRecord } from "../plugins/status.test-fixtures.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import {

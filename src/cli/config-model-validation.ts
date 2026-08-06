@@ -19,7 +19,7 @@ import type { loadPreparedModelCatalogOwnerSnapshot } from "../agents/prepared-m
 import { containsEnvVarReference, resolveConfigEnvVars } from "../config/env-substitution.js";
 import { migratePersistedImplicitMainRoster } from "../config/legacy.roster.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { formatCliCommand } from "./command-format.js";
 

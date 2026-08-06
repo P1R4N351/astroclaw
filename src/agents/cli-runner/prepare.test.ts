@@ -7,7 +7,7 @@ import { CURRENT_SESSION_VERSION } from "openclaw/plugin-sdk/agent-sessions";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { registerLegacyContextEngine } from "../../context-engine/legacy.registration.js";
 import {
   registerContextEngine,

@@ -1,5 +1,5 @@
-import { finiteSecondsToTimerSafeMilliseconds } from "@openclaw/normalization-core/number-coercion";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { finiteSecondsToTimerSafeMilliseconds } from "@astroclaw/normalization-core/number-coercion";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { Api, Model } from "../../llm/types.js";
 import type { ProviderRuntimeModel } from "../../plugins/provider-runtime-model.types.js";
 import {

@@ -1,9 +1,9 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { DEFAULT_HEARTBEAT_EVERY } from "../auto-reply/heartbeat.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { loadSessionEntryReadOnly } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { areHeartbeatsEnabled } from "../infra/heartbeat-wake.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
 import { deliveryContextFromSession } from "../utils/delivery-context.js";

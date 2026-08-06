@@ -1,5 +1,5 @@
 /** Collects and analyzes command-scoped secret assignments from OpenClaw config. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { coerceSecretRef, resolveSecretInputRef } from "../config/types.secrets.js";
 import { getPath } from "./path-utils.js";
 import { isExpectedResolvedSecretValue } from "./secret-value.js";

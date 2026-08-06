@@ -11,7 +11,7 @@ import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtim
 import { afterEach, describe, expect, it } from "vitest";
 import { createFileBackedSessionManagerForTest } from "../../test/helpers/session-manager-file-fixture.js";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { attachRuntimeUserTurnTranscriptContext } from "../sessions/user-turn-transcript-runtime-context.js";
 import {
   createUserTurnTranscriptRecorder,

@@ -1,7 +1,7 @@
 // Tests for the declarative channel doctor alias-migration DSL.
 import { describe, expect, it } from "vitest";
 import { defineChannelAliasMigration } from "./channel-alias-migration.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 function cfgWith(channelId: string, entry: Record<string, unknown>): OpenClawConfig {
   return { channels: { [channelId]: entry } } as never;

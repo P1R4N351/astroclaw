@@ -7,7 +7,7 @@ import { VERSION } from "../version.js";
 import { createConfigIO } from "./io.js";
 import { normalizeExecSafeBinProfilesInConfig } from "./normalize-exec-safe-bin.js";
 import { withTempHome } from "./test-helpers.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 async function writeConfig(
   home: string,

@@ -9,7 +9,7 @@ import { resolveSandboxRuntimeStatus } from "../agents/sandbox/runtime-status.js
 import { resolveSandboxWorkspaceLayoutPaths } from "../agents/sandbox/shared.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { listSessionEntryKeysReadOnly } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import { resolveUserPath } from "./home-dir.js";
 

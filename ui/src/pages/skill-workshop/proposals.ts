@@ -1,5 +1,5 @@
 // Control UI controller manages skill workshop gateway state.
-import { formatErrorMessage } from "@openclaw/normalization-core";
+import { formatErrorMessage } from "@astroclaw/normalization-core";
 import type { AgentSelectionCapability } from "../../app/agent-selection.ts";
 import type { ApplicationGateway } from "../../app/context.ts";
 import { t } from "../../i18n/index.ts";

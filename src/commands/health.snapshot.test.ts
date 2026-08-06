@@ -8,7 +8,7 @@ import type { ChannelPlugin } from "../channels/plugins/types.public.js";
 import type { HealthSummary } from "../gateway/health/types.js";
 import { createPluginRecord } from "../plugins/status.test-fixtures.js";
 import { MAX_TIMER_TIMEOUT_MS } from "../shared/number-coercion.js";
-import { createOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { createOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import {
   createLegacyHealthSnapshotCollector,
   type LegacyHealthSnapshotParams,

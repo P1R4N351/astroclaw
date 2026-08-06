@@ -3,7 +3,7 @@
  * store preserves typed columns for hot delivery state while retaining the
  * normalized payload JSON for forward-compatible record hydration.
  */
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { sql, type Insertable, type Selectable, type Updateable } from "kysely";
 import { executeSqliteQuerySync, getNodeSqliteKysely } from "../infra/kysely-sync.js";
 import type { DB as OpenClawStateKyselyDatabase } from "../state/openclaw-state-db.generated.js";

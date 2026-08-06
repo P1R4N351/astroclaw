@@ -2,7 +2,7 @@
 import { resolveStateDir } from "../config/paths.js";
 import { redactConfigObject } from "../config/redact-snapshot.js";
 import type { SessionSystemPromptReport } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveCommitHash } from "../infra/git-commit.js";
 import { resolveOsSummary } from "../infra/os-summary.js";
 import {

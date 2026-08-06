@@ -30,7 +30,7 @@ import {
 } from "../commands/doctor-ui.js";
 import { collectDisabledCodexPluginRouteIssues } from "../commands/doctor/shared/codex-route-warnings.js";
 import { isDefaultInstallIdentity } from "../config/paths.js";
-import type { ConfigValidationIssue, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigValidationIssue, OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveSecretInputRef, type SecretRef } from "../config/types.secrets.js";
 import type { CronListPageResult } from "../cron/service/list-page-types.js";
 import type { CronJob } from "../cron/types.js";

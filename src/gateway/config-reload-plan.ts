@@ -5,7 +5,7 @@ import {
   type ChannelPlugin,
   listChannelPlugins,
 } from "../channels/plugins/index.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   getActivePluginHttpRouteRegistry,
   getActivePluginHttpRouteRegistryVersion,

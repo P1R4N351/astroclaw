@@ -1,6 +1,6 @@
 // Plugin management Gateway handler tests cover DTO mapping, trust errors, and reload planning.
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const managementMocks = vi.hoisted(() => {

@@ -4,7 +4,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { runCommandWithTimeout } from "../process/exec.js";
-import { resolveOpenClawPackageRoot } from "./openclaw-root.js";
+import { resolveOpenClawPackageRoot } from "./astroclaw-root.js";
 
 const GIT_TIMEOUT_MS = 3000;
 // Mainline branches read as release-shaped state; the badge exists to flag

@@ -1,9 +1,9 @@
 // Onboarding plugin install tests cover install sources, trust checks, and install records.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveRegistryUpdateChannel } from "../infra/update-channels.js";
 import type { PluginEnableResult } from "../plugins/enable.js";
 import { resolveNpmInstallSpecsForUpdateChannel } from "../plugins/install-channel-specs.js";

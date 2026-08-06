@@ -1,6 +1,6 @@
 /** Applies model override tokens embedded in reset/new command text. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { ModelCatalogEntry } from "../../agents/model-catalog.types.js";
 import {
   buildAllowedModelSetWithFallbacks,
@@ -14,7 +14,7 @@ import {
   SESSION_MODEL_OVERRIDE_TRANSACTION_FIELDS,
   sessionModelOverrideChangesApplied,
 } from "../../config/sessions/session-snapshot-merge.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
 import {

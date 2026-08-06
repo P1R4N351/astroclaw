@@ -1,5 +1,5 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { sliceUtf16Safe, truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { filterHeartbeatTranscriptTurns } from "../../auto-reply/heartbeat-transcript-turns.js";
 import { redactSensitiveText } from "../../logging/redact.js";
 import {

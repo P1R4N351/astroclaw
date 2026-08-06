@@ -1,6 +1,6 @@
 /** Mirrors child ACP turns into detached-task status for requester-facing progress. */
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { logVerbose } from "../../globals.js";
 import {
   createRunningTaskRun,

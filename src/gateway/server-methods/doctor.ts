@@ -2,15 +2,15 @@
 // cron state, and REM harness previews for operator diagnostics.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
-import { asOptionalRecord } from "@openclaw/normalization-core/record-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import { ErrorCodes, errorShape } from "../../../packages/gateway-protocol/src/index.js";
 import {
   listAgentIds,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../../agents/agent-scope.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   resolveMemoryDeepDreamingConfig,
   resolveMemoryLightDreamingConfig,

@@ -1,5 +1,5 @@
 // Transcript tree helpers keep append-only leaf controls consistent across readers.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 
 type TranscriptRecord = Record<string, unknown>;
 

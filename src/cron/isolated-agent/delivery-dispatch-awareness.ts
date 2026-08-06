@@ -1,6 +1,6 @@
 /** Session awareness and transcript mirroring for direct cron delivery. */
-import { isAudioFileName } from "@openclaw/media-core/mime";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { isAudioFileName } from "@astroclaw/media-core/mime";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
 import { resolveSessionWorkStartError } from "../../config/sessions/lifecycle.js";
 import {
@@ -9,7 +9,7 @@ import {
   resolveMainSessionKey,
 } from "../../config/sessions/main-session.js";
 import { resolveMirroredTranscriptText } from "../../config/sessions/transcript-mirror.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import type { NormalizedOutboundPayload } from "../../infra/outbound/deliver.js";
 import type {

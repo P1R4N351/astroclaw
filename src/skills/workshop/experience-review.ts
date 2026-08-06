@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { SessionManager } from "../../agents/sessions/index.js";
 import type { ChatType } from "../../channels/chat-type.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { runWithGatewayIndependentRootWorkAdmission } from "../../process/gateway-work-admission.js";
 import { CommandLane } from "../../process/lanes.js";

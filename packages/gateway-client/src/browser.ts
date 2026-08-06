@@ -12,9 +12,9 @@ export {
   DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS,
   resolveSafeTimeoutDelayMs,
 } from "./timeouts.js";
-export * from "@openclaw/gateway-protocol/client-info";
-export * from "@openclaw/gateway-protocol/connect-error-details";
-export * from "@openclaw/gateway-protocol/gateway-error-details";
-export * from "@openclaw/gateway-protocol/startup-unavailable";
-export * from "@openclaw/gateway-protocol/version";
-export type { ConnectParams, ErrorShape, EventFrame, HelloOk } from "@openclaw/gateway-protocol";
+export * from "@astroclaw/gateway-protocol/client-info";
+export * from "@astroclaw/gateway-protocol/connect-error-details";
+export * from "@astroclaw/gateway-protocol/gateway-error-details";
+export * from "@astroclaw/gateway-protocol/startup-unavailable";
+export * from "@astroclaw/gateway-protocol/version";
+export type { ConnectParams, ErrorShape, EventFrame, HelloOk } from "@astroclaw/gateway-protocol";

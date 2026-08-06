@@ -7,7 +7,7 @@ import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { DEFAULT_HEARTBEAT_FILENAME } from "../agents/workspace.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { CRON_JOB_SCRATCH_MAX_BYTES } from "../cron/scratch-contract.js";
 import {
   deleteCronJobScratch,

@@ -1,12 +1,12 @@
 /** Protects active auth profile metadata while doctor repairs broader config state. */
-import { collectConfiguredModelRefs } from "@openclaw/model-catalog-core/configured-model-refs";
+import { collectConfiguredModelRefs } from "@astroclaw/model-catalog-core/configured-model-refs";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { splitTrailingAuthProfile } from "../agents/model-ref-profile.js";
 import type { AuthProfileConfig } from "../config/types.auth.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isRecord } from "../utils.js";
 
 const AUTH_PROFILE_MODES = new Set<AuthProfileConfig["mode"]>([

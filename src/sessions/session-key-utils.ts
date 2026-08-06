@@ -3,7 +3,7 @@ import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import { escapeRegExp } from "../shared/regexp.js";
 

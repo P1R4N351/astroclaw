@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 
-import { GatewayProtocolRequestError } from "@openclaw/gateway-client/browser";
-import { buildSystemAgentSessionInvalidatedErrorDetails } from "@openclaw/gateway-protocol";
+import { GatewayProtocolRequestError } from "@astroclaw/gateway-client/browser";
+import { buildSystemAgentSessionInvalidatedErrorDetails } from "@astroclaw/gateway-protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitForFast } from "../../test-helpers/wait-for.ts";
 import { createContext, mountPage } from "./custodian-page.test-harness.ts";

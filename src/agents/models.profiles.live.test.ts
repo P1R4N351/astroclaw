@@ -2,12 +2,12 @@
 import { writeSync } from "node:fs";
 import { defaultApiRegistry } from "@openclaw/ai/internal/runtime";
 import { prepareModelForSimpleCompletion } from "@openclaw/ai/transports";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { expectDefined } from "@openclaw/normalization-core";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { type Api, completeSimple, type Model } from "astroclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { coerceSecretRef, type SecretInput } from "../config/types.secrets.js";
 import { parseLiveCsvFilter } from "../media-generation/live-test-helpers.js";
 import { withBundledPluginEnablementCompat } from "../plugins/bundled-compat.js";

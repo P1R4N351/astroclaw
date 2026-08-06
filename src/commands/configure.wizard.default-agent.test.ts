@@ -1,6 +1,6 @@
 // Configure wizard tests keep workspace-owned effects on the configured default agent.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 
 const mocks = vi.hoisted(() => ({

@@ -1,4 +1,4 @@
-import { isFutureDateTimestampMs } from "@openclaw/normalization-core/number-coercion";
+import { isFutureDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import { resolveDefaultAgentId } from "../../agents/agent-scope-config.js";
 // Account-scoped conversation binding managers adapt channel-local thread maps
 // into the shared session binding service.
@@ -7,7 +7,7 @@ import {
   resolveThreadBindingIdleTimeoutMsForChannel,
   resolveThreadBindingMaxAgeMsForChannel,
 } from "../../channels/thread-bindings-policy.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { normalizeAccountId, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { resolveGlobalSingleton } from "../../shared/global-singleton.js";
 import {

@@ -3,13 +3,13 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../src/config/types.astroclaw.js";
 import { createDeferred } from "../src/test-utils/deferred.js";
 import { GatewayChatClient } from "../src/tui/gateway-chat.js";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/openclaw-test-instance.js";
+} from "./helpers/astroclaw-test-instance.js";
 
 type MockModelRequest = {
   body: Record<string, unknown>;

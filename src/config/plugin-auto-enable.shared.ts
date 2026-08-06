@@ -1,13 +1,13 @@
 // Shares plugin auto-enable detection across config and runtime code.
-import { collectConfiguredModelRefs } from "@openclaw/model-catalog-core/configured-model-refs";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { expectDefined } from "@openclaw/normalization-core";
+import { collectConfiguredModelRefs } from "@astroclaw/model-catalog-core/configured-model-refs";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { expectDefined } from "@astroclaw/normalization-core";
 import {
   asOptionalObjectRecord,
   asOptionalRecord,
   isRecord,
-} from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentEntries } from "../agents/agent-scope-config.js";
 import { collectConfiguredAgentHarnessRuntimes } from "../agents/harness-runtimes.js";
 import {
@@ -42,7 +42,7 @@ import type {
   PluginAutoEnableResult,
 } from "./plugin-auto-enable.types.js";
 import { ensurePluginAllowlisted } from "./plugins-allowlist.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 const EMPTY_PLUGIN_MANIFEST_REGISTRY: PluginManifestRegistry = {
   plugins: [],

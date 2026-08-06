@@ -10,7 +10,7 @@ import {
   runSessionStartupMigration,
   type SessionStartupMigrationLogger,
 } from "../config/sessions/startup-migration.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveOpenClawAgentSqlitePath } from "../state/openclaw-agent-db.paths.js";
 
 type SessionSqliteStartupImportRunner = (params: {

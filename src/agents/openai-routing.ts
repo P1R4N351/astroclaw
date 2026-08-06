@@ -3,8 +3,8 @@
  *
  * Custom OpenAI-compatible base URLs intentionally bypass Codex-runtime defaults.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ProviderRouteOverridePresence } from "../plugin-sdk/provider-model-types.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import {

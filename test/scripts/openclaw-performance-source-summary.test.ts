@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildMarkdown, parseArgs } from "../../scripts/openclaw-performance-source-summary.mjs";
+import { buildMarkdown, parseArgs } from "../../scripts/astroclaw-performance-source-summary.mjs";
 
 const tmpRoots: string[] = [];
 

@@ -8,7 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { upsertSessionEntry } from "../../../../src/config/sessions/session-accessor.js";
 import { useAutoCleanupTempDirTracker } from "../../../../test/helpers/temp-dir.js";
-import { extractAgentIdFromSessionsDir } from "./openclaw-runtime-session.js";
+import { extractAgentIdFromSessionsDir } from "./astroclaw-runtime-session.js";
 import {
   listSessionTranscriptCorpusEntriesForAgent,
   parseCanonicalSessionSyncTargetFromPath,

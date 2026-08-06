@@ -1,6 +1,6 @@
 /** Tests Code Mode MCP namespace. */
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyCodeModeCatalog } from "./code-mode.js";
 import {

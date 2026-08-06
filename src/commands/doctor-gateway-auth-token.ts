@@ -1,5 +1,5 @@
 /** Resolves gateway service auth tokens without leaking exec-backed secrets during install. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { resolveGatewayAuthToken } from "../gateway/auth-token-resolution.js";
 import { trimToUndefined } from "../gateway/credentials.js";

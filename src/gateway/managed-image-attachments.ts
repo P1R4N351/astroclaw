@@ -4,13 +4,13 @@ import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
-import { maxBytesForKind, mediaKindFromMime, type MediaKind } from "@openclaw/media-core/constants";
-import { mimeTypeFromFilePath } from "@openclaw/media-core/mime";
-import { expectDefined } from "@openclaw/normalization-core";
+import { maxBytesForKind, mediaKindFromMime, type MediaKind } from "@astroclaw/media-core/constants";
+import { mimeTypeFromFilePath } from "@astroclaw/media-core/mime";
+import { expectDefined } from "@astroclaw/normalization-core";
 import {
   asDateTimestampMs,
   resolveTimestampMsToIsoString,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import { resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import type { ReplyMediaAttachment } from "../auto-reply/reply-payload.js";
 import { getRuntimeConfig } from "../config/config.js";

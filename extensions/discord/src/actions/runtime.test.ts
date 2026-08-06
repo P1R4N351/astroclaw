@@ -1,4 +1,4 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import type { DiscordActionConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Discord tests cover runtime plugin behavior.

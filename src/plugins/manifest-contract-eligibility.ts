@@ -1,10 +1,10 @@
 // Determines which manifest contracts are eligible for plugin activation.
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import {
   hasMeaningfulChannelConfigShallow,
   resolveChannelConfigRecord,
 } from "../config/channel-configured-shared.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { readBundledDiscoveryMode } from "./bundled-discovery-state.js";
 import { normalizePluginsConfig } from "./config-state.js";
 import { isInstalledPluginEnabled } from "./installed-plugin-index.js";

@@ -6,7 +6,7 @@ import { CURRENT_SESSION_VERSION } from "astroclaw/plugin-sdk/agent-sessions";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { replaceSessionEntry } from "../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ContextEngine } from "../../context-engine/types.js";
 import { createEmptyPluginRegistry } from "../../plugins/registry-empty.js";
 import {

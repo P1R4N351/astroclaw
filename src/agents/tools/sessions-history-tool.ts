@@ -3,11 +3,11 @@
  *
  * Reads bounded, redacted session transcript history after session visibility filtering.
  */
-import { estimateBase64DecodedBytes } from "@openclaw/media-core/base64";
-import { readStringValue } from "@openclaw/normalization-core/string-coerce";
+import { estimateBase64DecodedBytes } from "@astroclaw/media-core/base64";
+import { readStringValue } from "@astroclaw/normalization-core/string-coerce";
 import { Type } from "typebox";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { callGateway } from "../../gateway/call.js";
 import { capArrayByJsonBytes } from "../../gateway/session-transcript-readers.js";
 import { jsonUtf8Bytes } from "../../infra/json-utf8-bytes.js";

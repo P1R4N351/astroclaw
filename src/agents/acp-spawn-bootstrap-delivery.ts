@@ -1,11 +1,11 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { AcpTurnAttachment } from "../acp/control-plane/manager.types.js";
 import {
   formatConversationTarget,
   routeFromBindingRecord,
   routeToDeliveryFields,
 } from "../channels/route-projection.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { SessionBindingRecord } from "../infra/outbound/session-binding-service.js";
 import type { AcpSpawnRequesterState } from "./acp-spawn-requester.js";
 import {

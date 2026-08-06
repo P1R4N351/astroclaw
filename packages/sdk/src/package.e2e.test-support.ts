@@ -384,7 +384,7 @@ export async function createPackedSdkConsumer(): Promise<PackedSdkConsumer> {
       }
     });
     const sdkTarball =
-      packedPackages.find((pkg) => pkg.manifest.name === "@openclaw/sdk")?.tarball ?? "";
+      packedPackages.find((pkg) => pkg.manifest.name === "@astroclaw/sdk")?.tarball ?? "";
     if (!sdkTarball) {
       throw new Error("packed @openclaw/sdk tarball was not created");
     }

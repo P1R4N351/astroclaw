@@ -1,6 +1,6 @@
 // Parses gateway process command lines for process discovery.
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 
 function normalizeProcArg(arg: string): string {
   return normalizeLowercaseStringOrEmpty(arg.replaceAll("\\", "/"));

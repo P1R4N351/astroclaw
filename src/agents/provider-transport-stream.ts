@@ -3,7 +3,7 @@
  *
  * Routes models that need OpenClaw-managed proxy/TLS/local-service semantics onto built-in transport implementations.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { Api, Model } from "../llm/types.js";
 import { resolveProviderStreamFn } from "../plugins/provider-runtime.js";
 import { createAnthropicMessagesTransportStreamFn } from "./anthropic-transport-stream.js";

@@ -3,7 +3,7 @@
  *
  * Converts channel configured-binding rules into persistent ACP binding records.
  */
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import {
   buildConfiguredAcpSessionKey,
   normalizeBindingConfig,
@@ -18,7 +18,7 @@ import {
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../../agents/agent-scope.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type {
   ConfiguredBindingRuleConfig,
   ConfiguredBindingTargetFactory,

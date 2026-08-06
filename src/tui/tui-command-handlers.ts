@@ -1,7 +1,7 @@
 // Implements TUI slash command handlers and backend action dispatch.
 import { randomUUID } from "node:crypto";
 import type { Component, OverlayHandle, SelectItem, TUI } from "@earendil-works/pi-tui";
-import type { Result } from "@openclaw/normalization-core/result";
+import type { Result } from "@astroclaw/normalization-core/result";
 import type { SessionsPatchResult } from "../../packages/gateway-protocol/src/index.js";
 import { modelKey } from "../agents/model-ref-shared.js";
 import { shouldForwardModelCommandToServer } from "../auto-reply/commands-registry.shared.js";

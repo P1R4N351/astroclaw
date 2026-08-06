@@ -1,8 +1,8 @@
-import type { FastMode } from "@openclaw/normalization-core/string-coerce";
+import type { FastMode } from "@astroclaw/normalization-core/string-coerce";
 import type { AutoFallbackPrimaryProbe } from "../../agents/agent-scope.js";
 import type { ExecToolDefaults } from "../../agents/bash-tools.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ExtractedFileImage } from "../../media-understanding/extracted-file-images.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "../thinking.js";

@@ -1,6 +1,6 @@
 // Gateway RPC handlers for DM sender access requests on pairing-policy channels.
-import { asOptionalRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { asOptionalRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   ErrorCodes,
   errorShape,
@@ -18,7 +18,7 @@ import { listChannelPlugins } from "../../channels/plugins/index.js";
 import { notifyPairingApproved } from "../../channels/plugins/pairing.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
 import { hasConfiguredCommandOwners } from "../../commands/doctor-command-owner.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { bootstrapCommandOwnerFromPairing } from "../../pairing/command-owner.js";
 import {
   approveChannelPairingRequest,

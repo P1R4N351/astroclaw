@@ -2,7 +2,7 @@
  * Harness-facing materialization of requester-scoped MCP tools.
  * Static MCP stays harness-native; this path never opens static transports.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import {

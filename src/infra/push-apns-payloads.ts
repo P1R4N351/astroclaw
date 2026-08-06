@@ -1,6 +1,6 @@
 // Builds portable APNs payloads for alerts, wakes, and approval lifecycle events.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 
 const EXEC_APPROVAL_GENERIC_ALERT_BODY = "Open OpenClaw to review this request.";
 const PLUGIN_APPROVAL_ALERT_BODY_MAX_LENGTH = 256;

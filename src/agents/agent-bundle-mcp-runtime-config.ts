@@ -2,7 +2,7 @@
 import crypto from "node:crypto";
 import { resolveRuntimeConfigCacheKey } from "../config/runtime-snapshot.js";
 import type { SessionToolOverrides } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { logWarn } from "../logger.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { PluginLruCache } from "../plugins/plugin-cache-primitives.js";

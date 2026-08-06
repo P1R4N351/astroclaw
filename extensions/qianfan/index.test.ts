@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { runSingleProviderCatalog } from "../test-support/provider-model-test-helpers.js";
 import qianfanPlugin from "./index.js";
 import { applyQianfanConfig, QIANFAN_DEFAULT_MODEL_REF } from "./onboard.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 function expectRecord<T>(value: T | null | undefined, label: string): NonNullable<T> {
   if (!value) {

@@ -2,7 +2,7 @@
 // helpers, and numeric argument validation.
 import { Value } from "typebox/value";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { compactToolOutputHint } from "../tool-schema-hints.js";
 import { createSessionsListTool } from "./sessions-list-tool.js";
 

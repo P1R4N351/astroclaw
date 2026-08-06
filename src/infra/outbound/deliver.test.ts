@@ -2,7 +2,7 @@
 // checks, adapter sends, transcript mirroring, and payload outcomes.
 import fsPromises from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrustedMessageAuditEvent } from "../../audit/message-audit-events.js";
 import { onTrustedMessageAuditEventForTest as onTrustedMessageAuditEvent } from "../../audit/message-audit-events.test-support.js";
@@ -24,7 +24,7 @@ import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import type { PluginHookRegistration } from "../../plugins/types.js";
 import { createOutboundTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { createInternalHookEventPayload } from "../../test-utils/internal-hook-event-payload.js";
-import { createOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { createOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import {
   onInternalDiagnosticEvent,
   resetDiagnosticEventsForTest,

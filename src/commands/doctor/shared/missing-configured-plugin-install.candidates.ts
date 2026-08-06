@@ -1,6 +1,6 @@
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { listRawChannelPluginCatalogEntries } from "../../../channels/plugins/catalog.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../../../config/types.plugins.js";
 import { compareOpenClawReleaseVersions } from "../../../infra/npm-registry-spec.js";
 import {

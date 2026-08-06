@@ -1,8 +1,8 @@
 // Internal local-avatar resolution and pinned file reads.
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { openRootFileSync } from "../infra/boundary-file-read.js";
 import { readFileDescriptorBoundedSync } from "../infra/boundary-file-read.js";
 import { isRenderableAvatarImageDataUrl } from "../shared/avatar-limits.js";

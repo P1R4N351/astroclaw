@@ -8,7 +8,7 @@ import {
 import { normalizeThinkLevel, type ThinkLevel } from "../../auto-reply/thinking.js";
 /** Resolves provider/model precedence for isolated cron runs. */
 import type { AgentConfig } from "../../config/types.agents.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { CronJob } from "../types.js";
 import { buildCronAgentDefaultsConfig } from "./run-config.js";
 import {

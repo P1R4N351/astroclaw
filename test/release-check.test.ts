@@ -22,7 +22,7 @@ import {
 import {
   collectInstalledBundledRuntimeSidecarPaths,
   collectInstalledRootDependencyManifestErrors,
-} from "../scripts/openclaw-npm-postpublish-verify.ts";
+} from "../scripts/astroclaw-npm-postpublish-verify.ts";
 import {
   collectAppcastSparkleVersionErrors,
   collectBundledExtensionManifestErrors,

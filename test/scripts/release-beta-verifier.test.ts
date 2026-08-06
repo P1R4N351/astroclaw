@@ -2,7 +2,7 @@
 /* oxlint-disable typescript/no-base-to-string -- fetch mock normalizes standard RequestInfo inputs for URL assertions. */
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   downloadClawHubBootstrapReadback,

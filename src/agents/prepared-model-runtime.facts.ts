@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import type { ConfiguredModelRef } from "@openclaw/model-catalog-core/configured-model-refs";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import type { ConfiguredModelRef } from "@astroclaw/model-catalog-core/configured-model-refs";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import type { PreparedMessageToolCatalog } from "../channels/plugins/message-action-discovery.js";
 import { hashRuntimeConfigValue } from "../config/runtime-snapshot.js";
 import { sha256Base64Url } from "../infra/crypto-digest.js";

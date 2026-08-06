@@ -1,7 +1,7 @@
 // Progress narrator tests cover trigger policy, gating, and reply-option wiring.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PROGRESS_STATUS_PREAMBLE_FRESH_MS } from "../../channels/progress-draft-compositor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { GetReplyOptions } from "../get-reply-options.types.js";
 import type { InternalGetReplyOptions } from "./get-reply.types.js";
 import type { ProgressNarrationInput } from "./progress-narrator-model.js";

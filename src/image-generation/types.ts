@@ -1,7 +1,7 @@
 /** Shared image-generation request, provider, capability, and result contracts. */
 import type { MediaNormalizationEntry } from "../../packages/media-generation-core/src/normalization.js";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 
 /** Non-empty binary image asset returned by an image-generation provider. */

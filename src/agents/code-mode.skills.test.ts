@@ -1,6 +1,6 @@
 /** Tests Code Mode skills and read tools. */
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Skill } from "../skills/loading/skill-contract.js";
 import { resolveSkillsPromptForRun } from "../skills/loading/workspace.js";

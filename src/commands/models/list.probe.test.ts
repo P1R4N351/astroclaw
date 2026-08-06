@@ -1,7 +1,7 @@
 // Model list probe tests cover runtime probing while listing configured models.
 import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 let probeModule: typeof import("./list.probe.js");
 

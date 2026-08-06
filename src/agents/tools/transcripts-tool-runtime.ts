@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { manualTranscriptSourceProvider } from "../../transcripts/manual-source.js";
 import { getTranscriptSourceProvider } from "../../transcripts/provider-registry.js";
 import type {

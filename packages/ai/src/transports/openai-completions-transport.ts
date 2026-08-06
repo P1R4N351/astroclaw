@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { Context, Model, StreamFn } from "@openclaw/llm-core";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import type { Context, Model, StreamFn } from "@astroclaw/llm-core";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import OpenAI from "openai";
 import type { ChatCompletionChunk } from "openai/resources/chat/completions.js";
 import {

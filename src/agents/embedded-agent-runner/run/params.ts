@@ -1,7 +1,7 @@
 /**
  * Shared parameter types for embedded-agent run orchestration.
  */
-import type { FastMode } from "@openclaw/normalization-core/string-coerce";
+import type { FastMode } from "@astroclaw/normalization-core/string-coerce";
 import type {
   BlockReplyContext,
   PartialReplyPayload,
@@ -14,7 +14,7 @@ import type { ReasoningLevel, ThinkLevel, VerboseLevel } from "../../../auto-rep
 import type { ChatType } from "../../../channels/chat-type.js";
 import type { InboundEventKind } from "../../../channels/inbound-event/kind.js";
 import type { SessionToolOverrides } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import type { ImageContent } from "../../../llm/types.js";
 import type { MediaFact } from "../../../media/media-facts.js";
 import type { PromptImageOrderEntry } from "../../../media/prompt-image-order.js";

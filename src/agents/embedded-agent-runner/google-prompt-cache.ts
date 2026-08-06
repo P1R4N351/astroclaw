@@ -7,13 +7,13 @@ import {
   stripSystemPromptCacheBoundary,
 } from "@openclaw/ai/internal/shared";
 import { mergeTransportHeaders, sanitizeTransportPayloadText } from "@openclaw/ai/transports";
-import { stableStringify } from "@openclaw/normalization-core";
+import { stableStringify } from "@astroclaw/normalization-core";
 import {
   asDateTimestampMs,
   isFutureDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { parseGeminiAuth } from "../../infra/gemini-auth.js";
 import { normalizeGoogleApiBaseUrl } from "../../infra/google-api-base-url.js";
 import { readResponseWithLimit } from "../../infra/http-body.js";

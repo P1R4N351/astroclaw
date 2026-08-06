@@ -1,7 +1,7 @@
 /** Doctor repair for main sessions accidentally occupied by synthetic heartbeat transcripts. */
 import fs from "node:fs";
 import { StringDecoder } from "node:string_decoder";
-import { asNullableObjectRecord } from "@openclaw/normalization-core/record-coerce";
+import { asNullableObjectRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { note } from "../../packages/terminal-core/src/note.js";
 import { isHeartbeatOkResponse, isHeartbeatUserMessage } from "../auto-reply/heartbeat-filter.js";
 import { formatSessionArchiveTimestamp } from "../config/sessions/artifacts.js";
@@ -11,7 +11,7 @@ import {
   type resolveSessionFilePathOptions,
 } from "../config/sessions/paths.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { updateLegacySessionStore } from "../infra/state-migrations.legacy-session-store.js";
 import { parseAgentSessionKey } from "../sessions/session-key-utils.js";
 import { clearTuiLastSessionPointers } from "../tui/tui-last-session.js";

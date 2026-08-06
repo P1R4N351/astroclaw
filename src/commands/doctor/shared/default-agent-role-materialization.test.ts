@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveDefaultAgentId } from "../../../agents/agent-scope-config.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { resolveCronJobEffectiveAgentId } from "../../../cron/agent-id.js";
 import { resolveHeartbeatAgents } from "../../../infra/heartbeat-runner.js";
 import { resolveAgentRoute } from "../../../routing/resolve-route.js";

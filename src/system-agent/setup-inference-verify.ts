@@ -6,7 +6,7 @@ import { resolveAgentEffectiveModelPrimary, resolveDefaultAgentId } from "../age
 import { loadAuthProfileStoreForRuntime } from "../agents/auth-profiles/store.js";
 import type { AgentExecutionAuthBinding } from "../agents/execution-auth-binding.js";
 import { normalizeProviderId } from "../agents/model-selection.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ProviderAuthResult } from "../plugins/types.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import type { RuntimeEnv } from "../runtime.js";

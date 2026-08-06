@@ -20,7 +20,7 @@ import {
 } from "./api.js";
 import qwenPlugin from "./index.js";
 import { applyQwenTokenPlanConfig } from "./onboard.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { wrapQwenProviderStream } from "./stream.js";
 
 function requireCatalogProvider(result: ProviderCatalogResult): ModelProviderConfig {

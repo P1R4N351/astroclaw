@@ -4,7 +4,7 @@ import { closeOpenClawAgentDatabasesForTest } from "../../../../src/state/opencl
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "../../../helpers/openclaw-test-instance.js";
+} from "../../../helpers/astroclaw-test-instance.js";
 import {
   type CodexAuthMigrationShape,
   runCodexAuthDoctorMigrationProof,

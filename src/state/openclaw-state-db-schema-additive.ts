@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   backfillAcpReplayEstimatedBytes,
   backfillCronJobsFromJobJson,

@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveImageSanitizationLimits } from "../image-sanitization.js";
 import type { AgentToolResult } from "../runtime/index.js";
 import { sanitizeToolResultImages } from "../tool-images.js";

@@ -2,7 +2,7 @@
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { resolveAuthStorePathForDisplay } from "../../agents/auth-profiles.js";
 import type { AuthProfileCredential } from "../../agents/auth-profiles/types.js";
 import { resolveAgentHarnessPolicy } from "../../agents/harness/policy.js";
@@ -24,7 +24,7 @@ import { resolveSessionRuntimeOverrideForProvider } from "../../agents/session-r
 import { resolveEffectiveAgentRuntime } from "../../agents/thinking-runtime.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { shortenHomePath } from "../../utils.js";
 import { resolveSelectedAndActiveModel } from "../model-runtime.js";
 import { resolveSupportedThinkingLevel } from "../thinking.js";

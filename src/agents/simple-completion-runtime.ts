@@ -4,14 +4,14 @@ import { prepareModelForSimpleCompletion } from "@openclaw/ai/transports";
 import {
   resolveClaudeOpus5ModelIdentity,
   resolveClaudeSonnet5ModelIdentity,
-} from "@openclaw/llm-core";
+} from "@astroclaw/llm-core";
 /**
  * Simple completion runtime preparation.
  *
  * Resolves agent model selection, auth, runtime policy, and missing-auth errors before simple completions run.
  */
 import type { ThinkLevel } from "../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { bindModelLlmRuntime, getModelLlmRuntime } from "../llm/model-runtime-binding.js";
 import { completeSimple } from "../llm/stream.js";

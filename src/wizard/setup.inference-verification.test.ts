@@ -1,6 +1,6 @@
 // Setup inference verification tests keep noninteractive imports prompt-free.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { WizardPrompter } from "./prompts.js";
 
 const mocks = vi.hoisted(() => ({

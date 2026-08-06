@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { shouldHandleTextCommands } from "../commands-text-routing.js";
 import type { ReplyPayload } from "../reply-payload.js";
 import type { FinalizedRuntimeMsgContext } from "../templating.js";

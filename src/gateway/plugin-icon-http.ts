@@ -1,7 +1,7 @@
 // Authenticated same-origin proxy for plugin manifest/catalog icons.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { fileTypeFromBuffer } from "file-type";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import { readRemoteMediaBuffer } from "../media/fetch.js";
 import {

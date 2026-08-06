@@ -1,5 +1,5 @@
 /** Computes at/every/cron schedule timestamps with bounded Croner caching. */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { Cron, CronDate } from "croner";
 import { parseOffsetlessIsoDateTimeInTimeZone } from "../infra/format-time/parse-offsetless-zoned-datetime.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";

@@ -1,5 +1,5 @@
 // Provider/account summary helpers for `openclaw agents list`.
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { hasConfiguredUnavailableCredentialStatus } from "../channels/account-snapshot-fields.js";
 import { isChannelVisibleInConfiguredLists } from "../channels/plugins/exposure.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
@@ -13,7 +13,7 @@ import {
   resolveChannelAccountState,
 } from "../channels/status/account-state.js";
 import type { AgentBinding } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { listExplicitConfiguredChannelIdsForConfig } from "../plugins/channel-plugin-ids.js";
 import { resolveMissingOfficialExternalChannelPluginRepairHints } from "../plugins/official-external-plugin-repair-hints.js";
 import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";

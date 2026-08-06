@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
 import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {

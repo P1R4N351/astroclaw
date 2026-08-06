@@ -4,7 +4,7 @@ import path from "node:path";
 import { note } from "../../packages/terminal-core/src/note.js";
 import { resolveAgentWorkspaceDir, tryResolveDefaultAgentId } from "../agents/agent-scope.js";
 import { DEFAULT_AGENTS_FILENAME } from "../agents/workspace.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { readRegularFile } from "../infra/regular-file.js";
 import {

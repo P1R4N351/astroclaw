@@ -1,4 +1,4 @@
-import { clampTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { clampTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { toErrorObject } from "../../../infra/errors.js";
 import { resolveGlobalSingleton } from "../../../shared/global-singleton.js";
 import { resolveEmbeddedSessionFileKey } from "../session-file-key.js";

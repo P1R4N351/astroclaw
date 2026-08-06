@@ -1,7 +1,7 @@
 // agents_list tests cover subagent discovery, runtime metadata, and legacy
 // runtime override handling.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { compactToolOutputHint } from "../tool-schema-hints.js";
 import { createAgentsListTool } from "./agents-list-tool.js";
 

@@ -3,9 +3,9 @@
  * Handles local JSON Schema refs, OpenAPI nullable syntax, top-level unions,
  * and provider-specific unsupported keyword stripping.
  */
-import { isRecord as isSchemaRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import { uniqueValues } from "@openclaw/normalization-core/string-normalization";
+import { isRecord as isSchemaRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { uniqueValues } from "@astroclaw/normalization-core/string-normalization";
 import type { TSchema } from "typebox";
 import type { ModelCompatConfig } from "../config/types.models.js";
 import {

@@ -1,8 +1,8 @@
 // Normalizes plugin command specs for CLI and slash command surfaces.
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { getLoadedChannelPlugin } from "../channels/plugins/index.js";
 import { resolveReadOnlyChannelCommandDefaults } from "../channels/plugins/read-only-command-defaults.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { pluginCommandSupportsChannel } from "./command-registration.js";
 import { pluginCommands } from "./command-registry-state.js";
 import type { PluginCommandRegistration } from "./registry-types.js";

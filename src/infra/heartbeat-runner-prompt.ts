@@ -1,9 +1,9 @@
-import { timestampMsToIsoString } from "@openclaw/normalization-core/number-coercion";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { timestampMsToIsoString } from "@astroclaw/normalization-core/number-coercion";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { isHeartbeatContentEffectivelyEmpty } from "../auto-reply/heartbeat.js";
 import { listDueCommitmentsForSession } from "../commitments/store.js";
 import type { CommitmentRecord } from "../commitments/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { readHeartbeatMonitorScratch } from "../cron/scratch-store.js";
 import { resolveCronJobsStorePathFromConfig } from "../cron/store.js";
 import { formatErrorMessage } from "./errors.js";

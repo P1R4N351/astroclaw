@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { migratePersistedImplicitMainRoster } from "../../config/legacy.roster.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveAgentHarnessPolicy as resolveAgentHarnessPolicyBase } from "./policy.js";
 
 function resolveAgentHarnessPolicy(

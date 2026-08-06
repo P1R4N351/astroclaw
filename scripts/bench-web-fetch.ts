@@ -4,7 +4,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { extractBasicHtmlContent } from "../src/agents/tools/web-fetch-utils.js";
 import { createWebFetchTool } from "../src/agents/tools/web-fetch.js";
-import type { OpenClawConfig } from "../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../src/config/types.astroclaw.js";
 import type { LookupFn } from "../src/infra/net/ssrf.js";
 import { extractReadableContent } from "../src/web-fetch/content-extractors.runtime.js";
 import { stripLeadingPackageManagerSeparator } from "./lib/arg-utils.mjs";

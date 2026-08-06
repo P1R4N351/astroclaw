@@ -1,10 +1,10 @@
 // Doctor helpers for installing plugins required by configured agent runtimes.
-import { asOptionalRecord } from "@openclaw/normalization-core/record-coerce";
+import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   collectConfiguredAgentHarnessRuntimes,
   type ConfiguredAgentHarnessRuntimeOptions,
 } from "../../../agents/harness-runtimes.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import type { PluginPackageInstall } from "../../../plugins/manifest.js";
 
 type ConfiguredRuntimePluginInstallCandidate = {

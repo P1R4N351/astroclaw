@@ -1,6 +1,6 @@
 // Covers context-window cache application and session-manager runtime registry.
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSessionManagerRuntimeRegistry } from "./agent-hooks/session-manager-runtime-registry.js";
 import { getContextWindowCaches, providerContextTokenCacheKey } from "./context-cache.js";
 import {

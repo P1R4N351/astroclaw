@@ -1,7 +1,7 @@
 /** Acyclic contracts for capabilities stored in the installed plugin registry. */
 import type { EmbeddingInput } from "../../packages/memory-host-sdk/src/engine-embeddings.js";
 import type { MemoryCitationsMode } from "../config/types.memory.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ContextEngine } from "../context-engine/types.js";
 import type { MemorySearchManager, MemorySearchResult } from "../memory-host-sdk/host/types.js";
 import type {

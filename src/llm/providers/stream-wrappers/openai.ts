@@ -16,13 +16,13 @@ import {
   applyOpenAIResponsesPayloadPolicy,
   resolveOpenAIResponsesPayloadPolicy,
 } from "@openclaw/ai/transports";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 // OpenAI stream wrapper normalizes OpenAI-compatible streamed tool and text events.
 import {
   normalizeFastMode,
   normalizeOptionalLowercaseString,
   readStringValue,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   patchCodexNativeWebSearchPayload,
   resolveCodexNativeSearchActivation,
@@ -36,7 +36,7 @@ import { resolveProviderRequestPolicyConfig } from "../../../agents/provider-req
 import type { StreamFn } from "../../../agents/runtime/index.js";
 import type { SandboxToolPolicy } from "../../../agents/sandbox.js";
 import type { ThinkLevel } from "../../../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../../../logging/subsystem.js";
 import { streamSimple } from "../../stream.js";
 import type { SimpleStreamOptions } from "../../types.js";

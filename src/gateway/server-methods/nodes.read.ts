@@ -1,4 +1,4 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   ErrorCodes,
   errorShape,
@@ -7,7 +7,7 @@ import {
   validateNodePluginToolsUpdateParams,
   validateNodeSkillsUpdateParams,
 } from "../../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { listDevicePairing, resolveNodePairingState } from "../../infra/device-pairing.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { projectNodePairing } from "../../infra/node-pairing.js";

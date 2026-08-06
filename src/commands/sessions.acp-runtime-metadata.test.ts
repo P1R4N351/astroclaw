@@ -1,7 +1,7 @@
 // Sessions ACP runtime metadata tests cover agent runtime metadata derived from model and session keys.
 import { describe, expect, it } from "vitest";
 import { resolveModelAgentRuntimeMetadata } from "../agents/agent-runtime-metadata.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 
 /**

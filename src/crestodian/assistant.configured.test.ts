@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { RunCliAgentParams } from "../agents/cli-runner/types.js";
 import { fingerprintResolvedProviderAuth } from "../agents/execution-auth-binding.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { planCrestodianCommandWithConfiguredModel } from "./assistant.js";
 import { createCrestodianVerifiedInferenceTestFixture } from "./crestodian.test-helpers.js";
 import { CrestodianInferenceUnavailableError } from "./inference-error.js";

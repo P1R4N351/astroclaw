@@ -1,5 +1,5 @@
 // Node-host plugin command contracts, including the opt-in duplex transport.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 export type OpenClawPluginNodeHostCommandAvailabilityContext = {
   /** Node-local configuration used to build this host's Gateway declaration. */

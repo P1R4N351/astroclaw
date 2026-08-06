@@ -1,5 +1,5 @@
 /** Handles diagnostics commands and private owner routing for sensitive diagnostics output. */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { createExecTool } from "../../agents/bash-tools.js";
 import type { ExecToolDetails } from "../../agents/bash-tools.js";
@@ -22,7 +22,7 @@ import { rejectNonOwnerCommand } from "./command-gates.js";
 import {
   buildCurrentOpenClawCliCommand,
   buildCurrentOpenClawCliExecEnv,
-} from "./commands-openclaw-cli.js";
+} from "./commands-astroclaw-cli.js";
 import {
   deliverPrivateCommandReply,
   readCommandDeliveryTarget,

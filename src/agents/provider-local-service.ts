@@ -5,13 +5,13 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { isCanonicalDottedDecimalIPv4, isLoopbackIpAddress } from "@openclaw/net-policy/ip";
+import { isCanonicalDottedDecimalIPv4, isLoopbackIpAddress } from "@astroclaw/net-policy/ip";
 import {
   clampPositiveTimerTimeoutMs,
   resolvePositiveTimerTimeoutMs,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import type { ModelProviderLocalServiceConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { toErrorObject } from "../infra/errors.js";
 import type { Model } from "../llm/types.js";
 import { isSensitiveFieldKey, redactSensitiveText } from "../logging/redact.js";

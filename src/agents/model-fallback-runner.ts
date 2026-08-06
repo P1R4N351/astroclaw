@@ -1,6 +1,6 @@
 /** Runs the ordered model fallback execution state machine. */
 import { sanitizeForLog } from "../../packages/terminal-core/src/ansi.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { emitFailoverEvent } from "../infra/diagnostic-events.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

@@ -2,9 +2,9 @@
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+} from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { hasConfiguredSecretInput } from "../../config/types.secrets.js";
 import type { SkillConfig } from "../../config/types.skills.js";
 import {

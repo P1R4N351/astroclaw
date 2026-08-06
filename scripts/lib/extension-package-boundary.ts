@@ -90,147 +90,147 @@ export const EXTENSION_PACKAGE_BOUNDARY_BASE_PATHS = {
   ],
   "@openclaw/ai/internal/runtime": ["../dist/plugin-sdk/packages/ai/src/internal/runtime.d.ts"],
   "@openclaw/ai/internal/shared": ["../dist/plugin-sdk/packages/ai/src/internal/shared.d.ts"],
-  "@openclaw/llm-core": ["../dist/plugin-sdk/packages/llm-core/src/index.d.ts"],
-  "@openclaw/llm-core/diagnostics": [
+  "@astroclaw/llm-core": ["../dist/plugin-sdk/packages/llm-core/src/index.d.ts"],
+  "@astroclaw/llm-core/diagnostics": [
     "../dist/plugin-sdk/packages/llm-core/src/utils/diagnostics.d.ts",
   ],
-  "@openclaw/llm-core/event-stream": [
+  "@astroclaw/llm-core/event-stream": [
     "../dist/plugin-sdk/packages/llm-core/src/utils/event-stream.d.ts",
   ],
-  "@openclaw/llm-core/types": ["../dist/plugin-sdk/packages/llm-core/src/types.d.ts"],
-  "@openclaw/llm-core/validation": ["../dist/plugin-sdk/packages/llm-core/src/validation.d.ts"],
-  "@openclaw/llm-core/*": ["../dist/plugin-sdk/packages/llm-core/src/*.d.ts"],
-  "@openclaw/model-catalog-core": ["../dist/plugin-sdk/packages/model-catalog-core/src/index.d.ts"],
-  "@openclaw/model-catalog-core/configured-model-refs": [
+  "@astroclaw/llm-core/types": ["../dist/plugin-sdk/packages/llm-core/src/types.d.ts"],
+  "@astroclaw/llm-core/validation": ["../dist/plugin-sdk/packages/llm-core/src/validation.d.ts"],
+  "@astroclaw/llm-core/*": ["../dist/plugin-sdk/packages/llm-core/src/*.d.ts"],
+  "@astroclaw/model-catalog-core": ["../dist/plugin-sdk/packages/model-catalog-core/src/index.d.ts"],
+  "@astroclaw/model-catalog-core/configured-model-refs": [
     "../dist/plugin-sdk/packages/model-catalog-core/src/configured-model-refs.d.ts",
   ],
-  "@openclaw/model-catalog-core/model-catalog-refs": [
+  "@astroclaw/model-catalog-core/model-catalog-refs": [
     "../dist/plugin-sdk/packages/model-catalog-core/src/model-catalog-refs.d.ts",
   ],
-  "@openclaw/model-catalog-core/model-catalog-normalize": [
+  "@astroclaw/model-catalog-core/model-catalog-normalize": [
     "../dist/plugin-sdk/packages/model-catalog-core/src/model-catalog-normalize.d.ts",
   ],
-  "@openclaw/model-catalog-core/model-catalog-types": [
+  "@astroclaw/model-catalog-core/model-catalog-types": [
     "../dist/plugin-sdk/packages/model-catalog-core/src/model-catalog-types.d.ts",
   ],
-  "@openclaw/model-catalog-core/provider-id": [
+  "@astroclaw/model-catalog-core/provider-id": [
     "../dist/plugin-sdk/packages/model-catalog-core/src/provider-id.d.ts",
   ],
-  "@openclaw/model-catalog-core/provider-model-id-normalization": [
+  "@astroclaw/model-catalog-core/provider-model-id-normalization": [
     "../dist/plugin-sdk/packages/model-catalog-core/src/provider-model-id-normalization.d.ts",
   ],
-  "@openclaw/model-catalog-core/provider-model-id-normalize": [
+  "@astroclaw/model-catalog-core/provider-model-id-normalize": [
     "../dist/plugin-sdk/packages/model-catalog-core/src/provider-model-id-normalize.d.ts",
   ],
-  "@openclaw/model-catalog-core/*": ["../dist/plugin-sdk/packages/model-catalog-core/src/*.d.ts"],
-  "@openclaw/markdown-core": ["../dist/plugin-sdk/packages/markdown-core/src/index.d.ts"],
-  "@openclaw/markdown-core/code-spans": [
+  "@astroclaw/model-catalog-core/*": ["../dist/plugin-sdk/packages/model-catalog-core/src/*.d.ts"],
+  "@astroclaw/markdown-core": ["../dist/plugin-sdk/packages/markdown-core/src/index.d.ts"],
+  "@astroclaw/markdown-core/code-spans": [
     "../dist/plugin-sdk/packages/markdown-core/src/code-spans.d.ts",
   ],
-  "@openclaw/markdown-core/fences": ["../dist/plugin-sdk/packages/markdown-core/src/fences.d.ts"],
-  "@openclaw/markdown-core/frontmatter": [
+  "@astroclaw/markdown-core/fences": ["../dist/plugin-sdk/packages/markdown-core/src/fences.d.ts"],
+  "@astroclaw/markdown-core/frontmatter": [
     "../dist/plugin-sdk/packages/markdown-core/src/frontmatter.d.ts",
   ],
-  "@openclaw/markdown-core/ir": ["../dist/plugin-sdk/packages/markdown-core/src/ir.d.ts"],
-  "@openclaw/markdown-core/render": ["../dist/plugin-sdk/packages/markdown-core/src/render.d.ts"],
-  "@openclaw/markdown-core/render-aware-chunking": [
+  "@astroclaw/markdown-core/ir": ["../dist/plugin-sdk/packages/markdown-core/src/ir.d.ts"],
+  "@astroclaw/markdown-core/render": ["../dist/plugin-sdk/packages/markdown-core/src/render.d.ts"],
+  "@astroclaw/markdown-core/render-aware-chunking": [
     "../dist/plugin-sdk/packages/markdown-core/src/render-aware-chunking.d.ts",
   ],
-  "@openclaw/markdown-core/tables": ["../dist/plugin-sdk/packages/markdown-core/src/tables.d.ts"],
-  "@openclaw/markdown-core/types": ["../dist/plugin-sdk/packages/markdown-core/src/types.d.ts"],
-  "@openclaw/markdown-core/*": ["../dist/plugin-sdk/packages/markdown-core/src/*.d.ts"],
-  "@openclaw/media-generation-core": [
+  "@astroclaw/markdown-core/tables": ["../dist/plugin-sdk/packages/markdown-core/src/tables.d.ts"],
+  "@astroclaw/markdown-core/types": ["../dist/plugin-sdk/packages/markdown-core/src/types.d.ts"],
+  "@astroclaw/markdown-core/*": ["../dist/plugin-sdk/packages/markdown-core/src/*.d.ts"],
+  "@astroclaw/media-generation-core": [
     "../dist/plugin-sdk/packages/media-generation-core/src/index.d.ts",
   ],
-  "@openclaw/media-generation-core/capability-model-ref": [
+  "@astroclaw/media-generation-core/capability-model-ref": [
     "../dist/plugin-sdk/packages/media-generation-core/src/capability-model-ref.d.ts",
   ],
-  "@openclaw/media-generation-core/catalog": [
+  "@astroclaw/media-generation-core/catalog": [
     "../dist/plugin-sdk/packages/media-generation-core/src/catalog.d.ts",
   ],
-  "@openclaw/media-generation-core/model-ref": [
+  "@astroclaw/media-generation-core/model-ref": [
     "../dist/plugin-sdk/packages/media-generation-core/src/model-ref.d.ts",
   ],
-  "@openclaw/media-generation-core/normalization": [
+  "@astroclaw/media-generation-core/normalization": [
     "../dist/plugin-sdk/packages/media-generation-core/src/normalization.d.ts",
   ],
-  "@openclaw/media-generation-core/*": [
+  "@astroclaw/media-generation-core/*": [
     "../dist/plugin-sdk/packages/media-generation-core/src/*.d.ts",
   ],
-  "@openclaw/media-core": ["../dist/plugin-sdk/packages/media-core/src/index.d.ts"],
-  "@openclaw/media-core/base64": ["../dist/plugin-sdk/packages/media-core/src/base64.d.ts"],
-  "@openclaw/media-core/constants": ["../dist/plugin-sdk/packages/media-core/src/constants.d.ts"],
-  "@openclaw/media-core/content-length": [
+  "@astroclaw/media-core": ["../dist/plugin-sdk/packages/media-core/src/index.d.ts"],
+  "@astroclaw/media-core/base64": ["../dist/plugin-sdk/packages/media-core/src/base64.d.ts"],
+  "@astroclaw/media-core/constants": ["../dist/plugin-sdk/packages/media-core/src/constants.d.ts"],
+  "@astroclaw/media-core/content-length": [
     "../dist/plugin-sdk/packages/media-core/src/content-length.d.ts",
   ],
-  "@openclaw/media-core/file-name": ["../dist/plugin-sdk/packages/media-core/src/file-name.d.ts"],
-  "@openclaw/media-core/inbound-path-policy": [
+  "@astroclaw/media-core/file-name": ["../dist/plugin-sdk/packages/media-core/src/file-name.d.ts"],
+  "@astroclaw/media-core/inbound-path-policy": [
     "../dist/plugin-sdk/packages/media-core/src/inbound-path-policy.d.ts",
   ],
-  "@openclaw/media-core/inline-image-data-url": [
+  "@astroclaw/media-core/inline-image-data-url": [
     "../dist/plugin-sdk/packages/media-core/src/inline-image-data-url.d.ts",
   ],
-  "@openclaw/media-core/media-source-url": [
+  "@astroclaw/media-core/media-source-url": [
     "../dist/plugin-sdk/packages/media-core/src/media-source-url.d.ts",
   ],
-  "@openclaw/media-core/mime": ["../dist/plugin-sdk/packages/media-core/src/mime.d.ts"],
-  "@openclaw/media-core/read-byte-stream-with-limit": [
+  "@astroclaw/media-core/mime": ["../dist/plugin-sdk/packages/media-core/src/mime.d.ts"],
+  "@astroclaw/media-core/read-byte-stream-with-limit": [
     "../dist/plugin-sdk/packages/media-core/src/read-byte-stream-with-limit.d.ts",
   ],
-  "@openclaw/media-core/*": ["../dist/plugin-sdk/packages/media-core/src/*.d.ts"],
-  "@openclaw/normalization-core/record-coerce": [
+  "@astroclaw/media-core/*": ["../dist/plugin-sdk/packages/media-core/src/*.d.ts"],
+  "@astroclaw/normalization-core/record-coerce": [
     "../dist/plugin-sdk/packages/normalization-core/src/record-coerce.d.ts",
   ],
-  "@openclaw/normalization-core/string-coerce": [
+  "@astroclaw/normalization-core/string-coerce": [
     "../dist/plugin-sdk/packages/normalization-core/src/string-coerce.d.ts",
   ],
-  "@openclaw/normalization-core/*": ["../dist/plugin-sdk/packages/normalization-core/src/*.d.ts"],
+  "@astroclaw/normalization-core/*": ["../dist/plugin-sdk/packages/normalization-core/src/*.d.ts"],
   "@openclaw/retry": ["../dist/plugin-sdk/packages/retry/src/index.d.ts"],
   "@openclaw/workboard-contract": ["../packages/workboard-contract/src/index.ts"],
   ...buildPackageBoundaryDtsPaths({
-    packageName: "@openclaw/acp-core",
+    packageName: "@astroclaw/acp-core",
     packageDir: "acp-core",
   }),
-  "@openclaw/acp-core/*": ["../dist/plugin-sdk/packages/acp-core/src/*.d.ts"],
-  "@openclaw/terminal-core": ["../dist/plugin-sdk/packages/terminal-core/src/index.d.ts"],
-  "@openclaw/terminal-core/ansi": ["../dist/plugin-sdk/packages/terminal-core/src/ansi.d.ts"],
-  "@openclaw/terminal-core/decorative-emoji": [
+  "@astroclaw/acp-core/*": ["../dist/plugin-sdk/packages/acp-core/src/*.d.ts"],
+  "@astroclaw/terminal-core": ["../dist/plugin-sdk/packages/terminal-core/src/index.d.ts"],
+  "@astroclaw/terminal-core/ansi": ["../dist/plugin-sdk/packages/terminal-core/src/ansi.d.ts"],
+  "@astroclaw/terminal-core/decorative-emoji": [
     "../dist/plugin-sdk/packages/terminal-core/src/decorative-emoji.d.ts",
   ],
-  "@openclaw/terminal-core/health-style": [
+  "@astroclaw/terminal-core/health-style": [
     "../dist/plugin-sdk/packages/terminal-core/src/health-style.d.ts",
   ],
-  "@openclaw/terminal-core/links": ["../dist/plugin-sdk/packages/terminal-core/src/links.d.ts"],
-  "@openclaw/terminal-core/note": ["../dist/plugin-sdk/packages/terminal-core/src/note.d.ts"],
-  "@openclaw/terminal-core/osc-progress": [
+  "@astroclaw/terminal-core/links": ["../dist/plugin-sdk/packages/terminal-core/src/links.d.ts"],
+  "@astroclaw/terminal-core/note": ["../dist/plugin-sdk/packages/terminal-core/src/note.d.ts"],
+  "@astroclaw/terminal-core/osc-progress": [
     "../dist/plugin-sdk/packages/terminal-core/src/osc-progress.d.ts",
   ],
-  "@openclaw/terminal-core/palette": ["../dist/plugin-sdk/packages/terminal-core/src/palette.d.ts"],
-  "@openclaw/terminal-core/progress-line": [
+  "@astroclaw/terminal-core/palette": ["../dist/plugin-sdk/packages/terminal-core/src/palette.d.ts"],
+  "@astroclaw/terminal-core/progress-line": [
     "../dist/plugin-sdk/packages/terminal-core/src/progress-line.d.ts",
   ],
-  "@openclaw/terminal-core/prompt-select-styled": [
+  "@astroclaw/terminal-core/prompt-select-styled": [
     "../dist/plugin-sdk/packages/terminal-core/src/prompt-select-styled.d.ts",
   ],
-  "@openclaw/terminal-core/prompt-select-styled-params": [
+  "@astroclaw/terminal-core/prompt-select-styled-params": [
     "../dist/plugin-sdk/packages/terminal-core/src/prompt-select-styled-params.d.ts",
   ],
-  "@openclaw/terminal-core/prompt-style": [
+  "@astroclaw/terminal-core/prompt-style": [
     "../dist/plugin-sdk/packages/terminal-core/src/prompt-style.d.ts",
   ],
-  "@openclaw/terminal-core/restore": ["../dist/plugin-sdk/packages/terminal-core/src/restore.d.ts"],
-  "@openclaw/terminal-core/safe-text": [
+  "@astroclaw/terminal-core/restore": ["../dist/plugin-sdk/packages/terminal-core/src/restore.d.ts"],
+  "@astroclaw/terminal-core/safe-text": [
     "../dist/plugin-sdk/packages/terminal-core/src/safe-text.d.ts",
   ],
-  "@openclaw/terminal-core/stream-writer": [
+  "@astroclaw/terminal-core/stream-writer": [
     "../dist/plugin-sdk/packages/terminal-core/src/stream-writer.d.ts",
   ],
-  "@openclaw/terminal-core/table": ["../dist/plugin-sdk/packages/terminal-core/src/table.d.ts"],
-  "@openclaw/terminal-core/terminal-link": [
+  "@astroclaw/terminal-core/table": ["../dist/plugin-sdk/packages/terminal-core/src/table.d.ts"],
+  "@astroclaw/terminal-core/terminal-link": [
     "../dist/plugin-sdk/packages/terminal-core/src/terminal-link.d.ts",
   ],
-  "@openclaw/terminal-core/theme": ["../dist/plugin-sdk/packages/terminal-core/src/theme.d.ts"],
-  "@openclaw/terminal-core/*": ["../dist/plugin-sdk/packages/terminal-core/src/*.d.ts"],
+  "@astroclaw/terminal-core/theme": ["../dist/plugin-sdk/packages/terminal-core/src/theme.d.ts"],
+  "@astroclaw/terminal-core/*": ["../dist/plugin-sdk/packages/terminal-core/src/*.d.ts"],
   "@openclaw/*.js": ["../packages/plugin-sdk/dist/extensions/*.d.ts", "../extensions/*"],
   "@openclaw/*": ["../packages/plugin-sdk/dist/extensions/*", "../extensions/*"],
   "openclaw/plugin-sdk/qa-channel": ["../dist/plugin-sdk/src/plugin-sdk/qa-channel.d.ts"],
@@ -238,7 +238,7 @@ export const EXTENSION_PACKAGE_BOUNDARY_BASE_PATHS = {
     "../dist/plugin-sdk/src/plugin-sdk/qa-channel-protocol.d.ts",
   ],
   "openclaw/plugin-sdk/qa-runtime": ["../dist/plugin-sdk/src/plugin-sdk/qa-runtime.d.ts"],
-  "@openclaw/plugin-sdk/*": ["../dist/plugin-sdk/*.d.ts"],
+  "@astroclaw/plugin-sdk/*": ["../dist/plugin-sdk/*.d.ts"],
 } as const;
 
 function prefixExtensionPackageBoundaryPaths(
@@ -283,7 +283,7 @@ export const EXTENSION_PACKAGE_BOUNDARY_XAI_PATHS = {
   "@openclaw/qa-channel/api.js": ["../../dist/plugin-sdk/extensions/qa-channel/api.d.ts"],
   "@openclaw/*.js": ["../../packages/plugin-sdk/dist/extensions/*.d.ts", "../*"],
   "@openclaw/*": ["../*"],
-  "@openclaw/plugin-sdk/*": ["../../dist/plugin-sdk/*.d.ts"],
+  "@astroclaw/plugin-sdk/*": ["../../dist/plugin-sdk/*.d.ts"],
   "@openclaw/anthropic-vertex/api.js": ["./.boundary-stubs/anthropic-vertex-api.d.ts"],
   "@openclaw/ollama/api.js": ["./.boundary-stubs/ollama-api.d.ts"],
   "@openclaw/ollama/runtime-api.js": ["./.boundary-stubs/ollama-runtime-api.d.ts"],

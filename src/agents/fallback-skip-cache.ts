@@ -14,7 +14,7 @@
  * same `sessionId` shares the same skip set.
  */
 
-import { parseStrictNonNegativeInteger } from "@openclaw/normalization-core/number-coercion";
+import { parseStrictNonNegativeInteger } from "@astroclaw/normalization-core/number-coercion";
 import { modelKey } from "./model-ref-shared.js";
 
 /**

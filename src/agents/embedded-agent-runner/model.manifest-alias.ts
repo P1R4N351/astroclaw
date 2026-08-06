@@ -1,7 +1,7 @@
-import type { ModelCatalogAlias } from "@openclaw/model-catalog-core/model-catalog-types";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import type { ModelCatalogAlias } from "@astroclaw/model-catalog-core/model-catalog-types";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import type { ModelProviderConfig } from "../../config/types.models.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { planManifestModelCatalogSuppressions } from "../../model-catalog/manifest-planner.js";
 import { normalizePluginsConfig } from "../../plugins/config-state.js";
 import { getCurrentPluginMetadataSnapshot } from "../../plugins/current-plugin-metadata-snapshot.js";

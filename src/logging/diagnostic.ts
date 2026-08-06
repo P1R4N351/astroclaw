@@ -3,7 +3,7 @@ import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import { resolveCompactionTimeoutMs } from "../agents/embedded-agent-runner/compaction-safety-timeout.js";
 import { getRuntimeConfig } from "../config/config.js";
 import { resolveAllAgentSessionStoreTargetsSync } from "../config/sessions/targets.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   areDiagnosticsEnabledForProcess,
   emitInternalDiagnosticEvent as emitDiagnosticEvent,

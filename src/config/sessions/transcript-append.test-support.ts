@@ -2,10 +2,10 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveTimestampMsToIsoString } from "@openclaw/normalization-core/number-coercion";
+import { resolveTimestampMsToIsoString } from "@astroclaw/normalization-core/number-coercion";
 import type { AgentMessage } from "../../agents/runtime/index.js";
 import { redactTranscriptMessage } from "../../agents/transcript-redact.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { redactSecrets } from "../../logging/redact.js";
 import { KeyedAsyncQueue } from "../../plugin-sdk/keyed-async-queue.js";
 import {

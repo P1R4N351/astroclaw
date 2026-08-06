@@ -2,13 +2,13 @@
 import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
-import { parseStrictFiniteNumber } from "@openclaw/normalization-core/number-coercion";
-import { asNullableRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { parseStrictFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
+import { asNullableRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeStringifiedOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { Command } from "commander";
 import { buildBundleMcpToolsFromCatalog } from "../agents/agent-bundle-mcp-materialize.js";
 import { createSessionMcpRuntime } from "../agents/agent-bundle-mcp-runtime.js";
@@ -32,7 +32,7 @@ import {
   updateConfiguredMcpServer,
   updateConfiguredMcpServerTools,
 } from "../config/mcp-config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { serveOpenClawChannelMcp } from "../mcp/channel-server.js";
 import { defaultRuntime } from "../runtime.js";

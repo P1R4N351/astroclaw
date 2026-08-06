@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
-import type { Model } from "@openclaw/llm-core";
+import type { Model } from "@astroclaw/llm-core";
 import {
   asFiniteNumberInRange,
   parseStrictFiniteNumber,
   parseStrictNonNegativeInteger,
-} from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+} from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { getAiTransportHost } from "../host.js";
 import { parseRetryAfterHttpDateMs } from "../internal/retry-after.js";
 

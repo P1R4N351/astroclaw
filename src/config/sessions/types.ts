@@ -4,8 +4,8 @@ import type {
   AcpSessionRuntimeOptions,
   SessionAcpIdentity,
   SessionAcpMeta,
-} from "@openclaw/acp-core/types";
-import { normalizeOptionalString, type FastMode } from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/acp-core/types";
+import { normalizeOptionalString, type FastMode } from "@astroclaw/normalization-core/string-coerce";
 import type { SessionObserverDigest } from "../../../packages/gateway-protocol/src/schema/sessions.js";
 import type { SessionAgentStatus } from "../../../packages/gateway-protocol/src/session-icon.js";
 import type { ChatType } from "../../channels/chat-type.js";

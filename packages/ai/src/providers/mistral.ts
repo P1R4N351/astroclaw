@@ -8,8 +8,8 @@ import type {
   ContentChunk,
   FunctionTool,
 } from "@mistralai/mistralai/models/components";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { getEnvApiKey } from "../env-api-keys.js";
 import { getAiTransportHost } from "../host.js";
 import { calculateCost, clampThinkingLevel } from "../model-utils.js";

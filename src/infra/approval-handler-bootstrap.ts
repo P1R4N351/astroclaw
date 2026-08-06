@@ -2,7 +2,7 @@
 import { resolveChannelApprovalCapability } from "../channels/plugins/approvals.js";
 import type { ChannelRuntimeSurface } from "../channels/plugins/channel-runtime-surface.types.js";
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { withGatewayNativeApprovalRuntime } from "./approval-gateway-runtime-context.js";
 import type { GatewayNativeApprovalRuntime } from "./approval-gateway-runtime.types.js";

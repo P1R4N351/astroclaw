@@ -5,12 +5,12 @@ import path from "node:path";
 import { readSessionTranscriptRawDelta } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { listSessionEntries, loadSessionEntry } from "../src/config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../src/config/types.astroclaw.js";
 import { connectGatewayClient, disconnectGatewayClient } from "../src/gateway/test-helpers.e2e.js";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/openclaw-test-instance.js";
+} from "./helpers/astroclaw-test-instance.js";
 
 const TEST_TIMEOUT_MS = 180_000;
 const MODEL_REF = "cursor-settlement/cursor-settlement";

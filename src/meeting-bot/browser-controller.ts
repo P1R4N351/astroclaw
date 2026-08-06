@@ -1,4 +1,4 @@
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { runMeetingBrowserAct } from "./browser-act-lock.js";
 import { isMeetingBrowserTransientNavigationError } from "./browser-navigation-errors.js";
 import { asMeetingBrowserTabs, readMeetingBrowserTab } from "./browser-request.js";

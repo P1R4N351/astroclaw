@@ -4,9 +4,9 @@
  * It reports workspace skill readiness, offers safe dependency installs, and
  * leaves per-skill credentials to the agent when a skill actually needs them.
  */
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveBrewExecutable } from "../infra/brew.js";
 import { isContainerEnvironment } from "../infra/container-environment.js";
 import type { RuntimeEnv } from "../runtime.js";

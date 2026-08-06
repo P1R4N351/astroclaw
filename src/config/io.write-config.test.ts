@@ -30,7 +30,7 @@ import {
   writeConfigFile,
 } from "./io.js";
 import { ConfigMutationConflictError } from "./mutation-conflict.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "./types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "./types.astroclaw.js";
 
 const CONFIG_CLOBBER_SNAPSHOT_LIMIT = 32;
 type ConfigHealthDatabase = Pick<OpenClawStateKyselyDatabase, "config_health_entries">;

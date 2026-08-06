@@ -1,5 +1,5 @@
 // Discord tests cover chunk plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { countLines, hasBalancedFences } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { chunkDiscordTextWithMode } from "./chunk.js";

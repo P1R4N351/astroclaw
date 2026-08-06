@@ -706,7 +706,7 @@ describe("release candidate checklist", () => {
       tarballSha256: "ai-sha",
     };
     const gatewayProtocolTarball = {
-      packageName: "@openclaw/gateway-protocol",
+      packageName: "@astroclaw/gateway-protocol",
       packageVersion: "2026.7.1-beta.3",
       tarballName: "openclaw-gateway-protocol-2026.7.1-beta.3.tgz",
       tarballSha256: "protocol-sha",
@@ -737,13 +737,13 @@ describe("release candidate checklist", () => {
       tarballSha256: "ai-sha",
     };
     const gatewayProtocolTarball = {
-      packageName: "@openclaw/gateway-protocol",
+      packageName: "@astroclaw/gateway-protocol",
       packageVersion: "2026.7.1-beta.3",
       tarballName: "openclaw-gateway-protocol-2026.7.1-beta.3.tgz",
       tarballSha256: "protocol-sha",
     };
     const gatewayClientTarball = {
-      packageName: "@openclaw/gateway-client",
+      packageName: "@astroclaw/gateway-client",
       packageVersion: "2026.7.1-beta.3",
       tarballName: "openclaw-gateway-client-2026.7.1-beta.3.tgz",
       tarballSha256: "client-sha",

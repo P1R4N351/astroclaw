@@ -1,6 +1,6 @@
 import { consume } from "@lit/context";
 import { initialState, Task } from "@lit/task";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { html, nothing } from "lit";
 import { property } from "lit/decorators.js";
 import type { GatewaySessionRow, SessionsListResult } from "../../api/types.ts";

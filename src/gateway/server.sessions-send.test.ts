@@ -10,7 +10,7 @@ import {
   loadSessionEntry,
   persistSessionTranscriptTurn,
 } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import { createOutboundTestPlugin, createTestRegistry } from "../test-utils/channel-plugins.js";
 import { captureEnv } from "../test-utils/env.js";
@@ -25,7 +25,7 @@ import {
   writeSessionStore,
 } from "./test-helpers.js";
 
-const { createOpenClawTools } = await import("../agents/openclaw-tools.js");
+const { createOpenClawTools } = await import("../agents/astroclaw-tools.js");
 
 installGatewayTestHooks({ scope: "suite" });
 

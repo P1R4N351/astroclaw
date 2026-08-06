@@ -2,7 +2,7 @@
 import {
   isJsonSchemaValueValid,
   jsonSchemaValuesEqual,
-} from "@openclaw/normalization-core/json-schema";
+} from "@astroclaw/normalization-core/json-schema";
 import { decimalRational } from "./config-form.numeric.ts";
 import { schemaType, type JsonSchema } from "./config-form.shared.ts";
 

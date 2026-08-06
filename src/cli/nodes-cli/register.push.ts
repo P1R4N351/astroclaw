@@ -2,7 +2,7 @@
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import type { Command } from "commander";
 import type { PushTestResult } from "../../../packages/gateway-protocol/src/index.js";
 import { defaultRuntime } from "../../runtime.js";

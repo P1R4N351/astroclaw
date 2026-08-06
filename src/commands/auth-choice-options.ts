@@ -1,7 +1,7 @@
 // Builds provider-aware auth-choice options and grouped onboarding menus.
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveProviderSetupFlowContributions } from "../flows/provider-flow.js";
 import {
   compareProviderAuthChoiceGroups,

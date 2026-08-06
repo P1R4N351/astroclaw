@@ -1,7 +1,7 @@
 // Resolves diagnostics feature flags from config and environment.
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import { normalizeUniqueStringEntriesLower } from "@openclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeUniqueStringEntriesLower } from "@astroclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 const DIAGNOSTICS_ENV = "OPENCLAW_DIAGNOSTICS";
 

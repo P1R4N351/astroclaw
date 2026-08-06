@@ -1,6 +1,6 @@
 /** Resolves plugin config contract metadata for scanners and secret/config policy checks. */
-import { normalizeSortedUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeSortedUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { findBundledPluginMetadataById } from "./bundled-plugin-metadata.js";
 import { discoverOpenClawPlugins, type PluginDiscoveryResult } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import {
   normalizeOptionalLowercaseString,
   resolvePrimaryStringValue,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { note } from "../../packages/terminal-core/src/note.js";
 import { resolveModelAgentRuntimeMetadata } from "../agents/agent-runtime-metadata.js";
 import {
@@ -28,7 +28,7 @@ import { resolveCliBackendConfig } from "../agents/cli-backends.js";
 import { readClaudeCliCredentialsCached } from "../agents/cli-credentials.js";
 import { resolveClaudeCliProjectDirForWorkspace } from "../agents/command/claude-cli-project-dir.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveExecutablePath } from "../infra/executable-path.js";
 import { shortenHomePath } from "../utils.js";
 

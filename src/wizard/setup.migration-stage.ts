@@ -4,7 +4,7 @@ import path from "node:path";
 import { resolveAgentDir } from "../agents/agent-scope-config.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { clearRuntimeAuthProfileStoreSnapshot } from "../agents/auth-profiles/store.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isNotFoundPathError } from "../infra/path-guards.js";
 import { summarizeMigrationItems } from "../plugin-sdk/migration.js";
 import type {

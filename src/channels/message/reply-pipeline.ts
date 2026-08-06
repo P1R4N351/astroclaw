@@ -10,7 +10,7 @@ import {
   resolveSourceReplyDeliveryMode,
   type SourceReplyDeliveryModeContext,
 } from "../../auto-reply/reply/source-reply-delivery-mode.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { getLoadedChannelPluginForRead } from "../plugins/registry-loaded.js";
 import { normalizeAnyChannelId } from "../registry-normalize.js";
 import {

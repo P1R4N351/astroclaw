@@ -6,7 +6,7 @@ import type {
   ChannelOutboundTargetRef,
 } from "../../channels/plugins/types.adapters.js";
 import type { ReplyToMode } from "../../config/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ReplyPayloadDeliveryPin } from "../../interactive/payload.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import type { DeliveryQueueCompletionRetention } from "../delivery-queue-sqlite.js";

@@ -11,7 +11,7 @@ import { makeTempWorkspace, writeWorkspaceFile } from "../test-helpers/workspace
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import {
   LEGACY_WORKSPACE_ATTESTATION_HEADER,
   LEGACY_WORKSPACE_STATE_CURRENT_FILENAME,

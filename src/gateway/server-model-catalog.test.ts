@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ModelCatalogSnapshot } from "../agents/model-catalog.types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   loadGatewayModelCatalog,
   loadGatewayModelCatalogSnapshot,

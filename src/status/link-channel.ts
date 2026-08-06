@@ -5,7 +5,7 @@ import { resolveDefaultChannelAccountContext } from "../channels/account-context
 import { listReadOnlyChannelPluginsForConfig } from "../channels/plugins/read-only.js";
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { ChannelAccountSnapshot } from "../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 type LinkChannelContext = {
   linked: boolean;

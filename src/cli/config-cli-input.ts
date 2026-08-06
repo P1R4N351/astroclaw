@@ -1,7 +1,7 @@
-import { readByteStreamWithLimit } from "@openclaw/media-core/read-byte-stream-with-limit";
-import { isRecord as isPlainRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { readByteStreamWithLimit } from "@astroclaw/media-core/read-byte-stream-with-limit";
+import { isRecord as isPlainRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import JSON5 from "json5";
 import {
   coerceSecretRef,

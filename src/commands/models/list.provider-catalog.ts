@@ -1,5 +1,5 @@
 /** Provider catalog projection for model-list output. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   resolveAgentDir,
   resolveAgentWorkspaceDir,
@@ -12,7 +12,7 @@ import { buildInlineProviderModels } from "../../agents/embedded-agent-runner/mo
 import { resolveImplicitProviders } from "../../agents/models-config.providers.implicit.js";
 import { loadPreparedModelCatalogOwnerSnapshot } from "../../agents/prepared-model-catalog.js";
 import { resolveDefaultAgentWorkspaceDir } from "../../agents/workspace.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { Model } from "../../llm/types.js";
 import { loadManifestMetadataSnapshot } from "../../plugins/manifest-contract-eligibility.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";

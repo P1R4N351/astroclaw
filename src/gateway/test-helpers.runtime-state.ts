@@ -10,7 +10,7 @@ import type { InternalGetReplyOptions } from "../auto-reply/reply/get-reply.type
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { AgentBinding } from "../config/types.agents.js";
 import type { HooksConfig } from "../config/types.hooks.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RunCronAgentTurnResult } from "../cron/isolated-agent/run.types.js";
 import type { TailscaleWhoisIdentity } from "../infra/tailscale.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";

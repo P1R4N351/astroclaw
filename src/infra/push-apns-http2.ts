@@ -2,8 +2,8 @@
 import { once } from "node:events";
 import http2 from "node:http2";
 import tls from "node:tls";
-import { decodeTextPrefix } from "@openclaw/normalization-core";
-import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
+import { decodeTextPrefix } from "@astroclaw/normalization-core";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { openProxyConnectTunnel } from "@openclaw/proxyline";
 import { toErrorObject } from "./errors.js";
 import {

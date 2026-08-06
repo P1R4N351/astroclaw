@@ -23,8 +23,8 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("./openclaw-tools.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./openclaw-tools.js")>();
+vi.mock("./astroclaw-tools.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./astroclaw-tools.js")>();
   return {
     createOpenClawTools: (options: unknown) => {
       mocks.createOpenClawToolsOptions(options);

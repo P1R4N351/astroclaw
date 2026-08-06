@@ -10,7 +10,7 @@ import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-cat
 import { expectPassthroughReplayPolicy } from "astroclaw/plugin-sdk/provider-test-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import plugin from "./index.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
   buildOpencodeGoLiveProviderConfig,
   buildStaticOpencodeGoProviderConfig,

@@ -1,5 +1,5 @@
 /** Coordinates subagent registration, lifecycle, delivery, steering, recovery, and persistence. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { callGateway } from "../gateway/call.js";
 import { getGatewayRecoveryRuntime } from "../gateway/server-recovery-runtime-context.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

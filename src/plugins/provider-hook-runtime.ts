@@ -1,11 +1,11 @@
 // Runtime bridge for invoking provider hooks supplied by plugins.
-import { findNormalizedProviderValue } from "@openclaw/model-catalog-core/provider-id";
+import { findNormalizedProviderValue } from "@astroclaw/model-catalog-core/provider-id";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { resolveModelCatalogScope } from "../agents/model-discovery-context.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { getLoadedRuntimePluginRegistry } from "./active-runtime-registry.js";
 import {
   PluginLruCache,

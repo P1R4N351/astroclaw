@@ -13,7 +13,7 @@ import {
   replaceSessionEntrySync,
   withTranscriptWriteTransaction,
 } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { KeyedAsyncQueue } from "../../plugin-sdk/keyed-async-queue.js";
 import type { WorkerConnectionIdentity } from "./connection-identity.js";
 import { resolveWorkerSessionTarget, type ResolvedWorkerSessionTarget } from "./session-target.js";

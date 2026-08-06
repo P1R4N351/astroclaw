@@ -1,11 +1,11 @@
 // Resolves the configured default agent route shared by Crestodian inference calls.
 import { isDeepStrictEqual } from "node:util";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   cliBackendAcceptsAuthProfileForwarding,
   resolveCliExecutionAuthProfileId,
 } from "../agents/cli-execution-auth.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 
 export type CrestodianConfiguredRoute = {

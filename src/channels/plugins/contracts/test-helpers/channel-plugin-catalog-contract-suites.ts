@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolvePreferredOpenClawTmpDir } from "../../../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../../../infra/tmp-astroclaw-dir.js";
 import { listRawChannelPluginCatalogEntries } from "../../catalog.js";
 
 type CatalogQuery = {

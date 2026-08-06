@@ -1,10 +1,10 @@
 // Discovers gateways over Bonjour and normalizes service records.
-import { expectDefined } from "@openclaw/normalization-core";
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import {
   normalizeStringEntries,
   uniqueStrings,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import pLimit from "p-limit";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { parseStrictInteger } from "./parse-finite-number.js";

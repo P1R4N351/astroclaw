@@ -1,14 +1,14 @@
 // Provider catalog helpers normalize, hash, and expose model catalogs for provider plugins.
 import { createHash } from "node:crypto";
-import { normalizeModelCatalog } from "@openclaw/model-catalog-core/model-catalog-normalize";
-import { buildModelCatalogRef } from "@openclaw/model-catalog-core/model-catalog-refs";
+import { normalizeModelCatalog } from "@astroclaw/model-catalog-core/model-catalog-normalize";
+import { buildModelCatalogRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
 import type {
   ModelCatalogCost,
   ModelCatalogMediaInputConfig,
   ModelCatalogModel,
   ModelCatalogTieredCost,
-} from "@openclaw/model-catalog-core/model-catalog-types";
-import { findNormalizedProviderKey } from "@openclaw/model-catalog-core/provider-id";
+} from "@astroclaw/model-catalog-core/model-catalog-types";
+import { findNormalizedProviderKey } from "@astroclaw/model-catalog-core/provider-id";
 import {
   isFutureDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
@@ -17,7 +17,7 @@ import { normalizeOptionalString } from "../../packages/normalization-core/src/s
 import { normalizeConfiguredProviderCatalogModelId } from "../agents/model-ref-shared.js";
 import { resolveProviderRequestCapabilities } from "../agents/provider-attribution.js";
 import type { ModelDefinitionConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import type { ProviderPlugin } from "../plugins/types.js";
 import type { ModelProviderConfig } from "./provider-model-shared.js";

@@ -1,4 +1,4 @@
-import { asNullableObjectRecord, isRecord } from "@openclaw/normalization-core/record-coerce";
+import { asNullableObjectRecord, isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { unsupportedSecretRefSurfacePolicy } from "../secrets/unsupported-surface-policy.js";
 import { appendAllowedValuesHint, summarizeAllowedValues } from "./allowed-values.js";
 import type { ConfigValidationIssue } from "./types.js";

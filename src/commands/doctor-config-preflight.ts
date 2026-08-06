@@ -14,7 +14,7 @@ import {
 import { formatConfigIssueLines } from "../config/issue-format.js";
 import { resolveCanonicalConfigPath } from "../config/paths.js";
 import type { ConfigFileSnapshot, LegacyConfigIssue } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import type { StartupMigrationLease } from "../infra/startup-migration-checkpoint.js";
 import { normalizePluginsConfig, resolveEffectiveEnableState } from "../plugins/config-state.js";

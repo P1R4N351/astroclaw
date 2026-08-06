@@ -1,5 +1,5 @@
 // Telegram tests cover ingress worker runtime behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   TelegramIngressWorkerCommand,

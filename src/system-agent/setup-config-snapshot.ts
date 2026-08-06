@@ -1,4 +1,4 @@
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { shortenHomePath } from "../utils.js";
 import { isReservedSystemAgentId } from "./agent-id.js";

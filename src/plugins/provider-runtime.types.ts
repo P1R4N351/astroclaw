@@ -3,7 +3,7 @@ import type { ProviderSystemPromptContribution } from "../agents/system-prompt-c
 import type { ReplyPayload } from "../auto-reply/reply-payload.js";
 import type { ThinkLevel } from "../auto-reply/thinking.shared.js";
 import type { ModelProviderConfig } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ModelRegistry } from "../llm/model-registry.js";
 import type { ProviderSystemPromptContributionContext } from "./provider-authentication.types.js";
 import type { ProviderRuntimeModel } from "./provider-runtime-model.types.js";

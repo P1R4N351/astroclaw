@@ -3,7 +3,7 @@
  * Keeps provider/profile config fixtures aligned across ordering regression
  * tests without coupling them to production store loading.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { AuthProfileStore } from "./auth-profiles.js";
 
 export const ANTHROPIC_STORE: AuthProfileStore = {

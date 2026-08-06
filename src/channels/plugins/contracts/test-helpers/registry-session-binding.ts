@@ -12,7 +12,7 @@ import {
   type SessionBindingRecord,
 } from "../../../../infra/outbound/session-binding-service.js";
 import type { SessionBindingCapabilities } from "../../../../infra/outbound/session-binding.types.js";
-import { resolvePreferredOpenClawTmpDir } from "../../../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../../../infra/tmp-astroclaw-dir.js";
 import type { OpenKeyedStoreOptions } from "../../../../plugin-sdk/plugin-state-runtime.js";
 import {
   createPluginStateKeyedStoreForTests,

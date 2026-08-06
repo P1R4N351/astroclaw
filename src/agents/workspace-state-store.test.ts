@@ -11,7 +11,7 @@ import { resolveOpenClawStateSqlitePath } from "../state/openclaw-state-db.paths
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import {
   clearExpiredWorkspaceStateForVanishedWorkspace,
   deleteWorkspaceState,

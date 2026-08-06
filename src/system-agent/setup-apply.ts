@@ -12,7 +12,7 @@ import {
 } from "../config/config.js";
 import { applyMergePatch } from "../config/merge-patch.js";
 import type { AgentModelEntryConfig } from "../config/types.agent-defaults.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { enablePluginInConfig } from "../plugins/enable.js";
 import { normalizeAgentId } from "../routing/session-key.js";

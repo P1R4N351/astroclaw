@@ -3,7 +3,7 @@
  *
  * Registers provider-specific stream functions and rewrites models that need OpenClaw-managed transport semantics.
  */
-import type { Api, Model, StreamFn } from "@openclaw/llm-core";
+import type { Api, Model, StreamFn } from "@astroclaw/llm-core";
 import type { ApiRegistry } from "../api-registry.js";
 import { getAiTransportHost, resolveAiTransportHeaderSentinels } from "../host.js";
 import {

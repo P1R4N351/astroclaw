@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { upsertSessionEntry } from "../config/sessions/session-accessor.js";
 import { addSessionMember } from "../config/sessions/session-sharing-store.js";
 import { closeOpenClawAgentDatabasesForTest } from "../state/openclaw-agent-db.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import type { GatewayClient } from "./server-methods/types.js";
 import {
   allowedSessionVisibilities,

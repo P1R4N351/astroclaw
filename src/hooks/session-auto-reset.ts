@@ -1,7 +1,7 @@
 import { resolveAgentWorkspaceDir, resolveSessionAgentId } from "../agents/agent-scope.js";
 import { parseSqliteSessionFileMarker } from "../config/sessions/legacy-sqlite-marker.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { logVerbose } from "../globals.js";
 import type { PluginHookSessionEndReason } from "../plugins/hook-types.js";
 import { runWithGatewayIndependentRootWorkContinuation } from "../process/gateway-work-admission.js";

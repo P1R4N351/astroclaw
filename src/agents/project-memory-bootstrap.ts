@@ -4,7 +4,7 @@ import {
   splitCuratedMarkdownEntries,
   stripMemoryAnnotationCarriers,
 } from "../../packages/memory-host-sdk/src/engine-storage.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { MemorySearchResult } from "../memory-host-sdk/host/types.js";
 import { getMemoryRuntime } from "../plugins/memory-state.js";
 import type { EmbeddedContextFile } from "./embedded-agent-helpers.js";

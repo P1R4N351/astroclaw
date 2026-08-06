@@ -1,7 +1,7 @@
 // Structured plugin catalog and lifecycle operations shared by Gateway-facing surfaces.
 import path from "node:path";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import { MANIFEST_KEY } from "../compat/legacy-names.js";
 import { collectChangedPaths } from "../config/config-change-paths.js";
@@ -12,7 +12,7 @@ import {
 } from "../config/config.js";
 import { resolveIsNixMode } from "../config/paths.js";
 import { ensurePluginAllowlisted } from "../config/plugins-allowlist.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { parseClawHubPluginSpec } from "../infra/clawhub-spec.js";
 import { formatErrorMessage } from "../infra/errors.js";

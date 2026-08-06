@@ -2,9 +2,9 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { expectDefined } from "@openclaw/normalization-core";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { hasNonEmptyString } from "@openclaw/normalization-core/string-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { hasNonEmptyString } from "@astroclaw/normalization-core/string-coerce";
 import { readAcpSessionMetaForEntry } from "../../acp/runtime/session-meta.js";
 import {
   migrateSessionEntries,

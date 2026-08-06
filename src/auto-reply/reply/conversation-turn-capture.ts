@@ -1,5 +1,5 @@
-import { asDateTimestampMs } from "@openclaw/normalization-core/number-coercion";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { asDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { runAgentHarnessBeforeMessageWriteHook } from "../../agents/harness/hook-helpers.js";
 import { redactTranscriptMessage } from "../../agents/transcript-redact.js";
 import {
@@ -13,7 +13,7 @@ import {
   appendTranscriptEventSync,
   loadSessionEntryReadOnly,
 } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { logVerbose } from "../../globals.js";
 import { buildConversationRef } from "../../routing/conversation-ref.js";
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";

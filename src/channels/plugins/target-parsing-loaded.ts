@@ -7,7 +7,7 @@ import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeOptionalThreadValue,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   channelRouteTargetsMatchExact,
   channelRouteTargetsShareConversation,

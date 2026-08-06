@@ -1,8 +1,8 @@
-import { collectManifestModelIdNormalizationPolicies } from "@openclaw/model-catalog-core/provider-model-id-normalization";
-import { expectDefined } from "@openclaw/normalization-core";
+import { collectManifestModelIdNormalizationPolicies } from "@astroclaw/model-catalog-core/provider-model-id-normalization";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { normalizeSubmittedConfigModelRefs } from "../config/model-input-normalization.js";
 import { normalizeAgentModelRefForConfig } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { loadPluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import type { PathSegment } from "./config-cli-path.js";
 

@@ -1,5 +1,5 @@
 // Legacy auth-choice alias handling for CLI/onboarding compatibility.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   resolveManifestDeprecatedProviderAuthChoice,
   resolveManifestProviderAuthChoices,

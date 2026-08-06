@@ -1,5 +1,5 @@
 // Telegram tests cover bot message plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TelegramBotDeps } from "./bot-deps.js";
 import type { TelegramMessageProcessingResult } from "./bot-processing-outcome.js";

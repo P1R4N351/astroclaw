@@ -7,7 +7,7 @@ import {
 import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { VENICE_MODEL_DISCOVERY_OPTIONS } from "./models.js";
 import { applyVeniceConfig } from "./onboard.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { buildStaticVeniceProvider } from "./provider-catalog.js";
 import { createVeniceDeepSeekV4Wrapper } from "./stream.js";
 import { fetchVeniceUsage } from "./usage.js";

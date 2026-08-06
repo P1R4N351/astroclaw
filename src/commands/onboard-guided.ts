@@ -1,6 +1,6 @@
 import { formatCliCommand } from "../cli/command-format.js";
 import { formatConfigIssueLines } from "../config/issue-format.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { withConsoleSubsystemsSuppressed } from "../logging/console.js";
 import type { RuntimeEnv } from "../runtime.js";
 // Guided onboarding: detect AI access, live-test it, then persist only a working route.

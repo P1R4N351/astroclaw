@@ -8,7 +8,7 @@ import {
   normalizeOptionalString,
   normalizeOptionalLowercaseString,
   normalizeStringifiedEntries,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { formatDocsLink } from "../../packages/terminal-core/src/links.js";
 import { colorize, isRich, theme } from "../../packages/terminal-core/src/theme.js";
 import {
@@ -31,7 +31,7 @@ import {
   type SessionEntry,
 } from "../config/sessions.js";
 import { loadSessionEntryReadOnly } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   buildAgentMainSessionKey,
   normalizeAgentId,

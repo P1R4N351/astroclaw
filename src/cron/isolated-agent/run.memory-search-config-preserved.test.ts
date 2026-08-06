@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveMemorySearchConfig } from "../../agents/memory-search.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { MemorySearchConfig } from "../../config/types.tools.js";
 import { buildCronAgentDefaultsConfig } from "./run-config.js";
 

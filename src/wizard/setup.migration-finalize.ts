@@ -1,6 +1,6 @@
 // Setup migration finalization owns deferred activation, reporting, and terminal acknowledgement.
 import path from "node:path";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { writeMigrationReport } from "../plugin-sdk/migration-runtime.js";
 import { summarizeMigrationItems } from "../plugin-sdk/migration.js";

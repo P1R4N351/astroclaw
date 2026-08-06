@@ -10,7 +10,7 @@ import {
   resetTaskRegistryForTests,
   setDetachedTaskLifecycleRuntime,
 } from "../../tasks/task-runtime.test-helpers.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { cronStoreKey } from "../store/key.js";
 import { readCronTaskRunHistoryPage } from "../task-run-history.js";
 import type { CronJob } from "../types.js";

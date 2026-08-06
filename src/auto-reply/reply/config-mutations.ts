@@ -1,11 +1,11 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 /** Config mutation helpers used by chat commands that edit OpenClaw config. */
 import { setConfigValueAtPath, unsetConfigValueAtPath } from "../../config/config-paths.js";
 import {
   transformConfigFileWithRetry,
   validateConfigObjectWithPlugins,
 } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { setPluginEnabledInConfig } from "../../plugins/toggle-config.js";
 
 export class AutoReplyConfigMutationError extends Error {}

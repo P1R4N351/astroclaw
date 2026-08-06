@@ -1,5 +1,5 @@
 // Shared base compatibility normalizers reused by core and plugin setup migrations.
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import type { LegacyCodexModelIdentity } from "./codex-route-model-ref.js";
 import {
   normalizeLegacyBrowserConfig,

@@ -5,7 +5,7 @@ import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { hasErrnoCode } from "../infra/errors.js";
 import { resolveUserPath } from "../infra/home-dir.js";
 import { readRootJsonObjectSync } from "../infra/json-files.js";
-import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
 import { isPathInside } from "../infra/path-guards.js";
 import { resolvePluginInstallDir } from "./install-paths.js";
 

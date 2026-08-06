@@ -4,7 +4,7 @@ import {
   type ListedAgentEntry,
   listAgentEntriesWithSource,
 } from "../agents/agent-scope-config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { LEGACY_IMPLICIT_AGENT_ID, normalizeAgentId } from "../routing/session-key.js";
 import { runtimeMemorySecretOwnerId } from "./runtime-memory-secret-owner.js";
 import {

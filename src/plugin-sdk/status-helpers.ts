@@ -7,7 +7,7 @@ import {
   applyChannelAccountState,
   resolveChannelAccountState,
 } from "../channels/status/account-state.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 export type { ChannelAccountSnapshot } from "../channels/plugins/types.core.js";
 export type { ChannelStatusIssue } from "../channels/plugins/types.public.js";
 export { isRecord } from "../channels/plugins/status-issues/shared.js";

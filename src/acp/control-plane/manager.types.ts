@@ -7,14 +7,14 @@ import type {
   AcpRuntimePromptMode,
   AcpRuntimeSessionMode,
   AcpRuntimeStatus,
-} from "@openclaw/acp-core/runtime/types";
+} from "@astroclaw/acp-core/runtime/types";
 import type {
   SessionAcpIdentity,
   AcpSessionRuntimeOptions,
   SessionAcpMeta,
   SessionEntry,
 } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { AcpRuntimeError } from "../runtime/errors.js";
 import { getAcpRuntimeBackend, requireAcpRuntimeBackend } from "../runtime/registry.js";
 import {

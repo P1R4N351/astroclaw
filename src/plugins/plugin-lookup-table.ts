@@ -1,6 +1,6 @@
 /** Builds plugin lookup tables keyed by manifest ids, channels, providers, and commands. */
 import type { AmbientEnvTriggerPolicy } from "../channels/config-presence.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   createGatewayStartupMetadataPluginIdScope,
   isMetadataSnapshotScopedForGatewayStartup,

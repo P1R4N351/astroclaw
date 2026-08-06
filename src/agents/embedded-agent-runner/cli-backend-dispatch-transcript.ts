@@ -10,7 +10,7 @@
  * stream, and the final assistant snapshot at run end.
  */
 import { appendTranscriptMessage } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { AgentMessage } from "../runtime/index.js";
 import { buildAssistantMessage, buildUsageWithNoCost } from "../stream-message-shared.js";

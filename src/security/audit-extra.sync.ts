@@ -1,11 +1,11 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 // Runs synchronous extra security audit checks.
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import { normalizeUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { normalizeUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { listAgentEntries } from "../agents/agent-scope-config.js";
 import { resolveConfiguredToolPolicies } from "../agents/agent-tools.policy.js";
 import { resolveSandboxConfigForAgent } from "../agents/sandbox/config.js";
@@ -14,7 +14,7 @@ import { getBlockedBindReason } from "../agents/sandbox/validate-sandbox-securit
 import { isToolAllowedByPolicies } from "../agents/tool-policy-match.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { GatewayAuthConfig } from "../config/types.gateway.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import { resolveGatewayAuth, type ResolvedGatewayAuth } from "../gateway/auth.js";
 import { resolveAllowedAgentIds } from "../gateway/hooks-policy.js";

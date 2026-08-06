@@ -7,7 +7,7 @@ import {
   SESSION_SUGGESTION_DISPATCH_CLAIM_TTL_MS,
 } from "../../config/sessions/session-suggestion-store.js";
 import { closeOpenClawAgentDatabasesForTest } from "../../state/openclaw-agent-db.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { sessionSuggestionHandlers } from "./sessions-suggestions.js";
 import type { GatewayClient, GatewayRequestContext, RespondFn } from "./types.js";
 

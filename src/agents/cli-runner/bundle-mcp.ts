@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { applyMergePatch } from "../../config/merge-patch.js";
 import type { SessionToolOverrides } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { tryReadJson } from "../../infra/json-files.js";
 import {

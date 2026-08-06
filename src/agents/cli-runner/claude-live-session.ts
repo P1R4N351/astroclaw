@@ -6,7 +6,7 @@ import {
   splitSystemPromptCacheBoundary,
   stripSystemPromptCacheBoundary,
 } from "@openclaw/ai/internal/shared";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { ReplyBackendHandle } from "../../auto-reply/reply/reply-run-registry.js";
 import { createAbortError as createNamedAbortError } from "../../infra/abort-signal.js";
 import {

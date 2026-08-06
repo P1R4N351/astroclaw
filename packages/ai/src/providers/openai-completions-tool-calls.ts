@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { ChatCompletionChunk } from "openai/resources/chat/completions.js";
 
 type ChatCompletionToolCallDelta = ChatCompletionChunk.Choice.Delta.ToolCall;

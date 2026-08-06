@@ -1,6 +1,6 @@
 // Crestodian TUI backend tests cover rescue status integration with the TUI backend.
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { createCrestodianVerifiedInferenceTestFixture } from "./crestodian.test-helpers.js";
 import { CrestodianInferenceUnavailableError } from "./inference-error.js";

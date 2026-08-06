@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { stableStringify } from "../agents/stable-stringify.js";
 import { listConfiguredMcpServers } from "../config/mcp-config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveDefaultCronStaggerMs } from "../cron/stagger.js";
 import type { CronJob } from "../cron/types.js";
 import type { HealthFinding } from "../flows/health-checks.js";

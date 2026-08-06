@@ -1,7 +1,7 @@
 import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 // Nvidia tests cover provider catalog plugin behavior.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
   buildLiveNvidiaProvider,
   buildNvidiaProvider,

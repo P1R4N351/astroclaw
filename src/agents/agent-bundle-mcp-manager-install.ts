@@ -1,6 +1,6 @@
 import type { SessionToolOverrides } from "../config/sessions/types.js";
 /** Session MCP runtime manager install path: static get-or-create + requester resolve/install. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import type { SessionMcpRuntimeManagerLifecycle } from "./agent-bundle-mcp-manager-lifecycle.js";
 import { loadSessionMcpConfig } from "./agent-bundle-mcp-runtime-config.js";

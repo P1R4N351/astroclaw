@@ -1,4 +1,4 @@
-import type { Api, Context, Model } from "@openclaw/llm-core";
+import type { Api, Context, Model } from "@astroclaw/llm-core";
 import type {
   ResponseFunctionCallOutputItemList,
   ResponseInput,

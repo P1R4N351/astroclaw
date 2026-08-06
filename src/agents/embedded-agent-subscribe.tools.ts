@@ -1,16 +1,16 @@
 /** Sanitizes, extracts, and classifies embedded-agent tool execution results. */
-import { estimateBase64DecodedBytes } from "@openclaw/media-core/base64";
-import { asOptionalRecord as readRecord } from "@openclaw/normalization-core/record-coerce";
+import { estimateBase64DecodedBytes } from "@astroclaw/media-core/base64";
+import { asOptionalRecord as readRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
   normalizeOptionalStringifiedId,
   readStringValue,
-} from "@openclaw/normalization-core/string-coerce";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { getChannelPlugin, normalizeChannelId } from "../channels/plugins/index.js";
 import type { ChannelMessageActionName } from "../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeTargetForProvider } from "../infra/outbound/target-normalization.js";
 import {
   normalizeLegacyInteractiveReply,

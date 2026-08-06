@@ -1,6 +1,6 @@
 /** Registry state for plugin memory runtimes, prompt supplements, and flush planning. */
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type {
   MemoryCorpusSupplement,

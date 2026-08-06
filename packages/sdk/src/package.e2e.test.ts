@@ -42,7 +42,7 @@ describe("OpenClaw SDK package e2e", () => {
     const consumer = await createPackedSdkConsumer();
     try {
       await consumer.run(`
-        import { GatewayClientTransport, OpenClaw, normalizeGatewayEvent } from "@openclaw/sdk";
+        import { GatewayClientTransport, OpenClaw, normalizeGatewayEvent } from "@astroclaw/sdk";
         if (typeof GatewayClientTransport !== "function") throw new Error("missing transport export");
         if (typeof OpenClaw !== "function") throw new Error("missing client export");
         const event = normalizeGatewayEvent({

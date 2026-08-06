@@ -4,7 +4,7 @@ import type {
   AssistantMessageEventStreamContract,
   Context,
   Model,
-} from "@openclaw/llm-core";
+} from "@astroclaw/llm-core";
 import { describe, expect, it, vi } from "vitest";
 import { bindModelLlmRuntime } from "./model-runtime-binding.js";
 import { stream, streamSimple } from "./stream.js";

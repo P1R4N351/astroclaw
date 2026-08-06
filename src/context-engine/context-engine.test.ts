@@ -6,7 +6,7 @@ import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { upsertSessionEntry } from "../config/sessions/session-accessor.js";
 import type { MemoryCitationsMode } from "../config/types.memory.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   clearMemoryPluginState,
   registerMemoryPromptPreparation,

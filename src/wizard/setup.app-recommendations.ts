@@ -5,7 +5,7 @@ import {
   ensureOnboardingPluginInstalled,
   type OnboardingPluginInstallEntry,
 } from "../commands/onboarding-plugin-install.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { fetchClawHubSkillVerification } from "../infra/clawhub.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { scanInstalledApps } from "../infra/installed-apps.js";

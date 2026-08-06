@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { SessionCompanionExchange } from "../../packages/gateway-protocol/src/schema/sessions.js";
 import { resolveAgentWorkspaceDir, resolveSessionAgentId } from "../agents/agent-scope.js";
 import {
@@ -10,7 +10,7 @@ import { resolveSimpleCompletionSelectionForAgent } from "../agents/simple-compl
 import { extractAssistantText, stripToolMessages } from "../agents/tools/chat-history-text.js";
 import { resolveUtilityModelRefForAgent } from "../agents/utility-model.js";
 import { resolveStorePath } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { Message, Usage } from "../llm/types.js";
 import { redactToolPayloadText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

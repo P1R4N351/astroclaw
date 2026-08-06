@@ -1,5 +1,5 @@
 // Model probe gateway method reuses the CLI auth-probe engine behind an admin-scoped RPC.
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   ErrorCodes,
   errorShape,
@@ -13,7 +13,7 @@ import {
   type AuthProbeStatus,
   runAuthProbes,
 } from "../../commands/models/list.probe.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   resolveModelAuthAgentScope,
   unknownModelAuthAgentIdError,

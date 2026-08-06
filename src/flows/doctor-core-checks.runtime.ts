@@ -1,5 +1,5 @@
 // Doctor runtime checks inspect tool names, browser residue, and runtime state.
-import { redactSensitiveUrlLikeString } from "@openclaw/net-policy/redact-sensitive-url";
+import { redactSensitiveUrlLikeString } from "@astroclaw/net-policy/redact-sensitive-url";
 import { TOOL_NAME_SEPARATOR } from "../agents/agent-bundle-mcp-names.js";
 import {
   type McpToolCatalogDiagnostic,
@@ -32,7 +32,7 @@ import type { AnyAgentTool } from "../agents/tools/common.js";
 import { probeGatewayStatus } from "../cli/daemon-cli/probe.js";
 import { collectUnavailableAgentSkills } from "../commands/doctor-skills-core.js";
 import { gatewayProbeResultSawGateway } from "../commands/gateway-health-auth-diagnostic.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   getSystemdCgroupHygieneSummary,
   type GatewayServiceRuntime,

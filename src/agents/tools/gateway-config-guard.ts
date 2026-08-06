@@ -1,8 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
-import { isRecord as isPlainObject } from "@openclaw/normalization-core/record-coerce";
+import { isRecord as isPlainObject } from "@astroclaw/normalization-core/record-coerce";
 import { parseConfigJson5 } from "../../config/io.js";
 import { applyMergePatch } from "../../config/merge-patch.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { collectEnabledInsecureOrDangerousFlags } from "../../security/dangerous-config-flags.js";
 
 // `assertGatewayConfigMutationAllowed` is the explicit model -> operator

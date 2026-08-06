@@ -4,7 +4,7 @@
  * Normal delivery uses the durable session queue. This path exists only when
  * queue persistence failed and the immediate agent turn also missed delivery.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   resolveEventSessionKeyForPolicy,
   resolveEventSessionRoutingPolicy,

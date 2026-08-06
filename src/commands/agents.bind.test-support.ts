@@ -1,7 +1,7 @@
 // Agent binding test support centralizes mocked channel plugin registries and lazy imports.
 import type { Mock } from "vitest";
 import { vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
 import { createTestRuntime } from "./test-runtime-config-helpers.js";
 

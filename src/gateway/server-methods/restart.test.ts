@@ -1,8 +1,8 @@
 // Restart method tests cover safe restart scheduling, deferral flags, and
 // response payloads returned by gateway.restart.request.
 
-import { expectDefined } from "@openclaw/normalization-core";
-import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { restartHandlers } from "./restart.js";
 

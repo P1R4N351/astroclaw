@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createOpenClawTestState as createOpenClawTestStateDirect,
   withOpenClawTestState as withOpenClawTestStateDirect,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import { createOpenClawTestState, withOpenClawTestState } from "./test-state.js";
 
 describe("test-state SDK seam", () => {

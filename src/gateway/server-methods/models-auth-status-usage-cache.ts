@@ -12,7 +12,7 @@ import {
 } from "../../agents/execution-auth-binding.js";
 import { resolveEnvApiKey } from "../../agents/model-auth-env.js";
 import { resolveUsableCustomProviderApiKey } from "../../agents/model-auth.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { loadProviderUsageSummary } from "../../infra/provider-usage.load.js";
 import type {
   ProviderUsageSnapshot,

@@ -1,12 +1,12 @@
 /** Migration provider context and report-directory helpers. */
 import path from "node:path";
-import { isValidAgentId, normalizeAgentId } from "@openclaw/normalization-core/agent-id";
-import { timestampMsToIsoFileStamp } from "@openclaw/normalization-core/number-coercion";
+import { isValidAgentId, normalizeAgentId } from "@astroclaw/normalization-core/agent-id";
+import { timestampMsToIsoFileStamp } from "@astroclaw/normalization-core/number-coercion";
 import { listAgentIds } from "../../agents/agent-scope.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import { getRuntimeConfig } from "../../config/config.js";
 import { resolveStateDir } from "../../config/paths.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { MigrationProviderContext } from "../../plugins/types.js";
 import type { RuntimeEnv } from "../../runtime.js";
 

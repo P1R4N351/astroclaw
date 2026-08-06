@@ -1,4 +1,4 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   isFastModeAutoProgressPayload,
   resolveSendableOutboundReplyParts,
@@ -7,7 +7,7 @@ import { shouldSuppressLocalExecApprovalPrompt } from "../../channels/plugins/ex
 import { type AgentPlanStep, formatPlanChecklistLines } from "../../channels/streaming.js";
 import { getRuntimeConfigSnapshot } from "../../config/config.js";
 import { applyMergePatch } from "../../config/merge-patch.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { logVerbose } from "../../globals.js";
 import { createTtsDirectiveTextStreamCleaner } from "../../tts/directives.js";
 import { shouldCleanTtsDirectiveText } from "../../tts/tts-config.js";

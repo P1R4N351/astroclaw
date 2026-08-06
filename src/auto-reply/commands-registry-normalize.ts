@@ -1,10 +1,10 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 /** Normalizes slash-command text aliases and builds command detection caches. */
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import type { OpenClawConfig } from "../config/types.js";
 import { escapeRegExp } from "../utils.js";
 import { getChatCommands } from "./commands-registry.data.js";

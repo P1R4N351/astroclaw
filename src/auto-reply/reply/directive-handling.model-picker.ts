@@ -1,7 +1,7 @@
 // Builds model picker choices and endpoint labels for model directives.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { findNormalizedProviderValue, normalizeProviderId } from "../../agents/model-selection.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 
 /** Catalog entry shown by the model picker directive UI. */
 export type ModelPickerCatalogEntry = {

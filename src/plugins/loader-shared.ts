@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { err as resultError, ok, type Result } from "@openclaw/normalization-core/result";
+import { err as resultError, ok, type Result } from "@astroclaw/normalization-core/result";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+} from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { activateContextEngineRegistrations } from "../context-engine/registry.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {

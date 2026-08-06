@@ -1,13 +1,13 @@
 // Gateway maintenance timers.
 // Starts periodic health, dedupe, abort, and media cleanup loops.
-import { isFutureDateTimestampMs } from "@openclaw/normalization-core/number-coercion";
+import { isFutureDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import { createManagedWorktreeOwnerProtection } from "../agents/worktrees/owner-protection.js";
 import {
   managedWorktrees,
   resolveWorktreeCleanupLimits,
   WORKTREE_GC_INTERVAL_MS,
 } from "../agents/worktrees/service.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { sweepStaleRunContexts } from "../infra/agent-run-registry.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import { pruneOrphanedDeliveryQueueMedia } from "../infra/outbound/delivery-queue-media-spool.js";

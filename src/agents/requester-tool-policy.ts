@@ -3,7 +3,7 @@
  * Sender-dependent policy resolves once at trusted ingress; verified descendants
  * consume the persisted effective parent projection instead of guessing identity.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { InputProvenance } from "../sessions/input-provenance.js";
 import { normalizeInputProvenance } from "../sessions/input-provenance.js";
 import {

@@ -1,10 +1,10 @@
 // Scans plugin manifest metadata without importing runtime entrypoints.
 import fs from "node:fs";
 import path from "node:path";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString as normalizeTrimmedString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString as normalizeTrimmedString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveHomeRelativePath } from "../infra/home-dir.js";
-import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
 import { readRegularFileSync } from "../infra/regular-file.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { parseJsonWithJson5Fallback } from "../utils/parse-json-compat.js";

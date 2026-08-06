@@ -1,10 +1,10 @@
-import { resolvePositiveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
-import { asRecord } from "@openclaw/normalization-core/record-coerce";
+import { resolvePositiveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
+import { asRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
-import { normalizeOptionalTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-coerce";
+import { normalizeOptionalTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import type { OpenClawPluginConfigSchema } from "../plugins/plugin-config-schema.types.js";
 import {
   resolveRealtimeVoiceAgentConsultToolPolicy,

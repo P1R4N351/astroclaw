@@ -9,7 +9,7 @@ afterEach(() => {
 
 describe("listBundledChannelCatalogEntries discovery failures", () => {
   it("falls back when bundled package metadata is unavailable during import", async () => {
-    vi.doMock("../infra/openclaw-root.js", () => ({
+    vi.doMock("../infra/astroclaw-root.js", () => ({
       resolveOpenClawPackageRootSync: () => null,
       resolveOpenClawPackageRoot: async () => null,
     }));

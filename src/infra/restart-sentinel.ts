@@ -1,6 +1,6 @@
 // Persists restart sentinel state that coordinates deferred restarts.
-import { isRecord as isPlainRecord } from "@openclaw/normalization-core/record-coerce";
-import { sliceUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
+import { isRecord as isPlainRecord } from "@astroclaw/normalization-core/record-coerce";
+import { sliceUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { formatCliCommand } from "../cli/command-format.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {

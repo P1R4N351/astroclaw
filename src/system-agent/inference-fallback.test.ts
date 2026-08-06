@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { verifySystemAgentInferenceWithFallback } from "./inference-fallback.js";
 import type { SystemAgentConfiguredRoute } from "./inference-route.js";

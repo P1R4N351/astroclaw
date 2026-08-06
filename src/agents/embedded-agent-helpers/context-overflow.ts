@@ -1,5 +1,5 @@
 import { isConfiguredContextSizeOverflowError } from "@openclaw/ai/internal/runtime";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { isBillingErrorMessage, isRateLimitErrorMessage } from "./failover-matches.js";
 import { matchesProviderContextOverflow } from "./provider-error-patterns.js";
 

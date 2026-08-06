@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { createSuiteLogPathTracker } from "../logging/log-test-helpers.js";
 import { resetLogger } from "../logging/logger.js";
 import { loggingState } from "../logging/state.js";

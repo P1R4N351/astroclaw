@@ -12,7 +12,7 @@ import {
   type ResponsesTerminalUsagePayload,
 } from "@openclaw/ai/internal/openai";
 import { calculateCost } from "@openclaw/ai/internal/runtime";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type OpenAI from "openai";
 import type { ResponseCreateParamsStreaming } from "openai/resources/responses/responses.js";
 import type { Model } from "../llm/types.js";

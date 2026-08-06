@@ -4,7 +4,7 @@
  * Projects plugin-owned provider configuration into the tool-local search shape.
  */
 import { resolvePluginWebSearchConfig } from "../../config/plugin-web-search-config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { isLegacyWebSearchProviderConfigKey } from "../../config/web-search-legacy-provider-keys.js";
 
 /** Reads the legacy top-level web search credential value. */

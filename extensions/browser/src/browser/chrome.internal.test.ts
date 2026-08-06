@@ -39,7 +39,7 @@ vi.mock("../infra/ports.js", () => ({
   ensurePortAvailable: ensurePortAvailableMock,
 }));
 
-vi.mock("../infra/tmp-openclaw-dir.js", () => ({
+vi.mock("../infra/tmp-astroclaw-dir.js", () => ({
   resolvePreferredOpenClawTmpDir: () => "/tmp/openclaw-browser-test",
 }));
 

@@ -1,8 +1,8 @@
 /** Tests node-host MCP startup, descriptors, calls, and failure isolation. */
 
 import { ErrorCode, type CallToolResult, type Tool } from "@modelcontextprotocol/sdk/types.js";
-import { expectDefined } from "@openclaw/normalization-core";
-import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 import { describe, expect, it, vi } from "vitest";
 import { OpenClawSchema } from "../config/zod-schema.js";
 import { useFrozenTime, useRealTime } from "../test-utils/frozen-time.js";

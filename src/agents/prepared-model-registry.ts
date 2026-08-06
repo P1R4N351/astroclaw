@@ -1,6 +1,6 @@
 /** Request-isolated registry views forked from lifecycle-owned model generations. */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { Model } from "../llm/types.js";
 import { normalizeDiscoveredAgentModel } from "./agent-model-discovery.js";
 import {

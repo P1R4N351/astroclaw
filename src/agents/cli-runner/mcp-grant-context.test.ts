@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { buildCliMcpGrantContext } from "./mcp-grant-context.js";
 import type { RunCliAgentParams } from "./types.js";
 

@@ -64,7 +64,7 @@ export async function loadAuthoredSetupConfig(params: {
   configExists: boolean;
   configValid: boolean;
 }): Promise<{
-  authoredConfig?: import("../config/types.openclaw.js").OpenClawConfig;
+  authoredConfig?: import("../config/types.astroclaw.js").OpenClawConfig;
   hasAuthoredSetup: boolean;
 }> {
   const authoredConfig = await (async () => {

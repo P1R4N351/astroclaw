@@ -1,5 +1,5 @@
 // File-backed TTS output is owned by the canonical media store, not speech-core.
-import { mimeTypeFromFilePath } from "@openclaw/media-core/mime";
+import { mimeTypeFromFilePath } from "@astroclaw/media-core/mime";
 import type { TtsAudioPersistence } from "../../packages/speech-core/src/tts-synthesis.js";
 import { resolveGeneratedMediaMaxBytes } from "../media/configured-max-bytes.js";
 import { saveMediaBuffer } from "../media/store.js";

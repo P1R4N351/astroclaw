@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../types.openclaw.js";
+import type { OpenClawConfig } from "../types.astroclaw.js";
 import type { SessionUnreferencedArtifactSweepResult } from "./disk-budget.js";
 import type { SessionResetBoundaryReason } from "./session-reset-boundary-event.js";
 import type { SessionMaintenanceApplyReport } from "./store-maintenance-operations.js";

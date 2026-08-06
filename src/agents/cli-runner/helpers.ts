@@ -7,21 +7,21 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { stripSystemPromptCacheBoundary } from "@openclaw/ai/internal/shared";
-import { MAX_IMAGE_BYTES } from "@openclaw/media-core/constants";
-import { extensionForMime } from "@openclaw/media-core/mime";
+import { MAX_IMAGE_BYTES } from "@astroclaw/media-core/constants";
+import { extensionForMime } from "@astroclaw/media-core/mime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { isAcpRuntimeSpawnAvailable } from "../../acp/runtime/availability.js";
 import type { SourceReplyDeliveryMode } from "../../auto-reply/get-reply-options.types.js";
 import type { ThinkLevel } from "../../auto-reply/thinking.js";
 import type { ChatType } from "../../channels/chat-type.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveRuntimeOsLabel } from "../../infra/os-summary.js";
 import { privateFileStore } from "../../infra/private-file-store.js";
 import { tempWorkspace } from "../../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import type { ImageContent } from "../../llm/types.js";
 import type { MediaFact } from "../../media/media-facts.js";
 import type { PromptImageOrderEntry } from "../../media/prompt-image-order.js";

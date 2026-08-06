@@ -23,7 +23,7 @@ import { resolveDeliveryProvenCanonicalSessionKey } from "../config/sessions/sto
 import { resolveAllAgentSessionStoreTargetsSync } from "../config/sessions/targets.js";
 import { serializeJsonlLines } from "../config/sessions/transcript-jsonl.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   resolveSessionStoreAgentId,
   resolveStoredSessionKeyForAgentStore,

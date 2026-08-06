@@ -147,7 +147,7 @@ describe("installOpenClawInternalCorePackageNativeResolver", () => {
         moduleUrl: fixture.moduleUrl,
       });
 
-      expect(aliases).toContain("@openclaw/markdown-core/code-spans");
+      expect(aliases).toContain("@astroclaw/markdown-core/code-spans");
       expect(existsSync).not.toHaveBeenCalled();
     } finally {
       existsSync.mockRestore();
@@ -175,7 +175,7 @@ describe("installOpenClawInternalCorePackageNativeResolver", () => {
         moduleUrl: secondModuleUrl,
       });
 
-      expect(aliases).toContain("@openclaw/markdown-core/code-spans");
+      expect(aliases).toContain("@astroclaw/markdown-core/code-spans");
       expect(existsSync).not.toHaveBeenCalledWith(fixture.sourcePath);
       expect(readFileSync).toHaveBeenCalledExactlyOnceWith(
         path.join(fixture.root, "package.json"),
@@ -208,12 +208,12 @@ describe("installOpenClawInternalCorePackageNativeResolver", () => {
       expect(existsSync).toHaveBeenCalledWith(second.sourcePath);
       expect(
         fs.realpathSync(
-          createRequire(first.coreSourceParent).resolve("@openclaw/markdown-core/code-spans"),
+          createRequire(first.coreSourceParent).resolve("@astroclaw/markdown-core/code-spans"),
         ),
       ).toBe(fs.realpathSync(first.sourcePath));
       expect(
         fs.realpathSync(
-          createRequire(second.coreSourceParent).resolve("@openclaw/markdown-core/code-spans"),
+          createRequire(second.coreSourceParent).resolve("@astroclaw/markdown-core/code-spans"),
         ),
       ).toBe(fs.realpathSync(second.sourcePath));
     } finally {
@@ -555,38 +555,38 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
       pluginSdkResolution: "dist",
     });
 
-    expect(installedAliases).toContain("@openclaw/normalization-core/string-coerce");
-    expect(installedAliases).toContain("@openclaw/normalization-core/boolean-coercion");
-    expect(installedAliases).toContain("@openclaw/normalization-core/result");
-    expect(installedAliases).toContain("@openclaw/normalization-core/agent-id");
-    expect(installedAliases).toContain("@openclaw/media-core/mime");
-    expect(installedAliases).toContain("@openclaw/markdown-core/code-spans");
+    expect(installedAliases).toContain("@astroclaw/normalization-core/string-coerce");
+    expect(installedAliases).toContain("@astroclaw/normalization-core/boolean-coercion");
+    expect(installedAliases).toContain("@astroclaw/normalization-core/result");
+    expect(installedAliases).toContain("@astroclaw/normalization-core/agent-id");
+    expect(installedAliases).toContain("@astroclaw/media-core/mime");
+    expect(installedAliases).toContain("@astroclaw/markdown-core/code-spans");
     expect(installedAliases).toContain("@openclaw/ai/transports");
     expect(installedAliases).toContain("@openclaw/ai/internal/retry-after");
     expect(installedAliases).toContain("@openclaw/ai/internal/runtime");
-    expect(installedAliases).toContain("@openclaw/acp-core/runtime/types");
-    expect(installedAliases).toContain("@openclaw/llm-core");
+    expect(installedAliases).toContain("@astroclaw/acp-core/runtime/types");
+    expect(installedAliases).toContain("@astroclaw/llm-core");
     const requireFromCoreSource = createRequire(coreSourceParent);
     const requireFromPlugin = createRequire(externalPluginEntry);
     expect(
-      fs.realpathSync(requireFromCoreSource.resolve("@openclaw/normalization-core/string-coerce")),
+      fs.realpathSync(requireFromCoreSource.resolve("@astroclaw/normalization-core/string-coerce")),
     ).toBe(fs.realpathSync(normalizationSource));
     expect(
       fs.realpathSync(
-        requireFromCoreSource.resolve("@openclaw/normalization-core/boolean-coercion"),
+        requireFromCoreSource.resolve("@astroclaw/normalization-core/boolean-coercion"),
       ),
     ).toBe(fs.realpathSync(booleanCoercionSource));
     expect(
-      fs.realpathSync(requireFromCoreSource.resolve("@openclaw/normalization-core/result")),
+      fs.realpathSync(requireFromCoreSource.resolve("@astroclaw/normalization-core/result")),
     ).toBe(fs.realpathSync(resultSource));
     expect(
-      fs.realpathSync(requireFromCoreSource.resolve("@openclaw/normalization-core/agent-id")),
+      fs.realpathSync(requireFromCoreSource.resolve("@astroclaw/normalization-core/agent-id")),
     ).toBe(fs.realpathSync(agentIdSource));
-    expect(fs.realpathSync(requireFromCoreSource.resolve("@openclaw/media-core/mime"))).toBe(
+    expect(fs.realpathSync(requireFromCoreSource.resolve("@astroclaw/media-core/mime"))).toBe(
       fs.realpathSync(mediaCoreSource),
     );
     expect(
-      fs.realpathSync(requireFromCoreSource.resolve("@openclaw/markdown-core/code-spans")),
+      fs.realpathSync(requireFromCoreSource.resolve("@astroclaw/markdown-core/code-spans")),
     ).toBe(fs.realpathSync(markdownCoreSource));
     expect(fs.realpathSync(requireFromCoreSource.resolve("@openclaw/ai/transports"))).toBe(
       fs.realpathSync(aiTransportsSource),
@@ -597,24 +597,24 @@ describe("installOpenClawPluginSdkNativeResolver", () => {
     expect(fs.realpathSync(requireFromCoreSource.resolve("@openclaw/ai/internal/runtime"))).toBe(
       fs.realpathSync(aiRuntimeSource),
     );
-    expect(fs.realpathSync(requireFromCoreSource.resolve("@openclaw/acp-core/runtime/types"))).toBe(
+    expect(fs.realpathSync(requireFromCoreSource.resolve("@astroclaw/acp-core/runtime/types"))).toBe(
       fs.realpathSync(acpCoreSource),
     );
-    expect(fs.realpathSync(requireFromCoreSource.resolve("@openclaw/llm-core"))).toBe(
+    expect(fs.realpathSync(requireFromCoreSource.resolve("@astroclaw/llm-core"))).toBe(
       fs.realpathSync(llmCoreSource),
     );
-    expect(() => requireFromPlugin.resolve("@openclaw/normalization-core/string-coerce")).toThrow();
+    expect(() => requireFromPlugin.resolve("@astroclaw/normalization-core/string-coerce")).toThrow();
     expect(() =>
-      requireFromPlugin.resolve("@openclaw/normalization-core/boolean-coercion"),
+      requireFromPlugin.resolve("@astroclaw/normalization-core/boolean-coercion"),
     ).toThrow();
-    expect(() => requireFromPlugin.resolve("@openclaw/normalization-core/result")).toThrow();
-    expect(() => requireFromPlugin.resolve("@openclaw/media-core/mime")).toThrow();
-    expect(() => requireFromPlugin.resolve("@openclaw/markdown-core/code-spans")).toThrow();
+    expect(() => requireFromPlugin.resolve("@astroclaw/normalization-core/result")).toThrow();
+    expect(() => requireFromPlugin.resolve("@astroclaw/media-core/mime")).toThrow();
+    expect(() => requireFromPlugin.resolve("@astroclaw/markdown-core/code-spans")).toThrow();
     expect(() => requireFromPlugin.resolve("@openclaw/ai/transports")).toThrow();
     expect(() => requireFromPlugin.resolve("@openclaw/ai/internal/retry-after")).toThrow();
     expect(() => requireFromPlugin.resolve("@openclaw/ai/internal/runtime")).toThrow();
-    expect(() => requireFromPlugin.resolve("@openclaw/acp-core/runtime/types")).toThrow();
-    expect(() => requireFromPlugin.resolve("@openclaw/llm-core")).toThrow();
+    expect(() => requireFromPlugin.resolve("@astroclaw/acp-core/runtime/types")).toThrow();
+    expect(() => requireFromPlugin.resolve("@astroclaw/llm-core")).toThrow();
   });
 
   it("does not register source-only SDK subpaths for native resolution", () => {

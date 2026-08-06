@@ -1,4 +1,4 @@
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { formatErrorMessage } from "../../infra/errors.js";
 import {
   clearPluginHostCleanupTarget,

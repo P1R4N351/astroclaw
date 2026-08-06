@@ -10,7 +10,7 @@ import { formatSqliteSessionFileMarker } from "../../config/sessions/legacy-sqli
 import { patchSessionEntry, updateSessionEntry } from "../../config/sessions/session-accessor.js";
 import { resolveSessionStorePathForScope } from "../../config/sessions/session-store-path.js";
 import { projectCanonicalSessionEntryShape } from "../../config/sessions/store-entry-shape.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   forgetActiveSessionForShutdown,
   noteActiveSessionForShutdown,

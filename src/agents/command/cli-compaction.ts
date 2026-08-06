@@ -7,7 +7,7 @@ import type { SessionTranscriptRuntimeTarget } from "../../config/sessions/sessi
  */
 import type { SessionEntry } from "../../config/sessions/types.js";
 import type { AgentCompactionMode } from "../../config/types.agent-defaults.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { buildGenericCliContextEngineHostSupport } from "../../context-engine/host-compat.js";
 import { ensureContextEnginesInitialized as ensureContextEnginesInitializedImpl } from "../../context-engine/init.js";
 import { resolveContextEngine as resolveContextEngineImpl } from "../../context-engine/registry.js";

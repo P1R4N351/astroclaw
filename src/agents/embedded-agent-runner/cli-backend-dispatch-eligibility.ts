@@ -6,8 +6,8 @@
  * routing from drifting apart. Kept separate from the dispatch module so
  * the plugin runtime surface does not eagerly load the run machinery.
  */
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveRuntimeCliBackends } from "../../plugins/cli-backends.runtime.js";
 import {
   ensureAuthProfileStore,

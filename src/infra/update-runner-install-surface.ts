@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { detectGlobalInstallManagerForRoot } from "./update-global.js";
 import { buildUpdateCommandRunner, DEFAULT_TIMEOUT_MS } from "./update-runner-command.js";
 import type {

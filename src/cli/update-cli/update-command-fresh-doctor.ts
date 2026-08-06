@@ -5,7 +5,7 @@ import {
   UPDATE_POST_CORE_CONVERGENCE_ENV,
 } from "../../commands/doctor/shared/update-phase.js";
 import { readConfigFileSnapshot } from "../../config/config.js";
-import type { ConfigFileSnapshot } from "../../config/types.openclaw.js";
+import type { ConfigFileSnapshot } from "../../config/types.astroclaw.js";
 import { resolveGatewayInstallEntrypoint } from "../../daemon/gateway-entrypoint.js";
 import { runExec } from "../../process/exec.js";
 import { defaultRuntime } from "../../runtime.js";

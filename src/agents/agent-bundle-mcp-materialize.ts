@@ -2,8 +2,8 @@
 import crypto from "node:crypto";
 import type { CallToolResult, ContentBlock } from "@modelcontextprotocol/sdk/types.js";
 import { normalizeToolParameterSchema } from "@openclaw/ai/internal/openai";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { logWarn } from "../logger.js";
 import { setPluginToolMeta, type PluginToolMcpMeta } from "../plugins/tools.js";
 import { matchesMcpToolFilterPattern } from "./agent-bundle-mcp-filter.js";

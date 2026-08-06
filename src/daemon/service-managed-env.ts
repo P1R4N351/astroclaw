@@ -1,5 +1,5 @@
 /** Tracks managed service environment keys across reinstall and repair flows. */
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { normalizeEnvVarKey } from "../infra/host-env-security.js";
 import type { GatewayServiceEnvironmentValueSource } from "./service-types.js";
 

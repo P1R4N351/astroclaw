@@ -1,7 +1,7 @@
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { INCLUDE_KEY } from "../../../config/includes.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { isPathInside } from "../../../infra/path-safety.js";
 import { isRecord } from "../../../utils.js";
 

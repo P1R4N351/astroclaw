@@ -6,7 +6,7 @@ import {
   runTelegramThinkingFinalFlow,
   runTelegramWorkingFinalFlow,
 } from "../../scripts/dev/channel-message-flows.ts";
-import type { OpenClawConfig } from "../../src/config/types.openclaw.js";
+import type { OpenClawConfig } from "../../src/config/types.astroclaw.js";
 
 describe("channel message flows dev runner", () => {
   function createTestDraftStream(params?: {

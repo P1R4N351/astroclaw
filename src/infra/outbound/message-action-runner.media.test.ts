@@ -15,7 +15,7 @@ import {
   createChannelTestPluginBase,
   createTestRegistry,
 } from "../../test-utils/channel-plugins.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
 import { runMessageAction } from "./message-action-runner.js";
 

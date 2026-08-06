@@ -1,7 +1,7 @@
 import os from "node:os";
 import type { SessionEntry } from "../config/sessions.js";
 import { resolveSessionFilePath, resolveSessionFilePathOptions } from "../config/sessions/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatDurationCompact } from "../infra/format-time/format-duration.ts";
 import { formatMissingCostEntries } from "../infra/session-cost-usage-totals.js";
 import {

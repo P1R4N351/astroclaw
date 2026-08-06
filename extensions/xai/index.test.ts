@@ -19,7 +19,7 @@ const providerAuthRuntimeMocks = vi.hoisted(() => ({
 vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => providerAuthRuntimeMocks);
 
 import plugin from "./index.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { buildLiveXaiOAuthProvider, buildLiveXaiProvider } from "./provider-catalog.js";
 import setupPlugin from "./setup-api.js";
 import {

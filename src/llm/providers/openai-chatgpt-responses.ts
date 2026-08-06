@@ -29,7 +29,7 @@ const os = loadNodeOs();
 import {
   resolveTimerTimeoutMs,
   clampTimerTimeoutMs,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import {
   createFirstStreamEventAbortController,
   getFirstStreamEventTimeoutHandler,

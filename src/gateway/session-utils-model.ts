@@ -2,7 +2,7 @@ import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { readAcpSessionMeta } from "../acp/runtime/session-meta.js";
 import { resolveModelAgentRuntimeMetadata } from "../agents/agent-runtime-metadata.js";
 import { resolveAgentConfig, resolveDefaultAgentId } from "../agents/agent-scope.js";
@@ -34,7 +34,7 @@ import {
   resolveSupportedThinkingLevel,
 } from "../auto-reply/thinking.js";
 import { resolveAgentMainSessionKey, type SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import type { GatewayModelCatalogSnapshot } from "./server-model-catalog.types.js";
 import {

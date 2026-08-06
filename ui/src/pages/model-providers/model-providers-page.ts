@@ -1,6 +1,6 @@
 import { consume } from "@lit/context";
 import { initialState, Task, TaskStatus } from "@lit/task";
-import { asNullableRecord as asConfigRecord } from "@openclaw/normalization-core/record-coerce";
+import { asNullableRecord as asConfigRecord } from "@astroclaw/normalization-core/record-coerce";
 import { html, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { GatewayBrowserClient } from "../../api/gateway.ts";

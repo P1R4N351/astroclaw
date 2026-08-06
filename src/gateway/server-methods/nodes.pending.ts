@@ -1,5 +1,5 @@
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeUniqueTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeUniqueTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import {
   ErrorCodes,
   errorShape,
@@ -7,7 +7,7 @@ import {
   validateNodePendingAckParams,
   type ConnectParams,
 } from "../../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   captureNodePairingGeneration,
   isNodePairingGenerationCurrent,

@@ -8,7 +8,7 @@ import {
   createAgentPatchedSessionModelFallback,
   type AgentPatchedSessionModelFallback,
 } from "../config/sessions/session-model-fallback.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { FailoverReason } from "./embedded-agent-helpers/types.js";
 import { resolveFailoverReasonFromError } from "./failover-error.js";
 import { resolveSessionModelRef } from "./session-model-ref.js";

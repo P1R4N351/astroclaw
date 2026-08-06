@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import JSZip from "jszip";
 import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -933,9 +933,9 @@ describe("media store", () => {
 
   it("prefers header mime extension when sniffed mime lacks mapping", async () => {
     await withTempStore(async (_store, homeLocal) => {
-      vi.doMock("@openclaw/media-core/mime", async () => {
-        const actual = await vi.importActual<typeof import("@openclaw/media-core/mime")>(
-          "@openclaw/media-core/mime",
+      vi.doMock("@astroclaw/media-core/mime", async () => {
+        const actual = await vi.importActual<typeof import("@astroclaw/media-core/mime")>(
+          "@astroclaw/media-core/mime",
         );
         return {
           ...actual,
@@ -955,7 +955,7 @@ describe("media store", () => {
         expect(path.extname(saved.path)).toBe(".ogg");
         expect(saved.path.startsWith(homeLocal)).toBe(true);
       } finally {
-        vi.doUnmock("@openclaw/media-core/mime");
+        vi.doUnmock("@astroclaw/media-core/mime");
       }
     });
   });

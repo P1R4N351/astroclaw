@@ -2,10 +2,10 @@
 // Membership stays on each session entry's category field; this module owns
 // which groups exist, their display order, and bulk member category updates.
 import type { DatabaseSync } from "node:sqlite";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveAllAgentSessionStoreTargetsSync } from "../config/sessions.js";
 import { applySessionEntryReplacements } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { executeSqliteQuerySync, getNodeSqliteKysely } from "../infra/kysely-sync.js";
 import type { DB as OpenClawStateKyselyDatabase } from "../state/openclaw-state-db.generated.js";
 import {

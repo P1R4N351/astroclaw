@@ -1,5 +1,5 @@
 // Runtime bridge for plugin-provided migration hooks.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { getLoadedRuntimePluginRegistry } from "./active-runtime-registry.js";
 import {
   withBundledPluginEnablementCompat,

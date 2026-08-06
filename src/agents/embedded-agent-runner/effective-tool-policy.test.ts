@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { replaceSessionEntry } from "../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { setPluginToolMeta } from "../../plugins/tools.js";
 import { resolveConversationCapabilityProfile } from "../conversation-capability-profile.js";
 import type { AnyAgentTool } from "../tools/common.js";

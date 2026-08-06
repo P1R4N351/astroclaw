@@ -1,6 +1,6 @@
 /** Starts, stops, and inspects plugin service registrations. */
 import { STATE_DIR } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayPluginEventBroadcastFn } from "../gateway/server-broadcast-types.js";
 import {
   emitTrustedDiagnosticEventWithPrivateData,

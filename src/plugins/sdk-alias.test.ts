@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import {
   bundledDistPluginFile,
   bundledPluginFile,
@@ -354,7 +354,7 @@ function expectPluginSdkAliasTargets(
     expect(fs.realpathSync(aliases["openclaw/plugin-sdk/channel-runtime-context"] ?? "")).toBe(
       fs.realpathSync(params.channelRuntimePath),
     );
-    expect(fs.realpathSync(aliases["@openclaw/plugin-sdk/channel-runtime-context"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/plugin-sdk/channel-runtime-context"] ?? "")).toBe(
       fs.realpathSync(params.channelRuntimePath),
     );
   }
@@ -362,7 +362,7 @@ function expectPluginSdkAliasTargets(
     expect(fs.realpathSync(aliases["openclaw/plugin-sdk/plugin-entry"] ?? "")).toBe(
       fs.realpathSync(params.pluginEntryPath),
     );
-    expect(fs.realpathSync(aliases["@openclaw/plugin-sdk/plugin-entry"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/plugin-sdk/plugin-entry"] ?? "")).toBe(
       fs.realpathSync(params.pluginEntryPath),
     );
   }
@@ -1343,77 +1343,77 @@ describe("plugin sdk alias helpers", () => {
       buildPluginLoaderAliasMap(sourcePluginEntry, undefined, undefined, "dist"),
     );
 
-    expect(fs.realpathSync(aliases["@openclaw/gateway-client"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/gateway-client"] ?? "")).toBe(
       fs.realpathSync(gatewayClient.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/gateway-client/timeouts"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/gateway-client/timeouts"] ?? "")).toBe(
       fs.realpathSync(gatewayClientTimeouts.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/gateway-protocol"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/gateway-protocol"] ?? "")).toBe(
       fs.realpathSync(gatewayProtocol.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/gateway-protocol/schema"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/gateway-protocol/schema"] ?? "")).toBe(
       fs.realpathSync(gatewayProtocolSchema.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/gateway-protocol/frame-guards"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/gateway-protocol/frame-guards"] ?? "")).toBe(
       fs.realpathSync(gatewayProtocolFrameGuards.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/markdown-core"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/markdown-core"] ?? "")).toBe(
       fs.realpathSync(markdownCore.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/markdown-core/tables"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/markdown-core/tables"] ?? "")).toBe(
       fs.realpathSync(markdownCoreTables.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/media-generation-core"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/media-generation-core"] ?? "")).toBe(
       fs.realpathSync(mediaGenerationCore.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/media-generation-core/model-ref"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/media-generation-core/model-ref"] ?? "")).toBe(
       fs.realpathSync(mediaGenerationModelRef.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/media-core"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/media-core"] ?? "")).toBe(
       fs.realpathSync(mediaCore.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/media-core/mime"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/media-core/mime"] ?? "")).toBe(
       fs.realpathSync(mediaCoreMime.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/acp-core"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/acp-core"] ?? "")).toBe(
       fs.realpathSync(acpCore.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/acp-core/runtime/types"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/acp-core/runtime/types"] ?? "")).toBe(
       fs.realpathSync(acpCoreRuntimeTypes.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/normalization-core"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/normalization-core"] ?? "")).toBe(
       fs.realpathSync(normalizationCore.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/normalization-core/boolean-coercion"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/normalization-core/boolean-coercion"] ?? "")).toBe(
       fs.realpathSync(normalizationBooleanCoercion.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/normalization-core/result"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/normalization-core/result"] ?? "")).toBe(
       fs.realpathSync(normalizationResult.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/normalization-core/agent-id"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/normalization-core/agent-id"] ?? "")).toBe(
       fs.realpathSync(normalizationAgentId.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/normalization-core/string-coerce"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/normalization-core/string-coerce"] ?? "")).toBe(
       fs.realpathSync(normalizationStringCoerce.srcFile),
     );
     expect(fs.realpathSync(aliases["@openclaw/retry"] ?? "")).toBe(fs.realpathSync(retry.srcFile));
-    expect(fs.realpathSync(aliases["@openclaw/terminal-core"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/terminal-core"] ?? "")).toBe(
       fs.realpathSync(terminalCore.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/terminal-core/theme"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/terminal-core/theme"] ?? "")).toBe(
       fs.realpathSync(terminalCoreTheme.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/net-policy"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/net-policy"] ?? "")).toBe(
       fs.realpathSync(netPolicy.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/net-policy/ip"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/net-policy/ip"] ?? "")).toBe(
       fs.realpathSync(netPolicyIp.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/net-policy/url-protocol"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/net-policy/url-protocol"] ?? "")).toBe(
       fs.realpathSync(netPolicyUrlProtocol.srcFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/model-catalog-core/provider-id"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/model-catalog-core/provider-id"] ?? "")).toBe(
       fs.realpathSync(modelCatalogProviderId.srcFile),
     );
   });
@@ -1513,35 +1513,35 @@ describe("plugin sdk alias helpers", () => {
       buildPluginLoaderAliasMap(sourcePluginEntry, undefined, undefined, "dist"),
     );
 
-    expect(fs.realpathSync(aliases["@openclaw/gateway-client/readiness"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/gateway-client/readiness"] ?? "")).toBe(
       fs.realpathSync(gatewayClient.distFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/gateway-protocol/connect-error-details"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/gateway-protocol/connect-error-details"] ?? "")).toBe(
       fs.realpathSync(gatewayProtocol.distFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/gateway-protocol/frame-guards"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/gateway-protocol/frame-guards"] ?? "")).toBe(
       fs.realpathSync(gatewayProtocolFrameGuards.distFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/markdown-core/render"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/markdown-core/render"] ?? "")).toBe(
       fs.realpathSync(markdownCore.distFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/media-generation-core/catalog"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/media-generation-core/catalog"] ?? "")).toBe(
       fs.realpathSync(mediaGenerationCore.distFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/normalization-core/record-coerce"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/normalization-core/record-coerce"] ?? "")).toBe(
       fs.realpathSync(normalizationCoreRootDistFile),
     );
     expect(fs.realpathSync(aliases["@openclaw/retry"] ?? "")).toBe(
       fs.realpathSync(retryRootDistFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/terminal-core/links"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/terminal-core/links"] ?? "")).toBe(
       fs.realpathSync(terminalCoreRootDistFile),
     );
-    expect(fs.realpathSync(aliases["@openclaw/net-policy/url-protocol"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/net-policy/url-protocol"] ?? "")).toBe(
       fs.realpathSync(netPolicy.distFile),
     );
     expect(
-      fs.realpathSync(aliases["@openclaw/model-catalog-core/provider-model-id-normalize"] ?? ""),
+      fs.realpathSync(aliases["@astroclaw/model-catalog-core/provider-model-id-normalize"] ?? ""),
     ).toBe(fs.realpathSync(modelCatalogCore.distFile));
   });
 
@@ -1570,10 +1570,10 @@ describe("plugin sdk alias helpers", () => {
       ),
     );
 
-    expect(fs.realpathSync(aliases["@openclaw/acp-core/runtime/errors"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/acp-core/runtime/errors"] ?? "")).toBe(
       fs.realpathSync(acpRuntimeErrors),
     );
-    expect(fs.realpathSync(aliases["@openclaw/normalization-core/agent-id"] ?? "")).toBe(
+    expect(fs.realpathSync(aliases["@astroclaw/normalization-core/agent-id"] ?? "")).toBe(
       fs.realpathSync(normalizationAgentId),
     );
   });
@@ -1973,7 +1973,7 @@ describe("plugin sdk alias helpers", () => {
     fs.writeFileSync(sourceLoaderBaseFile, "export {};\n", "utf-8");
     fs.writeFileSync(
       path.join(copiedSourceDir, "channel.runtime.ts"),
-      `import { resolveOutboundSendDep } from "@openclaw/plugin-sdk/channel-outbound";
+      `import { resolveOutboundSendDep } from "@astroclaw/plugin-sdk/channel-outbound";
 
 export const syntheticRuntimeMarker = {
   resolveOutboundSendDep,
@@ -2010,7 +2010,7 @@ export const syntheticRuntimeMarker = {
     const withAlias = createJiti(sourceLoaderBaseUrl, {
       ...buildPluginLoaderJitiOptions({
         "openclaw/plugin-sdk/channel-outbound": copiedChannelRuntimeShim,
-        "@openclaw/plugin-sdk/channel-outbound": copiedChannelRuntimeShim,
+        "@astroclaw/plugin-sdk/channel-outbound": copiedChannelRuntimeShim,
       }),
       tryNative: false,
     });
@@ -2370,7 +2370,7 @@ describe("buildPluginLoaderJitiOptions", () => {
     const marker = Symbol.for("pathe:normalizedAlias");
     const aliasMap = {
       "openclaw/plugin-sdk/core": "/repo/src/plugin-sdk/core.ts",
-      "@openclaw/plugin-sdk/core": "/repo/src/plugin-sdk/core.ts",
+      "@astroclaw/plugin-sdk/core": "/repo/src/plugin-sdk/core.ts",
     };
 
     const first = buildPluginLoaderJitiOptions(aliasMap).alias as Record<string, string>;

@@ -1,5 +1,5 @@
 // Openai tests cover index plugin behavior.
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { requireRegisteredProvider } from "astroclaw/plugin-sdk/plugin-test-runtime";

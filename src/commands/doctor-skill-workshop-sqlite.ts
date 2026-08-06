@@ -6,7 +6,7 @@ import {
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { removePathWithinRoot } from "../infra/fs-safe-remove.js";
 import { pathExists, root, type Root } from "../infra/fs-safe.js";
 import { normalizeAgentId, resolveAgentIdFromSessionKey } from "../routing/session-key.js";

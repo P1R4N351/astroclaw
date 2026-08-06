@@ -1,7 +1,7 @@
 // Gateway auxiliary method handlers.
 // Wires reload, secrets, exec approval, and plugin approval RPC handlers.
 import { randomUUID } from "node:crypto";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { createExecApprovalForwarder } from "../infra/exec-approval-forwarder.js";
 import {

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
+import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DOCKER_SELECTED_PLUGIN_BUILD_IDS_ENV } from "../../../../scripts/lib/bundled-plugin-build-entries.mjs";
 import {
@@ -14,7 +14,7 @@ import {
   prepareBundledAiRuntimePackage,
   runCommandForTest,
   writePackageInventoryForDocker,
-} from "../../../../scripts/package-openclaw-for-docker.mjs";
+} from "../../../../scripts/package-astroclaw-for-docker.mjs";
 import { useAutoCleanupTempDirTracker } from "../../../helpers/temp-dir.js";
 
 const skipBundledAiRuntime = async (): Promise<() => Promise<void>> => async () => {};

@@ -2,7 +2,7 @@ import { normalizeStructuredPromptSection } from "@openclaw/ai/internal/shared";
 /**
  * Handles per-attempt thread prompt composition and cache TTL markers.
  */
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { joinPresentTextSegments } from "../../../shared/text/join-segments.js";
 
 /** Custom transcript marker used to preserve cache-TTL pruning state across attempts. */

@@ -8,7 +8,7 @@ import {
   markConversationDeliverySent,
 } from "../../config/sessions/conversation-delivery-store.js";
 import * as sessionAccessor from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { buildConversationRef } from "../../routing/conversation-ref.js";
 import { registerPendingConversationTurn } from "../../sessions/conversation-turns.js";
 import { closeOpenClawAgentDatabasesForTest } from "../../state/openclaw-agent-db.js";

@@ -8,8 +8,8 @@ import path from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import type { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
-import { expectDefined } from "@openclaw/normalization-core";
-import { asOptionalRecord as asRecord } from "@openclaw/normalization-core/record-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { asOptionalRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   readSessionArchiveContentSync,
   stripSessionArchiveCompressionSuffix,
@@ -40,7 +40,7 @@ import { closeOpenClawAgentDatabasesForTest } from "../../src/state/openclaw-age
 import { closeOpenClawStateDatabaseForTest } from "../../src/state/openclaw-state-db.js";
 import { sleep } from "../../src/utils.js";
 import { normalizeSessionDeliveryState } from "../../src/utils/delivery-context.shared.js";
-import { createOpenClawTestInstance } from "./openclaw-test-instance.js";
+import { createOpenClawTestInstance } from "./astroclaw-test-instance.js";
 
 type DoctorMode = "import" | "inspect" | "validate" | "restore";
 type ProofChildProcess = ChildProcessByStdio<null, Readable, Readable>;

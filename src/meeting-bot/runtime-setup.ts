@@ -1,5 +1,5 @@
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
 import { resolveMeetingBrowserNodeInfo } from "./browser-node.js";

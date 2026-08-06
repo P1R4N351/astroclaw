@@ -3,12 +3,12 @@ import {
   resolveNonNegativeIntegerOption,
   resolveOptionalIntegerOption,
   timestampMsToIsoString,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { formatFastModeCurrentStatus, resolveFastModeState } from "../../agents/fast-mode.js";
 import {

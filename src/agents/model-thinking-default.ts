@@ -3,14 +3,14 @@
  * explicit per-model config, global defaults, catalog metadata, and model
  * family fallbacks.
  */
-import { resolveClaudeOpus5ModelIdentity } from "@openclaw/llm-core";
+import { resolveClaudeOpus5ModelIdentity } from "@astroclaw/llm-core";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { resolveThinkingDefaultForModel } from "../auto-reply/thinking.js";
 import type { ThinkLevel } from "../auto-reply/thinking.shared.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ModelCatalogEntry } from "./model-catalog.types.js";
 import { legacyModelKey, modelKey, normalizeProviderId } from "./model-ref-shared.js";
 import { normalizeModelSelection } from "./model-selection-resolve.js";

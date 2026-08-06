@@ -3,7 +3,7 @@ import {
   GATEWAY_CLIENT_NAMES,
 } from "../../packages/gateway-protocol/src/client-info.js";
 import { resolveGatewayPort } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { callGateway, type CallGatewayOptions } from "../gateway/call.js";
 
 type PluginMetadataGatewayCall = (opts: CallGatewayOptions) => Promise<unknown>;

@@ -1,5 +1,5 @@
 import type { SessionTranscriptWriteScope } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveSessionIdMatchSelection } from "../../sessions/session-id-resolution.js";
 import {
   loadCombinedSessionStoreForGateway,

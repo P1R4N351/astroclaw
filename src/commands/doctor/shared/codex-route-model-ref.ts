@@ -1,6 +1,6 @@
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import { asOptionalRecord as asMutableRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalLowercaseString as normalizeString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { asOptionalRecord as asMutableRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString as normalizeString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeOptionalAgentRuntimeId } from "../../../agents/agent-runtime-id.js";
 import { resolveConfiguredProviderFallback } from "../../../agents/configured-provider-fallback.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../../agents/defaults.js";
@@ -8,7 +8,7 @@ import { splitTrailingAuthProfile } from "../../../agents/model-ref-profile.js";
 import { normalizeConfiguredProviderCatalogModelId } from "../../../agents/model-ref-shared.js";
 import { configuredModelRouteNeedsCodex } from "../../../config/codex-plugin-diagnostics.js";
 import type { AgentRuntimePolicyConfig } from "../../../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 import { listMutableCodexRouteAgentEntries } from "./codex-route-agent-entries.js";
 import type { MutableRecord } from "./codex-route-types.js";

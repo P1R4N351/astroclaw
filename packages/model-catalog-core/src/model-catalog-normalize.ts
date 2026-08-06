@@ -1,10 +1,10 @@
 // Model Catalog Core helper module supports model catalog normalize behavior.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   normalizeOptionalTrimmedStringList,
   normalizeTrimmedStringList,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import {
   buildModelCatalogMergeKey,
   buildModelCatalogRef,

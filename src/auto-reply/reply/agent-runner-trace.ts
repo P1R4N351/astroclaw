@@ -1,6 +1,6 @@
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { deriveContextPromptTokens } from "../../agents/usage.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { readLatestSessionUsageFromTranscriptAsync } from "../../gateway/session-transcript-readers.js";

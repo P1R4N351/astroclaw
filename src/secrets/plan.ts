@@ -1,6 +1,6 @@
 /** Validates and normalizes serialized secrets apply plans before config mutation. */
-import { isRecord as isObjectRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { isRecord as isObjectRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import type { SecretProviderConfig, SecretRef } from "../config/types.secrets.js";
 import { SecretProviderSchema } from "../config/zod-schema.core.js";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";

@@ -1,9 +1,9 @@
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 // Routing binding helpers resolve configured channel and agent route bindings.
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { listRouteBindings } from "../config/bindings.js";
 import type { AgentRouteBinding } from "../config/types.agents.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   normalizeRouteBindingChannelId,
   resolveNormalizedRouteBindingMatch,

@@ -3,7 +3,7 @@
  * combines explicit policy, configured models, defaults, and runtime
  * auth-backed availability.
  */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type {
   ModelAuthAvailabilityEvaluation,
   ModelAuthAvailabilityRef,

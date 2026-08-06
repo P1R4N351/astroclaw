@@ -3,10 +3,10 @@
  * Keeps callers from reaching into runtime config or plugin metadata snapshot
  * plumbing directly.
  */
-import { findNormalizedProviderValue } from "@openclaw/model-catalog-core/provider-id";
-import { normalizeUniqueSingleOrTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { findNormalizedProviderValue } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeUniqueSingleOrTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import { getRuntimeConfig } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { getCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
 import { resolvePluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "./agent-scope.js";

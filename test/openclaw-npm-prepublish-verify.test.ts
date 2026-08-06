@@ -3,7 +3,7 @@ import {
   openClawNpmPrepublishVerifyUsage,
   parseOpenClawNpmPrepublishVerifyArgs,
   usesPreparedLocalDependencyInstall,
-} from "../scripts/openclaw-npm-prepublish-verify.ts";
+} from "../scripts/astroclaw-npm-prepublish-verify.ts";
 
 describe("parseOpenClawNpmPrepublishVerifyArgs", () => {
   it("supports help, optional versions, and package-manager separators", () => {

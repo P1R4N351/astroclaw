@@ -1,14 +1,14 @@
 /** Builds manifest registry records from installed plugin index snapshots. */
 import fs from "node:fs";
 import path from "node:path";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeOptionalTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeOptionalTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import {
   resolveChannelSetupFieldCliAttributeName,
   type ChannelSetupFieldMetadata,
 } from "../channels/plugins/setup-contract.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { tryReadJsonSync } from "../infra/json-files.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import type { PluginCandidate } from "./discovery.js";

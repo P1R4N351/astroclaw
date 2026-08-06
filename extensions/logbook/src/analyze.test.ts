@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it } from "vitest";
 import {
   parseCardsJson,

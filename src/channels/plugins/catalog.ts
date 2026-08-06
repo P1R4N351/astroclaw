@@ -4,16 +4,16 @@
  * Combines bundled, installed, and official external channel metadata for UI/setup surfaces.
  */
 import path from "node:path";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   normalizeStringEntries,
   uniqueStrings,
-} from "@openclaw/normalization-core/string-normalization";
+} from "@astroclaw/normalization-core/string-normalization";
 import { MANIFEST_KEY } from "../../compat/legacy-names.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import { tryReadJsonSync } from "../../infra/json-files.js";
 import { isPrereleaseSemverVersion, parseRegistryNpmSpec } from "../../infra/npm-registry-spec.js";
-import { resolveOpenClawPackageRootSync } from "../../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../../infra/astroclaw-root.js";
 import { listChannelCatalogEntries } from "../../plugins/channel-catalog-registry.js";
 import type { PluginDiscoveryResult } from "../../plugins/discovery.js";
 import {

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import { CrestodianChatEngine } from "./chat-engine.js";
 import { createCrestodianVerifiedInferenceTestFixture } from "./crestodian.test-helpers.js";
 import type {

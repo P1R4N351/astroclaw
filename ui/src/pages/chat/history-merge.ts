@@ -5,7 +5,7 @@ import {
   type SessionProjectionEvent,
   type SessionProjectionScope,
   type SessionProjectionState,
-} from "@openclaw/gateway-client/browser";
+} from "@astroclaw/gateway-client/browser";
 
 const chatSessionProjections = new WeakMap<object, SessionProjectionState>();
 

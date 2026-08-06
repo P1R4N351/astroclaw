@@ -1,5 +1,5 @@
 /** Resolves enabled bundled plugins that advertise a specific manifest contract list. */
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   resolveBundledPluginCompatibleLoadValues,
   type PluginActivationBundledCompatMode,

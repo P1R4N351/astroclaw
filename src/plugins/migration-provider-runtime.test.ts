@@ -1,6 +1,6 @@
 // Covers migration provider runtime hooks supplied by plugins.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginRegistry } from "./registry-types.js";
 import { createEmptyPluginRegistry } from "./registry.js";
 import { getPluginRuntimeGatewayRequestScope } from "./runtime/gateway-request-scope.js";

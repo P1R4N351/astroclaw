@@ -1,9 +1,9 @@
 // Resolves and packages install sources for plugin installs.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import {
   gt as gtSemver,
   satisfies as satisfiesSemver,
@@ -16,7 +16,7 @@ import { pathExists } from "./fs-safe.js";
 import { applyNpmFreshnessBypassEnv, type NpmProjectInstallEnvOptions } from "./npm-install-env.js";
 import { resolveNpmJsonEntries } from "./npm-registry-spec.js";
 import { withTempWorkspace } from "./private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "./tmp-astroclaw-dir.js";
 
 /** Metadata npm reports when resolving a registry spec or packed archive. */
 export type NpmSpecResolution = {

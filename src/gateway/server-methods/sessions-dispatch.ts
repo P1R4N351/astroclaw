@@ -1,5 +1,5 @@
 // Cloud-worker dispatch for managed-worktree sessions.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   ErrorCodes,
   errorShape,

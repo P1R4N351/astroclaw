@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { resolveGatewayServiceDescription } from "./constants.js";
 import { formatLine, writeFormattedLines } from "./output.js";
 import {

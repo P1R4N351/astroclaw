@@ -1,4 +1,4 @@
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { redactTranscriptMessage } from "../agents/transcript-redact.js";
 import {
   appendTranscriptMessage,
@@ -33,7 +33,7 @@ import type {
   SessionTranscriptDeliveryMirror,
   SessionTranscriptUpdateMode,
 } from "../config/sessions/transcript.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { extractAssistantVisibleText } from "../shared/chat-message-content.js";
 import type { AgentMessage } from "./agent-core.js";

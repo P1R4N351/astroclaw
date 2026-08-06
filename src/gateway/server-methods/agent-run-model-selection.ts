@@ -2,7 +2,7 @@ import { resolveCliRuntimeExecutionProvider } from "../../agents/model-runtime-a
 import { isCliProvider } from "../../agents/model-selection.js";
 import { resolveProviderIdForAuth } from "../../agents/provider-auth-aliases.js";
 import { applySessionEntryReplacements } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { updateChatRunProvider } from "../chat-abort.js";
 import type { GatewayRequestHandlerOptions } from "./types.js";
 

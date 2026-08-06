@@ -4,7 +4,7 @@ import { normalizeProviderId } from "openclaw/plugin-sdk/provider-model-shared";
 import type { SecretInput } from "openclaw/plugin-sdk/secret-input";
 import { isRecord, normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { applyKimiCodeConfig, KIMI_CODING_MODEL_REF } from "./onboard.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { buildKimiCodingProvider, normalizeKimiCodingModelId } from "./provider-catalog.js";
 import { isKimiK3ModelId, resolveThinkingProfile } from "./provider-policy-api.js";
 import { KIMI_REPLAY_POLICY } from "./replay-policy.js";

@@ -1,6 +1,6 @@
 // Model-bound thinking cannot be exposed or replayed after a model switch.
-import { resolveClaudeFable5ModelIdentity, resolveClaudeModelIdentity } from "@openclaw/llm-core";
-import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { resolveClaudeFable5ModelIdentity, resolveClaudeModelIdentity } from "@astroclaw/llm-core";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 export {
   resolveClaudeFable5ModelIdentity,
   resolveClaudeModelIdentity,
@@ -8,7 +8,7 @@ export {
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeMaxEffort,
   supportsClaudeNativeXhighEffort,
-} from "@openclaw/llm-core";
+} from "@astroclaw/llm-core";
 
 type ReplayModelRef = {
   provider?: string;

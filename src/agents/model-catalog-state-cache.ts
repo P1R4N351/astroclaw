@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   executeSqliteQuerySync,
   executeSqliteQueryTakeFirstSync,

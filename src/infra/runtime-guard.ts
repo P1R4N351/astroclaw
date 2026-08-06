@@ -1,7 +1,7 @@
 // Validates the current runtime against OpenClaw's Node engine floor.
 import process from "node:process";
 import { format } from "node:util";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { formatConsoleDiagnosticBlock } from "../logging/json-console-line.js";
 import type { RuntimeEnv } from "../runtime.js";
 

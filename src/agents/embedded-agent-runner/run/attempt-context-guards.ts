@@ -1,5 +1,5 @@
 /** Installs attempt-local context engine, tool-result, image, and frame guards. */
-import { MAX_IMAGE_BYTES } from "@openclaw/media-core/constants";
+import { MAX_IMAGE_BYTES } from "@astroclaw/media-core/constants";
 import { OPENCLAW_EMBEDDED_CONTEXT_ENGINE_HOST } from "../../../context-engine/host-compat.js";
 import { buildContextEngineRuntimeSettings } from "../../../context-engine/runtime-settings.js";
 import type { ContextEngine } from "../../../context-engine/types.js";

@@ -1,5 +1,5 @@
 import type { DoctorOptions } from "../commands/doctor-prompter.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { DoctorHealthFlowContext } from "./doctor-health-contribution-types.js";
 import type { HealthCheckContext, HealthFinding } from "./health-checks.js";
 

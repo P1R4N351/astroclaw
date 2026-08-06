@@ -1,6 +1,6 @@
 import path from "node:path";
 import { createConfigIO } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   normalizeWorkspaceSkillSupportPath,
   prepareWorkspaceSkillRestoration,

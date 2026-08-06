@@ -1,7 +1,7 @@
 import {
   normalizeLowercaseStringOrEmpty,
   readStringValue,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import { inferToolMetaFromArgs } from "../../agents/embedded-agent-utils.js";
 import type { GetReplyOptions } from "../types.js";
 

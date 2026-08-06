@@ -1,6 +1,6 @@
 // Runtime model migration tests cover doctor legacy config migrations for model runtime shape.
 
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, it, expect } from "vitest";
 import { createModelVisibilityPolicy } from "../../../agents/model-visibility-policy.js";
 import type { OpenClawConfig } from "../../../config/types.js";

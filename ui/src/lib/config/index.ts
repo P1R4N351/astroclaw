@@ -1,6 +1,6 @@
 // Control UI runtime config capability and shared config-domain mutations.
-import { ErrorCodes } from "@openclaw/gateway-client/browser";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { ErrorCodes } from "@astroclaw/gateway-client/browser";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   GatewayRequestError,
   type GatewayBrowserClient,

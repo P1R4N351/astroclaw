@@ -1,6 +1,6 @@
 // Store entry shape normalization rejects unsafe persisted metadata before runtime use.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { parseAgentSessionKey } from "../../routing/session-key.js";
 import { validateSessionId } from "./paths.js";
 import type { PendingTranscriptRepairState, SessionEntry } from "./types.js";

@@ -1,10 +1,10 @@
 // Source install helpers install skills from source directories and repositories.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { redactSensitiveUrlLikeString } from "@openclaw/net-policy/redact-sensitive-url";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { redactSensitiveUrlLikeString } from "@astroclaw/net-policy/redact-sensitive-url";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { sanitizeForLog } from "../../../packages/terminal-core/src/ansi.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { sanitizeHostExecEnv } from "../../infra/host-env-security.js";
 import { withTempDir } from "../../infra/install-source-utils.js";
 import { writeJson } from "../../infra/json-files.js";

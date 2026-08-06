@@ -1,23 +1,23 @@
 // Memory host dreaming helpers record and load memory dreaming artifacts.
 import path from "node:path";
-import { parseBoolean } from "@openclaw/normalization-core/boolean-coercion";
+import { parseBoolean } from "@astroclaw/normalization-core/boolean-coercion";
 import {
   parseStrictNonNegativeInteger,
   parseStrictPositiveInteger,
-} from "@openclaw/normalization-core/number-coercion";
-import { asNullableRecord } from "@openclaw/normalization-core/record-coerce";
+} from "@astroclaw/normalization-core/number-coercion";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   lowercasePreservingWhitespace,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeStringifiedOptionalString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   listAgentEntries,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 const DEFAULT_MEMORY_DREAMING_ENABLED = true;
 const DEFAULT_MEMORY_DREAMING_TIMEZONE = undefined;

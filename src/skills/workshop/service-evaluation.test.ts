@@ -5,7 +5,7 @@ import type { PluginHookSkillProposalEvaluateEvent } from "../../plugins/hook-ty
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 
 const hookMocks = vi.hoisted(() => ({

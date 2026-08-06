@@ -1,5 +1,5 @@
 // Repairs canonical binding references after agent config migration.
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../../../routing/session-key.js";
 
 export function pruneBindingsForMissingAgents(

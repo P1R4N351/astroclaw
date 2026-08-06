@@ -1,9 +1,9 @@
 /** Lazy preparation runtimes and session lifecycle helpers for cron runs. */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { retireSessionMcpRuntime } from "../../agents/agent-bundle-mcp-tools.js";
 import { HEARTBEAT_TOKEN } from "../../auto-reply/tokens.js";
 import type { CliDeps } from "../../cli/outbound-send-deps.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import type {
   CronAgentExecutionPhaseUpdate,

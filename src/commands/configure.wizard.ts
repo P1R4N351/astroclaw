@@ -1,7 +1,7 @@
 // Main interactive configure/update wizard implementation.
 import fsPromises from "node:fs/promises";
 import nodePath from "node:path";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { note } from "../../packages/terminal-core/src/note.js";
 import { describeCodexNativeWebSearch } from "../agents/codex-native-web-search.shared.js";
 import { formatCliCommand } from "../cli/command-format.js";
@@ -14,7 +14,7 @@ import {
 } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
 import { ConfigMutationConflictError } from "../config/mutate.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { formatWindowsGatewayFirewallGuidance } from "../infra/windows-gateway-firewall-diagnostics.js";
 import { commitConfigWithPendingPluginInstalls } from "../plugins/install-record-commit.js";
 import { resolvePluginContributionOwners } from "../plugins/plugin-registry.js";

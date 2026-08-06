@@ -13,7 +13,7 @@ import type {
   PluginAutoEnableResult,
 } from "./plugin-auto-enable.types.js";
 import { hashRuntimeConfigValue } from "./runtime-snapshot.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 type PluginAutoEnableCacheEntry = {
   configFingerprint: string;

@@ -1,7 +1,7 @@
 // Plugin blob store tests cover persistence, quotas, expiry, and copied bytes.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { openOpenClawStateDatabase } from "../state/openclaw-state-db.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import {
   createPluginBlobStoreForTests,
   resetPluginBlobStoreForTests,

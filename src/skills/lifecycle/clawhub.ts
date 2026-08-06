@@ -1,5 +1,5 @@
 // ClawHub lifecycle facade: public API plus install/update coordination.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type {
   ClawHubRiskAcknowledgementRequest,
   ClawHubTrustErrorCode,

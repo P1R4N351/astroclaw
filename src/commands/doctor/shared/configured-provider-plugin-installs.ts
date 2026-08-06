@@ -1,5 +1,5 @@
 // Resolves official provider plugins implied by configured auth and model selections.
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { resolveProviderInstallCatalogEntries } from "../../../plugins/provider-install-catalog.js";
 import { collectConfiguredOfficialProviderPluginIds } from "./configured-provider-plugin-ids.js";
 import { collectConfiguredProviderSelectionIds } from "./configured-provider-selection-ids.js";

@@ -2,7 +2,7 @@
 import {
   reduceSessionProjection,
   type SessionProjectionScope,
-} from "@openclaw/gateway-client/browser";
+} from "@astroclaw/gateway-client/browser";
 import { describe, expect, it } from "vitest";
 import {
   getChatSessionProjection,

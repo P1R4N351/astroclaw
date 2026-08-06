@@ -2,7 +2,7 @@
 import {
   resolvePositiveTimerTimeoutMs,
   resolveTimerTimeoutMs,
-} from "@openclaw/normalization-core/number-coercion";
+} from "@astroclaw/normalization-core/number-coercion";
 import type { Command } from "commander";
 import { parseStrictPositiveInteger } from "../../infra/parse-finite-number.js";
 import { defaultRuntime } from "../../runtime.js";

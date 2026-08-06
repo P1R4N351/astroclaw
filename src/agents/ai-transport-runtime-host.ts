@@ -3,7 +3,7 @@ import {
   getAiTransportHost,
   type AiProviderRequestCapabilities,
 } from "@openclaw/ai";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import "../llm/ai-transport-host.js";
 import type { ProviderRuntimeModel } from "../plugins/provider-runtime-model.types.js";
 import {

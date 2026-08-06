@@ -1,8 +1,8 @@
 // Doctor cleanup for per-agent OAuth profiles shadowing fresher main-agent credentials.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { expectDefined } from "@astroclaw/normalization-core";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { resolveAgentDir, listAgentEntries } from "../../../agents/agent-scope.js";
 import {
   isLegacyOAuthRef,
@@ -18,7 +18,7 @@ import { resolveSharedMainAuthAgentDir } from "../../../agents/auth-profiles/sha
 import { updateAuthProfileStoreWithLock } from "../../../agents/auth-profiles/store.js";
 import type { AuthProfileStore, OAuthCredential } from "../../../agents/auth-profiles/types.js";
 import { resolveStateDir } from "../../../config/paths.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { shortenHomePath } from "../../../utils.js";
 import { resolveLegacyAuthProfilesPath as resolveAuthStorePath } from "../../doctor-auth-legacy-paths.js";
 

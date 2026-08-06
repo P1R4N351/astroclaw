@@ -2,10 +2,10 @@
 import {
   normalizeConfiguredProviderCatalogModelId,
   type ManifestModelIdNormalizationProvider,
-} from "@openclaw/model-catalog-core/provider-model-id-normalization";
+} from "@astroclaw/model-catalog-core/provider-model-id-normalization";
 import { isRecord } from "../utils.js";
 import { normalizeAgentModelMapForConfig, normalizeAgentModelRefForConfig } from "./model-input.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 
 const MODEL_SELECTION_KEYS = ["model", "imageModel", "voiceModel", "pdfModel"] as const;
 const MEDIA_MODEL_KEYS = ["image", "video", "music"] as const;

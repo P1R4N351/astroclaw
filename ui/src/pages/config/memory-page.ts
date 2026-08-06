@@ -2,8 +2,8 @@
 // this element owns the shared agent selection, Overview status, and global
 // configuration controllers used by Settings.
 import { consume } from "@lit/context";
-import { formatErrorMessage } from "@openclaw/normalization-core";
-import { asNullableRecord as asConfigRecord } from "@openclaw/normalization-core/record-coerce";
+import { formatErrorMessage } from "@astroclaw/normalization-core";
+import { asNullableRecord as asConfigRecord } from "@astroclaw/normalization-core/record-coerce";
 import { html, type PropertyValues, type TemplateResult } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { SystemInfoResult } from "../../../../packages/gateway-protocol/src/schema/system-info.ts";

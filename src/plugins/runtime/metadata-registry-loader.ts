@@ -1,5 +1,5 @@
 // Metadata registry loader builds plugin metadata registries without activating runtime barrels.
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { loadPluginRegistryHandle } from "../loader.js";
 import type { PluginManifestRegistry } from "../manifest-registry.js";
 import { hasExplicitPluginIdScope } from "../plugin-scope.js";

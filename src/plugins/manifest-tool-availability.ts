@@ -1,7 +1,7 @@
 // Normalizes tool availability metadata from plugin manifests.
-import { isRecord } from "@openclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { coerceSecretRef, type SecretRef } from "../config/types.secrets.js";
 import { resolveDefaultSecretProviderAlias } from "../secrets/ref-contract.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";

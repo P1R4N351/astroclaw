@@ -4,8 +4,8 @@
  * This module gathers agent/config knobs before rendering the canonical system
  * prompt so callers do not duplicate owner, TTS, alias, memory, or FS policy.
  */
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { buildTtsSystemPromptHint } from "../tts/tts-settings.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 import { resolveOwnerDisplaySetting } from "./owner-display.js";

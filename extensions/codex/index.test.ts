@@ -48,7 +48,7 @@ function mockCallArg(mock: { mock: { calls: unknown[][] } }, index = 0, argIndex
 describe("codex plugin", () => {
   it("is opt-in and does not advertise a text provider", () => {
     const manifest = JSON.parse(
-      fs.readFileSync(new URL("./openclaw.plugin.json", import.meta.url), "utf8"),
+      fs.readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf8"),
     ) as { enabledByDefault?: unknown; providers?: unknown };
 
     expect(manifest.enabledByDefault).toBeUndefined();

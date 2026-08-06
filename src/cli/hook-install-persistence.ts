@@ -1,6 +1,6 @@
 // CLI persistence for hook-pack installs.
 import { replaceConfigFile } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { type HookInstallUpdate, recordHookInstall } from "../hooks/installs.js";
 import type { ConfigSnapshotForInstallPersist } from "../plugins/install-persistence.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";

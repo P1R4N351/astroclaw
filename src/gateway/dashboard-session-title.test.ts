@@ -12,7 +12,7 @@ vi.mock("../auto-reply/reply/conversation-label-generator.js", () => ({
 vi.mock("../config/sessions/session-accessor.js", () => ({ updateSessionEntry }));
 
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   generateDashboardSessionTitle,
   maybeGenerateDashboardSessionTitle,

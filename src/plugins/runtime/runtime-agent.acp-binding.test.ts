@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { readAcpSessionMeta, upsertAcpSessionMeta } from "../../acp/runtime/session-meta.js";
-import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { createRuntimeAgent } from "./runtime-agent.js";
 
 describe("plugin runtime ACP session creation", () => {

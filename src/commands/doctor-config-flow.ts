@@ -6,7 +6,7 @@ import { formatCliCommand } from "../cli/command-format.js";
 import { configIncludeOwnsAgentRoster } from "../config/agent-roster-provenance.js";
 import { migratePersistedImplicitMainRoster } from "../config/legacy.roster.js";
 import { CONFIG_PATH } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { callGateway } from "../gateway/call.js";
 import type { RuntimeEnv } from "../runtime.js";
 import {

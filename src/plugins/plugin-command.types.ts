@@ -1,5 +1,5 @@
 import type { ReplyPayload } from "../auto-reply/reply-payload.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { OperatorScope } from "../gateway/operator-scopes.js";
 import type {
   PluginConversationBinding,

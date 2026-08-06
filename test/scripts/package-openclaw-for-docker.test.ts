@@ -10,7 +10,7 @@ import {
   packOpenClawPackageForDocker,
   parseArgs,
   runCommandForTest,
-} from "../../scripts/package-openclaw-for-docker.mjs";
+} from "../../scripts/package-astroclaw-for-docker.mjs";
 
 function isProcessAlive(pid: number): boolean {
   if (!Number.isSafeInteger(pid) || pid <= 0) {

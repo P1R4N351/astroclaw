@@ -1,7 +1,7 @@
 // Host hook contract tests cover plugin host hook registration and runtime behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import {
   createPluginRegistryFixture,
   registerTestPlugin,

@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { heartbeatMonitorAgentId } from "../cron/heartbeat-monitor.js";
 import { readCronJobScratchState, writeCronJobScratch } from "../cron/scratch-store.js";
 import {

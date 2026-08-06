@@ -1,5 +1,5 @@
 import type { CliDeps } from "../cli/deps.types.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HeartbeatRunner } from "../infra/heartbeat-runner.js";
 import type { GatewayRestartEmitter } from "../infra/restart.js";
 import type { ChannelHealthMonitor } from "./channel-health-monitor.js";

@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { setImmediate as setImmediatePromise } from "node:timers/promises";
-import { expectDefined } from "@openclaw/normalization-core";
+import { expectDefined } from "@astroclaw/normalization-core";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type WebSocket from "ws";
 import { resetConfigRuntimeState } from "../config/config.js";
@@ -166,7 +166,7 @@ async function setupCronTestRun(params: {
 }
 
 type DirectCronState = GatewayCronState & {
-  getRuntimeConfig: () => import("../config/types.openclaw.js").OpenClawConfig;
+  getRuntimeConfig: () => import("../config/types.astroclaw.js").OpenClawConfig;
 };
 
 type CronBroadcast = (event: string, payload: unknown) => void;

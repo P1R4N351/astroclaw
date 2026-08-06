@@ -2,7 +2,7 @@ import { prependSystemPromptAdditionAfterCacheBoundary } from "@openclaw/ai/inte
 /**
  * Builds and repairs prompt inputs for embedded-agent attempts.
  */
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import type {
   ContextEnginePromptCacheInfo,
   ContextEngineRuntimeContext,

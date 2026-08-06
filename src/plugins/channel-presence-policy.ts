@@ -1,6 +1,6 @@
 // Resolves channel presence policy advertised by plugin metadata.
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import {
   hasMeaningfulChannelConfig,
@@ -9,7 +9,7 @@ import {
   type AmbientEnvTriggerPolicy,
   type ChannelPresenceSignalSource,
 } from "../channels/config-presence.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isSafeChannelEnvVarTriggerName } from "../secrets/channel-env-var-names.js";
 import { resolveManifestActivationPluginIds } from "./activation-planner.js";
 import {

@@ -1,6 +1,6 @@
 // Status scan config tests cover scan command config loading and cold-start resolution.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { loadStatusScanCommandConfig } from "./status.scan.config-shared.js";
 
 const mocks = vi.hoisted(() => ({

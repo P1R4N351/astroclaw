@@ -1,4 +1,4 @@
-import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import {
   parsePackageOpenClawSchemaVersions,
   type OpenClawSchemaVersions,

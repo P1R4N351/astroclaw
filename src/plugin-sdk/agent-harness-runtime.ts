@@ -33,7 +33,7 @@ import {
   buildWatchedSessionsPromptLines,
   prepareWatchedSessionsPrompt,
 } from "../agents/watched-sessions-prompt.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ImageContent } from "../llm/types.js";
 import { redactToolDetail } from "../logging/redact.js";
 import type { PromptImageOrderEntry } from "../media/prompt-image-order.js";
@@ -295,7 +295,7 @@ export async function detectAndLoadAgentHarnessPromptImages(params: {
   existingImages?: ImageContent[];
   imageOrder?: PromptImageOrderEntry[];
   media?: import("../media/media-facts.js").MediaFact[];
-  config?: import("../config/types.openclaw.js").OpenClawConfig;
+  config?: import("../config/types.astroclaw.js").OpenClawConfig;
   workspaceOnly?: boolean;
   localRoots?: readonly string[];
   sandbox?: { root: string; bridge: SandboxFsBridge };
@@ -309,7 +309,7 @@ export async function detectAndLoadAgentHarnessPromptImages(params: {
     await Promise.all([
       import("../agents/image-sanitization.js"),
       import("../agents/embedded-agent-runner/run/images.js"),
-      import("@openclaw/media-core/constants"),
+      import("@astroclaw/media-core/constants"),
     ]);
 
   return detectAndLoadPromptImages({

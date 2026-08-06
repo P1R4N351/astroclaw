@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const manifest = JSON.parse(
-  readFileSync(new URL("./openclaw.plugin.json", import.meta.url), "utf8"),
+  readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf8"),
 ) as {
   providerAuthAliases?: Record<string, string>;
   modelIdNormalization?: {

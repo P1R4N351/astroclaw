@@ -1,7 +1,7 @@
 // Verifies quota suspension persists lane state and auto-resumes safely.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CRON_MAX_CONCURRENT_RUNS } from "../config/cron-limits.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { CommandLane } from "../process/lanes.js";
 import { MAX_TIMER_TIMEOUT_MS } from "../shared/number-coercion.js";
 

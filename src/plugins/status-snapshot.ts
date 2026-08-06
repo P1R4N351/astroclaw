@@ -1,8 +1,8 @@
 /** Builds plugin status reports from persisted metadata without importing full plugin runtimes. */
-import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import { getRuntimeConfig } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolvePluginMetadataSnapshot } from "./plugin-metadata-snapshot.js";
 import {
   loadPluginRegistrySnapshotWithMetadata,

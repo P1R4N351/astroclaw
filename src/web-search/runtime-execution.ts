@@ -1,5 +1,5 @@
 // Web search provider execution owns cancellation precedence and automatic fallback.
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginWebSearchProviderEntry } from "../plugins/web-provider-types.js";
 import type { RuntimeWebSearchMetadata } from "../secrets/runtime-web-tools.types.js";
 import type { RunWebSearchResult } from "./runtime-types.js";

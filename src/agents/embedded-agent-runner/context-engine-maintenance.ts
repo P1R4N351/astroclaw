@@ -2,10 +2,10 @@
  * Schedules and runs deferred context-engine turn maintenance.
  */
 import { randomUUID } from "node:crypto";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveStorePath } from "../../config/sessions/paths.js";
 import { publishTranscriptUpdate } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { resolveContextEngineOwnerPluginId } from "../../context-engine/registry.js";
 import type {
   ContextEngine,

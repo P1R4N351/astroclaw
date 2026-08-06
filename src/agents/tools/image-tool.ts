@@ -1,7 +1,7 @@
 import { resolve, isAbsolute } from "node:path";
 import { Type } from "typebox";
 import { findCapabilityProviderById } from "../../../packages/media-generation-core/src/capability-model-ref.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { MediaUnderstandingModelConfig } from "../../config/types.tools.js";
 import {
   DEFAULT_TIMEOUT_SECONDS,

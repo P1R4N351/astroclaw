@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../../config/sessions/types.js";
 import type { ModelDefinitionConfig } from "../../../config/types.models.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import type { ProviderRuntimeModel } from "../../../plugins/provider-runtime-model.types.js";
 import { AGENT_HARNESS_SESSION_ID_LOCKED_MESSAGE } from "../../../sessions/agent-harness-session-key.js";
 import {

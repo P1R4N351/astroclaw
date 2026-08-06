@@ -1,7 +1,7 @@
 // Gateway install auth policy used by service/install flows.
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { collectDurableServiceEnvVars } from "../config/state-dir-dotenv.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { hasConfiguredSecretInput } from "../config/types.secrets.js";
 
 type GatewayInstallAuthMode = NonNullable<NonNullable<OpenClawConfig["gateway"]>["auth"]>["mode"];

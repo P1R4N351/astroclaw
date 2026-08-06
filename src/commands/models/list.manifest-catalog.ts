@@ -1,8 +1,8 @@
 /** Manifest-backed model catalog row loaders for `openclaw models list`. */
-import { normalizeModelCatalogProviderId } from "@openclaw/model-catalog-core/model-catalog-refs";
-import type { NormalizedModelCatalogRow } from "@openclaw/model-catalog-core/model-catalog-types";
-import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { normalizeModelCatalogProviderId } from "@astroclaw/model-catalog-core/model-catalog-refs";
+import type { NormalizedModelCatalogRow } from "@astroclaw/model-catalog-core/model-catalog-types";
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { planEffectiveModelCatalogRows } from "../../model-catalog/index.js";
 import type { ManifestModelCatalogRowSelection } from "../../model-catalog/manifest-planner.js";
 import { loadManifestMetadataSnapshot } from "../../plugins/manifest-contract-eligibility.js";

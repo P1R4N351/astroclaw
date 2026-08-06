@@ -5,7 +5,7 @@ import {
   readConfigFileSnapshotForWrite,
   replaceConfigFile,
 } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { parseClawHubPluginSpec } from "../infra/clawhub.js";
 import { resolveDefaultPluginExtensionsDir } from "../plugins/install-paths.js";
 import { withPluginLifecycleLease } from "../plugins/plugin-lifecycle-lease.js";

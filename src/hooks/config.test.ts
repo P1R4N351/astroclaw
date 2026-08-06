@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { withEnv } from "../test-utils/env.js";
 import { shouldIncludeHook } from "./config.js";
 import { buildWorkspaceHookStatus } from "./hooks-status.js";

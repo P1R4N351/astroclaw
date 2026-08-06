@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { hashConfigIncludeRaw } from "../config/includes.js";
 import type { ConfigWriteOptions } from "../config/io.js";
-import type { ConfigFileSnapshot } from "../config/types.openclaw.js";
+import type { ConfigFileSnapshot } from "../config/types.astroclaw.js";
 import {
   resolvePluginInstallRequestContext,
   type PluginInstallRequestContext,

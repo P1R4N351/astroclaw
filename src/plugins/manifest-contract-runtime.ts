@@ -1,6 +1,6 @@
 // Resolves manifest contracts into runtime-facing plugin capabilities.
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import {
   hasManifestContractValue,
   listAvailableManifestContractPlugins,

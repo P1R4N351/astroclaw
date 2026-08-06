@@ -1,15 +1,15 @@
 // Doctor warnings and repairs for legacy OpenAI Codex model/provider routing.
-import { asOptionalRecord as asMutableRecord } from "@openclaw/normalization-core/record-coerce";
+import { asOptionalRecord as asMutableRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeFastMode,
   normalizeOptionalLowercaseString as normalizeString,
-} from "@openclaw/normalization-core/string-coerce";
+} from "@astroclaw/normalization-core/string-coerce";
 import {
   isAgentRuntimeModelParam,
   resolveModelExtraParamSources,
 } from "../../../agents/model-extra-params.js";
 import { resolveModelRuntimePolicy } from "../../../agents/model-runtime-policy.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { detectWindowsSpawnCommandInlineArgs } from "../../../plugin-sdk/windows-spawn.js";
 import { listMutableCodexRouteAgentEntries } from "./codex-route-agent-entries.js";
 import {

@@ -1,12 +1,12 @@
 /** Resolves effective plugin ids from config, installed records, and activation metadata. */
-import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
-import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
+import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import {
   listExplicitlyDisabledChannelIdsForConfig,
   listPotentialConfiguredChannelIds,
 } from "../channels/config-presence.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { isVitestRuntimeEnv } from "../infra/env.js";
 import {
   listExplicitConfiguredChannelIdsForConfig,

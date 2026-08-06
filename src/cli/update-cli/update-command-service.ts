@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Writable } from "node:stream";
 import { confirm, isCancel } from "@clack/prompts";
-import { err as resultError, ok, type Result } from "@openclaw/normalization-core/result";
-import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { err as resultError, ok, type Result } from "@astroclaw/normalization-core/result";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { stylePromptMessage } from "../../../packages/terminal-core/src/prompt-style.js";
 import { theme } from "../../../packages/terminal-core/src/theme.js";
 import {
@@ -14,7 +14,7 @@ import {
 import { doctorCommand } from "../../commands/doctor.js";
 import { UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE_ENV } from "../../commands/doctor/shared/update-phase.js";
 import { resolveGatewayPort } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import {
   GATEWAY_SERVICE_KIND,
   GATEWAY_SERVICE_MARKER,
