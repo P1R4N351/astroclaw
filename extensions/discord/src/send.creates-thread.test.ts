@@ -1,11 +1,12 @@
 // Discord tests cover send.creates thread plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { loadWebMediaRaw } from "astroclaw/plugin-sdk/web-media";
 import { ChannelType, MessageFlags, Routes } from "discord-api-types/v10";
-import { loadWebMediaRaw } from "openclaw/plugin-sdk/web-media";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { RateLimitError } from "./internal/discord.js";
 import { makeDiscordRest } from "./send.test-harness.js";
 
-vi.mock("openclaw/plugin-sdk/web-media", async () => {
+vi.mock("astroclaw/plugin-sdk/web-media", async () => {
   const { discordWebMediaMockFactory } = await import("./send.test-harness.js");
   return discordWebMediaMockFactory();
 });
@@ -45,12 +46,7 @@ type MockCallSource = {
   };
 };
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object") {
-    throw new Error(`expected ${label}`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("object", "expected-label");
 
 function mockArg(source: MockCallSource, callIndex: number, argIndex: number, label: string) {
   const call = source.mock.calls[callIndex];
@@ -126,7 +122,7 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/web-media");
+  vi.doUnmock("astroclaw/plugin-sdk/web-media");
 });
 
 describe("sendMessageDiscord", () => {
