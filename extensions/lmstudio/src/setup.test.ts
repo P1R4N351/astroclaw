@@ -1,4 +1,3 @@
-// Lmstudio tests cover setup plugin behavior.
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import {
   createNonExitingRuntimeEnv,
@@ -17,7 +16,8 @@ import {
   type ProviderCatalogContext,
 } from "astroclaw/plugin-sdk/provider-setup";
 import type { WizardPrompter } from "astroclaw/plugin-sdk/setup";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Lmstudio tests cover setup plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LMSTUDIO_DEFAULT_API_KEY_ENV_VAR,
@@ -265,12 +265,7 @@ function createMethodBoundWizardPrompterHarness(values: WizardPromptValues = {})
   return { prompter: new MethodBoundWizardPrompter(), note, text };
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    throw new Error(`expected ${label} to be an object`);
-  }
-  return value;
-}
+const requireRecord = createRequireRecord("record", "expected-label-object");
 
 function expectRecordFields(
   value: unknown,
