@@ -7,6 +7,7 @@ import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-ru
 import { MEDIA_FFMPEG_MAX_AUDIO_DURATION_SECS } from "astroclaw/plugin-sdk/media-runtime";
 import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
 // Whatsapp tests cover deliver reply plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import type { WAMessage } from "baileys";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { createWebSendApi } from "../inbound/send-api.js";
@@ -110,12 +111,7 @@ function expectFirstSendMediaPayload(msg: AdmittedWebInboundMessage) {
   return requireRecord(mockCallArg(msg.platform.sendMedia, 0, 0, "sendMedia"), "sendMedia payload");
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`expected ${label}`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("record", "expected-label");
 
 function mockCallArg(mock: unknown, callIndex: number, argIndex: number, label: string) {
   const call = (mock as MockWithCalls).mock.calls.at(callIndex);
