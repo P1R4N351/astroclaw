@@ -1,4 +1,5 @@
 // Google Meet tests cover index.create plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { Command } from "commander";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import plugin, { testing as googleMeetPluginTesting } from "./index.js";
@@ -39,8 +40,8 @@ const fetchGuardMocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: fetchGuardMocks.fetchWithSsrFGuard,
@@ -137,12 +138,7 @@ async function runCreateMeetBrowserScript(params: { buttonText: string }) {
   return { button, result: scriptResult };
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object") {
-    throw new Error(`expected ${label}`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("object", "expected-label");
 
 type BrowserProxyBody = {
   fn?: string;
@@ -309,7 +305,7 @@ describe("google-meet create flow", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
+    vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
     vi.doUnmock("./src/voice-call-gateway.js");
     vi.resetModules();
   });
