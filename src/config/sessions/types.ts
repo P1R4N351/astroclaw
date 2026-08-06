@@ -5,7 +5,10 @@ import type {
   SessionAcpIdentity,
   SessionAcpMeta,
 } from "@astroclaw/acp-core/types";
-import { normalizeOptionalString, type FastMode } from "@astroclaw/normalization-core/string-coerce";
+import {
+  normalizeOptionalString,
+  type FastMode,
+} from "@astroclaw/normalization-core/string-coerce";
 import type { SessionObserverDigest } from "../../../packages/gateway-protocol/src/schema/sessions.js";
 import type { SessionAgentStatus } from "../../../packages/gateway-protocol/src/session-icon.js";
 import type { ChatType } from "../../channels/chat-type.js";
@@ -597,6 +600,8 @@ export interface SessionEntry extends SessionEntryCore {}
 
 /** Internal durable fields excluded from public/plugin session projections. */
 export type InternalSessionEntryCore = SessionEntryCore & {
+  /** Run that owns the current non-terminal Gateway lifecycle projection. */
+  lifecycleRunId?: string;
   mainRestartRecovery?: MainRestartRecoveryState;
 };
 
