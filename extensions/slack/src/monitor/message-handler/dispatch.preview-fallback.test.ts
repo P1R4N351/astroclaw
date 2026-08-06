@@ -1,5 +1,6 @@
+import type { GetReplyOptions, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 // Slack tests cover dispatch.preview fallback plugin behavior.
-import type { GetReplyOptions, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const FINAL_REPLY_TEXT = "final answer";
@@ -176,12 +177,7 @@ function requireCapturedItemEventHandler() {
   return handler;
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null) {
-    throw new Error(`${label} was not an object`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("object", "label-not-object");
 
 function expectRecordFields(record: Record<string, unknown>, fields: Record<string, unknown>) {
   for (const [key, value] of Object.entries(fields)) {
@@ -437,11 +433,11 @@ async function dispatchNativeProgressScenario(params: {
   );
 }
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
   resolveHumanDelayConfig: () => undefined,
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-feedback", () => ({
+vi.mock("astroclaw/plugin-sdk/channel-feedback", () => ({
   DEFAULT_TIMING: {
     doneHoldMs: 0,
     errorHoldMs: 0,
@@ -455,8 +451,8 @@ vi.mock("openclaw/plugin-sdk/channel-feedback", () => ({
   removeAckReactionAfterReply: () => {},
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     createChannelProgressDraftCompositor: (
@@ -790,14 +786,14 @@ vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/reply-history", () => ({
+vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
   clearHistoryEntriesIfEnabled: () => {},
   createChannelHistoryWindow: () => ({
     clear: () => {},
   }),
 }));
 
-vi.mock("openclaw/plugin-sdk/reply-payload", () => ({
+vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
   buildTtsSupplementMediaPayload: (payload: {
     text?: string;
     mediaUrl?: string;
@@ -842,22 +838,22 @@ vi.mock("openclaw/plugin-sdk/reply-payload", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   danger: (message: string) => message,
   logVerbose: logVerboseMock,
   shouldLogVerbose: () => false,
 }));
 
-vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
   return { ...actual, getGlobalHookRunner: getGlobalHookRunnerMock };
 });
 
-vi.mock("openclaw/plugin-sdk/security-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/security-runtime", () => ({
   resolvePinnedMainDmOwnerFromAllowlist: () => mockedPinnedMainDmOwner,
 }));
 
-vi.mock("openclaw/plugin-sdk/string-coerce-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", () => ({
   isRecord: (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value),
   normalizeOptionalLowercaseString: (value?: string) => value?.toLowerCase(),
@@ -957,8 +953,8 @@ vi.mock("../replies.js", () => ({
   resolveSlackThreadTs: () => mockedReplyThreadTs,
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
   type DispatchParams = Parameters<typeof actual.dispatchChannelInboundTurn>[0];
   return {
     ...actual,
