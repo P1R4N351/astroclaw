@@ -9,14 +9,20 @@ import {
 
 const SLACK_INGRESS_LIFECYCLE_CONTEXT_KEY = "openclawIngressLifecycle";
 
-const { messageQueueMock, messageAllowMock, inboundInfoSpy } = vi.hoisted(() => ({
-  messageQueueMock: vi.fn(),
-  messageAllowMock: vi.fn(),
-  inboundInfoSpy: vi.fn(),
+const { messageQueueMock, messageAllowMock, inboundInfoSpy, noteConversationMessageMock } =
+  vi.hoisted(() => ({
+    messageQueueMock: vi.fn(),
+    messageAllowMock: vi.fn(),
+    inboundInfoSpy: vi.fn(),
+    noteConversationMessageMock: vi.fn(),
+  }));
+
+vi.mock("../../draft-message-boundaries.js", () => ({
+  noteSlackDraftConversationMessage: (...args: unknown[]) => noteConversationMessageMock(...args),
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
+vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
   const makeLogger = () => {
     const logger = {
       subsystem: "test",
@@ -35,17 +41,17 @@ vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
   return { ...actual, createSubsystemLogger: () => makeLogger() };
 });
 
-vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: (...args: unknown[]) => messageQueueMock(...args),
 }));
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-runtime")>();
+vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
   return {
     ...actual,
     readChannelAllowFromStore: (...args: unknown[]) => messageAllowMock(...args),
   };
 });
-vi.mock("astroclaw/plugin-sdk/text-chunking", () => ({
+vi.mock("openclaw/plugin-sdk/text-chunking", () => ({
   chunkItems: <T>(items: T[]) => [items],
   markdownToIR: (text: string) => text,
   renderMarkdownIRChunksWithinLimit: (text: string) => [text],
@@ -115,6 +121,7 @@ function requireMessageHandler(handler: MessageHandler | null): MessageHandler {
 function resetMessageMocks(): void {
   messageQueueMock.mockClear();
   messageAllowMock.mockReset().mockResolvedValue([]);
+  noteConversationMessageMock.mockClear();
 }
 
 beforeAll(async () => {
@@ -465,6 +472,14 @@ describe("registerSlackMessageEvents", () => {
 
     expect(handleSlackMessage).toHaveBeenCalledTimes(1);
     expect(messageQueueMock).not.toHaveBeenCalled();
+    expect(noteConversationMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channelId: "D1",
+        messageTs: "123.456",
+        userId: "U1",
+        botUserId: "U_BOT",
+      }),
+    );
   });
 
   it("passes thread_broadcast events to the message handler", async () => {
@@ -515,6 +530,14 @@ describe("registerSlackMessageEvents", () => {
     expect(message?.text).toBe("assistant wrapped user text");
     expect(message?.ts).toBe("123.456");
     expect(message?.thread_ts).toBe("123.000");
+    expect(noteConversationMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channelId: "D1",
+        threadTs: "123.000",
+        messageTs: "123.456",
+        userId: "UREAL123",
+      }),
+    );
     expect(message?.assistant_thread).toEqual({
       channel_id: "D1",
       thread_ts: "123.000",
@@ -794,6 +817,13 @@ describe("registerSlackMessageEvents", () => {
     expect(inboundLogLines()).toEqual([
       "Inbound app_mention slack:T_TEST:channel:C123:user:U1 -> bot:U_BOT (channel, 14 chars)",
     ]);
+    expect(noteConversationMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channelId: "C123",
+        messageTs: "123.789",
+        userId: "U1",
+      }),
+    );
   });
 
   it("logs channel app_mention receipts with zero chars when text is absent", async () => {
