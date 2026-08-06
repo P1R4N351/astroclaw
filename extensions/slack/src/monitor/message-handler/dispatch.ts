@@ -1,23 +1,23 @@
 // Slack plugin module implements dispatch behavior.
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   dispatchChannelInboundTurn,
   type InboundReplyRecordOptions,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { hasVisibleInboundReplyDispatch } from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { hasVisibleInboundReplyDispatch } from "openclaw/plugin-sdk/channel-inbound";
 import {
   defineFinalizableLivePreviewAdapter,
   deliverWithFinalizableLivePreviewAdapter,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { toErrorObject } from "openclaw/plugin-sdk/error-runtime";
 import {
   buildTtsSupplementMediaPayload,
   getReplyPayloadTtsSupplement,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import type { ReplyDispatchKind } from "astroclaw/plugin-sdk/reply-runtime";
-import { danger, logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import type { ReplyDispatchKind } from "openclaw/plugin-sdk/reply-runtime";
+import { danger, logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { formatSlackError } from "../../errors.js";
 import { normalizeSlackOutboundText } from "../../format.js";
 import { SLACK_EDIT_TEXT_MAX_BYTES } from "../../limits.js";
@@ -166,23 +166,28 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
       previewFinalTextFitsEdit &&
       trimmedFinalText.length > 0
     ) {
+      await draftStream.flush();
       const channelId = draftStream.channelId();
       const messageId = draftStream.messageId();
       if (channelId && messageId) {
         const finalThreadTs = delivery.usedReplyThreadTs ?? statusThreadTs;
-        await draftStream.flush();
         await draftStream.seal();
         try {
-          await finalizeSlackPreviewEdit({
-            client: slackClient,
-            token: ctx.botToken,
-            accountId: account.accountId,
-            channelId,
-            messageId,
-            text: previewFinalText,
-            ...(slackBlocks?.length ? { blocks: slackBlocks } : {}),
-            threadTs: finalThreadTs,
+          const finalized = await draftStream.finalizeMessage(messageId, async () => {
+            await finalizeSlackPreviewEdit({
+              client: slackClient,
+              token: ctx.botToken,
+              accountId: account.accountId,
+              channelId,
+              messageId,
+              text: previewFinalText,
+              ...(slackBlocks?.length ? { blocks: slackBlocks } : {}),
+              threadTs: finalThreadTs,
+            });
           });
+          if (!finalized) {
+            throw new Error("Slack preview moved below a newer conversation message");
+          }
         } catch (err) {
           logVerbose(
             `slack: preview final edit failed; falling back to standard send (${formatSlackError(err)})`,
@@ -265,16 +270,21 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
           if (delivery.hasDelivered({ kind: info.kind, payload, threadTs: edit.threadTs })) {
             return;
           }
-          await finalizeSlackPreviewEdit({
-            client: slackClient,
-            token: ctx.botToken,
-            accountId: account.accountId,
-            channelId: preview.channelId,
-            messageId: preview.messageId,
-            text: edit.text,
-            ...(edit.blocks?.length ? { blocks: edit.blocks } : {}),
-            threadTs: edit.threadTs,
+          const finalized = await draftStream?.finalizeMessage(preview.messageId, async () => {
+            await finalizeSlackPreviewEdit({
+              client: slackClient,
+              token: ctx.botToken,
+              accountId: account.accountId,
+              channelId: preview.channelId,
+              messageId: preview.messageId,
+              text: edit.text,
+              ...(edit.blocks?.length ? { blocks: edit.blocks } : {}),
+              threadTs: edit.threadTs,
+            });
           });
+          if (!finalized) {
+            throw new Error("Slack preview moved below a newer conversation message");
+          }
           if (!ttsSupplement) {
             emitSlackMessageSentHooks({
               ...messageSentHookContext,
