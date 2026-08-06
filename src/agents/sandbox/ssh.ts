@@ -11,7 +11,7 @@ import { createAbortError } from "../../infra/abort-signal.js";
 import { resolveRootPath } from "../../infra/boundary-path.js";
 import { toErrorObject } from "../../infra/errors.js";
 import { parseSshTarget } from "../../infra/ssh-tunnel.js";
-import { resolvePreferredAstroclawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import { isPlainCommandExitFailure, spawnCommand } from "../../process/exec.js";
 import { resolveUserPath } from "../../utils.js";
 import type { SandboxBackendCommandResult } from "./backend-handle.types.js";
@@ -619,6 +619,9 @@ export async function createSshSandboxSessionFromSettings(
       materializedCertificate ?? resolveOptionalLocalPath(settings.certificateFile);
     const knownHostsFile =
       materializedKnownHosts ?? resolveOptionalLocalPath(settings.knownHostsFile);
+    assertSshConfigLineValue(identityFile, "identityFile");
+    assertSshConfigLineValue(certificateFile, "certificateFile");
+    assertSshConfigLineValue(knownHostsFile, "knownHostsFile");
     const hostAlias = "openclaw-sandbox";
     const configPath = path.join(configDir, "config");
     const lines = [
@@ -908,7 +911,13 @@ function parseSshConfigHost(configText: string): string | null {
 }
 
 function resolveSshTmpRoot(): string {
-  return path.resolve(resolvePreferredAstroclawTmpDir() ?? os.tmpdir());
+  return path.resolve(resolvePreferredOpenClawTmpDir() ?? os.tmpdir());
+}
+
+function assertSshConfigLineValue(value: string | undefined, field: string): void {
+  if (value && /[\r\n]/.test(value)) {
+    throw new Error(`SSH sandbox ${field} must not contain line breaks.`);
+  }
 }
 
 function resolveOptionalLocalPath(value: string | undefined): string | undefined {
