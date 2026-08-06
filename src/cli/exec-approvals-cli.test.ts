@@ -1,7 +1,8 @@
-// Exec approvals CLI tests cover approval command registration and output handling.
 import fs from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
+// Exec approvals CLI tests cover approval command registration and output handling.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -96,12 +97,7 @@ const localSnapshot = {
   file: { version: 1, agents: {} } as ExecApprovalsFile,
 };
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Expected ${label}`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("record", "expected-label-capitalized");
 
 function requireArray(value: unknown, label: string): unknown[] {
   if (!Array.isArray(value)) {
