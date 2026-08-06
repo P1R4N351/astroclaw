@@ -1,5 +1,6 @@
 // Byteplus tests cover video generation provider plugin behavior.
-import { expectExplicitVideoGenerationCapabilities } from "openclaw/plugin-sdk/provider-test-contracts";
+import { expectExplicitVideoGenerationCapabilities } from "astroclaw/plugin-sdk/provider-test-contracts";
+import { streamedJsonResponse } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 // Submit/poll transport is mocked locally so each test can inject the BytePlus task JSON
@@ -13,12 +14,12 @@ const { postJsonRequestMock, fetchWithTimeoutMock, resolveApiKeyForProviderMock 
   }),
 );
 
-vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-http", async (importActual) => {
-  const actual = await importActual<typeof import("openclaw/plugin-sdk/provider-http")>();
+vi.mock("astroclaw/plugin-sdk/provider-http", async (importActual) => {
+  const actual = await importActual<typeof import("astroclaw/plugin-sdk/provider-http")>();
   return {
     // REAL byte-bounded JSON reader under test — not stubbed.
     assertProviderBinaryResponseContent: actual.assertProviderBinaryResponseContent,
@@ -186,20 +187,6 @@ function streamedVideoResponse(bytes: string): Response {
       },
     }),
     { headers: { "content-type": "video/mp4" } },
-  );
-}
-
-// BytePlus submit/poll task JSON is now read through the byte-bounded reader, so the
-// mocked responses must expose a real readable body (not just a json() shortcut).
-function streamedJsonResponse(payload: unknown): Response {
-  return new Response(
-    new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(JSON.stringify(payload)));
-        controller.close();
-      },
-    }),
-    { status: 200, headers: { "content-type": "application/json" } },
   );
 }
 
