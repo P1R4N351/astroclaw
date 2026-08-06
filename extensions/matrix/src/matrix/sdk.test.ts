@@ -1,11 +1,12 @@
-// Matrix tests cover sdk plugin behavior.
-import "fake-indexeddb/auto";
 import { EventEmitter } from "node:events";
+import "fake-indexeddb/auto";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+// Matrix tests cover sdk plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { CryptoEvent } from "matrix-js-sdk/lib/crypto-api/CryptoEvent.js";
 import type { DecryptionFailureCode as DecryptionFailureCodeValue } from "matrix-js-sdk/lib/crypto-api/index.js";
 import { MatrixError } from "matrix-js-sdk/lib/http-api/errors.js";
@@ -32,12 +33,7 @@ function requestUrl(input: RequestInfo | URL | undefined): string {
   return input.url;
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null) {
-    throw new Error(`${label} was not an object`);
-  }
-  return value as Record<string, unknown>;
-}
+const requireRecord = createRequireRecord("object", "label-not-object");
 
 function expectRecordFields(record: Record<string, unknown>, fields: Record<string, unknown>) {
   for (const [key, value] of Object.entries(fields)) {
