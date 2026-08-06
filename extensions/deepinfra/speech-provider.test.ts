@@ -1,4 +1,5 @@
 // Deepinfra tests cover speech provider plugin behavior.
+import { requireFirstPostJsonRequest } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { buildDeepInfraSpeechProvider } from "./speech-provider.js";
 
@@ -21,7 +22,7 @@ const {
   })),
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-http", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-http", () => ({
   assertOkOrThrowHttpError: assertOkOrThrowHttpErrorMock,
   postJsonRequest: postJsonRequestMock,
   readProviderBinaryResponse: readProviderBinaryResponseMock,
@@ -29,17 +30,9 @@ vi.mock("openclaw/plugin-sdk/provider-http", () => ({
 }));
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/provider-http");
+  vi.doUnmock("astroclaw/plugin-sdk/provider-http");
   vi.resetModules();
 });
-
-function requireFirstPostJsonRequest(): unknown {
-  const [call] = postJsonRequestMock.mock.calls;
-  if (!call) {
-    throw new Error("expected DeepInfra speech request");
-  }
-  return call[0];
-}
 
 describe("deepinfra speech provider", () => {
   afterEach(() => {
@@ -126,7 +119,10 @@ describe("deepinfra speech provider", () => {
       ],
     ]);
     expect(postJsonRequestMock).toHaveBeenCalledOnce();
-    const postRequest = requireFirstPostJsonRequest();
+    const postRequest = requireFirstPostJsonRequest(
+      postJsonRequestMock,
+      "DeepInfra speech request",
+    );
     const postRequestHeaders = Reflect.get(postRequest ?? {}, "headers");
     expect(postRequestHeaders).toBeInstanceOf(Headers);
     expect(Object.fromEntries((postRequestHeaders as Headers).entries())).toEqual({
