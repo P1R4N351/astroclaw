@@ -1,5 +1,5 @@
 // Slack tests cover dispatch.preview fallback plugin behavior.
-import type { GetReplyOptions, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import type { GetReplyOptions, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const FINAL_REPLY_TEXT = "final answer";
@@ -282,6 +282,10 @@ function createDraftStreamStub() {
     seal: vi.fn(noopAsync),
     stop: vi.fn(noop),
     forceNewMessage: vi.fn(),
+    finalizeMessage: vi.fn(async (_messageId: string, editFinal: () => Promise<void>) => {
+      await editFinal();
+      return true;
+    }),
     messageId: () => "171234.567",
     channelId: () => "C123",
   };
@@ -433,11 +437,11 @@ async function dispatchNativeProgressScenario(params: {
   );
 }
 
-vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
   resolveHumanDelayConfig: () => undefined,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-feedback", () => ({
+vi.mock("openclaw/plugin-sdk/channel-feedback", () => ({
   DEFAULT_TIMING: {
     doneHoldMs: 0,
     errorHoldMs: 0,
@@ -451,8 +455,8 @@ vi.mock("astroclaw/plugin-sdk/channel-feedback", () => ({
   removeAckReactionAfterReply: () => {},
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
+vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     createChannelProgressDraftCompositor: (
@@ -786,14 +790,14 @@ vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
+vi.mock("openclaw/plugin-sdk/reply-history", () => ({
   clearHistoryEntriesIfEnabled: () => {},
   createChannelHistoryWindow: () => ({
     clear: () => {},
   }),
 }));
 
-vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
+vi.mock("openclaw/plugin-sdk/reply-payload", () => ({
   buildTtsSupplementMediaPayload: (payload: {
     text?: string;
     mediaUrl?: string;
@@ -838,22 +842,22 @@ vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   danger: (message: string) => message,
   logVerbose: logVerboseMock,
   shouldLogVerbose: () => false,
 }));
 
-vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
   return { ...actual, getGlobalHookRunner: getGlobalHookRunnerMock };
 });
 
-vi.mock("astroclaw/plugin-sdk/security-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/security-runtime", () => ({
   resolvePinnedMainDmOwnerFromAllowlist: () => mockedPinnedMainDmOwner,
 }));
 
-vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/string-coerce-runtime", () => ({
   isRecord: (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value),
   normalizeOptionalLowercaseString: (value?: string) => value?.toLowerCase(),
@@ -953,8 +957,8 @@ vi.mock("../replies.js", () => ({
   resolveSlackThreadTs: () => mockedReplyThreadTs,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
+vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
   type DispatchParams = Parameters<typeof actual.dispatchChannelInboundTurn>[0];
   return {
     ...actual,
@@ -1227,6 +1231,45 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
 
     expect(finalizeSlackPreviewEditMock).toHaveBeenCalledTimes(1);
     expect(deliverRepliesMock).toHaveBeenCalledTimes(1);
+    expectDeliverReplyCall(0, FINAL_REPLY_TEXT);
+  });
+
+  it("posts the final below a human message that interrupted the live preview", async () => {
+    let messageId: string | undefined = "171234.567";
+    const draftStream = {
+      ...createDraftStreamStub(),
+      flush: vi.fn(async () => {
+        messageId = undefined;
+      }),
+      messageId: () => messageId,
+      channelId: () => (messageId ? "C123" : undefined),
+    };
+    createSlackDraftStreamMock.mockReturnValueOnce(draftStream);
+
+    await dispatchPreparedSlackMessage(createPreparedSlackMessage());
+
+    expect(finalizeSlackPreviewEditMock).not.toHaveBeenCalled();
+    expect(deliverRepliesMock).toHaveBeenCalledOnce();
+    expectDeliverReplyCall(0, FINAL_REPLY_TEXT);
+  });
+
+  it("posts the final below a human message received while the preview was sealing", async () => {
+    let messageId: string | undefined = "171234.567";
+    const draftStream = {
+      ...createDraftStreamStub(),
+      seal: vi.fn(async () => {
+        messageId = undefined;
+      }),
+      finalizeMessage: vi.fn(async () => false),
+      messageId: () => messageId,
+      channelId: () => (messageId ? "C123" : undefined),
+    };
+    createSlackDraftStreamMock.mockReturnValueOnce(draftStream);
+
+    await dispatchPreparedSlackMessage(createPreparedSlackMessage());
+
+    expect(finalizeSlackPreviewEditMock).not.toHaveBeenCalled();
+    expect(deliverRepliesMock).toHaveBeenCalledOnce();
     expectDeliverReplyCall(0, FINAL_REPLY_TEXT);
   });
 
@@ -4438,6 +4481,48 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
     expectRecordFields(delivered, { replyThreadTs: THREAD_TS });
     expect(delivered.replies).toEqual([
       {
+        mediaUrl: "https://example.com/tts.mp3",
+        audioAsVoice: true,
+        spokenText: "Spoken answer",
+        ttsSupplement: { spokenText: "Spoken answer" },
+      },
+    ]);
+  });
+
+  it("delivers TTS below a human interruption received while its preview was flushing", async () => {
+    let messageId: string | undefined = "171234.567";
+    const draftStream = {
+      ...createDraftStreamStub(),
+      flush: vi.fn(async () => {
+        messageId = undefined;
+      }),
+      messageId: () => messageId,
+      channelId: () => (messageId ? "C123" : undefined),
+    };
+    createSlackDraftStreamMock.mockReturnValueOnce(draftStream);
+    mockedDispatchSequence = [
+      {
+        kind: "final",
+        payload: {
+          mediaUrl: "https://example.com/tts.mp3",
+          audioAsVoice: true,
+          spokenText: "Spoken answer",
+          ttsSupplement: { spokenText: "Spoken answer" },
+        },
+      },
+    ];
+
+    await dispatchPreparedSlackMessage(createPreparedSlackMessage());
+
+    expect(finalizeSlackPreviewEditMock).not.toHaveBeenCalled();
+    expect(deliverRepliesMock).toHaveBeenCalledOnce();
+    const delivered = requireRecord(
+      requireMockCall(deliverRepliesMock, 0, "deliver replies")[0],
+      "deliver replies params",
+    );
+    expect(delivered.replies).toEqual([
+      {
+        text: "Spoken answer",
         mediaUrl: "https://example.com/tts.mp3",
         audioAsVoice: true,
         spokenText: "Spoken answer",
