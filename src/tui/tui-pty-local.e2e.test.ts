@@ -12,8 +12,8 @@ import {
 } from "../../test/helpers/astroclaw-test-instance.js";
 import { loadPersistedAuthProfileStore } from "../agents/auth-profiles/persisted.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { ModelProviderConfig } from "../config/types.models.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelProviderConfig } from "../config/types.models.js";
 import { connectGatewayClient } from "../gateway/test-helpers.e2e.js";
 import { runExec } from "../process/exec.js";
 import { createDeferred } from "../test-utils/deferred.js";
@@ -63,6 +63,9 @@ type GatewayScenario = MockModelBehavior & {
 };
 
 const SHARED_GATEWAY_AGENT_ID = "tui-pty-gateway";
+// These cases spawn openclaw.mjs outside the source TUI runner. CI opts in only
+// after the exact head has a complete build, so source-mode PTY smoke must skip them.
+const itWithBuiltCli = process.env.OPENCLAW_TUI_PTY_USE_BUILT_CLI === "1" ? it : it.skip;
 
 const GATEWAY_SCENARIOS = {
   validation: {
@@ -1344,7 +1347,7 @@ describe("TUI PTY real backends", () => {
     LOCAL_TEST_TIMEOUT_MS,
   );
 
-  it(
+  itWithBuiltCli(
     "repairs isolated config through the approved built CLI and resumes local chat",
     async ({ onTestFinished }) => {
       const fixture = await startLocalModeTui(onTestFinished, {
@@ -1398,7 +1401,7 @@ describe("TUI PTY real backends", () => {
     LOCAL_TEST_TIMEOUT_MS,
   );
 
-  it(
+  itWithBuiltCli(
     "authenticates a manifest-discovered provider and resumes the unchanged local model",
     async ({ onTestFinished }) => {
       const pluginId = "t05-local-auth-fixture";
