@@ -10,7 +10,7 @@ import {
   type HeartbeatToolResponse,
   type MessagingToolSend,
   type MessagingToolSourceReplyPayload,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { attemptTerminal, type AttemptFailureSource } from "./attempt-terminal.js";
 import type { EmbeddedRunAttemptResult } from "./attempt-terminal.js";
 import { CodexAssistantProjection } from "./event-projector-assistant.js";
@@ -222,7 +222,7 @@ export class CodexAppServerEventProjector {
     if (!params) {
       return;
     }
-    if (isHookNotificationMethod(notification.method)) {
+    if (notification.method === "hook/started" || notification.method === "hook/completed") {
       if (!this.isHookNotificationForCurrentThread(params)) {
         return;
       }
@@ -235,6 +235,7 @@ export class CodexAppServerEventProjector {
       return;
     }
     this.nativeToolLifecycleProjector.handleNotification(notification);
+    this.assistantProjection.handleNotification(notification.method, params);
 
     switch (notification.method) {
       case "item/agentMessage/delta":
@@ -317,7 +318,7 @@ export class CodexAppServerEventProjector {
   buildResult(
     toolTelemetry: CodexAppServerToolTelemetry,
     options?: { yieldDetected?: boolean },
-  ): EmbeddedRunAttemptResult {
+  ): EmbeddedRunAttemptResult & { terminalTurnId: string } {
     // Result construction runs after the notification queue drains. Close any
     // tool lacking a terminal item so audit consumers never retain an open action.
     this.nativeToolLifecycleProjector.finalizeActive();
@@ -413,6 +414,7 @@ export class CodexAppServerEventProjector {
         promptErrorSource: promptError ? this.promptErrorSource || "prompt" : null,
       }),
       sessionIdUsed: this.params.sessionId,
+      terminalTurnId: this.turnId,
       ...(agentHarnessResultClassification ? { agentHarnessResultClassification } : {}),
       bootstrapPromptWarningSignaturesSeen: this.params.bootstrapPromptWarningSignaturesSeen,
       bootstrapPromptWarningSignature: this.params.bootstrapPromptWarningSignature,
@@ -758,8 +760,4 @@ export class CodexAppServerEventProjector {
     const turnId = params.turnId;
     return threadId === this.threadId && (turnId === this.turnId || turnId === null);
   }
-}
-
-function isHookNotificationMethod(method: string): method is "hook/started" | "hook/completed" {
-  return method === "hook/started" || method === "hook/completed";
 }
