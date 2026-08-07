@@ -14,19 +14,19 @@ import os from "node:os";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   isRecord,
   normalizeOptionalString,
   normalizeStringEntries,
   uniqueStrings,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -569,6 +569,56 @@ function isRetryableGatewayCallError(details: string): boolean {
   );
 }
 
+async function callQaGatewayWithRetry<T>(params: {
+  deadlineMs?: number;
+  logs: () => string;
+  request: (options: { deadlineMs?: number; timeoutMs: number }) => Promise<T>;
+  throwChildFailure: () => void;
+  timeoutMs: number;
+  waitForReady: (timeoutMs: number) => Promise<void>;
+}) {
+  const remainingMs = () =>
+    params.deadlineMs === undefined ? undefined : params.deadlineMs - Date.now();
+  const deadlineError = () =>
+    new Error(`gateway call deadline exceeded${formatQaGatewayLogsForError(params.logs())}`);
+  let lastDetails = "";
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    params.throwChildFailure();
+    const requestRemainingMs = remainingMs();
+    if (requestRemainingMs !== undefined && requestRemainingMs <= 0) {
+      throw deadlineError();
+    }
+    try {
+      return await params.request({
+        ...(params.deadlineMs === undefined ? {} : { deadlineMs: params.deadlineMs }),
+        timeoutMs:
+          requestRemainingMs === undefined
+            ? params.timeoutMs
+            : Math.min(params.timeoutMs, requestRemainingMs),
+      });
+    } catch (error) {
+      params.throwChildFailure();
+      const details = formatErrorMessage(error);
+      lastDetails = details;
+      if (attempt >= 3 || !isRetryableGatewayCallError(details)) {
+        throw new Error(`${details}${formatQaGatewayLogsForError(params.logs())}`, {
+          cause: error,
+        });
+      }
+      const readinessRemainingMs = remainingMs();
+      if (readinessRemainingMs !== undefined && readinessRemainingMs <= 0) {
+        throw deadlineError();
+      }
+      await params.waitForReady(
+        readinessRemainingMs === undefined
+          ? Math.max(10_000, params.timeoutMs)
+          : Math.min(Math.max(10_000, params.timeoutMs), readinessRemainingMs),
+      );
+    }
+  }
+  throw new Error(`${lastDetails}${formatQaGatewayLogsForError(params.logs())}`);
+}
+
 function createQaGatewayChildLogCollector() {
   const chunks: Buffer[] = [];
   return {
@@ -633,6 +683,7 @@ function formatQaGatewayProcessBoundaryStartupFailure(error: unknown, logs: stri
 async function fetchLocalGatewayHealth(params: {
   baseUrl: string;
   healthPath: "/readyz" | "/healthz";
+  timeoutMs?: number;
 }): Promise<boolean> {
   const { response, release } = await fetchWithSsrFGuard({
     url: `${params.baseUrl}${params.healthPath}`,
@@ -641,7 +692,7 @@ async function fetchLocalGatewayHealth(params: {
       headers: {
         connection: "close",
       },
-      signal: AbortSignal.timeout(2_000),
+      signal: AbortSignal.timeout(params.timeoutMs ?? 2_000),
     },
     policy: { allowPrivateNetwork: true },
     auditContext: "qa-lab-gateway-child-health",
@@ -698,6 +749,7 @@ export const testing = {
   buildQaRuntimeEnv,
   cleanupQaGatewayTempRoots,
   fetchLocalGatewayHealth,
+  callQaGatewayWithRetry,
   isRetryableGatewayCallError,
   isRetryableRpcStartupError,
   classifyQaGatewayStartupRetry,
@@ -1093,8 +1145,9 @@ async function waitForGatewayReady(params: {
   getChildFailure?: () => QaChildFailure | null;
   timeoutMs?: number;
 }) {
-  const startedAt = Date.now();
-  while (Date.now() - startedAt < (params.timeoutMs ?? 60_000)) {
+  const deadline = Date.now() + (params.timeoutMs ?? 60_000);
+  let remainingMs: number;
+  while ((remainingMs = deadline - Date.now()) > 0) {
     throwQaGatewayChildFailure(params.getChildFailure, params.logs);
     if (params.child.exitCode !== null || params.child.signalCode !== null) {
       throw new QaSuiteInfraError(
@@ -1104,13 +1157,19 @@ async function waitForGatewayReady(params: {
     }
     // Listener liveness can turn green before the Gateway can admit startup or restart work.
     try {
-      if (await fetchLocalGatewayHealth({ baseUrl: params.baseUrl, healthPath: "/readyz" })) {
+      if (
+        await fetchLocalGatewayHealth({
+          baseUrl: params.baseUrl,
+          healthPath: "/readyz",
+          timeoutMs: Math.min(2_000, remainingMs),
+        })
+      ) {
         return;
       }
     } catch {
       // retry until timeout
     }
-    await sleep(250);
+    await sleep(Math.min(250, Math.max(0, deadline - Date.now())));
   }
   throw new QaSuiteInfraError(
     "gateway_startup_unhealthy",
@@ -1200,7 +1259,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
   const keepTemp = process.env.OPENCLAW_QA_KEEP_TEMP === "1";
   const gatewayLogStreams: Array<["stdout" | "stderr", WriteStream]> = [];
   let child: ReturnType<typeof spawn> | null = null;
@@ -1853,34 +1912,28 @@ export async function startQaGatewayChild(params: {
       async call(
         method: string,
         rpcParams?: unknown,
-        opts?: { expectFinal?: boolean; timeoutMs?: number },
+        opts?: { deadlineMs?: number; expectFinal?: boolean; timeoutMs?: number },
       ) {
         const timeoutMs = opts?.timeoutMs ?? 20_000;
-        let lastDetails = "";
-        for (let attempt = 1; attempt <= 3; attempt += 1) {
-          throwActiveChildFailure();
-          try {
-            return await activeRpcClient.request(method, rpcParams, {
+        return await callQaGatewayWithRetry({
+          deadlineMs: opts?.deadlineMs,
+          logs,
+          request: async (requestOptions) =>
+            await activeRpcClient.request(method, rpcParams, {
               ...opts,
-              timeoutMs,
-            });
-          } catch (error) {
-            throwActiveChildFailure();
-            const details = formatErrorMessage(error);
-            lastDetails = details;
-            if (attempt >= 3 || !isRetryableGatewayCallError(details)) {
-              throw new Error(`${details}${formatQaGatewayLogsForError(logs())}`, { cause: error });
-            }
+              ...requestOptions,
+            }),
+          throwChildFailure: throwActiveChildFailure,
+          timeoutMs,
+          waitForReady: async (readinessTimeoutMs) =>
             await waitForGatewayReady({
               baseUrl,
               logs,
               child: activeChild,
               getChildFailure: activeGetChildFailure,
-              timeoutMs: Math.max(10_000, timeoutMs),
-            });
-          }
-        }
-        throw new Error(`${lastDetails}${formatQaGatewayLogsForError(logs())}`);
+              timeoutMs: readinessTimeoutMs,
+            }),
+        });
       },
       async stop(opts?: { keepTemp?: boolean; preserveToDir?: string }) {
         await activeRpcClient.stop().catch(() => {});
