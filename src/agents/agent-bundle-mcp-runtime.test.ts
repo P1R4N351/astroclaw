@@ -4,8 +4,8 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { expectDefined } from "@astroclaw/normalization-core";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { withTestTimeout } from "../../test/helpers/promise.js";
 import { cleanupTempDirs, makeTempDir } from "../../test/helpers/temp-dir.js";
@@ -27,20 +27,28 @@ import type { SessionMcpRuntime } from "./agent-bundle-mcp-types.js";
 import { writeExecutable } from "./bundle-mcp-shared.test-harness.js";
 import { updateMcpAppModelContext } from "./mcp-app-model-context.js";
 
-vi.mock("./embedded-agent-mcp.js", () => ({
-  loadEmbeddedAgentMcpConfig: (params: {
-    cfg?: { mcp?: { servers?: Record<string, unknown> } };
-    toolOverrides?: { mcpServers?: Record<string, boolean> };
-  }) => ({
-    diagnostics: [],
-    mcpServers: Object.fromEntries(
-      Object.entries(params.cfg?.mcp?.servers ?? {}).filter(([name]) => {
-        const overrides = params.toolOverrides?.mcpServers;
-        return !(overrides && Object.hasOwn(overrides, name) && overrides[name] === false);
-      }),
-    ),
-  }),
-}));
+vi.mock("./embedded-agent-mcp.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./embedded-agent-mcp.js")>();
+  return {
+    loadEmbeddedAgentMcpConfig: (
+      params: Parameters<typeof actual.loadEmbeddedAgentMcpConfig>[0],
+    ) => {
+      if (params.cfg?.plugins?.entries?.["agent-bundle-probe"]?.enabled === true) {
+        return actual.loadEmbeddedAgentMcpConfig(params);
+      }
+      return {
+        diagnostics: [],
+        prepareDataDirsByServer: {},
+        mcpServers: Object.fromEntries(
+          Object.entries(params.cfg?.mcp?.servers ?? {}).filter(([name]) => {
+            const overrides = params.toolOverrides?.mcpServers;
+            return !(overrides && Object.hasOwn(overrides, name) && overrides[name] === false);
+          }),
+        ),
+      };
+    },
+  };
+});
 
 const tempDirs: string[] = [];
 const tempDirTracker = useAutoCleanupTempDirTracker(afterEach);
