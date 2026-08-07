@@ -1,5 +1,5 @@
-import { normalizeCodexResponsesBaseUrlForOpenAISdk } from "@openclaw/ai/transports";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeCodexResponsesBaseUrlForOpenAISdk } from "@openclaw/ai/transports";
 import type { TSchema } from "typebox";
 import type {
   WorkerInferenceContext,
@@ -48,6 +48,7 @@ import {
 import { bindSimpleCompletionModelResolverWorkspace } from "../../agents/simple-completion-scope.js";
 import { normalizeUsage, hasNonzeroUsage } from "../../agents/usage.js";
 import { getRuntimeConfig } from "../../config/config.js";
+import { resolveSessionAuthProfileOverrideSource } from "../../config/sessions/auth-profile-override-provenance.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { emitTrustedDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import { resolveDiagnosticModelContentCapturePolicy } from "../../infra/diagnostic-llm-content.js";
@@ -365,10 +366,7 @@ function resolveReturnedProfileSource(
   if (entry.authProfileOverride?.trim() !== profileId) {
     return "auto";
   }
-  return (
-    entry.authProfileOverrideSource ??
-    (typeof entry.authProfileOverrideCompactionCount === "number" ? "auto" : "user")
-  );
+  return resolveSessionAuthProfileOverrideSource(entry);
 }
 
 async function resolveApprovedModel(params: {
