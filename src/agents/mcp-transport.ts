@@ -1,3 +1,4 @@
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 /**
  * MCP client transport factory.
  *
@@ -10,7 +11,6 @@ import {
 } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { FetchLike, Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { logDebug } from "../logger.js";
 import { resolveMcpAuthProfileId, withMcpAuthProfileBearer } from "./mcp-auth-profile.js";
@@ -91,7 +91,7 @@ function buildSseEventSourceFetch(
 export function resolveMcpTransport(
   serverName: string,
   rawServer: unknown,
-  options?: { cfg?: OpenClawConfig; agentDir?: string },
+  options?: { cfg?: OpenClawConfig; agentDir?: string; prepareDataDir?: string },
 ): ResolvedMcpTransport | null {
   const resolved = resolveMcpTransportConfig(serverName, rawServer);
   if (!resolved) {
@@ -103,6 +103,7 @@ export function resolveMcpTransport(
       args: resolved.args,
       env: resolved.env,
       cwd: resolved.cwd,
+      prepareDataDir: options?.prepareDataDir,
       stderr: "pipe",
     });
     return {
