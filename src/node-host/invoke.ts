@@ -1,11 +1,11 @@
 /** Node-host command dispatcher for system commands, approvals, env policy, and plugin commands. */
 import fs from "node:fs";
 import path from "node:path";
-import type { ContentBlock } from "@modelcontextprotocol/sdk/types.js";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import type { ContentBlock } from "@modelcontextprotocol/sdk/types.js";
 import { mcpContentBlockToAgentContent } from "../agents/mcp-content.js";
 import {
   analyzeArgvCommand,
@@ -131,6 +131,29 @@ function resolveNodeSkillCwdParam<T extends { cwd?: unknown }>(params: T, nodeId
   // the same canonical node-local directory instead of trusting a URI at exec time.
   const resolved = resolveNodeHostedSkillDirectory(params.cwd, nodeId);
   return resolved ? { ...params, cwd: resolved } : params;
+}
+
+function bindNodeInvokeSessionKey<
+  T extends {
+    sessionKey?: unknown;
+    systemRunPlan?: SystemRunParams["systemRunPlan"];
+  },
+>(params: T, frame: NodeInvokeRequestPayload): T {
+  if (!Object.hasOwn(frame, "sessionKey")) {
+    return params;
+  }
+  const sessionKey = frame.sessionKey ?? null;
+  // The Gateway envelope owns run correlation. Nested command params are
+  // caller-controlled and must not mint or retain a different session binding.
+  const systemRunPlan =
+    params.systemRunPlan === undefined || params.systemRunPlan === null
+      ? params.systemRunPlan
+      : { ...params.systemRunPlan, sessionKey: sessionKey ?? null };
+  return {
+    ...params,
+    sessionKey,
+    ...(systemRunPlan !== undefined ? { systemRunPlan } : {}),
+  };
 }
 
 function buildEnvOverrideRejectionMessage(params: {
@@ -746,11 +769,12 @@ async function dispatchInvoke(
   }
   try {
     const { pluginCommandIo: io, pluginCommandContext: context } = runtime;
+    const hasSessionKeyEnvelope = Object.hasOwn(frame, "sessionKey");
     const invokeContext =
-      context && (frame.sessionKey || runtime.signal)
+      context && (hasSessionKeyEnvelope || runtime.signal)
         ? {
             ...context,
-            ...(frame.sessionKey ? { sessionKey: frame.sessionKey } : {}),
+            ...(hasSessionKeyEnvelope ? { sessionKey: frame.sessionKey ?? undefined } : {}),
             ...(runtime.signal ? { signal: runtime.signal } : {}),
           }
         : context;
@@ -766,9 +790,12 @@ async function dispatchInvoke(
 
   if (command === "system.run.prepare") {
     try {
-      const params = resolveNodeSkillCwdParam(
-        decodeParams<SystemRunPrepareParams>(frame.paramsJSON),
-        frame.nodeId,
+      const params = bindNodeInvokeSessionKey(
+        resolveNodeSkillCwdParam(
+          decodeParams<SystemRunPrepareParams>(frame.paramsJSON),
+          frame.nodeId,
+        ),
+        frame,
       );
       const prepared = buildSystemRunApprovalPlan(params);
       if (!prepared.ok) {
@@ -825,9 +852,9 @@ async function dispatchInvoke(
 
   let params: SystemRunParams;
   try {
-    params = resolveNodeSkillCwdParam(
-      decodeParams<SystemRunParams>(frame.paramsJSON),
-      frame.nodeId,
+    params = bindNodeInvokeSessionKey(
+      resolveNodeSkillCwdParam(decodeParams<SystemRunParams>(frame.paramsJSON), frame.nodeId),
+      frame,
     );
   } catch (err) {
     await sendInvalidRequestResult(client, frame, err);
