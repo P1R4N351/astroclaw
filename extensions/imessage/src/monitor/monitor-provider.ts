@@ -1,8 +1,8 @@
 // Imessage provider module implements model/runtime integration.
 import path from "node:path";
-import { resolveAgentConfig, resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
-import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-runtime";
-import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
+import { resolveAgentConfig, resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-runtime";
+import { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
 import {
   createChannelInboundDebouncer,
   formatInboundMediaUnavailableText,
@@ -11,43 +11,47 @@ import {
   shouldDebounceTextInbound,
   type ChannelInboundTurnPlan,
   type ChannelInboundMediaInput,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { fanInChannelIngressLifecycles } from "openclaw/plugin-sdk/channel-ingress-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { fanInChannelIngressLifecycles } from "astroclaw/plugin-sdk/channel-ingress-runtime";
 import {
   bindIngressLifecycleToReplyOptions,
   createChannelMessageReplyPipeline,
   resolveChannelStreamingBlockEnabled,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingChallengeIssuer } from "openclaw/plugin-sdk/channel-pairing";
-import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingChallengeIssuer } from "astroclaw/plugin-sdk/channel-pairing";
+import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
 import {
   readChannelAllowFromStore,
   upsertChannelPairingRequest,
-} from "openclaw/plugin-sdk/conversation-runtime";
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
-import { channelReadyPatch } from "openclaw/plugin-sdk/gateway-runtime";
-import { normalizeScpRemoteHost } from "openclaw/plugin-sdk/host-runtime";
-import { isInboundPathAllowed, kindFromMime } from "openclaw/plugin-sdk/media-runtime";
-import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
-import { resolveTextChunkLimit, type GetReplyOptions } from "openclaw/plugin-sdk/reply-runtime";
-import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
-import { getRuntimeConfig, type OpenClawConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { danger, logVerbose, shouldLogVerbose, warn } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { channelReadyPatch } from "astroclaw/plugin-sdk/gateway-runtime";
+import { normalizeScpRemoteHost } from "astroclaw/plugin-sdk/host-runtime";
+import { redactIdentifier } from "astroclaw/plugin-sdk/logging-core";
+import { isInboundPathAllowed, kindFromMime } from "astroclaw/plugin-sdk/media-runtime";
+import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import { resolveTextChunkLimit, type GetReplyOptions } from "astroclaw/plugin-sdk/reply-runtime";
+import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
+import {
+  getRuntimeConfig,
+  type OpenClawConfig,
+} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { danger, logVerbose, shouldLogVerbose, warn } from "astroclaw/plugin-sdk/runtime-env";
 import {
   resolveOpenProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
 import {
   getSessionEntry,
   readSessionUpdatedAt,
   resolveSendPolicy,
   resolveStorePath,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { openNodeSqliteDatabase } from "openclaw/plugin-sdk/sqlite-runtime";
-import { sliceUtf16Safe, truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
-import { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { openNodeSqliteDatabase } from "astroclaw/plugin-sdk/sqlite-runtime";
+import { sliceUtf16Safe, truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
 import { resolveIMessageAccount } from "../accounts.js";
 import { iMessageApprovalControlBindings } from "../approval-control-binding-window.js";
 import { maybeResolveIMessageApprovalPollVote } from "../approval-polls.js";
@@ -827,12 +831,14 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
     if (decision.kind === "drop") {
       // Record echo/reflection drops so the rate limiter can detect sustained loops.
       // Only loop-related drop reasons feed the counter; policy/mention/empty drops
-      // are normal and should not escalate.
+      // are normal and should not escalate. "from me" is excluded: every own-send
+      // (agent replies, multi-chunk sends, operator phone traffic) produces a
+      // from-me row, so counting it lets a normal outbound burst trip the limiter
+      // and silently suppress the next legitimate inbound message.
       const isLoopDrop =
         decision.reason === "echo" ||
         decision.reason === "self-chat echo" ||
-        decision.reason === "reflected assistant content" ||
-        decision.reason === "from me";
+        decision.reason === "reflected assistant content";
       if (isLoopDrop) {
         loopRateLimiter.record(rateLimitKey);
       }
@@ -868,7 +874,17 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
     // remaining messages as a safety net against amplification that slips
     // through the primary guards.
     if (decision.kind === "dispatch" && loopRateLimiter.isRateLimited(rateLimitKey)) {
-      logVerbose(`imessage: rate-limited conversation ${conversationKey} (echo loop detected)`);
+      // A tripped limiter silently eats real user messages — surface it at
+      // default log level (once per conversation) instead of verbose-only.
+      if (!loggedThrottledDropDiagnostics.check(`${rateLimitKey}:rate-limited`)) {
+        const conversationKind = chatId != null ? "group" : "dm";
+        const diagnosticConversationKey = `${conversationKind}:${redactIdentifier(conversationKey)}`;
+        runtime.log?.(
+          warn(
+            `[imessage:${accountInfo.accountId}] Suppressing inbound from ${diagnosticConversationKey}: echo loop detected (rate limiter tripped)`,
+          ),
+        );
+      }
       return;
     }
 
