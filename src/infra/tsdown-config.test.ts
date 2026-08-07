@@ -1,7 +1,7 @@
 // Covers bundling rules encoded in the root tsdown config.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { bundledPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import tsdownConfig, {
   createStateSchemaInlinePlugin,
@@ -126,6 +126,34 @@ describe("tsdown config", () => {
     expect(JSON.parse(match?.[1] ?? "null")).toBe(canonicalSql);
     expect(schema.sourceValue).toBe(canonicalSql);
     expect(watchedPaths).toEqual([schemaPath]);
+  });
+
+  it("includes canonical schema bytes in the Vitest filesystem cache key", () => {
+    const rootDir = process.cwd();
+    const plugin = createStateSchemaInlinePlugin(rootDir, { vitestFsModuleCache: true });
+    let cacheKeyGenerator:
+      | ((context: { id: string; sourceCode: string; environment: unknown }) => unknown)
+      | undefined;
+    plugin.configureVitest?.({
+      experimental_defineCacheKeyGenerator(callback) {
+        cacheKeyGenerator = callback;
+      },
+    });
+
+    expect(
+      cacheKeyGenerator?.({
+        id: path.resolve(rootDir, "src/state/openclaw-state-schema.ts"),
+        sourceCode: "",
+        environment: {},
+      }),
+    ).toBe(readFileSync(path.resolve(rootDir, "src/state/openclaw-state-schema.sql"), "utf8"));
+    expect(
+      cacheKeyGenerator?.({
+        id: path.resolve(rootDir, "src/state/openclaw-state-db.ts"),
+        sourceCode: "",
+        environment: {},
+      }),
+    ).toBeUndefined();
   });
 
   it("installs schema inlining only on the unified runtime graph", () => {
@@ -335,8 +363,8 @@ describe("tsdown config", () => {
 
     expect(alwaysBundle("@openclaw/fs-safe")).toBe(true);
     expect(alwaysBundle("@openclaw/fs-safe/path")).toBe(true);
-    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
-    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime")).toBe(false);
+    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
+    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime")).toBe(false);
     expect(alwaysBundle("zod")).toBe(true);
     expect(alwaysBundle("zod/v4/core")).toBe(true);
     expect(alwaysBundle("not-a-runtime-dependency")).toBe(false);
