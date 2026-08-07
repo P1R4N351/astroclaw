@@ -3,18 +3,18 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
 import {
   embeddedAgentLog,
   isToolWrappedWithBeforeToolCallHook,
   type EmbeddedRunAttemptParams,
   wrapToolWithBeforeToolCallHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   clearMemoryPluginState,
   type MemoryFlushPlan,
   registerMemoryCapability,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dynamicToolBuildState } from "./dynamic-tool-build-state.js";
 import {
@@ -39,8 +39,8 @@ const hoisted = vi.hoisted(() => ({
   resolveWebSearchToolPolicy: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness")>();
+vi.mock("openclaw/plugin-sdk/agent-harness", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness")>();
 
   return {
     ...actual,
@@ -63,6 +63,7 @@ function setOpenClawCodingToolsFactoryForTests(
 
 function resetOpenClawCodingToolsFactoryForTests(): void {
   dynamicToolBuildState.openClawCodingToolsFactory = undefined;
+  dynamicToolBuildState.agentHarnessCodingToolsFactory = undefined;
 }
 
 type RuntimeDynamicToolForTest = Parameters<
@@ -141,6 +142,7 @@ async function buildDynamicToolsForTest(
     throw new Error("createParams must provide a sessionKey for Codex dynamic tool tests.");
   }
   return buildDynamicTools({
+    attributionAttempt: params,
     params,
     resolvedWorkspace: workspaceDir,
     effectiveWorkspace: workspaceDir,
@@ -156,6 +158,26 @@ async function buildDynamicToolsForTest(
 }
 
 describe("Codex app-server dynamic tool build", () => {
+  it("uses the exact host-admitted attempt for private tool attribution", async () => {
+    const workspaceDir = path.join(tempDir, "workspace");
+    const admittedAttempt = createParams(path.join(tempDir, "session.jsonl"), workspaceDir);
+    admittedAttempt.disableTools = false;
+    admittedAttempt.runtimePlan = createCodexRuntimePlanFixture();
+    const runtimeParams = { ...admittedAttempt };
+    const factory = vi.fn<NonNullable<typeof dynamicToolBuildState.agentHarnessCodingToolsFactory>>(
+      async () => [],
+    );
+    dynamicToolBuildState.agentHarnessCodingToolsFactory = factory;
+
+    await buildDynamicToolsForTest(runtimeParams, workspaceDir, {
+      attributionAttempt: admittedAttempt,
+    });
+
+    expect(factory).toHaveBeenCalledOnce();
+    expect(factory.mock.calls[0]?.[0]).toBe(admittedAttempt);
+    expect(factory.mock.calls[0]?.[0]).not.toBe(runtimeParams);
+  });
+
   it("removes account-wide app access when native tools are restricted", () => {
     expect(
       disableCodexPluginThreadConfig({
