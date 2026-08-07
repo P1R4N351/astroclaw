@@ -14,8 +14,8 @@ import {
 } from "../agents/plugin-text-transforms.js";
 import { unwrapSecretSentinelsForProviderEgress } from "../agents/provider-secret-egress.js";
 import type { ProviderSystemPromptContribution } from "../agents/system-prompt-contribution.js";
-import type { ModelProviderConfig } from "../config/types.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelProviderConfig } from "../config/types.js";
 import type { UsageProviderId } from "../infra/provider-usage.types.js";
 import { getCurrentPluginMetadataSnapshot } from "./current-plugin-metadata-snapshot.js";
 import { normalizeProviderModelIdWithManifest } from "./manifest-model-id-normalization.js";
@@ -1061,9 +1061,9 @@ export function resolveExternalAuthProfilesWithPlugins(params: {
   const env = params.env ?? process.env;
   const config = params.config ?? {};
   const currentMetadataSnapshot = getCurrentPluginMetadataSnapshot({
-    config,
     env,
-    ...(workspaceDir === undefined ? { allowWorkspaceScopedSnapshot: true } : { workspaceDir }),
+    ...(params.config ? { config } : { requireDefaultDiscoveryContext: true }),
+    ...(workspaceDir ? { workspaceDir } : { allowWorkspaceScopedSnapshot: true }),
   });
   const { manifestRegistry } =
     currentMetadataSnapshot ?? resolvePluginMetadataSnapshot({ config, workspaceDir, env });
