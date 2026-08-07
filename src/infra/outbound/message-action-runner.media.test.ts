@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 // Covers message-action media hydration, sandbox path normalization,
 // attachments, and channel/plugin media source aliases.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonResult } from "../../agents/tools/common.js";
@@ -17,7 +17,7 @@ import {
   createChannelTestPluginBase,
   createTestRegistry,
 } from "../../test-utils/channel-plugins.js";
-import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
 import { runMessageAction } from "./message-action-runner.js";
 
 const onePixelPng = Buffer.from(
@@ -299,6 +299,25 @@ describe("runMessageAction media behavior", () => {
     expect(result.kind).toBe("send");
     const sendArgs = firstMockArg(channelResolutionMocks.executeSendAction, "executeSendAction");
     expect(sendArgs.asVoice).toBe(true);
+  });
+
+  it("copies the normalized idempotency key into send execution context", async () => {
+    setTestPlugin(workspacePlugin, "workspace");
+
+    await runDrySend({
+      cfg: workspaceConfig,
+      actionParams: {
+        channel: "workspace",
+        target: "12345678",
+        message: "hello",
+        idempotencyKey: " run-1:message-tool:send-1:fingerprint ",
+      },
+    });
+
+    const sendArgs = firstMockArg(channelResolutionMocks.executeSendAction, "executeSendAction");
+    expect(requireRecord(sendArgs.ctx).idempotencyKey).toBe(
+      "run-1:message-tool:send-1:fingerprint",
+    );
   });
 
   it("rejects plugin-declined attachment actions before loading media", async () => {
@@ -1355,7 +1374,7 @@ describe("runMessageAction media behavior", () => {
     );
 
     it("allows media paths under preferred OpenClaw tmp root", async () => {
-      const tmpRoot = resolvePreferredOpenClawTmpDir();
+      const tmpRoot = resolvePreferredAstroclawTmpDir();
       await fs.mkdir(tmpRoot, { recursive: true });
       const sandboxDir = await fs.mkdtemp(path.join(os.tmpdir(), "msg-sandbox-"));
       try {
