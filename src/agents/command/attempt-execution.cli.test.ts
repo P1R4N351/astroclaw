@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 // Covers CLI-backed attempt execution and session-binding persistence.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions.js";
 import {
@@ -405,6 +405,9 @@ vi.mock("../model-runtime-aliases.js", async () => {
 
 vi.mock("../embedded-agent.js", () => ({
   runEmbeddedAgent: runEmbeddedAgentMock,
+}));
+vi.mock("../embedded-agent-runner/run-orchestrator.js", () => ({
+  runEmbeddedAgentInternal: runEmbeddedAgentMock,
 }));
 
 vi.mock("../session-write-lock.js", async () => {
