@@ -1,3 +1,5 @@
+import { redactSensitiveUrlLikeString } from "@astroclaw/net-policy/redact-sensitive-url";
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 /** Session-scoped MCP runtime catalog loader and transport lifecycle. */
 import { Client, type ClientOptions } from "@modelcontextprotocol/sdk/client/index.js";
 import {
@@ -12,8 +14,6 @@ import {
   type ClientCapabilities,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
-import { redactSensitiveUrlLikeString } from "@astroclaw/net-policy/redact-sensitive-url";
-import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import type { SessionToolOverrides } from "../config/sessions/types.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { logWarn } from "../logger.js";
@@ -684,9 +684,13 @@ export function createSessionMcpRuntime(params: {
           const transportSource = override
             ? applyMcpConnectionOverride(rawServer, override)
             : rawServer;
+          const dataDirOwnership = Object.hasOwn(loaded.prepareDataDirsByServer ?? {}, serverName)
+            ? loaded.prepareDataDirsByServer?.[serverName]
+            : undefined;
           const resolved = resolveMcpTransport(serverName, transportSource, {
             cfg: params.cfg,
             agentDir: params.agentDir,
+            prepareDataDir: dataDirOwnership?.dataDir,
           });
           if (!resolved) {
             continue;
