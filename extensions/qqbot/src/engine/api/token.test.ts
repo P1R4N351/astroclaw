@@ -5,8 +5,8 @@ import { TokenManager } from "./token.js";
 
 const fetchWithSsrFGuardMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: fetchWithSsrFGuardMock,
@@ -86,6 +86,28 @@ describe("QQBot token manager", () => {
         body: JSON.stringify({ appId: "app-id", clientSecret: "secret" }),
       },
     });
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it("adds account-neutral credential guidance when the token endpoint omits access_token", async () => {
+    const release = mockGuardedTokenResponse('{"code":4001,"message":"invalid app secret"}', {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+
+    let error: unknown;
+    try {
+      await new TokenManager().getAccessToken("app-id", "secret");
+    } catch (caught) {
+      error = caught;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    expect(message).toContain("Failed to get QQBot access_token");
+    expect(message).toContain("QQBot account appId and clientSecret");
+    expect(message).toContain("https://q.qq.com/");
+    expect(message).toContain('{"code":4001,"message":"invalid app secret"}');
+    expect(message).not.toContain("QQBOT_APP_ID");
     expect(release).toHaveBeenCalledTimes(1);
   });
 
@@ -184,8 +206,8 @@ describe("QQBot token manager", () => {
   it("times out one stalled token fetch for every singleflight waiter and allows retry", async () => {
     vi.useFakeTimers();
     const { fetchWithSsrFGuard } = await vi.importActual<
-      typeof import("openclaw/plugin-sdk/ssrf-runtime")
-    >("openclaw/plugin-sdk/ssrf-runtime");
+      typeof import("astroclaw/plugin-sdk/ssrf-runtime")
+    >("astroclaw/plugin-sdk/ssrf-runtime");
     fetchWithSsrFGuardMock.mockImplementation(fetchWithSsrFGuard);
 
     let fetchSignal: AbortSignal | undefined;
@@ -230,7 +252,10 @@ describe("QQBot token manager", () => {
     }
     const timeoutError = firstOutcome.reason as Error;
     expect(timeoutError).toBe(secondOutcome.reason);
-    expect(timeoutError.message).toBe("Network error getting access_token: request timed out");
+    expect(timeoutError.message).toContain("Network error getting access_token: request timed out");
+    expect(timeoutError.message).toContain("Check network connectivity and DNS");
+    expect(timeoutError.message).toContain("server IP whitelist");
+    expect(timeoutError.message).not.toContain("appId");
     expect(timeoutError.cause).toMatchObject({
       name: "TimeoutError",
       message: "request timed out",
