@@ -3,9 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { OpenClawCrablineChannelDriverSelection } from "@openclaw/crabline";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import type { QaEvidenceTiming, QaEvidenceSummaryJson } from "./evidence-summary.js";
 import type { QaCliBackendAuthMode, QaGatewayChildCommand } from "./gateway-child.js";
 import { startQaGatewayChild } from "./gateway-child.js";
@@ -71,6 +71,7 @@ export type QaSuiteScenarioResult = {
   details?: string;
   timing?: QaEvidenceTiming;
   runtimeParity?: RuntimeParityResult;
+  modelSwitchEvidence?: Record<string, unknown>;
 };
 
 type QaSuiteEnvironment = {
