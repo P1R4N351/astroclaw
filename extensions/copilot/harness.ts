@@ -14,8 +14,8 @@ import {
   type AgentHarnessCompactParams,
   type AgentHarnessCompactResult,
   type AgentHarnessResetParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
 import type { CopilotSessionConfig } from "./src/attempt.js";
 import { createCopilotByokAuth, resolveCopilotAuth, tokenFingerprint } from "./src/auth-bridge.js";
 import { createCopilotByokProxy } from "./src/byok-proxy.js";
@@ -39,6 +39,7 @@ type AgentHarnessIsolatedCompletionResult = Awaited<ReturnType<AgentHarnessIsola
 const COPILOT_PROVIDER_IDS: ReadonlySet<string> = new Set(["github-copilot"]);
 
 interface CreateCopilotAgentHarnessOptions {
+  agentHarnessCodingToolsFactory?: (typeof import("openclaw/plugin-sdk/agent-harness-tool-authority-runtime"))["createOpenClawCodingToolsForAgentHarness"];
   id?: string;
   label?: string;
   pluginConfig?: unknown;
@@ -691,7 +692,10 @@ export function createCopilotAgentHarness(
         // uncaught harness rejection. Finalization cannot safely create a new
         // incompatible session and therefore keeps the failure closed.
         if (operation === "attempt" && isCopilotByokUnsupportedProviderError(error)) {
-          return runCopilotAttempt(params, { pool });
+          return runCopilotAttempt(params, {
+            pool,
+            createOpenClawCodingToolsForAgentHarness: options?.agentHarnessCodingToolsFactory,
+          });
         }
         throw error;
       }
@@ -765,6 +769,7 @@ export function createCopilotAgentHarness(
 
       const result = await runCopilotAttempt(effectiveParams, {
         pool,
+        createOpenClawCodingToolsForAgentHarness: options?.agentHarnessCodingToolsFactory,
         ...(operation === "settled-tool-finalization" ? { operation } : {}),
         onSessionEstablished:
           operation === "attempt" && openclawSessionId
