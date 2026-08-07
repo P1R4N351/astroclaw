@@ -1230,11 +1230,13 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
           // instead of falling back to a durable iMessage bubble.
           onToolResult: async () => {
             await directTypingController?.startTypingLoop();
+            return false;
           },
           ...(supportsTyping
             ? {
                 onToolStart: async () => {
                   await directTypingController?.startTypingLoop();
+                  return false;
                 },
               }
             : {}),
