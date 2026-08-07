@@ -18,12 +18,11 @@ import {
   type ThinkingConfig,
   TurnCoverage,
 } from "@google/genai";
-import { canonicalizeBase64 } from "openclaw/plugin-sdk/media-runtime";
 import {
   resolveExpiresAtMsFromDurationMs,
   timestampMsToIsoString,
-} from "openclaw/plugin-sdk/number-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-onboard";
+} from "astroclaw/plugin-sdk/number-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/provider-onboard";
 import type {
   RealtimeVoiceAudioFormat,
   RealtimeVoiceBridge,
@@ -35,7 +34,7 @@ import type {
   RealtimeVoiceRole,
   RealtimeVoiceTool,
   RealtimeVoiceToolResultOptions,
-} from "openclaw/plugin-sdk/realtime-voice";
+} from "astroclaw/plugin-sdk/realtime-voice";
 import {
   convertPcmToMulaw8k,
   createRealtimeVoiceAudioQueue,
@@ -44,14 +43,15 @@ import {
   REALTIME_VOICE_AUDIO_FORMAT_PCM16_24KHZ,
   REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME,
   resamplePcm,
-} from "openclaw/plugin-sdk/realtime-voice";
-import { warn } from "openclaw/plugin-sdk/runtime-env";
-import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
+} from "astroclaw/plugin-sdk/realtime-voice";
+import { warn } from "astroclaw/plugin-sdk/runtime-env";
+import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
 import {
   asBoolean,
   asFiniteNumber,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { canonicalizeGoogleProviderBase64 } from "./base64.js";
 import { createGoogleGenAI } from "./google-genai-runtime.js";
 import { resolveGoogleGemini3ThinkingLevel } from "./thinking.js";
 
@@ -950,7 +950,7 @@ class GoogleRealtimeVoiceBridge implements RealtimeVoiceBridge {
 
     for (const part of content.modelTurn?.parts ?? []) {
       if (part.inlineData?.data) {
-        const canonicalAudio = canonicalizeBase64(part.inlineData.data);
+        const canonicalAudio = canonicalizeGoogleProviderBase64(part.inlineData.data);
         if (!canonicalAudio) {
           this.failConnection(new Error("Google Live stream returned malformed base64 audio data"));
           return;
