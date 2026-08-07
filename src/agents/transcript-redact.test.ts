@@ -2,7 +2,7 @@
 // secrets do not persist in logs or replay artifacts.
 
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import * as loggingConfigModule from "../logging/config.js";
@@ -686,6 +686,21 @@ describe("redactTranscriptMessage", () => {
         },
       ],
     } as unknown as AgentMessage;
+    const veniceGeminiMsg = {
+      role: "assistant",
+      api: "openai-completions",
+      model: "gemini-3-6-flash",
+      provider: "venice",
+      content: [
+        {
+          type: "toolCall",
+          id: "call_venice",
+          name: "send_request",
+          arguments: {},
+          thoughtSignature: OPENAI_COMPAT_OPAQUE_COLLISION,
+        },
+      ],
+    } as unknown as AgentMessage;
     const openAIResponsesMsg = {
       role: "assistant",
       api: "openai-responses",
@@ -753,6 +768,16 @@ describe("redactTranscriptMessage", () => {
       "( msgContent(redactTranscriptMessage(googleOpenAICompletionsMsg, goog... test invariant",
     );
     expect(googleCompletionsBlock.thoughtSignature).toBe(OPENAI_COMPAT_OPAQUE_COLLISION);
+
+    const veniceGeminiBlock = expectDefined(
+      (
+        msgContent(redactTranscriptMessage(veniceGeminiMsg, cfg("tools"))) as Array<{
+          thoughtSignature: string;
+        }>
+      )[0],
+      "Venice Gemini tool-call block",
+    );
+    expect(veniceGeminiBlock.thoughtSignature).toBe(OPENAI_COMPAT_OPAQUE_COLLISION);
 
     const responsesBlock = expectDefined(
       (
