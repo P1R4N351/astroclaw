@@ -1,7 +1,7 @@
 // Agent ACP tests cover ACP runtime integration, embedded agent dispatch, and agent command behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { withTempHome as withTempHomeBase } from "openclaw/plugin-sdk/test-env";
+import { withTempHome as withTempHomeBase } from "astroclaw/plugin-sdk/test-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "./agent-command.test-mocks.js";
 import * as acpManagerModule from "../acp/control-plane/manager.js";
@@ -52,7 +52,10 @@ const attemptExecutionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../infra/agent-events.js", () => agentEventMocks);
-vi.mock("../infra/agent-run-registry.js", () => ({
+vi.mock("../infra/agent-run-registry.js", async () => ({
+  ...(await vi.importActual<typeof import("../infra/agent-run-registry.js")>(
+    "../infra/agent-run-registry.js",
+  )),
   clearAgentRunContext: agentEventMocks.clearAgentRunContext,
   registerAgentRunContext: agentEventMocks.registerAgentRunContext,
 }));
