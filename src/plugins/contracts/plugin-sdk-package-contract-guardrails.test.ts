@@ -38,15 +38,15 @@ const GENERIC_CORE_PLUGIN_OWNER_NAME_PATTERN =
   /\b(?:imessage|discord|feishu|googlechat|matrix|mattermost|msteams|slack|telegram|whatsapp|zalo|zalouser)\b/gi;
 const PACKAGE_CONTRACT_SCAN_TIMEOUT_MS = 240_000;
 const DEPRECATED_EXTENSION_SDK_SPECIFIERS = new Set([
-  "openclaw/plugin-sdk",
+  "astroclaw/plugin-sdk",
   // Bundled code uses the canonical channel-config-schema subpath; the
   // primitives/legacy shells stay export-compatible for third parties only.
-  "openclaw/plugin-sdk/channel-config-primitives",
-  "openclaw/plugin-sdk/channel-config-schema-legacy",
-  "openclaw/plugin-sdk/compat",
-  "openclaw/plugin-sdk/test-utils",
+  "astroclaw/plugin-sdk/channel-config-primitives",
+  "astroclaw/plugin-sdk/channel-config-schema-legacy",
+  "astroclaw/plugin-sdk/compat",
+  "astroclaw/plugin-sdk/test-utils",
 ]);
-const DEPRECATED_TEST_ALIAS_SPECIFIERS = new Set(["openclaw/plugin-sdk/test-utils"]);
+const DEPRECATED_TEST_ALIAS_SPECIFIERS = new Set(["astroclaw/plugin-sdk/test-utils"]);
 const DEPRECATED_TEST_ALIAS_ALLOWED_REFERENCE_FILES = new Set([
   "src/plugins/compat/registry.ts",
   "src/plugins/contracts/plugin-sdk-package-contract-guardrails.test.ts",
@@ -798,6 +798,43 @@ describe("plugin-sdk package contract guardrails", () => {
         localOnly.has(entrypoint),
       ),
     ).toBe(true);
+  });
+
+  it("keeps the agent harness tool runtime out of the typed public SDK", () => {
+    const entrypoint = "agent-harness-tool-runtime";
+    const localOnly = new Set(privateLocalOnlyPluginSdkEntrypoints);
+    const typedExports = collectTypedPluginSdkPackageExports();
+    const excludedDeclarations = collectPackExcludedPluginSdkDeclarations();
+
+    expect({
+      localOnly: localOnly.has(entrypoint),
+      typedExport: typedExports.has(entrypoint),
+      declarationExcluded: excludedDeclarations.has(entrypoint),
+    }).toEqual({
+      localOnly: true,
+      typedExport: false,
+      declarationExcluded: true,
+    });
+  });
+
+  it("keeps the agent harness tool authority runtime owner-restricted", () => {
+    const entrypoint = "agent-harness-tool-authority-runtime";
+    const localOnly = new Set(privateLocalOnlyPluginSdkEntrypoints);
+    const packageExports = new Set(collectPluginSdkPackageExports());
+    const typedExports = collectTypedPluginSdkPackageExports();
+    const excludedDeclarations = collectPackExcludedPluginSdkDeclarations();
+
+    expect({
+      localOnly: localOnly.has(entrypoint),
+      packageExport: packageExports.has(entrypoint),
+      typedExport: typedExports.has(entrypoint),
+      declarationExcluded: excludedDeclarations.has(entrypoint),
+    }).toEqual({
+      localOnly: true,
+      packageExport: false,
+      typedExport: false,
+      declarationExcluded: true,
+    });
   });
 
   it("keeps configured local-origin fetch helpers out of deprecated infra-runtime", () => {
