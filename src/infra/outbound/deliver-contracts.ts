@@ -5,8 +5,8 @@ import type {
   ChannelOutboundAdapter,
   ChannelOutboundTargetRef,
 } from "../../channels/plugins/types.adapters.js";
-import type { ReplyToMode } from "../../config/types.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { ReplyToMode } from "../../config/types.js";
 import type { ReplyPayloadDeliveryPin } from "../../interactive/payload.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import type { DeliveryQueueCompletionRetention } from "../delivery-queue-sqlite.js";
@@ -212,7 +212,7 @@ export type DeliverOutboundPayloadsParams = DeliverOutboundPayloadsCoreParams & 
   skipQueue?: boolean;
   /** @internal Fence recovery ownership at the same provider boundary as live sends. */
   deliveryProducerClaimId?: string;
-  /** @internal Keep an explicitly reusable producer claim alive during platform preparation. */
+  /** @internal Keep the exact live producer claim alive during platform preparation. */
   deliveryProducerLeaseRequired?: boolean;
   /** @internal Recovery already ran provider admission after its pending-row re-read. */
   deferredDeliveryAdmissionPassed?: true;
