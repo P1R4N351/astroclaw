@@ -1,4 +1,4 @@
-import type { Model } from "openclaw/plugin-sdk/llm";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { buildOpenAICompletionsParams } from "./openai-transport-stream.js";
 import {
@@ -774,6 +774,48 @@ describe("openai transport stream", () => {
         name: "echo_value",
         arguments: { value: "repro" },
         thoughtSignature: "SIG-OPAQUE-ABC==",
+      });
+    });
+
+    it("captures a top-level thought_signature from streamed OpenAI-compatible tool_calls", async () => {
+      const veniceGeminiModel = makeCompletionsModel({
+        id: "gemini-3-6-flash",
+        name: "Gemini 3.6 Flash",
+        provider: "venice",
+        baseUrl: "https://api.venice.ai/api/v1",
+        contextWindow: 1_000_000,
+      });
+      const output = createAssistantOutput(veniceGeminiModel);
+      const chunks = [
+        makeCompletionsChunk({
+          tool_calls: [
+            {
+              index: 0,
+              id: "call_abc",
+              type: "function",
+              function: { name: "echo_value", arguments: '{"value":"repro"}' },
+              thought_signature: "SIG-VENICE-OPAQUE-ABC==",
+            },
+          ],
+        }),
+        makeCompletionsChunk({}, "tool_calls" as const),
+      ] as const;
+      async function* mockStream() {
+        for (const chunk of chunks) {
+          yield chunk as never;
+        }
+      }
+
+      await testing.processOpenAICompletionsStream(mockStream(), output, veniceGeminiModel, {
+        push() {},
+      });
+
+      expectRecordFields(output.content[0], {
+        type: "toolCall",
+        id: "call_abc",
+        name: "echo_value",
+        arguments: { value: "repro" },
+        thoughtSignature: "SIG-VENICE-OPAQUE-ABC==",
       });
     });
 
