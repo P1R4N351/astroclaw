@@ -9,6 +9,8 @@ import {
   normalizeOptionalString,
   type FastMode,
 } from "@astroclaw/normalization-core/string-coerce";
+import type { QueueMode } from "../../../packages/gateway-protocol/src/schema/logs-chat.js";
+import type { SessionRunStatus } from "../../../packages/gateway-protocol/src/schema/sessions-row.js";
 import type { SessionObserverDigest } from "../../../packages/gateway-protocol/src/schema/sessions.js";
 import type { SessionAgentStatus } from "../../../packages/gateway-protocol/src/session-icon.js";
 import type { ChatType } from "../../channels/chat-type.js";
@@ -423,7 +425,7 @@ type SessionEntryCore = SessionRestartRecoveryState &
     /** Accumulated runtime across subagent follow-up runs, persisted after completion. */
     runtimeMs?: number;
     /** Final persisted subagent run status, used after in-memory run archival. */
-    status?: "running" | "done" | "failed" | "killed" | "timeout";
+    status?: SessionRunStatus;
     /** Compact user-facing reason for the latest failed or timed-out run. */
     lastRunError?: string;
     /**
@@ -515,7 +517,7 @@ type SessionEntryCore = SessionRestartRecoveryState &
     groupActivation?: "mention" | "always";
     groupActivationNeedsSystemIntro?: boolean;
     sendPolicy?: "allow" | "deny";
-    queueMode?: "steer" | "followup" | "collect" | "interrupt";
+    queueMode?: QueueMode;
     queueDebounceMs?: number;
     queueCap?: number;
     queueDrop?: "old" | "new" | "summarize";
