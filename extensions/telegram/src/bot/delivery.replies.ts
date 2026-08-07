@@ -1,11 +1,8 @@
-// Telegram plugin module implements delivery.replies behavior.
-import type { Bot } from "grammy";
-import type { Message } from "grammy/types";
 import {
   createOutboundPayloadPlan,
   projectOutboundPayloadPlanForDelivery,
-} from "openclaw/plugin-sdk/channel-outbound";
-import type { MarkdownTableMode, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
 import {
   buildCanonicalSentMessageHookContext,
   createInternalHookEvent,
@@ -14,20 +11,23 @@ import {
   toPluginMessageContext,
   toPluginMessageSentEvent,
   triggerInternalHook,
-} from "openclaw/plugin-sdk/hook-runtime";
-import type { ReplyPayloadDelivery } from "openclaw/plugin-sdk/interactive-runtime";
-import { normalizeMessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import type { ReplyPayloadDelivery } from "astroclaw/plugin-sdk/interactive-runtime";
+import { normalizeMessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
 import {
   buildOutboundMediaLoadOptions,
   probeVideoDimensions,
-} from "openclaw/plugin-sdk/media-runtime";
-import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
-import { chunkMarkdownTextWithMode, type ChunkMode } from "openclaw/plugin-sdk/reply-chunking";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
-import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
+} from "astroclaw/plugin-sdk/media-runtime";
+import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
+import { chunkMarkdownTextWithMode, type ChunkMode } from "astroclaw/plugin-sdk/reply-chunking";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { loadWebMedia } from "astroclaw/plugin-sdk/web-media";
+// Telegram plugin module implements delivery.replies behavior.
+import type { Bot } from "grammy";
+import type { Message } from "grammy/types";
 import { resolveTelegramInlineButtons, type TelegramInlineButtons } from "../button-types.js";
 import { mergeTelegramPartialDeliveryError } from "../chunk-delivery.js";
 import {
@@ -742,7 +742,7 @@ export function emitTelegramMessageSentHooks(params: EmitMessageSentHookParams):
 
 export async function deliverReplies(params: {
   replies: ReplyPayload[];
-  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  cfg?: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
   chatId: string;
   accountId?: string;
   sessionKeyForInternalHooks?: string;
@@ -759,7 +759,7 @@ export async function deliverReplies(params: {
   thread?: TelegramThreadSpec | null;
   tableMode?: MarkdownTableMode;
   chunkMode?: ChunkMode;
-  /** Opt into Telegram Bot API 10.1 rich text delivery. */
+  /** Opt into Telegram Bot API 10.2 rich text delivery. */
   richMessages?: boolean;
   /** Callback invoked before sending a voice message to switch typing indicator. */
   onVoiceRecording?: () => Promise<void> | void;
@@ -829,6 +829,9 @@ export async function deliverReplies(params: {
   for (const originalReply of normalizedReplies) {
     let reply = canonicalizeTelegramPresentationPayload(originalReply, {
       allowWebAppButtons: resolveTelegramTargetChatType(params.chatId) === "direct",
+      // HTML-mode text bypasses the markdown -> rich-block converter, so native
+      // table rendering only applies to the rich markdown funnel.
+      richTables: params.richMessages === true && params.textMode !== "html",
     });
     const mediaList = reply?.mediaUrls?.length
       ? reply.mediaUrls
