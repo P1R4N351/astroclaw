@@ -10,13 +10,16 @@
  * Separated from gateway.ts for testability and to keep handleMessage thin.
  */
 
-import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
-import { buildChannelInboundEventContext } from "openclaw/plugin-sdk/channel-inbound";
-import { bindIngressLifecycleToReplyOptions } from "openclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { isSilentReplyPayloadText, SILENT_REPLY_TOKEN } from "openclaw/plugin-sdk/reply-chunking";
-import type { FinalizedMsgContext } from "openclaw/plugin-sdk/reply-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+import {
+  resolveAgentWorkspaceDir,
+  resolveDefaultAgentId,
+} from "astroclaw/plugin-sdk/agent-runtime";
+import { buildChannelInboundEventContext } from "astroclaw/plugin-sdk/channel-inbound";
+import { bindIngressLifecycleToReplyOptions } from "astroclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { isSilentReplyPayloadText, SILENT_REPLY_TOKEN } from "astroclaw/plugin-sdk/reply-chunking";
+import type { FinalizedMsgContext } from "astroclaw/plugin-sdk/reply-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { createQQBotMarkdownChunker } from "../messaging/markdown-table-chunking.js";
 import {
   parseAndSendMediaTags,
@@ -697,11 +700,12 @@ export async function dispatchOutbound(
             ? {
                 onPartialReply: async (payload: { text?: string }) => {
                   try {
-                    await streamingController.onPartialReply(payload);
+                    return await streamingController.onPartialReply(payload);
                   } catch (partialErr) {
                     log?.error(
                       `Streaming onPartialReply error: ${partialErr instanceof Error ? partialErr.message : String(partialErr)}`,
                     );
+                    return false;
                   }
                 },
               }
