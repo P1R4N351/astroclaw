@@ -16,8 +16,8 @@ import {
 import { normalizeStateDirEnv } from "../config/paths.js";
 import { captureConfigOverrideApplier } from "../config/runtime-overrides.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
-import type { GatewayAuthConfig } from "../config/types.gateway.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { GatewayAuthConfig } from "../config/types.gateway.js";
 import { isSecretRef } from "../config/types.secrets.js";
 import { getActiveCronJobCount } from "../cron/active-jobs.js";
 import {
@@ -35,6 +35,7 @@ import { setGatewaySigusr1RestartPolicy, setPreRestartDeferralCheck } from "../i
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
 import { setCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
+import { completePluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import { getTotalQueueSize } from "../process/command-queue.js";
 import { getActiveGatewayRootWorkCount } from "../process/gateway-work-admission.js";
 import { createLazyPromise } from "../shared/lazy-runtime.js";
@@ -493,6 +494,7 @@ export async function prepareGatewayServerBootstrap(input: {
     defaultWorkspaceDir,
     startupPluginIds,
     pluginManifestRecords,
+    pluginMetadataSnapshot,
     pluginLookUpTable,
     baseMethods,
     ambientAutostartSuppressedChannelIds,
@@ -505,7 +507,13 @@ export async function prepareGatewayServerBootstrap(input: {
     sourceConfig: startupLastGoodSnapshot.sourceConfig,
   });
   const coreGatewayMethodNames = listCoreGatewayMethodNames();
-  setCurrentPluginMetadataSnapshot(pluginLookUpTable, {
+  const currentPluginMetadataSnapshot = completePluginMetadataSnapshot({
+    snapshot: pluginMetadataSnapshot,
+    config: startupActivationSourceConfig,
+    env: process.env,
+    workspaceDir: defaultWorkspaceDir,
+  });
+  setCurrentPluginMetadataSnapshot(currentPluginMetadataSnapshot, {
     config: startupActivationSourceConfig,
     compatibleConfigs: [startupRuntimeConfig, cfgAtStart, gatewayPluginConfigAtStart],
     env: process.env,
@@ -558,6 +566,7 @@ export async function prepareGatewayServerBootstrap(input: {
     defaultWorkspaceDir,
     startupPluginIds,
     pluginManifestRecords,
+    pluginMetadataSnapshot,
     pluginLookUpTable,
     baseMethods,
     ambientAutostartSuppressedChannelIds,
