@@ -4,23 +4,23 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { clearMemoryEmbeddingProviders as clearRegistry } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { clearMemoryEmbeddingProviders as clearRegistry } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   hashText,
   INVALID_PROJECT_ANNOTATION_KEY,
   MEMORY_CHUNKING_VERSION,
   type MemorySessionSyncTarget,
   type MemorySyncParams,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
-import { resolveOpenClawAgentSqlitePath } from "openclaw/plugin-sdk/sqlite-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+import { resolveOpenClawAgentSqlitePath } from "astroclaw/plugin-sdk/sqlite-runtime";
 import {
   closeOpenClawAgentDatabasesForTest,
   closeOpenClawStateDatabaseForTest,
   openOpenClawAgentDatabase,
-} from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configureMemoryCoreDreamingStateForTests,
@@ -3088,6 +3088,44 @@ describe("memory index", () => {
     expect(status.vector?.storeAvailable).toBe(available);
     expect(status.vector?.semanticAvailable).toBeUndefined();
     expect(status.vector?.available).toBeUndefined();
+  });
+
+  it("reports persisted vector index state on the unprobed status path", async () => {
+    const cfg = createCfg({ provider: "gemini", vectorEnabled: true });
+    const emptyManager = await getFreshManager(cfg, "status");
+    try {
+      const emptyStatus = emptyManager.status();
+      expect(emptyStatus.chunks).toBe(0);
+      expect(emptyStatus.vector?.storeAvailable).toBeUndefined();
+      expect(emptyStatus.vector?.index).toEqual({ state: "empty" });
+    } finally {
+      await emptyManager.close?.();
+    }
+
+    const indexingManager = await getFreshManager(cfg);
+    try {
+      await indexingManager.sync({ reason: "test", force: true });
+      expect(indexingManager.status().chunks).toBeGreaterThan(0);
+    } finally {
+      await indexingManager.close?.();
+    }
+
+    const statusManager = await getFreshManager(cfg, "status");
+    try {
+      expect(Reflect.get(statusManager, "vector")).toMatchObject({ available: null, dims: 4 });
+      expect(statusManager.status().vector).toMatchObject({
+        index: { state: "complete" },
+        storeAvailable: undefined,
+      });
+
+      const db = Reflect.get(statusManager, "db") as DatabaseSync;
+      db.prepare("UPDATE memory_index_meta SET value = '1' WHERE key = ?").run(
+        "memory_vector_rebuild_v1",
+      );
+      expect(statusManager.status().vector?.index).toEqual({ state: "incomplete" });
+    } finally {
+      await statusManager.close?.();
+    }
   });
 
   it("keeps current vector indexes clean after vector store probing", async () => {
