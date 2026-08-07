@@ -1,5 +1,6 @@
 import type { FastMode } from "@astroclaw/normalization-core/string-coerce";
 // Shared queue type contracts for admission, drain, and fallback handling.
+import type { QueueMode } from "../../../../packages/gateway-protocol/src/schema/logs-chat.js";
 import type { AutoFallbackPrimaryProbe } from "../../../agents/agent-scope.js";
 import type { ExecToolDefaults } from "../../../agents/bash-tools.js";
 import type { CliSessionBindingFacts } from "../../../agents/cli-runner/types.js";
@@ -9,8 +10,8 @@ import type { SilentReplyPromptMode } from "../../../agents/system-prompt.types.
 import type { ChatType } from "../../../channels/chat-type.js";
 import type { InboundEventKind } from "../../../channels/inbound-event/kind.js";
 import type { SessionEntry, SessionToolOverrides } from "../../../config/sessions.js";
-import type { ReplyToMode } from "../../../config/types.base.js";
 import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { ReplyToMode } from "../../../config/types.base.js";
 import type { MediaFact } from "../../../media/media-facts.js";
 import type { PromptImageOrderEntry } from "../../../media/prompt-image-order.js";
 import type { PluginHookChannelContext } from "../../../plugins/hook-types.js";
@@ -27,8 +28,6 @@ import type { OriginatingChannelType } from "../../templating.js";
 import type { ThinkingCatalogEntry } from "../../thinking.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "../directives.js";
 import { releaseRecentQueueMessageId } from "./recent-message-ids.js";
-
-export type QueueMode = "steer" | "followup" | "collect" | "interrupt";
 
 export type QueueDropPolicy = "old" | "new" | "summarize";
 
