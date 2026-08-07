@@ -44,10 +44,9 @@ let clearRuntimeConfigSnapshot: typeof import("../config/config.js").clearRuntim
 let setRuntimeConfigSnapshot: typeof import("../config/config.js").setRuntimeConfigSnapshot;
 let getReplyPayloadMetadata: typeof import("../auto-reply/reply-payload.js").getReplyPayloadMetadata;
 
-vi.mock("astroclaw/plugin-sdk/llm", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/llm")>(
-    "astroclaw/plugin-sdk/llm",
-  );
+vi.mock("openclaw/plugin-sdk/llm", async () => {
+  const actual =
+    await vi.importActual<typeof import("openclaw/plugin-sdk/llm")>("openclaw/plugin-sdk/llm");
 
   const buildAssistantMessage = (model: { api: string; provider: string; id: string }) => ({
     role: "assistant" as const,
@@ -170,7 +169,7 @@ const installRunEmbeddedMocks = () => {
 };
 
 let runEmbeddedAgent: typeof import("./embedded-agent-runner/run.js").runEmbeddedAgent;
-let SessionManager: typeof import("astroclaw/plugin-sdk/agent-sessions").SessionManager;
+let SessionManager: typeof import("openclaw/plugin-sdk/agent-sessions").SessionManager;
 let loadTranscriptEvents: typeof import("../config/sessions/session-accessor.js").loadTranscriptEvents;
 let upsertSessionEntry: typeof import("../config/sessions/session-accessor.js").upsertSessionEntry;
 let resolveAgentRunSessionTarget: typeof import("./run-session-target.js").resolveAgentRunSessionTarget;
@@ -193,7 +192,7 @@ beforeAll(async () => {
   ({ getReplyPayloadMetadata } = await import("../auto-reply/reply-payload.js"));
   ({ clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } = await import("../config/config.js"));
   ({ runEmbeddedAgent } = await import("./embedded-agent-runner/run.js"));
-  ({ SessionManager } = await import("astroclaw/plugin-sdk/agent-sessions"));
+  ({ SessionManager } = await import("openclaw/plugin-sdk/agent-sessions"));
   ({ loadTranscriptEvents, upsertSessionEntry } =
     await import("../config/sessions/session-accessor.js"));
   ({ resolveAgentRunSessionTarget } = await import("./run-session-target.js"));
@@ -241,6 +240,7 @@ const resolveTestSessionTarget = async (params: {
 }) =>
   await resolveAgentRunSessionTarget({
     config: params.config,
+    missingSessionKey: "create",
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
   });
