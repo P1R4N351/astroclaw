@@ -3,10 +3,10 @@ import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:chil
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   appendQaChildOutput,
   appendQaChildOutputTail,
@@ -44,10 +44,21 @@ type QaChatHistoryResponse = {
   messages?: unknown[];
 };
 
+type QaAgentTerminalReply =
+  | { disposition: "visible"; text: string }
+  | { disposition: "silent" }
+  | { disposition: "empty" };
+
 type QaAgentWaitResult = {
   status?: string;
   error?: string;
   stopReason?: string;
+  terminalDelivery?: {
+    status: "sent" | "suppressed" | "partial_failed" | "failed";
+    resultCount: number;
+  };
+  terminalReceipt?: Record<string, unknown>;
+  terminalReply?: QaAgentTerminalReply;
 };
 
 const ANSI_ESCAPE_PATTERN = new RegExp(String.raw`\x1B\[[0-?]*[ -/]*[@-~]`, "g");
