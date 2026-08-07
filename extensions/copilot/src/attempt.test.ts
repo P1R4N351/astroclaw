@@ -2,8 +2,9 @@
 import fsp from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { CopilotClient, Tool as SdkTool } from "@github/copilot-sdk";
 import { expectDefined } from "@astroclaw/normalization-core";
+import type { CopilotClient, Tool as SdkTool } from "@github/copilot-sdk";
+import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import {
   abortAgentHarnessRun,
   attachModelProviderRequestTransport,
@@ -11,14 +12,14 @@ import {
   type AgentHarnessAttemptParams,
   type AgentHarnessAttemptResult as AgentHarnessAttemptResultContract,
   type AgentMessage,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import type { SandboxContext } from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import type { SandboxContext } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "openclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runCopilotAttempt } from "./attempt.js";
 import type { CopilotClientPool } from "./runtime.js";
@@ -45,7 +46,7 @@ const gatewayQuestionMock = vi.hoisted(() => ({
   claimPendingAgentQuestionAnswer: undefined as
     | ((
         ...args: Parameters<
-          typeof import("openclaw/plugin-sdk/agent-harness-runtime").claimPendingAgentQuestionAnswer
+          typeof import("astroclaw/plugin-sdk/agent-harness-runtime").claimPendingAgentQuestionAnswer
         >
       ) => Promise<boolean>)
     | undefined,
@@ -54,8 +55,9 @@ const gatewayQuestionMock = vi.hoisted(() => ({
   setActiveEmbeddedRun: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     embeddedAgentLog: { ...actual.embeddedAgentLog, warn: gatewayQuestionMock.warn },
@@ -138,9 +140,9 @@ const transcriptRuntimeMock = vi.hoisted(() => ({
   }),
   readVisible: vi.fn(async () => []),
 }));
-vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-runtime")>();
   return {
     ...actual,
     appendSessionTranscriptMessageByIdentity: transcriptRuntimeMock.append,
@@ -401,6 +403,7 @@ function makeUserTurnRecorder(
     hasPersisted: () => persisted,
     isBlocked: () => blocked,
     hasRuntimePersistencePending: () => false,
+    getAdmissionReceipt: () => undefined,
     waitForRuntimePersistence: vi.fn(async () => undefined),
     persistApproved: vi.fn(async () => undefined),
     persistBlocked: vi.fn(async () => undefined),
@@ -507,14 +510,14 @@ describe("runCopilotAttempt", () => {
         };
       });
     const createToolBridge = vi.fn(async (input: CopilotToolBridgeInput) => {
-      input.attemptParams?.observeToolTerminal?.({
+      input.observeToolTerminal?.({
         toolCallId: "send-1",
         toolName: "message",
         arguments: { action: "send", message: "hello", target: "room-1" },
         outcome: "failure",
         failure: { error: "delivery failed" },
       });
-      input.attemptParams?.observeToolTerminal?.({
+      input.observeToolTerminal?.({
         toolCallId: "heartbeat-1",
         toolName: "heartbeat_respond",
         arguments: { summary: "ok" },
@@ -552,7 +555,11 @@ describe("runCopilotAttempt", () => {
         disableTools: false,
         config: { tools: { codeMode: true } },
       } as never),
-      { pool: makeFakePool(sdk) },
+      {
+        createOpenClawCodingToolsForAgentHarness: async (_attempt, options) =>
+          createOpenClawCodingTools(options),
+        pool: makeFakePool(sdk),
+      },
     );
 
     expect(result.codeModeEngaged).toBe(true);
@@ -596,14 +603,14 @@ describe("runCopilotAttempt", () => {
       });
     const createToolBridge = vi.fn(async (input: CopilotToolBridgeInput) => {
       const args = { action: "send", message: "hello", target: "room-1" };
-      input.attemptParams?.observeToolTerminal?.({
+      input.observeToolTerminal?.({
         toolCallId: "send-1",
         toolName: "message",
         arguments: args,
         outcome: "failure",
         failure: { error: "delivery failed" },
       });
-      input.attemptParams?.observeToolTerminal?.({
+      input.observeToolTerminal?.({
         toolCallId: "send-2",
         toolName: "message",
         arguments: args,
@@ -1676,9 +1683,11 @@ describe("runCopilotAttempt", () => {
     // bridge can build PI-parity tool context and wire onYield to the
     // live SDK session once it exists. See tool-bridge.ts.
     const bridgeCall = (createToolBridge.mock.calls[0] as unknown[] | undefined)?.[0] as {
+      admittedAttempt?: unknown;
       attemptParams?: unknown;
       sessionRef?: { current?: unknown };
     };
+    expect(bridgeCall.admittedAttempt).toBeDefined();
     expect(bridgeCall.attemptParams).toBeDefined();
     expect(bridgeCall.sessionRef).toBeDefined();
     expect(
@@ -1792,11 +1801,13 @@ describe("runCopilotAttempt", () => {
   it("F6: attemptParams carries the full input so the bridge can derive PI-parity tool context", async () => {
     const sdk = makeFakeSdk();
     const pool = makeFakePool(sdk);
-    let capturedParams: unknown;
-    const createToolBridge = vi.fn(async (input: { attemptParams?: unknown }) => {
-      capturedParams = input.attemptParams;
-      return { sdkTools: [], sourceTools: [] };
-    });
+    let capturedInput: { admittedAttempt?: unknown; attemptParams?: unknown } | undefined;
+    const createToolBridge = vi.fn(
+      async (input: { admittedAttempt?: unknown; attemptParams?: unknown }) => {
+        capturedInput = input;
+        return { sdkTools: [], sourceTools: [] };
+      },
+    );
 
     const params = makeParams({
       senderIsOwner: true,
@@ -1807,7 +1818,8 @@ describe("runCopilotAttempt", () => {
 
     // The bridge receives the same params object so it can read every
     // identity/policy/channel field the wrapped-tool layer needs.
-    expect(capturedParams).toBe(params);
+    expect(capturedInput?.attemptParams).toBe(params);
+    expect(capturedInput?.admittedAttempt).toBe(params);
   });
 
   it("F7: result.yieldDetected is true when the tool bridge fires onYieldDetected during the attempt", async () => {
