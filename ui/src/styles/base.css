@@ -154,9 +154,11 @@
   --text: #2a3a66;
   --text-strong: #011b56;
   --chat-text: #2a3a66;
-  --muted: #5e6f96;
+  /* --muted darkened #5e6f96 → #5b6b91: the old value was 4.29:1 on
+     --bg-muted #e7eef8, under the AA floor (#107299 class). Now 4.54:1. */
+  --muted: #5b6b91;
   --muted-strong: #47587f;
-  --muted-foreground: #5e6f96;
+  --muted-foreground: #5b6b91;
 
   --border: #dde6f2;
   --border-strong: #c3d2e8;
@@ -267,9 +269,17 @@
   --text: #e0e0e2;
   --text-strong: #f5f5f7;
   --chat-text: #e0e0e2;
-  --muted: #7a7a80;
-  --muted-strong: #6e6e76;
-  --muted-foreground: #7a7a80;
+  /*
+   * Muted text AA audit (worst surface = --bg-muted #1a1a1e):
+   *   --muted #7a7a80 → #828288  (4.07:1 → 4.54:1)
+   *   --muted-strong #6e6e76 → #919196  (3.43:1 → 4.55:1)
+   * --muted-strong was DARKER than --muted here, inverting its meaning: the
+   * canonical derivation is mix(--muted 84%, --text 16%) (see custom-theme.ts),
+   * which on a dark theme is lighter, not dimmer. Corrected in both senses.
+   */
+  --muted: #828288;
+  --muted-strong: #919196;
+  --muted-foreground: #828288;
 
   /* Borders — whisper-thin, barely visible */
   --border: #1a1a1e;
@@ -333,9 +343,11 @@
   --text: #3a3a42;
   --text-strong: #18181b;
   --chat-text: #3a3a42;
-  --muted: #6e6e78;
+  /* --muted darkened #6e6e78 → #696973: 4.21:1 on --bg-muted #eaeaef was
+     under the AA floor; now 4.53:1. */
+  --muted: #696973;
   --muted-strong: #52525a;
-  --muted-foreground: #6e6e78;
+  --muted-foreground: #696973;
 
   /* Borders — clean, minimal */
   --border: #e2e2e8;
@@ -402,9 +414,16 @@
   --text: #d8c8b8;
   --text-strong: #f0e4da;
   --chat-text: #d8c8b8;
-  --muted: #9a8878;
-  --muted-strong: #8a7868;
-  --muted-foreground: #9a8878;
+  /*
+   * Muted text AA audit (worst surface = --bg-muted #302822):
+   *   --muted #9a8878 → #9e8d7e  (4.25:1 → 4.52:1)
+   *   --muted-strong #8a7868 → #a79687  (3.42:1 → 4.52:1)
+   * Same inversion as openknot: --muted-strong is mix(--muted 84%, --text 16%),
+   * so on cocoa it must sit above --muted, not below it.
+   */
+  --muted: #9e8d7e;
+  --muted-strong: #a79687;
+  --muted-foreground: #9e8d7e;
 
   --border: #302418;
   --border-strong: #443828;
@@ -466,9 +485,11 @@
   --text: #4a3828;
   --text-strong: #2c2118;
   --chat-text: #4a3828;
-  --muted: #756050;
+  /* --muted darkened #756050 → #735e4f: 4.43:1 on --bg-muted #e8ddd2 was
+     just under the AA floor; now 4.56:1. */
+  --muted: #735e4f;
   --muted-strong: #604838;
-  --muted-foreground: #756050;
+  --muted-foreground: #735e4f;
 
   --border: #ddd0c2;
   --border-strong: #c8b8a6;
