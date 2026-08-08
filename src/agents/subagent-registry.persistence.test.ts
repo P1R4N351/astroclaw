@@ -381,7 +381,7 @@ describe("subagent registry persistence", () => {
     expect(persisted?.abortedLastRun).toBeUndefined();
   });
 
-  it("skips cleanup when cleanupHandled was persisted", async () => {
+  it("skips cleanup when persisted cleanup already completed", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
     setTestEnvValue("OPENCLAW_STATE_DIR", tempStateDir);
 
@@ -398,7 +398,9 @@ describe("subagent registry persistence", () => {
           createdAt: 1,
           startedAt: 1,
           endedAt: 2,
-          cleanupHandled: true, // Already handled - should be skipped
+          cleanupHandled: true,
+          cleanupCompletedAt: 3, // Terminal - cleanup genuinely finished
+          completionAnnouncedAt: 3,
         },
       },
     };
@@ -411,7 +413,7 @@ describe("subagent registry persistence", () => {
     restartRegistry();
     await flushQueuedRegistryWork();
 
-    // announce should NOT be called since cleanupHandled was true
+    // announce should NOT be called since cleanup already completed
     const calls = (announceSpy.mock.calls as unknown as Array<[unknown]>).map((call) => call[0]);
     expect(
       calls.some(
@@ -420,6 +422,50 @@ describe("subagent registry persistence", () => {
           "agent:main:subagent:two",
       ),
     ).toBe(false);
+  });
+
+  it("resumes the announce when cleanupHandled was persisted mid-flight without completion", async () => {
+    // Restart-wedge regression: a gateway restart while the completion
+    // announce is in flight persists cleanupHandled=true with neither
+    // completionAnnouncedAt nor cleanupCompletedAt. The stale in-flight flag
+    // must be cleared on restore so the announce is retried instead of the
+    // run wedging forever with the requester never hearing back.
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
+    setTestEnvValue("OPENCLAW_STATE_DIR", tempStateDir);
+
+    const now = Date.now();
+    const persisted = {
+      version: 2,
+      runs: {
+        "run-wedged": {
+          runId: "run-wedged",
+          childSessionKey: "agent:main:subagent:wedged",
+          requesterSessionKey: "agent:main:main",
+          requesterDisplayKey: "main",
+          task: "report back",
+          cleanup: "keep" as const,
+          createdAt: now - 2_000,
+          startedAt: now - 1_500,
+          endedAt: now - 1_000,
+          expectsCompletionMessage: true,
+          cleanupHandled: true, // In-flight guard from the dead process
+        },
+      },
+    };
+    saveCanonicalRunFixtures(new Map(Object.entries(persisted.runs)));
+    await writeChildSessionEntry({
+      sessionKey: "agent:main:subagent:wedged",
+      sessionId: "sess-wedged",
+    });
+
+    restartRegistry();
+    await waitForRegistryWork(() =>
+      (announceSpy.mock.calls as unknown as Array<[unknown]>).some(
+        (call) =>
+          (call[0] as { childSessionKey?: unknown } | undefined)?.childSessionKey ===
+          "agent:main:subagent:wedged",
+      ),
+    );
   });
 
   it("reuses the persisted registry cache on hot internal read snapshots", async () => {
