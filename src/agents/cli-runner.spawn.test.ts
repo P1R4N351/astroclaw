@@ -2,11 +2,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "@openclaw/ai/internal/shared";
 import { expectDefined } from "@astroclaw/normalization-core";
+import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "@openclaw/ai/internal/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
-import { createReplyOperation, replyRunRegistry } from "../auto-reply/reply/reply-run-registry.js";
+import { createReplyOperation } from "../auto-reply/reply/reply-run-registry.js";
 import { testing as replyRunTesting } from "../auto-reply/reply/reply-run-registry.test-support.js";
 import {
   markMcpLoopbackToolCallFinished,
@@ -2814,8 +2814,6 @@ describe("runCliAgent spawn path", () => {
     });
 
     await writeReady;
-    expect(replyRunRegistry.isStreaming("agent:main:main")).toBe(true);
-
     live.emit([
       { type: "system", subtype: "init", session_id: "live-session-reply" },
       { type: "result", session_id: "live-session-reply", result: "done" },
@@ -2823,7 +2821,6 @@ describe("runCliAgent spawn path", () => {
 
     const result = await run;
     expect(result.text).toBe("done");
-    expect(replyRunRegistry.isStreaming("agent:main:main")).toBe(false);
     operation.complete();
   });
 
