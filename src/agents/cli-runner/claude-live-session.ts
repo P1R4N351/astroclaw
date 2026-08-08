@@ -2,11 +2,11 @@
  * Manages reusable Claude CLI stdio sessions for CLI-backed agent turns.
  */
 import crypto from "node:crypto";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   splitSystemPromptCacheBoundary,
   stripSystemPromptCacheBoundary,
 } from "@openclaw/ai/internal/shared";
-import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { ReplyBackendHandle } from "../../auto-reply/reply/reply-run-registry.js";
 import { createAbortError as createNamedAbortError } from "../../infra/abort-signal.js";
 import {
@@ -2175,12 +2175,10 @@ async function runSerializedClaudeLiveSessionTurn(
   void outputPromise.catch(() => undefined);
   const abort = () =>
     abortTurn(liveSession, createAbortError(params.context.params.abortSignal?.reason));
-  let replyBackendCompleted = false;
   const replyBackendHandle: ReplyBackendHandle | undefined = params.context.params.replyOperation
     ? {
         kind: "cli",
         cancel: abort,
-        isStreaming: () => !replyBackendCompleted,
       }
     : undefined;
   params.context.params.abortSignal?.addEventListener("abort", abort, { once: true });
@@ -2201,7 +2199,6 @@ async function runSerializedClaudeLiveSessionTurn(
     }
     return { output: await outputPromise };
   } finally {
-    replyBackendCompleted = true;
     params.context.params.abortSignal?.removeEventListener("abort", abort);
     try {
       if (replyBackendHandle) {
