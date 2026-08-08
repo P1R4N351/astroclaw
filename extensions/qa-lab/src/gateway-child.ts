@@ -1,32 +1,26 @@
 // Qa Lab plugin module implements gateway child behavior.
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import {
-  createWriteStream,
-  existsSync,
-  readFileSync,
-  readdirSync,
-  type WriteStream,
-} from "node:fs";
+import { createWriteStream, existsSync, type WriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   isRecord,
   normalizeOptionalString,
   normalizeStringEntries,
   uniqueStrings,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
-import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -54,6 +48,11 @@ import {
 import { startQaGatewayRpcClient } from "./gateway-rpc-client.js";
 import { splitQaModelRef, type QaProviderMode } from "./model-selection.js";
 import { resolveQaNodeExecPath } from "./node-exec.js";
+import {
+  inspectLinuxProcessGroup,
+  inspectLinuxProcessGroupStats,
+  type QaLinuxProcessGroupInspector,
+} from "./posix-process-group.js";
 import { readProcessTreeCpuMs, readProcessTreeRssBytes } from "./process-tree-cpu.js";
 import {
   normalizeQaProviderModeEnv,
@@ -89,7 +88,6 @@ const QA_GATEWAY_CHILD_GRACEFUL_SHUTDOWN_TIMEOUT_MS = 30_000;
 // Loaded Docker runners can take several seconds to reap a force-killed process group.
 const QA_GATEWAY_CHILD_FORCE_SHUTDOWN_TIMEOUT_MS = 10_000;
 const QA_GATEWAY_LOG_CLOSE_TIMEOUT_MS = 5_000;
-const QA_GATEWAY_PROCESS_TREE_DIAGNOSTIC_MAX_CHARS = 2_048;
 const QA_MOCK_OPENAI_API_KEY = ["qa", "mock", "openai", "key"].join("-");
 const QA_GATEWAY_CHILD_BLOCKED_SECRET_ENV_VARS = Object.freeze([
   "OPENCLAW_QA_CONVEX_SECRET_CI",
@@ -794,98 +792,11 @@ function isProcessAlreadyExitedError(error: unknown): boolean {
   return (error as NodeJS.ErrnoException | undefined)?.code === "ESRCH";
 }
 
-function parseLinuxProcessStat(raw: string) {
-  const commandStart = raw.indexOf("(");
-  const commandEnd = raw.lastIndexOf(")");
-  if (commandStart <= 0 || commandEnd <= commandStart) {
-    return null;
-  }
-  const pid = Number.parseInt(raw.slice(0, commandStart).trim(), 10);
-  const fields = raw
-    .slice(commandEnd + 1)
-    .trim()
-    .split(/\s+/u);
-  const state = fields[0];
-  const processGroupId = Number.parseInt(fields[2] ?? "", 10);
-  if (
-    !Number.isSafeInteger(pid) ||
-    pid <= 0 ||
-    !state ||
-    !Number.isSafeInteger(processGroupId) ||
-    processGroupId <= 0
-  ) {
-    return null;
-  }
-  return {
-    command: raw.slice(commandStart + 1, commandEnd),
-    pid,
-    processGroupId,
-    state,
-  };
-}
-
 function boundQaGatewayProcessTreeDiagnostics(details: string) {
-  if (details.length <= QA_GATEWAY_PROCESS_TREE_DIAGNOSTIC_MAX_CHARS) {
+  if (details.length <= 2_048) {
     return details;
   }
-  return `${sliceUtf16Safe(details, 0, QA_GATEWAY_PROCESS_TREE_DIAGNOSTIC_MAX_CHARS - 3)}...`;
-}
-
-function inspectLinuxProcessGroupStats(processGroupId: number, stats: readonly string[]) {
-  const members = stats
-    .map((raw) => parseLinuxProcessStat(raw))
-    .filter(
-      (entry): entry is NonNullable<ReturnType<typeof parseLinuxProcessStat>> =>
-        entry?.processGroupId === processGroupId,
-    )
-    .toSorted((left, right) => left.pid - right.pid);
-  const diagnostics = members
-    .map(
-      (member) =>
-        `pid=${member.pid} state=${member.state} command=${JSON.stringify(member.command)}`,
-    )
-    .join(", ");
-  return {
-    alive:
-      members.length === 0
-        ? null
-        : members.some((entry) => entry.state !== "Z" && entry.state !== "X"),
-    diagnostics: boundQaGatewayProcessTreeDiagnostics(
-      `pgid=${processGroupId} members=[${diagnostics}]`,
-    ),
-  };
-}
-
-type QaLinuxProcessGroupInspection = ReturnType<typeof inspectLinuxProcessGroupStats>;
-type QaLinuxProcessGroupInspector = (
-  processGroupId: number,
-) => QaLinuxProcessGroupInspection | null;
-
-function inspectLinuxProcessGroup(processGroupId: number): QaLinuxProcessGroupInspection | null {
-  if (process.platform !== "linux") {
-    return null;
-  }
-  let entries;
-  try {
-    entries = readdirSync("/proc", { withFileTypes: true });
-  } catch {
-    return null;
-  }
-  const stats: string[] = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory() || !/^\d+$/u.test(entry.name)) {
-      continue;
-    }
-    try {
-      stats.push(readFileSync(path.join("/proc", entry.name, "stat"), "utf8"));
-    } catch (error) {
-      // Processes can exit while /proc is being scanned.
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        return null;
-      }
-    }
-  }
-  return inspectLinuxProcessGroupStats(processGroupId, stats);
+  return `${sliceUtf16Safe(details, 0, 2_045)}...`;
 }
 
 function isQaGatewayChildProcessTreeAlive(
@@ -1259,7 +1170,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
   const keepTemp = process.env.OPENCLAW_QA_KEEP_TEMP === "1";
   const gatewayLogStreams: Array<["stdout" | "stderr", WriteStream]> = [];
   let child: ReturnType<typeof spawn> | null = null;
