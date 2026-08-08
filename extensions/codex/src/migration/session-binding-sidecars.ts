@@ -5,7 +5,7 @@ import {
   listAgentIds,
   resolveAgentDir,
   resolveSessionAgentIds,
-} from "astroclaw/plugin-sdk/agent-runtime";
+} from "astroclaw/plugin-sdk/agent-scope-runtime";
 import { withFileLock, type FileLockOptions } from "astroclaw/plugin-sdk/file-lock";
 import type { PluginStateKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
