@@ -1,11 +1,12 @@
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { normalizeOptionalString as readStringParam } from "@astroclaw/normalization-core/string-coerce";
 import {
   resolveMergedModelProviderConfig,
   resolveMergedModelProviderModels,
   resolveModelProviderRouteOverridePresence,
 } from "../../config/model-provider-config.js";
-import type { ModelApi } from "../../config/types.models.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { ModelApi } from "../../config/types.models.js";
 import type {
   ProviderModelRouteRuntimePolicy,
   ProviderRouteOverridePresence,
@@ -256,10 +257,6 @@ function isSupportedHarness(entry: {
   support: AgentHarnessSupport & { supported: true };
 } {
   return entry.support.supported;
-}
-
-function readStringParam(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function normalizeModelId(provider: string, modelId: string): string {
