@@ -803,7 +803,7 @@ export function mergeSessionEntryPreserveActivity(
   });
 }
 
-function resolveSessionTotalTokensValue(entry?: Pick<SessionEntry, "totalTokens"> | null) {
+export function resolveSessionTotalTokens(entry?: Pick<SessionEntry, "totalTokens"> | null) {
   const total = entry?.totalTokens;
   if (typeof total !== "number" || !Number.isFinite(total) || total < 0) {
     return undefined;
@@ -814,7 +814,7 @@ function resolveSessionTotalTokensValue(entry?: Pick<SessionEntry, "totalTokens"
 export function resolveFreshSessionTotalTokens(
   entry?: Pick<SessionEntry, "totalTokens" | "totalTokensFresh" | "totalTokensVersion"> | null,
 ): number | undefined {
-  const total = resolveSessionTotalTokensValue(entry);
+  const total = resolveSessionTotalTokens(entry);
   if (total === undefined) {
     return undefined;
   }
