@@ -1,4 +1,5 @@
 // Channel policy helpers evaluate plugin channel runtime policy and operator-facing warnings.
+import { asNullableRecord as asObjectRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeStringEntries,
   uniqueStrings,
@@ -7,8 +8,8 @@ import { sanitizeForLog } from "../../packages/terminal-core/src/ansi.js";
 import { createAllowlistProviderRestrictSendersWarningCollector } from "../channels/plugins/group-policy-warnings.js";
 import type { ChannelSecurityAdapter } from "../channels/plugins/types.adapters.js";
 import { collectProviderDangerousNameMatchingScopes } from "../config/dangerous-name-matching.js";
-import type { GroupPolicy } from "../config/types.base.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { GroupPolicy } from "../config/types.base.js";
 import { createScopedDmSecurityResolver } from "./channel-config-helpers.js";
 /** Shared policy warnings and DM/group policy helpers for channel plugins. */
 export type {
@@ -103,12 +104,6 @@ type StandardAllowlistScope = {
   prefix: string;
   account: Record<string, unknown>;
 };
-
-function asObjectRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
 
 /** Collect the common account, nested-DM, and group/room allowlist paths for doctor warnings. */
 export function collectStandardAllowlistLists(
