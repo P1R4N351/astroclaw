@@ -1,6 +1,7 @@
+import { asOptionalRecord as readModelParams } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
-import type { ModelCompatConfig, ModelMediaInputConfig } from "../../config/types.models.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { ModelCompatConfig, ModelMediaInputConfig } from "../../config/types.models.js";
 import type { Api, Model } from "../../llm/types.js";
 import type { PluginMetadataSnapshotOwnerMaps } from "../../plugins/plugin-metadata-snapshot.types.js";
 import type { ProviderRuntimeModel } from "../../plugins/provider-runtime-model.types.js";
@@ -226,13 +227,6 @@ export function hasConfiguredFallbackSurface(params: {
     return true;
   }
   return Boolean(params.providerConfig?.baseUrl?.trim());
-}
-
-function readModelParams(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  return value as Record<string, unknown>;
 }
 
 function mergeModelParams(
