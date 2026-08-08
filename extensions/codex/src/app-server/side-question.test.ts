@@ -2,17 +2,17 @@
 import {
   nativeHookRelayTesting,
   type NativeHookRelayRegistrationHandle,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   onInternalDiagnosticEvent,
   resetDiagnosticEventsForTest,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   codexTestTurnIds,
@@ -95,7 +95,7 @@ vi.mock("./provider-capabilities.js", () => ({
     resolveCodexProviderWebSearchSupportForClientMock(...args),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness", () => ({
+vi.mock("openclaw/plugin-sdk/agent-harness", () => ({
   createOpenClawCodingTools: (...args: unknown[]) => createOpenClawCodingToolsMock(...args),
 }));
 
@@ -245,7 +245,7 @@ function threadResult(threadId: string) {
       status: { type: "idle" },
       path: null,
       cwd: "/tmp/workspace",
-      cliVersion: "0.146.1",
+      cliVersion: "0.147.0",
       source: "unknown",
       agentNickname: null,
       agentRole: null,
