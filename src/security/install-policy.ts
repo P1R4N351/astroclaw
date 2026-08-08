@@ -1,7 +1,7 @@
 // Checks install policy constraints for package and plugin operations.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import { truncateWithMarker } from "@astroclaw/normalization-core/utf16-slice";
 import type { OpenClawConfig, SecurityConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { runCommandWithTimeout } from "../process/exec.js";
@@ -343,7 +343,7 @@ async function assertSecurePolicyScriptArg(params: {
 }
 
 function truncateText(value: string, maxChars: number): string {
-  return value.length <= maxChars ? value : `${truncateUtf16Safe(value, maxChars)}...`;
+  return truncateWithMarker(value, maxChars, { marker: "...", reserve: 0, trimEnd: false });
 }
 
 function createPolicyChildEnv(sourceEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
