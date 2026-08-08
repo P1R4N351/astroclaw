@@ -1,7 +1,7 @@
 // Clickclack tests cover accounts plugin behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { withTempDir } from "openclaw/plugin-sdk/test-env";
+import { withTempDir } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   listClickClackAccountIds,
@@ -162,6 +162,7 @@ describe("ClickClack account resolution", () => {
       mentionPatterns: [],
       model: undefined,
       name: undefined,
+      nativeProgress: false,
       reconnectMs: 1_500,
       replyMode: "agent",
       requireMention: false,
@@ -272,6 +273,7 @@ describe("ClickClack account resolution", () => {
       mentionPatterns: [],
       model: "openai/gpt-5.4-mini",
       name: undefined,
+      nativeProgress: false,
       reconnectMs: 1_500,
       replyMode: "model",
       requireMention: false,
