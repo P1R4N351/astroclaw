@@ -1,15 +1,11 @@
+import { asFiniteNumber as readFiniteNumberValue } from "@astroclaw/normalization-core/number-coercion";
+import { asOptionalRecord as readRecordValue } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeLowercaseStringOrEmpty,
   readStringValue,
 } from "@astroclaw/normalization-core/string-coerce";
 import { inferToolMetaFromArgs } from "../../agents/embedded-agent-utils.js";
 import type { GetReplyOptions } from "../types.js";
-
-function readRecordValue(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
 
 /**
  * CLI backends report a tool result as its raw content: a string, or the text
@@ -30,10 +26,6 @@ function readToolResultText(value: unknown): string | undefined {
     .join("\n")
     .trim();
   return text || undefined;
-}
-
-function readFiniteNumberValue(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function readNullableNumberValue(value: unknown): number | null | undefined {
