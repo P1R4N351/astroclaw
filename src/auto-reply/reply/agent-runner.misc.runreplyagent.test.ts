@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 // Tests miscellaneous run-reply-agent behaviors and artifact output.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { testing as cliBackendsTesting } from "../../agents/cli-backends.test-support.js";
 import {
@@ -557,6 +557,8 @@ describe("runReplyAgent auto-compaction token update", () => {
       sessionId: "session",
       updatedAt: Date.now(),
       totalTokens: 200_000,
+      totalTokensFresh: true,
+      totalTokensVersion: 1 as const,
     };
     await seedSessionStore({ storePath, sessionKey, entry: sessionEntry });
     compactState.compactEmbeddedAgentSessionMock.mockRejectedValueOnce(new GatewayDrainingError());
@@ -2779,6 +2781,8 @@ describe("runReplyAgent fallback reasoning tags", () => {
         sessionId: "session",
         updatedAt: Date.now(),
         totalTokens: 1_000_000,
+        totalTokensFresh: true,
+        totalTokensVersion: 1 as const,
         compactionCount: 0,
       },
     });
