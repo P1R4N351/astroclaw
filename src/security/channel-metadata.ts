@@ -1,6 +1,6 @@
 // Extracts channel metadata used by security audit findings.
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
-import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import { truncateWithMarker } from "@astroclaw/normalization-core/utf16-slice";
 import { wrapExternalContent } from "./external-content.js";
 
 const DEFAULT_MAX_CHARS = 800;
@@ -14,11 +14,7 @@ function truncateText(value: string, maxChars: number): string {
   if (maxChars <= 0) {
     return "";
   }
-  if (value.length <= maxChars) {
-    return value;
-  }
-  const trimmed = truncateUtf16Safe(value, Math.max(0, maxChars - 3)).trimEnd();
-  return `${trimmed}...`;
+  return truncateWithMarker(value, maxChars, { marker: "...", reserve: 3, trimEnd: true });
 }
 
 /**
