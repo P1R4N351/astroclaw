@@ -5,20 +5,20 @@ import {
   onAgentEvent,
   resolveActiveEmbeddedRunSessionId,
   type AgentEventPayload,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { openFileBackedSessionManagerForTest } from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { openFileBackedSessionManagerForTest } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
   type DiagnosticEventPrivateData,
-} from "openclaw/plugin-sdk/diagnostic-runtime";
-import { initializeGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
+} from "astroclaw/plugin-sdk/diagnostic-runtime";
+import { initializeGlobalHookRunner } from "astroclaw/plugin-sdk/hook-runtime";
 import {
   createMockPluginRegistry,
   onTrustedInternalDiagnosticEvent,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "astroclaw/plugin-sdk/provider-model-shared";
 import { describe, expect, it, vi } from "vitest";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
 import {
@@ -115,7 +115,9 @@ describe("runCodexAppServerAttempt hooks and model diagnostics", () => {
     );
     const sessionFile = path.join(tempDir, "session.jsonl");
     const workspaceDir = path.join(tempDir, "workspace");
-    const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
+    const sessionManager = openFileBackedSessionManagerForTest(sessionFile, {
+      sessionId: "session-1",
+    });
     sessionManager.appendMessage(assistantMessage("existing context", Date.now()));
     const harness = createStartedThreadHarness();
 
@@ -311,7 +313,9 @@ describe("runCodexAppServerAttempt hooks and model diagnostics", () => {
         return {};
       });
       const params = createParams(sessionFile, workspaceDir);
-      const sessionManager = openFileBackedSessionManagerForTest(sessionFile);
+      const sessionManager = openFileBackedSessionManagerForTest(sessionFile, {
+        sessionId: "diagnostic-session-1",
+      });
       sessionManager.appendMessage(assistantMessage("existing context", Date.now()));
       params.runtimePlan = createCodexRuntimePlanFixture();
       params.config = {
@@ -943,7 +947,7 @@ describe("runCodexAppServerAttempt hooks and model diagnostics", () => {
     );
     const sessionFile = path.join(tempDir, "session.jsonl");
     const workspaceDir = path.join(tempDir, "workspace");
-    openFileBackedSessionManagerForTest(sessionFile).appendMessage(
+    openFileBackedSessionManagerForTest(sessionFile, { sessionId: "session-1" }).appendMessage(
       assistantMessage("existing context", Date.now()),
     );
     createStartedThreadHarness(async (method) => {
