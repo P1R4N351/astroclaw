@@ -226,12 +226,10 @@ async function sleepWithAbort(ms, abortSignal, options = {}) {
       timer = null,
       cleanup = () => abortSignal?.removeEventListener("abort", onAbort),
       onAbort = () => {
-        settled ||
-          ((settled = !0),
-          timer && clearTimeout(timer),
-          (timer = null),
-          cleanup(),
-          reject(new Error("aborted", { cause: abortSignal?.reason ?? new Error("aborted") })));
+        if (settled) return;
+        ((settled = !0), timer && clearTimeout(timer), (timer = null), cleanup());
+        let error = new Error("aborted", { cause: abortSignal?.reason ?? new Error("aborted") });
+        ((error.name = "AbortError"), reject(error));
       };
     if ((abortSignal?.addEventListener("abort", onAbort, { once: !0 }), abortSignal?.aborted)) {
       onAbort();
