@@ -110,7 +110,7 @@ export function renderNostrProfileForm(params: {
             ?disabled=${state.saving}
           ></textarea>
           ${help
-            ? html`<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            ? html`<div style="font-size: 12px; color: var(--muted); margin-top: 2px;">
                 ${help}
               </div>`
             : nothing}
@@ -142,9 +142,7 @@ export function renderNostrProfileForm(params: {
           ?disabled=${state.saving}
         />
         ${help
-          ? html`<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-              ${help}
-            </div>`
+          ? html`<div style="font-size: 12px; color: var(--muted); margin-top: 2px;">${help}</div>`
           : nothing}
         ${error
           ? html`<div style="font-size: 12px; color: var(--danger-color); margin-top: 2px;">
@@ -189,7 +187,7 @@ export function renderNostrProfileForm(params: {
         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;"
       >
         <div style="font-weight: 600; font-size: 16px;">${t("channels.nostr.editProfile")}</div>
-        <div style="font-size: 12px; color: var(--text-muted);">
+        <div style="font-size: 12px; color: var(--muted);">
           ${t("channels.nostr.account")}: ${accountId}
         </div>
       </div>
@@ -227,7 +225,7 @@ export function renderNostrProfileForm(params: {
             <div
               style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;"
             >
-              <div style="font-weight: 500; margin-bottom: 12px; color: var(--text-muted);">
+              <div style="font-weight: 500; margin-bottom: 12px; color: var(--muted);">
                 ${t("channels.nostr.advanced")}
               </div>
 

@@ -260,7 +260,7 @@ img.chat-avatar {
 
 .chat-group.user .chat-duplicate-count {
   background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: color-mix(in srgb, var(--foreground) 80%, var(--primary) 20%);
+  color: color-mix(in srgb, var(--text) 80%, var(--primary) 20%);
 }
 
 .chat-bubble-actions {
@@ -458,7 +458,7 @@ img.chat-avatar {
 .msg-meta__summary:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
   background: var(--bg-hover, rgba(255, 255, 255, 0.08));
-  color: var(--fg);
+  color: var(--text);
 }
 
 .msg-meta__summary:focus-visible {
@@ -562,7 +562,7 @@ details.msg-meta:not([open]) .msg-meta__details {
   margin: 0 0 8px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--fg, #fff);
+  color: var(--text, #fff);
 }
 
 .chat-delete-confirm__remember {

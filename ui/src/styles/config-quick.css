@@ -335,10 +335,10 @@
   max-width: 100%;
   margin-top: 7px;
   padding: 4px 7px;
-  border: 1px solid color-mix(in srgb, var(--warning, #f7b955) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn, #f7b955) 35%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--warning, #f7b955) 10%, transparent);
-  color: color-mix(in srgb, var(--warning, #f7b955) 82%, var(--text) 18%);
+  background: color-mix(in srgb, var(--warn, #f7b955) 10%, transparent);
+  color: color-mix(in srgb, var(--warn, #f7b955) 82%, var(--text) 18%);
   font-size: 0.68rem;
   font-weight: 650;
   line-height: 1.2;

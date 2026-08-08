@@ -184,7 +184,7 @@ export function renderNostrCard(params: {
               </div>
             `
           : html`
-              <div style="color: var(--text-muted); font-size: 13px">
+              <div style="color: var(--muted); font-size: 13px">
                 ${t("channels.nostr.noProfile")} ${t("channels.nostr.noProfileHint")}
               </div>
             `}
