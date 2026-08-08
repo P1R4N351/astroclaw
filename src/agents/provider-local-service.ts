@@ -10,8 +10,9 @@ import {
   clampPositiveTimerTimeoutMs,
   resolvePositiveTimerTimeoutMs,
 } from "@astroclaw/normalization-core/number-coercion";
-import type { ModelProviderLocalServiceConfig } from "../config/types.models.js";
+import { sleepWithAbort } from "@openclaw/retry";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelProviderLocalServiceConfig } from "../config/types.models.js";
 import { toErrorObject } from "../infra/errors.js";
 import type { Model } from "../llm/types.js";
 import { isSensitiveFieldKey, redactSensitiveText } from "../logging/redact.js";
@@ -505,7 +506,7 @@ async function startAndWaitForLocalService(params: {
     if (Date.now() >= deadline) {
       throw new Error(`${provider} local service did not become ready at ${healthUrl}`);
     }
-    await sleep(PROBE_INTERVAL_MS, signal);
+    await sleepWithAbort(PROBE_INTERVAL_MS, signal, { ref: false });
   }
 }
 
@@ -703,25 +704,6 @@ function waitForAbort<T>(promise: Promise<T>, signal?: AbortSignal | null): Prom
   });
 }
 
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  throwIfAborted(signal);
-  return new Promise((resolve, reject) => {
-    const cleanup = () => signal?.removeEventListener("abort", onAbort);
-    const onDone = () => {
-      cleanup();
-      resolve();
-    };
-    const onAbort = () => {
-      clearTimeout(timeout);
-      cleanup();
-      reject(toAbortError(signal));
-    };
-    const timeout: NodeJS.Timeout = setTimeout(onDone, ms);
-    timeout.unref?.();
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
 function waitForSpawnResult(
   child: ChildProcess,
   signal?: AbortSignal | null,
@@ -790,4 +772,3 @@ export function hasLocalServiceProcessExited(
 ): boolean {
   return child.exitCode !== null || child.signalCode !== null;
 }
-/* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
