@@ -73,6 +73,8 @@ function resolveThemes(blocks: Map<string, TokenMap>): Map<string, TokenMap> {
     ["openknot-light", layer(light, blocks.get(':root[data-theme="openknot-light"]'))],
     ["dash", layer(blocks.get(':root[data-theme="dash"]'))],
     ["dash-light", layer(light, blocks.get(':root[data-theme="dash-light"]'))],
+    ["piranesi", layer(blocks.get(':root[data-theme="piranesi"]'))],
+    ["piranesi-light", layer(light, blocks.get(':root[data-theme="piranesi-light"]'))],
   ]);
 }
 

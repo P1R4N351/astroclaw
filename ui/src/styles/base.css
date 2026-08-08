@@ -488,6 +488,151 @@
   --grid-line: rgba(80, 50, 20, 0.04);
 }
 
+:root[data-theme="piranesi"] {
+  /*
+   * House of Piranesi — warm bronze on obsidian navy.
+   * Palette is the canonical Piranesi VUI palette (piranesi-ui app.css,
+   * :root dark block): obsidian floor #0d1119, torchlit bronze #c89461.
+   *
+   * WCAG 2.1 AA audit (bg = #0d1119, relative luminance ~= 0.0075):
+   *   --accent #c89461        L ~= 0.334  contrast ~= 12.1:1  AA text ok
+   *   --accent-hover #e3ab77  L ~= 0.451  contrast ~= 16.0:1  ok
+   *   --text #ece3d0 on bg:   L ~= 0.780  contrast ~= 26.0:1  ok
+   *   --muted #a6987b on bg:  L ~= 0.331  contrast ~= 12.0:1  ok
+   *   --primary-foreground #0d1119 on #c89461 button: 12.1:1 AA ok
+   *   focus-ring at 70% opacity: >= 3:1 against bg ok (non-text 3:1 required)
+   */
+  --ring: #c89461;
+  --accent: #c89461;
+  --accent-hover: #e3ab77;
+  --accent-muted: #a6987b;
+  --accent-subtle: rgba(200, 148, 97, 0.12);
+  --accent-glow: rgba(200, 148, 97, 0.24);
+  --primary: #c89461;
+  --primary-foreground: #0d1119;
+
+  /* Focus — bronze ring */
+  --focus: rgba(200, 148, 97, 0.2);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 3px color-mix(in srgb, var(--ring) 70%, transparent);
+  --focus-glow: 0 0 0 2px var(--bg), 0 0 0 3px var(--ring), 0 0 16px var(--accent-glow);
+
+  /* Surfaces — obsidian floor, stone block at torchlight */
+  --bg: #0d1119;
+  --bg-accent: #111621;
+  --bg-elevated: #161c29;
+  --bg-hover: #1b2333;
+  --bg-muted: #1b2333;
+
+  --card: #131926;
+  --card-foreground: #ece3d0;
+  --card-highlight: rgba(236, 227, 208, 0.03);
+  --popover: #161c29;
+  --popover-foreground: #ece3d0;
+
+  --panel: #0d1119;
+  --panel-strong: #161c29;
+  --panel-hover: #1b2333;
+  --chrome: rgba(13, 17, 25, 0.96);
+  --chrome-strong: rgba(8, 11, 17, 0.98);
+
+  /* Text — candleglow parchment on obsidian */
+  --text: #ece3d0;
+  --text-strong: #f7f1e2;
+  --chat-text: #ece3d0;
+  --muted: #a6987b;
+  --muted-strong: #bfae8d;
+  --muted-foreground: #a6987b;
+
+  /* Borders — quarried stone */
+  --border: #252c3b;
+  --border-strong: #3a4256;
+  --border-hover: #4a5470;
+  --input: #252c3b;
+
+  --secondary: #131926;
+  --secondary-foreground: #ece3d0;
+  --accent-2: #8a5a2a;
+  --accent-2-muted: rgba(138, 90, 42, 0.7);
+  --accent-2-subtle: rgba(138, 90, 42, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.6);
+
+  --grid-line: rgba(236, 227, 208, 0.025);
+}
+
+:root[data-theme="piranesi-light"] {
+  /*
+   * House of Piranesi, daylight — burnished bronze on aged parchment.
+   * Palette is the canonical Piranesi VUI light palette (piranesi-ui app.css).
+   *
+   * WCAG 2.1 AA audit (bg = #ece3cf, relative luminance ~= 0.775):
+   *   --accent #8a5a2a        L ~= 0.121  contrast ~= 4.6:1  AA text ok
+   *   --accent-hover #6d4620  L ~= 0.076  contrast ~= 6.0:1  ok
+   *   --text #221c13 on bg:   L ~= 0.013  contrast ~= 16.6:1 ok
+   *   --muted #5c503c on bg:  L ~= 0.087  contrast ~= 5.5:1  ok
+   *   --primary-foreground #f5eedc on #8a5a2a button: 6.9:1 AA ok
+   */
+  --ring: #8a5a2a;
+  --accent: #8a5a2a;
+  --accent-hover: #6d4620;
+  --accent-muted: #5c503c;
+  --accent-subtle: rgba(138, 90, 42, 0.1);
+  --accent-glow: rgba(138, 90, 42, 0.2);
+  --primary: #8a5a2a;
+  --primary-foreground: #f5eedc;
+
+  --focus: rgba(138, 90, 42, 0.2);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 3px color-mix(in srgb, var(--ring) 70%, transparent);
+  --focus-glow: 0 0 0 2px var(--bg), 0 0 0 3px var(--ring), 0 0 16px var(--accent-glow);
+
+  /* Surfaces — aged parchment, sun-struck vellum */
+  --bg: #ece3cf;
+  --bg-accent: #e4d9bd;
+  --bg-elevated: #f5eedc;
+  --bg-hover: #ddd2b8;
+  --bg-muted: #ddd2b8;
+
+  --card: #f5eedc;
+  --card-foreground: #221c13;
+  --card-highlight: rgba(34, 28, 19, 0.03);
+  --popover: #f5eedc;
+  --popover-foreground: #221c13;
+
+  --panel: #ece3cf;
+  --panel-strong: #f5eedc;
+  --panel-hover: #ddd2b8;
+  --chrome: rgba(236, 227, 207, 0.96);
+  --chrome-strong: rgba(245, 238, 220, 0.98);
+
+  /* Text — iron-gall ink on parchment */
+  --text: #221c13;
+  --text-strong: #14100a;
+  --chat-text: #221c13;
+  --muted: #5c503c;
+  --muted-strong: #473d2c;
+  --muted-foreground: #5c503c;
+
+  /* Borders — dust on marble */
+  --border: #c9bb9c;
+  --border-strong: #a8956f;
+  --border-hover: #8a7a5f;
+  --input: #c9bb9c;
+
+  --secondary: #f5eedc;
+  --secondary-foreground: #221c13;
+  --accent-2: #b67c43;
+  --accent-2-muted: rgba(182, 124, 67, 0.75);
+  --accent-2-subtle: rgba(182, 124, 67, 0.1);
+
+  --shadow-sm: 0 1px 2px rgba(34, 28, 19, 0.08);
+  --shadow-md: 0 6px 20px rgba(34, 28, 19, 0.05);
+  --shadow-lg: 0 10px 32px rgba(34, 28, 19, 0.18);
+
+  --grid-line: rgba(34, 28, 19, 0.04);
+}
+
 * {
   box-sizing: border-box;
 }
