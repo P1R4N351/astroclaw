@@ -17,14 +17,11 @@ import {
   supportsModelTools,
   type EmbeddedRunAttemptParams,
   type RuntimeToolSchemaDiagnostic,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { resolveAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
-import { isToolAllowed } from "astroclaw/plugin-sdk/sandbox";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { resolveAgentDir } from "openclaw/plugin-sdk/agent-runtime";
+import { isToolAllowed } from "openclaw/plugin-sdk/sandbox";
 import { readCodexPluginConfig, type CodexPluginConfig } from "./config.js";
-import {
-  dynamicToolBuildState,
-  type AgentHarnessCodingToolsFactory,
-} from "./dynamic-tool-build-state.js";
+import { dynamicToolBuildState } from "./dynamic-tool-build-state.js";
 import {
   filterCodexDynamicTools,
   filterCodexDynamicToolsWithOpenClawShell,
@@ -52,12 +49,12 @@ import { filterToolsForVisionInputs } from "./vision-tools.js";
 import { resolveCodexWebSearchPlan, type CodexNativeWebSearchSupport } from "./web-search.js";
 
 type OpenClawCodingToolsOptions = NonNullable<
-  Parameters<(typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]>[0]
+  Parameters<(typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]>[0]
 >;
 
 /** Factory seam for constructing OpenClaw runtime tools without eagerly loading agent-harness. */
 type OpenClawCodingToolsFactory =
-  (typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
+  (typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
 type OpenClawDynamicTool = ReturnType<OpenClawCodingToolsFactory>[number];
 type OpenClawSandboxContext = Awaited<ReturnType<typeof resolveSandboxContext>>;
 type CodexDynamicToolBuildEvent = Parameters<
@@ -86,8 +83,6 @@ function preserveRingZeroSystemAgentTool<T extends { name: string; catalogMode?:
 }
 /** Runtime inputs needed to derive the exact Codex dynamic tool surface for a turn. */
 type DynamicToolBuildParams = {
-  agentHarnessCodingToolsFactory?: AgentHarnessCodingToolsFactory;
-  attributionAttempt: EmbeddedRunAttemptParams;
   params: EmbeddedRunAttemptParams;
   resolvedWorkspace: string;
   effectiveWorkspace: string;
@@ -233,22 +228,16 @@ export async function buildDynamicTools(input: DynamicToolBuildParams) {
   const modelHasVision = params.model.input?.includes("image") ?? false;
   const agentDir = params.agentDir ?? resolveAgentDir(params.config ?? {}, input.sessionAgentId);
   const injectedOpenClawCodingToolsFactory = dynamicToolBuildState.openClawCodingToolsFactory;
-  let agentHarnessModule: typeof import("astroclaw/plugin-sdk/agent-harness") | undefined;
+  let agentHarnessModule: typeof import("openclaw/plugin-sdk/agent-harness") | undefined;
   const loadAgentHarnessModule = async () =>
-    (agentHarnessModule ??= await import("astroclaw/plugin-sdk/agent-harness"));
-  const agentHarnessCodingToolsFactory =
-    input.agentHarnessCodingToolsFactory ?? dynamicToolBuildState.agentHarnessCodingToolsFactory;
-  if (!injectedOpenClawCodingToolsFactory && !agentHarnessCodingToolsFactory) {
-    throw new Error("[codex] host tool authority is unavailable");
-  }
+    (agentHarnessModule ??= await import("openclaw/plugin-sdk/agent-harness"));
   const createOpenClawCodingTools =
     injectedOpenClawCodingToolsFactory ??
-    ((options: OpenClawCodingToolsOptions) =>
-      agentHarnessCodingToolsFactory!(input.attributionAttempt, options));
+    (await loadAgentHarnessModule()).createOpenClawCodingTools;
   toolBuildStages.mark("load-agent-harness-tools");
   const sessionKeys = resolveOpenClawCodingToolsSessionKeys(params, input.sandboxSessionKey);
   const nativeExecutionPolicy = resolveCodexNativeExecutionPolicyForDynamicTools(input);
-  const allTools = await createOpenClawCodingTools({
+  const allTools = createOpenClawCodingTools({
     agentId: input.sessionAgentId,
     ...buildEmbeddedAttemptToolRunContext(params),
     exec: {
