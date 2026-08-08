@@ -39,11 +39,10 @@ export default defineConfig({
     ...baseTest,
     maxWorkers: e2eWorkers,
     silent: !verboseE2E,
+    globalSetup: [resolveRepoRootPath("test/vitest/vitest.e2e.global-setup.ts")],
     setupFiles: [
       ...new Set(
-        [...(baseTest.setupFiles ?? []), "test/setup-astroclaw-runtime.ts"].map(
-          resolveRepoRootPath,
-        ),
+        [...(baseTest.setupFiles ?? []), "test/setup-openclaw-runtime.ts"].map(resolveRepoRootPath),
       ),
     ],
     include: [
