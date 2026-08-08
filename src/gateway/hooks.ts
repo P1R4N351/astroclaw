@@ -1,14 +1,15 @@
 // Gateway webhook helpers for external hook dispatch into agents and wake flows.
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
+import type { Result } from "@astroclaw/normalization-core/result";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
 import { listAgentIds, resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import { listChannelPlugins } from "../channels/plugins/index.js";
-import type { HookSessionMode } from "../config/types.hooks.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { HookSessionMode } from "../config/types.hooks.js";
 import { readJsonBodyWithLimit, requestBodyErrorToText } from "../infra/http-body.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
 import type { HookExternalContentSource } from "../security/external-content.js";
@@ -175,7 +176,7 @@ export function extractHookToken(req: IncomingMessage): string | undefined {
 export async function readJsonBody(
   req: IncomingMessage,
   maxBytes: number,
-): Promise<{ ok: true; value: unknown } | { ok: false; error: string }> {
+): Promise<Result<unknown, string>> {
   const result = await readJsonBodyWithLimit(req, { maxBytes, emptyObjectOnEmpty: true });
   if (result.ok) {
     return result;
@@ -209,9 +210,7 @@ export function normalizeHookHeaders(req: IncomingMessage) {
 /** Validate a hook wake payload. */
 export function normalizeWakePayload(
   payload: Record<string, unknown>,
-):
-  | { ok: true; value: { text: string; mode: "now" | "next-heartbeat" } }
-  | { ok: false; error: string } {
+): Result<{ text: string; mode: "now" | "next-heartbeat" }, string> {
   const normalizedText = normalizeOptionalString(payload.text) ?? "";
   if (!normalizedText) {
     return { ok: false, error: "text required" };
@@ -287,12 +286,10 @@ function normalizeHookAgentDelivery(params: {
   channel: unknown;
   to: unknown;
   accountId: unknown;
-}):
-  | {
-      ok: true;
-      value: Pick<HookAgentPayload, "deliver" | "channel" | "to" | "accountId" | "delivery">;
-    }
-  | { ok: false; error: string } {
+}): Result<
+  Pick<HookAgentPayload, "deliver" | "channel" | "to" | "accountId" | "delivery">,
+  string
+> {
   const deliver = resolveHookDeliver(params.deliver);
   if (!deliver) {
     return {
@@ -449,7 +446,7 @@ export function resolveHookSessionKey(params: {
   source: HookSessionKeySource;
   sessionKey?: string;
   idFactory?: () => string;
-}): { ok: true; value: string } | { ok: false; error: string } {
+}): Result<string, string> {
   const requested = resolveSessionKey(params.sessionKey);
   if (requested) {
     if (
@@ -526,12 +523,9 @@ export function normalizeHookDispatchSessionKey(params: {
 }
 
 /** Validate and normalize a hook agent payload before policy/session resolution. */
-export function normalizeAgentPayload(payload: Record<string, unknown>):
-  | {
-      ok: true;
-      value: HookAgentPayload;
-    }
-  | { ok: false; error: string } {
+export function normalizeAgentPayload(
+  payload: Record<string, unknown>,
+): Result<HookAgentPayload, string> {
   const message = normalizeOptionalString(payload.message) ?? "";
   if (!message) {
     return { ok: false, error: "message required" };
