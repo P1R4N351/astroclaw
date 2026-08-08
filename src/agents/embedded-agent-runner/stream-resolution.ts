@@ -1,3 +1,4 @@
+import { hasNonEmptyString as hasResolvedRuntimeApiKey } from "@astroclaw/normalization-core/string-coerce";
 /**
  * Resolves provider stream functions and API keys for embedded agents.
  */
@@ -67,10 +68,6 @@ function isDefaultOpenClawStreamFnForModel(
   }
   const provider = llmRuntime.registry.getApiProvider(api as never);
   return streamFn === provider?.streamSimple || streamFn === provider?.stream;
-}
-
-function hasResolvedRuntimeApiKey(apiKey: string | undefined): boolean {
-  return typeof apiKey === "string" && apiKey.trim().length > 0;
 }
 
 function isOpenAICodexResponsesModel(model: EmbeddedRunAttemptParams["model"]): boolean {
