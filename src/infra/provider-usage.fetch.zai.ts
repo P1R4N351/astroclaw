@@ -2,9 +2,9 @@
 import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { cancelUnreadResponseBody } from "./http-body.js";
 import {
   buildUsageHttpErrorSnapshot,
-  discardUsageResponseBody,
   fetchJson,
   parseUsageResetAt,
   readUsageJson,
@@ -80,7 +80,7 @@ export async function fetchZaiUsage(
   );
 
   if (!res.ok) {
-    await discardUsageResponseBody(res);
+    await cancelUnreadResponseBody(res);
     return buildUsageHttpErrorSnapshot({
       provider: "zai",
       status: res.status,
