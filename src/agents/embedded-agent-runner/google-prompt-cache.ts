@@ -2,11 +2,6 @@
  * Prepares Google prompt-cache payloads for embedded-agent stream calls.
  */
 import crypto from "node:crypto";
-import {
-  sortPromptCacheToolsByName,
-  stripSystemPromptCacheBoundary,
-} from "@openclaw/ai/internal/shared";
-import { mergeTransportHeaders, sanitizeTransportPayloadText } from "@openclaw/ai/transports";
 import { stableStringify } from "@astroclaw/normalization-core";
 import {
   asDateTimestampMs,
@@ -14,9 +9,14 @@ import {
   resolveExpiresAtMsFromDurationMs,
 } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import {
+  sortPromptCacheToolsByName,
+  stripSystemPromptCacheBoundary,
+} from "@openclaw/ai/internal/shared";
+import { mergeTransportHeaders, sanitizeTransportPayloadText } from "@openclaw/ai/transports";
 import { parseGeminiAuth } from "../../infra/gemini-auth.js";
 import { normalizeGoogleApiBaseUrl } from "../../infra/google-api-base-url.js";
-import { readResponseWithLimit } from "../../infra/http-body.js";
+import { cancelUnreadResponseBody, readResponseWithLimit } from "../../infra/http-body.js";
 import { streamWithPayloadPatch } from "../../llm/providers/stream-wrappers/stream-payload-utils.js";
 import type { Model } from "../../llm/types.js";
 import { isSecretValueRegisteredForRedaction } from "../../logging/secret-redaction-registry.js";
@@ -284,12 +284,6 @@ function buildManagedContextForCachedContent(context: GooglePromptCacheContext) 
     systemPrompt: undefined,
     tools: undefined,
   };
-}
-
-async function cancelUnreadResponseBody(response: Response | undefined): Promise<void> {
-  if (response && !response.bodyUsed) {
-    await response.body?.cancel().catch(() => undefined);
-  }
 }
 
 /**
