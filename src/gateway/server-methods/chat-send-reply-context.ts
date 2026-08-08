@@ -3,6 +3,8 @@
 // Discord path (reply_to_id + "Reply target of current user message" block).
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import { resolveEnvelopeFormatOptions } from "../../auto-reply/envelope.js";
+import { buildInboundUserContextPrefix } from "../../auto-reply/reply/inbound-meta.js";
 import type { MsgContext } from "../../auto-reply/templating.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { sanitizeAssistantVisibleTextWithProfile } from "../../shared/text/assistant-visible-text.js";
@@ -20,6 +22,21 @@ const REPLY_CONTEXT_BODY_MAX_CHARS = 2000;
 type ChatSendReplyContextFields = Partial<
   Pick<MsgContext, "ReplyToId" | "ReplyToBody" | "ReplyToSender">
 >;
+
+/** Adds hydrated reply metadata to the direct-injection user prompt. */
+export function buildChatSendReplyInjectionText(params: {
+  body: string;
+  cfg: OpenClawConfig;
+  ctx: MsgContext;
+  sessionEntry?: Parameters<typeof buildInboundUserContextPrefix>[2];
+}): string {
+  const prefix = buildInboundUserContextPrefix(
+    params.ctx,
+    resolveEnvelopeFormatOptions(params.cfg),
+    params.sessionEntry,
+  );
+  return prefix ? `${prefix}\n\n${params.body}` : params.body;
+}
 
 function extractReplyTargetText(message: unknown): string | undefined {
   const entry = asOptionalRecord(message);
