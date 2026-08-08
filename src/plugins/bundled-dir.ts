@@ -5,8 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
-import { isTruthyEnvValue, isVitestRuntimeEnv } from "../infra/env.js";
 import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
+import { isTruthyEnvValue, isVitestRuntimeEnv } from "../infra/env.js";
 import { isPathInside } from "../infra/path-guards.js";
 import { resolveUserPath } from "../utils.js";
 
@@ -70,6 +70,8 @@ function hasUsableBundledPluginTree(pluginsDir: string): boolean {
 
 function safeRealpathSync(targetPath: string): string | null {
   try {
+    // Trusted-root containment requires native platform canonicalization here.
+    // The shared plain-realpath helper must not replace this security boundary.
     return fs.realpathSync.native(targetPath);
   } catch {
     return null;
