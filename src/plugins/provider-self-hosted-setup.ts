@@ -24,9 +24,10 @@ import {
   SELF_HOSTED_DEFAULT_COST,
   SELF_HOSTED_DEFAULT_MAX_TOKENS,
 } from "../agents/self-hosted-provider-defaults.js";
-import type { ModelDefinitionConfig } from "../config/types.models.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelDefinitionConfig } from "../config/types.models.js";
 // Builds setup metadata for self-hosted provider plugins.
+import { cancelUnreadResponseBody } from "../infra/http-body.js";
 import { fetchWithSsrFGuard } from "../infra/net/fetch-guard.js";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
@@ -117,12 +118,6 @@ async function readSelfHostedDiscoveryJson<T>(response: Response, label: string)
   return await readProviderJsonResponse<T>(response, `${label} discovery`, {
     maxBytes: SELF_HOSTED_DISCOVERY_JSON_MAX_BYTES,
   });
-}
-
-async function cancelUnreadResponseBody(response: Response): Promise<void> {
-  if (!response.bodyUsed) {
-    await response.body?.cancel().catch(() => undefined);
-  }
 }
 
 function resolveLlamaCppPropsUrl(baseUrl: string, modelId?: string): string {
