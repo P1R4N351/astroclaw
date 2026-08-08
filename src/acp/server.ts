@@ -10,6 +10,7 @@ import {
   type AnyMessage,
 } from "@agentclientprotocol/sdk";
 import type { AcpServerOptions } from "@astroclaw/acp-core/types";
+import { isRecord as isJsonObject } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   GATEWAY_CLIENT_CAPS,
@@ -287,10 +288,6 @@ function normalizeAcpInitializeProtocolVersion(message: AnyMessage): AnyMessage 
       protocolVersion: PROTOCOL_VERSION,
     },
   } as AnyMessage;
-}
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isUint16Integer(value: unknown): value is number {
