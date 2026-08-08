@@ -2,7 +2,7 @@
 // full local suite.
 import fs from "node:fs";
 import { performance } from "node:perf_hooks";
-import pMap from "p-map";
+import { mapWithBoundedConcurrency } from "./lib/bounded-concurrency-map.mjs";
 import { formatMs } from "./lib/check-timing-summary.mjs";
 import { acquireLocalHeavyCheckLockSync } from "./lib/local-heavy-check-runtime.mjs";
 import {
@@ -214,7 +214,7 @@ async function runVitestSpecsParallel(specs, concurrency) {
   const failures = [];
   const timings = [];
 
-  await pMap(
+  await mapWithBoundedConcurrency(
     specs,
     async (spec, index) => {
       if (stopScheduling) {
@@ -241,7 +241,7 @@ async function runVitestSpecsParallel(specs, concurrency) {
         timings.push(result.timing);
       }
     },
-    { concurrency, stopOnError: true },
+    concurrency,
   );
   return { exitCode, failures, timings };
 }
