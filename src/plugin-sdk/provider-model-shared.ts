@@ -156,6 +156,7 @@ export type {
   UnifiedModelCatalogSource,
 } from "@astroclaw/model-catalog-core/model-catalog-types";
 export { isCloudModelRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
+export { parseModelRef } from "../agents/model-selection-normalize.js";
 export type {
   BedrockDiscoveryConfig,
   ModelCompatConfig,
