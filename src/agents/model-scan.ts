@@ -1,7 +1,3 @@
-import { createLlmRuntime, type LlmRuntime } from "@openclaw/ai";
-import type { OpenAICompletionsOptions } from "@openclaw/ai/internal/openai";
-import { getEnvApiKey } from "@openclaw/ai/internal/runtime";
-import { registerBuiltInApiProviders } from "@openclaw/ai/providers";
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import {
   asDateTimestampMs,
@@ -17,9 +13,14 @@ import {
   normalizeStringEntries,
   uniqueStrings,
 } from "@astroclaw/normalization-core/string-normalization";
+import { createLlmRuntime, type LlmRuntime } from "@openclaw/ai";
+import type { OpenAICompletionsOptions } from "@openclaw/ai/internal/openai";
+import { getEnvApiKey } from "@openclaw/ai/internal/runtime";
+import { registerBuiltInApiProviders } from "@openclaw/ai/providers";
 import pMap from "p-map";
 import { Type } from "typebox";
 import { formatErrorMessage } from "../infra/errors.js";
+import { cancelUnreadResponseBody } from "../infra/http-body.js";
 /**
  * Scans remote provider model catalogs for configured providers.
  */
@@ -284,9 +285,7 @@ async function fetchOpenRouterModels(
       "OpenRouter model scan",
     );
   } finally {
-    if (res && !res.bodyUsed) {
-      await res.body?.cancel().catch(() => undefined);
-    }
+    await cancelUnreadResponseBody(res);
   }
 }
 
