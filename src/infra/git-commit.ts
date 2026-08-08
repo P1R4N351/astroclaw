@@ -4,10 +4,11 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { resolveOpenClawPackageRootSync } from "./astroclaw-root.js";
+import { isMissingPathError } from "./errors.js";
 import { readFileWindowFullySync } from "./file-read.js";
 import { resolveGitHeadPath } from "./git-root.js";
 import { pruneMapToMaxSize } from "./map-size.js";
-import { resolveOpenClawPackageRootSync } from "./astroclaw-root.js";
 
 const formatCommit = (value?: string | null) => {
   if (!value) {
@@ -32,14 +33,6 @@ type CommitMetadataReaders = {
   readBuildInfoCommit?: () => string | null;
   readPackageJsonCommit?: () => string | null;
 };
-
-function isMissingPathError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-  const code = (error as NodeJS.ErrnoException).code;
-  return code === "ENOENT" || code === "ENOTDIR";
-}
 
 const resolveCommitSearchDir = (options: { cwd?: string; moduleUrl?: string }) => {
   if (options.cwd) {
