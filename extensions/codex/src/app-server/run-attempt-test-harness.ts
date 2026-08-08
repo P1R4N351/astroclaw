@@ -7,14 +7,14 @@ import {
   queueAgentHarnessMessage,
   resetAgentEventsForTest,
   type EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { clearRuntimeAuthProfileStoreSnapshots } from "astroclaw/plugin-sdk/agent-runtime";
-import { resetDiagnosticEventsForTest } from "astroclaw/plugin-sdk/diagnostic-runtime";
-import type { ExecApprovalsFile } from "astroclaw/plugin-sdk/exec-approvals-runtime";
-import { clearInternalHooks, resetGlobalHookRunner } from "astroclaw/plugin-sdk/hook-runtime";
-import { clearMemoryPluginState } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { clearPluginCommands } from "astroclaw/plugin-sdk/plugin-runtime";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { clearRuntimeAuthProfileStoreSnapshots } from "openclaw/plugin-sdk/agent-runtime";
+import { resetDiagnosticEventsForTest } from "openclaw/plugin-sdk/diagnostic-runtime";
+import type { ExecApprovalsFile } from "openclaw/plugin-sdk/exec-approvals-runtime";
+import { clearInternalHooks, resetGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
+import { clearMemoryPluginState } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { clearPluginCommands } from "openclaw/plugin-sdk/plugin-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { defaultCodexAppInventoryCache } from "./app-inventory-cache.js";
 import type { CodexAppServerClient } from "./client.js";
@@ -50,9 +50,9 @@ const execApprovalsRuntimeMocks = vi.hoisted(() => ({
   loadExecApprovals: vi.fn<() => ExecApprovalsFile>(() => ({ version: 1, agents: {} })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/exec-approvals-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/exec-approvals-runtime")>();
   return {
     ...actual,
     loadExecApprovals: execApprovalsRuntimeMocks.loadExecApprovals,
@@ -159,12 +159,6 @@ export function runCodexAppServerAttempt(
   };
   const promise = runCodexAppServerAttemptImpl(trackedParams, {
     ...options,
-    agentHarnessCodingToolsFactory:
-      options.agentHarnessCodingToolsFactory ??
-      (async (_attempt, toolOptions) => {
-        const factory = dynamicToolBuildState.openClawCodingToolsFactory;
-        return factory ? factory(toolOptions) : [];
-      }),
     bindingStore: options.bindingStore ?? testCodexAppServerBindingStore,
     ...(clientFactory ? { clientFactory } : {}),
   }).finally(() => {
@@ -664,7 +658,7 @@ export function setupRunAttemptTestHooks(): void {
     vi.stubEnv("OPENCLAW_TRAJECTORY", "0");
     vi.stubEnv("CODEX_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
-    tempDir = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-codex-run-"));
+    tempDir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-codex-run-"));
   });
 
   afterEach(async () => {
