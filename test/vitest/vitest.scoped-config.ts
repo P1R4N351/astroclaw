@@ -252,7 +252,9 @@ export function createScopedVitestConfig(
     ...new Set([
       ...(baseTest.setupFiles ?? []),
       ...(options?.setupFiles ?? []),
-      ...(options?.includeOpenClawRuntimeSetup === false ? [] : ["test/setup-openclaw-runtime.ts"]),
+      ...(options?.includeOpenClawRuntimeSetup === false
+        ? []
+        : ["test/setup-astroclaw-runtime.ts"]),
     ]),
   ].map(resolveRepoRootPath);
   const useNonIsolatedRunner = options?.useNonIsolatedRunner ?? !isolate;

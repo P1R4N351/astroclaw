@@ -260,7 +260,7 @@ describe("projects vitest config", () => {
     expect(testConfig.isolate).toBe(false);
     expect(normalizeConfigPath(testConfig.runner)).toBe("test/non-isolated-runner.ts");
     const setupFiles = normalizeConfigPaths(testConfig.setupFiles);
-    expect(setupFiles).not.toContain("test/setup-openclaw-runtime.ts");
+    expect(setupFiles).not.toContain("test/setup-astroclaw-runtime.ts");
     expect(setupFiles).toContain("ui/src/test-helpers/lit-warnings.setup.ts");
     expect(requireWebOptimizer(testConfig).enabled).toBe(true);
   });

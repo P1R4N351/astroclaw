@@ -48,7 +48,7 @@ function createTuiPtyVitestConfig(env?: Record<string, string | undefined>) {
       reporters: ["verbose", ...(configEnv.GITHUB_ACTIONS === "true" ? ["github-actions"] : [])],
       setupFiles: [
         ...new Set(
-          [...(baseTest.setupFiles ?? []), "test/setup-openclaw-runtime.ts"].map(
+          [...(baseTest.setupFiles ?? []), "test/setup-astroclaw-runtime.ts"].map(
             resolveRepoRootPath,
           ),
         ),

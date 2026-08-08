@@ -1,12 +1,12 @@
 // Covers OpenClaw's default fs-safe native helper configuration.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { configureFsSafeNative } = vi.hoisted(() => ({
-  configureFsSafeNative: vi.fn(),
+const { configureFsSafePython } = vi.hoisted(() => ({
+  configureFsSafePython: vi.fn(),
 }));
 
 vi.mock("@openclaw/fs-safe/config", () => ({
-  configureFsSafeNative,
+  configureFsSafePython,
 }));
 
 async function importDefaults() {
@@ -16,7 +16,7 @@ async function importDefaults() {
 
 describe("fs-safe defaults", () => {
   afterEach(() => {
-    configureFsSafeNative.mockReset();
+    configureFsSafePython.mockReset();
     delete process.env.FS_SAFE_NATIVE_MODE;
     delete process.env.OPENCLAW_FS_SAFE_NATIVE_MODE;
     delete process.env.openclaw_fs_safe_native_mode;
@@ -31,7 +31,7 @@ describe("fs-safe defaults", () => {
   it("disables the native helper by default in OpenClaw", async () => {
     await importDefaults();
 
-    expect(configureFsSafeNative).toHaveBeenCalledWith({ mode: "off" });
+    expect(configureFsSafePython).toHaveBeenCalledWith({ mode: "off" });
   });
 
   it("lets fs-safe env mode overrides opt back into the helper", async () => {
@@ -39,7 +39,7 @@ describe("fs-safe defaults", () => {
 
     await importDefaults();
 
-    expect(configureFsSafeNative).not.toHaveBeenCalled();
+    expect(configureFsSafePython).not.toHaveBeenCalled();
   });
 
   it("honors the OpenClaw-specific env mode override", async () => {
@@ -47,7 +47,7 @@ describe("fs-safe defaults", () => {
 
     await importDefaults();
 
-    expect(configureFsSafeNative).not.toHaveBeenCalled();
+    expect(configureFsSafePython).not.toHaveBeenCalled();
   });
 
   it("honors case-insensitive mode overrides on Windows", async () => {
@@ -56,7 +56,7 @@ describe("fs-safe defaults", () => {
 
     await importDefaults();
 
-    expect(configureFsSafeNative).not.toHaveBeenCalled();
+    expect(configureFsSafePython).not.toHaveBeenCalled();
   });
 
   it("lets fs-safe migrate legacy require mode without overriding it", async () => {
@@ -64,7 +64,7 @@ describe("fs-safe defaults", () => {
 
     await importDefaults();
 
-    expect(configureFsSafeNative).not.toHaveBeenCalled();
+    expect(configureFsSafePython).not.toHaveBeenCalled();
   });
 
   it("does not treat a retired interpreter path as a native mode override", async () => {
@@ -72,6 +72,6 @@ describe("fs-safe defaults", () => {
 
     await importDefaults();
 
-    expect(configureFsSafeNative).toHaveBeenCalledWith({ mode: "off" });
+    expect(configureFsSafePython).toHaveBeenCalledWith({ mode: "off" });
   });
 });

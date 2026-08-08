@@ -589,7 +589,7 @@ export const sharedVitestConfig = {
       "test/setup.env.ts",
       "test/setup.shared.ts",
       "test/setup.extensions.ts",
-      "test/setup-openclaw-runtime.ts",
+      "test/setup-astroclaw-runtime.ts",
       ...vitestConfigFiles,
       "test/vitest/**/*.{ts,mjs}",
     ].map(resolveRepoRootPath),

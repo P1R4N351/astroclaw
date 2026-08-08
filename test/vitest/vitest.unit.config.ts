@@ -153,7 +153,7 @@ export function createUnitVitestConfigWithOptions(
       ...(isolate ? { runner: undefined } : { runner: nonIsolatedRunnerPath }),
       setupFiles: [
         ...new Set(
-          [...(sharedTest.setupFiles ?? []), "test/setup-openclaw-runtime.ts"].map(
+          [...(sharedTest.setupFiles ?? []), "test/setup-astroclaw-runtime.ts"].map(
             resolveRepoRootPath,
           ),
         ),
