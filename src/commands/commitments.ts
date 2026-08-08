@@ -2,7 +2,7 @@
 import { timestampMsToIsoString } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
-import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import { truncateWithMarker } from "@astroclaw/normalization-core/utf16-slice";
 import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { isRich, theme } from "../../packages/terminal-core/src/theme.js";
 import { formatCliCommand } from "../cli/command-format.js";
@@ -24,7 +24,7 @@ const STATUS_VALUES = new Set<CommitmentStatus>([
 ]);
 
 function truncate(value: string, maxChars: number): string {
-  return value.length <= maxChars ? value : `${truncateUtf16Safe(value, maxChars - 1)}…`;
+  return truncateWithMarker(value, maxChars, { marker: "…", reserve: 1, trimEnd: false });
 }
 
 function safe(value: string): string {
