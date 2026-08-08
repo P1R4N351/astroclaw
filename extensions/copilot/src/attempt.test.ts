@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { CopilotClient, Tool as SdkTool } from "@github/copilot-sdk";
-import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import {
   abortAgentHarnessRun,
   attachModelProviderRequestTransport,
@@ -510,14 +509,14 @@ describe("runCopilotAttempt", () => {
         };
       });
     const createToolBridge = vi.fn(async (input: CopilotToolBridgeInput) => {
-      input.observeToolTerminal?.({
+      input.attemptParams?.observeToolTerminal?.({
         toolCallId: "send-1",
         toolName: "message",
         arguments: { action: "send", message: "hello", target: "room-1" },
         outcome: "failure",
         failure: { error: "delivery failed" },
       });
-      input.observeToolTerminal?.({
+      input.attemptParams?.observeToolTerminal?.({
         toolCallId: "heartbeat-1",
         toolName: "heartbeat_respond",
         arguments: { summary: "ok" },
@@ -555,11 +554,7 @@ describe("runCopilotAttempt", () => {
         disableTools: false,
         config: { tools: { codeMode: true } },
       } as never),
-      {
-        createOpenClawCodingToolsForAgentHarness: async (_attempt, options) =>
-          createOpenClawCodingTools(options),
-        pool: makeFakePool(sdk),
-      },
+      { pool: makeFakePool(sdk) },
     );
 
     expect(result.codeModeEngaged).toBe(true);
@@ -603,14 +598,14 @@ describe("runCopilotAttempt", () => {
       });
     const createToolBridge = vi.fn(async (input: CopilotToolBridgeInput) => {
       const args = { action: "send", message: "hello", target: "room-1" };
-      input.observeToolTerminal?.({
+      input.attemptParams?.observeToolTerminal?.({
         toolCallId: "send-1",
         toolName: "message",
         arguments: args,
         outcome: "failure",
         failure: { error: "delivery failed" },
       });
-      input.observeToolTerminal?.({
+      input.attemptParams?.observeToolTerminal?.({
         toolCallId: "send-2",
         toolName: "message",
         arguments: args,
@@ -1683,11 +1678,9 @@ describe("runCopilotAttempt", () => {
     // bridge can build PI-parity tool context and wire onYield to the
     // live SDK session once it exists. See tool-bridge.ts.
     const bridgeCall = (createToolBridge.mock.calls[0] as unknown[] | undefined)?.[0] as {
-      admittedAttempt?: unknown;
       attemptParams?: unknown;
       sessionRef?: { current?: unknown };
     };
-    expect(bridgeCall.admittedAttempt).toBeDefined();
     expect(bridgeCall.attemptParams).toBeDefined();
     expect(bridgeCall.sessionRef).toBeDefined();
     expect(
@@ -1801,13 +1794,11 @@ describe("runCopilotAttempt", () => {
   it("F6: attemptParams carries the full input so the bridge can derive PI-parity tool context", async () => {
     const sdk = makeFakeSdk();
     const pool = makeFakePool(sdk);
-    let capturedInput: { admittedAttempt?: unknown; attemptParams?: unknown } | undefined;
-    const createToolBridge = vi.fn(
-      async (input: { admittedAttempt?: unknown; attemptParams?: unknown }) => {
-        capturedInput = input;
-        return { sdkTools: [], sourceTools: [] };
-      },
-    );
+    let capturedParams: unknown;
+    const createToolBridge = vi.fn(async (input: { attemptParams?: unknown }) => {
+      capturedParams = input.attemptParams;
+      return { sdkTools: [], sourceTools: [] };
+    });
 
     const params = makeParams({
       senderIsOwner: true,
@@ -1818,8 +1809,7 @@ describe("runCopilotAttempt", () => {
 
     // The bridge receives the same params object so it can read every
     // identity/policy/channel field the wrapped-tool layer needs.
-    expect(capturedInput?.attemptParams).toBe(params);
-    expect(capturedInput?.admittedAttempt).toBe(params);
+    expect(capturedParams).toBe(params);
   });
 
   it("F7: result.yieldDetected is true when the tool bridge fires onYieldDetected during the attempt", async () => {
@@ -2012,7 +2002,9 @@ describe("runCopilotAttempt", () => {
         });
       },
     });
-    const attempt = runCopilotAttempt(makeParams(), { pool: makeFakePool(sdk) });
+    const attempt = runCopilotAttempt(makeParams({ taskSuggestionDeliveryMode: "gateway" }), {
+      pool: makeFakePool(sdk),
+    });
 
     await vi.waitFor(() => {
       expect(requireSession(sdk).sendAndWait).toHaveBeenCalledTimes(1);
@@ -2027,22 +2019,29 @@ describe("runCopilotAttempt", () => {
             },
           ) => Promise<void>;
           supportsTranscriptCommitWait?: boolean;
+          taskSuggestionDeliveryMode?: "gateway";
         }
       | undefined;
     expect(handle?.supportsTranscriptCommitWait).toBe(true);
+    expect(handle?.taskSuggestionDeliveryMode).toBe("gateway");
 
-    await handle?.queueMessage("change course", {
-      deliveryTimeoutMs: 1_000,
-      waitForTranscriptCommit: true,
-    });
-
-    expect(requireSession(sdk).send).toHaveBeenCalledWith({ prompt: "change course" });
-    expect(transcriptRuntimeMock.appendStrict).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventId: "steered-user",
-        message: expect.objectContaining({ role: "user", content: "change course" }),
+    expect(
+      queueAgentHarnessMessage("session-1", "change course", {
+        deliveryTimeoutMs: 1_000,
+        taskSuggestionDeliveryMode: "gateway",
+        waitForTranscriptCommit: true,
       }),
-    );
+    ).toBe(true);
+
+    await vi.waitFor(() => {
+      expect(requireSession(sdk).send).toHaveBeenCalledWith({ prompt: "change course" });
+      expect(transcriptRuntimeMock.appendStrict).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventId: "steered-user",
+          message: expect.objectContaining({ role: "user", content: "change course" }),
+        }),
+      );
+    });
 
     initialTurn.resolve(makeAssistantMessageEvent("done"));
     await expect(attempt).resolves.toMatchObject({ terminal: { kind: "ok" } });
