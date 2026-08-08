@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { bundledPluginFile } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
 
 const {
@@ -899,7 +899,10 @@ describe("detectChangedScope", () => {
         "scripts/run-vitest.mjs",
         "scripts/test-projects.test-support.d.mts",
         "src/commands/status.scan-result.test.ts",
+        "src/scripts/ci-changed-scope.control-ui.test.ts",
+        "src/scripts/ci-changed-scope.native-i18n.test.ts",
         "src/scripts/ci-changed-scope.test.ts",
+        "src/scripts/ci-changed-scope.windows.test.ts",
         "test/scripts/changed-lanes.test.ts",
         "test/scripts/run-vitest.test.ts",
         "test/scripts/test-projects.test.ts",
