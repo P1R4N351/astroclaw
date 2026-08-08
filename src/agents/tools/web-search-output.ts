@@ -7,6 +7,7 @@
  * re-wrapped here unconditionally, so no provider-controlled metadata can
  * spoof the trust marker and transport-specific extras never reach the model.
  */
+import { asFiniteNumber as readFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { Static } from "typebox";
@@ -117,10 +118,6 @@ type WebSearchOutputBudget = { remaining: number; truncated: boolean };
 
 function unwrapEnvelopes(value: string): string {
   return value.replace(ENVELOPE_OPEN_RE, "").replace(ENVELOPE_END_RE, "").trim();
-}
-
-function readFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 // URLs are emitted canonicalized (percent-encoded), so whitespace or readable
