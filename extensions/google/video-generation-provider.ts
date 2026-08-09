@@ -1,20 +1,21 @@
 // Google provider module implements model/runtime integration.
-import { resolveGeneratedMediaMaxBytes } from "openclaw/plugin-sdk/media-generation-runtime";
-import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
+import { resolveGeneratedMediaMaxBytes } from "astroclaw/plugin-sdk/media-generation-runtime";
+import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
 import {
   createProviderOperationDeadline,
   executeProviderOperationWithRetry,
+  readProviderJsonResponse,
   resolveProviderOperationTimeoutMs,
   waitProviderOperationPollInterval,
-} from "openclaw/plugin-sdk/provider-http";
-import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/provider-http";
+import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import type {
   GeneratedVideoAsset,
   VideoGenerationProvider,
   VideoGenerationRequest,
-} from "openclaw/plugin-sdk/video-generation";
+} from "astroclaw/plugin-sdk/video-generation";
 import { parseGeminiAuth, resolveGoogleGenerativeAiApiOrigin } from "./api.js";
 import { canonicalizeGoogleProviderBase64 } from "./base64.js";
 import {
@@ -347,16 +348,13 @@ async function requestGoogleVideoJson(params: {
           signal: controller.signal,
         });
         try {
-          const buffer = await readResponseWithLimit(
-            response,
-            GOOGLE_VIDEO_OPERATION_RESPONSE_MAX_BYTES,
-            {
-              onOverflow: ({ maxBytes }) =>
-                new Error(`Google video operation response exceeds ${maxBytes} bytes`),
-            },
-          );
-          const text = new TextDecoder().decode(buffer);
           if (!response.ok) {
+            const text = new TextDecoder().decode(
+              await readResponseWithLimit(response, GOOGLE_VIDEO_OPERATION_RESPONSE_MAX_BYTES, {
+                onOverflow: ({ maxBytes }) =>
+                  new Error(`Google video operation response exceeds ${maxBytes} bytes`),
+              }),
+            );
             let detail: unknown = text;
             if (text) {
               try {
@@ -367,8 +365,9 @@ async function requestGoogleVideoJson(params: {
             }
             throw createHttpError(response, detail);
           }
-          const payload = text ? (JSON.parse(text) as unknown) : {};
-          return payload;
+          return await readProviderJsonResponse(response, "Google video operation response", {
+            maxBytes: GOOGLE_VIDEO_OPERATION_RESPONSE_MAX_BYTES,
+          });
         } finally {
           await release();
         }
