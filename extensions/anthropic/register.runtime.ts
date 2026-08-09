@@ -2,8 +2,8 @@
  * Anthropic provider runtime registration. It owns API-key/setup-token/Claude
  * CLI auth, dynamic model normalization, usage auth, media, and stream wrappers.
  */
-import { formatCliCommand, parseDurationMs } from "openclaw/plugin-sdk/cli-runtime";
-import { resolveExpiresAtMsFromDurationMs } from "openclaw/plugin-sdk/number-runtime";
+import { formatCliCommand, parseDurationMs } from "astroclaw/plugin-sdk/cli-runtime";
+import { resolveExpiresAtMsFromDurationMs } from "astroclaw/plugin-sdk/number-runtime";
 import type {
   OpenClawPluginApi,
   ProviderAuthContext,
@@ -12,7 +12,7 @@ import type {
   ProviderResolveDynamicModelContext,
   ProviderNormalizeResolvedModelContext,
   ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   type AuthProfileStore,
@@ -22,14 +22,14 @@ import {
   type OpenClawConfig as ProviderAuthConfig,
   type ProviderAuthResult,
   suggestOAuthProfileIdForLegacyDefault,
-  upsertAuthProfileWithLock,
   validateAnthropicSetupToken,
-} from "openclaw/plugin-sdk/provider-auth";
-import { buildOpenAICompatibleProviderCatalog } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { upsertAuthProfileWithLockOrThrow } from "astroclaw/plugin-sdk/provider-auth-api-key";
+import { buildOpenAICompatibleProviderCatalog } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 import {
   buildManifestModelProviderConfig,
   type ProviderCatalogResult,
-} from "openclaw/plugin-sdk/provider-catalog-shared";
+} from "astroclaw/plugin-sdk/provider-catalog-shared";
 import {
   buildProviderReplayFamilyHooks,
   cloneFirstTemplateModel,
@@ -46,8 +46,9 @@ import {
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeMaxEffort,
   supportsClaudeNativeXhighEffort,
-} from "openclaw/plugin-sdk/provider-model-shared";
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/provider-model-shared";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import * as claudeCliAuth from "./cli-auth-seam.js";
 import { buildAnthropicCliBackend } from "./cli-backend.js";
 import { buildClaudeCliCatalogEntries } from "./cli-catalog.js";
@@ -64,7 +65,6 @@ import {
 } from "./config-defaults.js";
 import { acceptsAnthropicLiveModelContract } from "./live-model-contract-gate.js";
 import { anthropicMediaUnderstandingProvider } from "./media-understanding-provider.js";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { resolveClaudeCliSyntheticAuth } from "./provider-discovery.js";
 import {
   createClaudeSessionNodeInvokePolicies,
@@ -90,7 +90,6 @@ function classifyAnthropicFailoverDescriptor(value: string | undefined) {
       return undefined;
   }
 }
-type UpsertAuthProfileParams = Parameters<typeof upsertAuthProfileWithLock>[0];
 const DEFAULT_ANTHROPIC_MODEL = "anthropic/claude-opus-5";
 const ANTHROPIC_OPUS_48_MODEL_ID = "claude-opus-4-8";
 const ANTHROPIC_OPUS_48_DOT_MODEL_ID = "claude-opus-4.8";
@@ -196,14 +195,6 @@ const CLAUDE_CLI_CANONICAL_ALLOWLIST_REFS = CLAUDE_CLI_DEFAULT_ALLOWLIST_REFS.ma
     : ref,
 );
 
-async function upsertAuthProfileWithLockOrThrow(params: UpsertAuthProfileParams): Promise<void> {
-  const updated = await upsertAuthProfileWithLock(params);
-  if (!updated) {
-    throw new Error(
-      "Failed to update auth profile store; the auth store lock may be busy. Wait a moment and retry.",
-    );
-  }
-}
 function normalizeAnthropicSetupTokenInput(value: string): string {
   return value.replaceAll(/\s+/g, "").trim();
 }
