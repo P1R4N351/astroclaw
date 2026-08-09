@@ -1,8 +1,8 @@
 // Covers TUI slash command handlers and backend call wiring.
 
-import type { OverlayHandle } from "@earendil-works/pi-tui";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { Result } from "@astroclaw/normalization-core/result";
+import type { OverlayHandle } from "@earendil-works/pi-tui";
 import { describe, expect, it, vi } from "vitest";
 import {
   createSessionProjection,
@@ -342,7 +342,7 @@ describe("tui command handlers", () => {
     ]);
   });
 
-  it("bounds session picker hydration to recent TUI sessions", async () => {
+  it("bounds Ctrl+P hydration to recent non-global TUI sessions", async () => {
     const listSessions = vi.fn().mockResolvedValue({
       sessions: [
         {
