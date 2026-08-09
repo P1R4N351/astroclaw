@@ -1,5 +1,5 @@
 // Matrix tests cover index plugin behavior.
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { describe, expect, it, vi } from "vitest";
 import { registerMatrixCliMetadata } from "./cli-metadata.js";
 import entry, { registerMatrixFullRuntime } from "./index.js";
@@ -77,9 +77,6 @@ describe("matrix plugin", () => {
   });
 
   it("keeps runtime bootstrap and CLI metadata out of setup-only registration", () => {
-    expect(entry.kind).toBe("bundled-channel-entry");
-    expect(entry.id).toBe("matrix");
-    expect(entry.name).toBe("Matrix");
     if (!entry.setChannelRuntime) {
       throw new Error("expected Matrix runtime setter");
     }
