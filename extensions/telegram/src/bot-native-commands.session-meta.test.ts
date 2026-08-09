@@ -1,5 +1,6 @@
 import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
 import { resolveChunkMode } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
 import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
@@ -10,7 +11,6 @@ import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TelegramNativeCommandDeps } from "./bot-native-command-deps.runtime.js";
 import {
-  createDeferred,
   createTelegramGroupCommandContext,
   createNativeCommandTestParams,
   createTelegramPrivateCommandContext,
