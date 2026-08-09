@@ -2,10 +2,14 @@
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve as resolvePath, win32 } from "node:path";
-import { bundledDistPluginFile, bundledPluginFile } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile, bundledPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
+import {
+  collectInstalledBundledRuntimeSidecarPaths,
+  collectInstalledRootDependencyManifestErrors,
+} from "../scripts/astroclaw-npm-postpublish-verify.ts";
 import { listBundledPluginPackArtifacts } from "../scripts/lib/bundled-plugin-build-entries.mjs";
-import { resolveNpmJsonEntries } from "../scripts/lib/npm-json-output.mjs";
+import { resolveNpmJsonEntries } from "../scripts/lib/npm-json-output.mts";
 import {
   LOCAL_BUILD_METADATA_DIST_PATHS,
   PACKAGE_DIST_INVENTORY_RELATIVE_PATH,
@@ -14,15 +18,11 @@ import {
   listPluginSdkDistArtifacts,
   listPackagedPrivatePluginSdkRuntimeArtifacts,
   listUnpackagedPrivatePluginSdkDistArtifacts,
-} from "../scripts/lib/plugin-sdk-entries.mjs";
+} from "../scripts/lib/plugin-sdk-entries.mts";
 import {
   WORKSPACE_TEMPLATE_PACK_PATHS,
   createWorkspaceBootstrapSmokeEnv,
-} from "../scripts/lib/workspace-bootstrap-smoke.mjs";
-import {
-  collectInstalledBundledRuntimeSidecarPaths,
-  collectInstalledRootDependencyManifestErrors,
-} from "../scripts/astroclaw-npm-postpublish-verify.ts";
+} from "../scripts/lib/workspace-bootstrap-smoke.mts";
 import {
   collectAppcastSparkleVersionErrors,
   collectBundledExtensionManifestErrors,
@@ -47,7 +47,7 @@ import {
   resolveMissingPackBuildHint,
   runReleaseCheckCommand,
 } from "../scripts/release-check.ts";
-import { listStaticExtensionAssetOutputs } from "../scripts/runtime-postbuild.mjs";
+import { listStaticExtensionAssetOutputs } from "../scripts/runtime-postbuild.mts";
 import { COMPLETION_SKIP_PLUGIN_COMMANDS_ENV } from "../src/cli/completion-runtime.ts";
 import { resolveNpmJsonEntries as resolveRuntimeNpmJsonEntries } from "../src/infra/npm-registry-spec.js";
 import { withEnv } from "../src/test-utils/env.js";
@@ -714,7 +714,6 @@ describe("collectMissingPackPaths", () => {
       "dist/channel-catalog.json",
       PACKAGE_DIST_INVENTORY_RELATIVE_PATH,
       "dist/control-ui/index.html",
-      "scripts/npm-runner.mjs",
       "scripts/prepare-git-hooks.mjs",
       "scripts/preinstall-package-manager-warning.mjs",
       "scripts/lib/official-external-channel-catalog.json",
@@ -755,7 +754,6 @@ describe("collectMissingPackPaths", () => {
         ...requiredPluginSdkPackPaths,
         ...packagedPrivatePluginSdkRuntimePaths,
         ...WORKSPACE_TEMPLATE_PACK_PATHS,
-        "scripts/npm-runner.mjs",
         "scripts/prepare-git-hooks.mjs",
         "scripts/preinstall-package-manager-warning.mjs",
         "scripts/lib/official-external-channel-catalog.json",
@@ -862,7 +860,7 @@ describe("resolveMissingPackBuildHint", () => {
   });
 
   it("does not emit a build hint for unrelated packed paths", () => {
-    expect(resolveMissingPackBuildHint(["scripts/npm-runner.mjs"])).toBeNull();
+    expect(resolveMissingPackBuildHint(["scripts/prepare-git-hooks.mjs"])).toBeNull();
   });
 });
 
@@ -894,14 +892,14 @@ describe("createPackedPluginSdkTypescriptSmokeProject", () => {
       expect(packageJson.dependencies?.["@openclaw/ai"]).toBe("file:/tmp/openclaw-ai.tgz");
       expect(tsconfig.compilerOptions?.skipLibCheck).toBe(true);
       expect(source).toBe(fixtureSource);
-      expect(source).toContain('"openclaw/plugin-sdk/core"');
-      expect(source).toContain('"openclaw/plugin-sdk/plugin-entry"');
-      expect(source).toContain('"openclaw/plugin-sdk/channel-entry-contract"');
-      expect(source).toContain('"openclaw/plugin-sdk/config-contracts"');
-      expect(source).toContain('"openclaw/plugin-sdk/runtime-env"');
+      expect(source).toContain('"astroclaw/plugin-sdk/core"');
+      expect(source).toContain('"astroclaw/plugin-sdk/plugin-entry"');
+      expect(source).toContain('"astroclaw/plugin-sdk/channel-entry-contract"');
+      expect(source).toContain('"astroclaw/plugin-sdk/config-contracts"');
+      expect(source).toContain('"astroclaw/plugin-sdk/runtime-env"');
       expect(source).toContain("type PublicPluginSdkModules = [");
       expect(source).not.toContain("TelegramAccountConfig");
-      expect(source).not.toContain("openclaw/plugin-sdk/channel-contract-testing");
+      expect(source).not.toContain("astroclaw/plugin-sdk/channel-contract-testing");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
