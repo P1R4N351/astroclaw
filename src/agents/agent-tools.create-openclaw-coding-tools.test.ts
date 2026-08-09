@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentTool, AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import type { AgentTool, AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -45,6 +45,10 @@ import * as openClawPluginTools from "./astroclaw-plugin-tools.js";
 import { createOpenClawTools } from "./astroclaw-tools.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";
 import { resolveConversationCapabilityProfile } from "./conversation-capability-profile.js";
+import {
+  runWithCronCreatorAuthority,
+  runWithCronCreatorAuthorityResolver,
+} from "./cron-creator-authority-context.js";
 import { expectReadWriteEditTools } from "./test-helpers/agent-tools-fs-helpers.js";
 import { createAgentToolsSandboxContext } from "./test-helpers/agent-tools-sandbox-context.js";
 import { stubTool } from "./test-helpers/fast-tool-stubs.js";
@@ -291,6 +295,59 @@ describe("createOpenClawCodingTools", () => {
         },
       }),
     );
+  });
+
+  it("binds configured MCP cron authority only to the exact admitted run", async () => {
+    const resolve = vi.fn().mockResolvedValue({
+      tools: ["read", { name: "mcp_todoist_add_task", pluginId: "todoist" }],
+      provenance: { version: 1, source: "final-executable-surface" },
+    });
+    let releaseRun: (() => void) | undefined;
+    const holdRun = new Promise<void>((resolveHold) => {
+      releaseRun = resolveHold;
+    });
+    let retainedResolver: (() => Promise<unknown>) | undefined;
+
+    vi.mocked(createOpenClawTools).mockClear();
+    runWithCronCreatorAuthorityResolver({
+      runId: "forged-run",
+      resolve,
+      run: () => createOpenClawCodingTools({ runId: "forged-run" }),
+    });
+    expect(
+      vi.mocked(createOpenClawTools).mock.lastCall?.[0]?.resolveCronCreatorToolAuthority,
+    ).toBeUndefined();
+
+    const activeRun = runWithCronCreatorAuthority("admitted-run", async () => {
+      runWithCronCreatorAuthorityResolver({
+        runId: "other-run",
+        resolve,
+        run: () => createOpenClawCodingTools({ runId: "admitted-run" }),
+      });
+      expect(
+        vi.mocked(createOpenClawTools).mock.lastCall?.[0]?.resolveCronCreatorToolAuthority,
+      ).toBeUndefined();
+
+      runWithCronCreatorAuthorityResolver({
+        runId: "admitted-run",
+        resolve,
+        run: () => createOpenClawCodingTools({ runId: "admitted-run" }),
+      });
+      retainedResolver =
+        vi.mocked(createOpenClawTools).mock.lastCall?.[0]?.resolveCronCreatorToolAuthority;
+      expect(retainedResolver).toEqual(expect.any(Function));
+      await expect(retainedResolver!()).resolves.toMatchObject({
+        provenance: { source: "final-executable-surface" },
+      });
+      await holdRun;
+    });
+
+    releaseRun?.();
+    await activeRun;
+    await expect(retainedResolver!()).rejects.toThrow(
+      "Configured MCP cron authority is no longer active for this run",
+    );
+    expect(resolve).toHaveBeenCalledTimes(1);
   });
 
   it("re-wraps existing before_tool_call hooks once with the current context", async () => {
