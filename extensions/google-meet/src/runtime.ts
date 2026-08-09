@@ -12,7 +12,10 @@ import {
 } from "astroclaw/plugin-sdk/meeting-runtime";
 import type { PluginRuntime, RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
 import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import {
+  asOptionalRecord,
+  normalizeOptionalString,
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import type {
   GoogleMeetConfig,
   GoogleMeetMode,
@@ -581,7 +584,8 @@ export class GoogleMeetRuntime {
         gateway: this.#voiceCallGateway,
         callId,
       });
-      if (status.found === false) {
+      const call = asOptionalRecord(status.call);
+      if (status.found === false || call?.endedAt !== undefined || call?.endReason !== undefined) {
         this.#sessions.markSessionEnded(session, "Voice Call is no longer active.");
       }
     } catch (error) {
