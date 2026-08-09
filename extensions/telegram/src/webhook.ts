@@ -2,34 +2,34 @@
 import { createServer } from "node:http";
 import type { IncomingMessage } from "node:http";
 import net from "node:net";
-import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { isDiagnosticsEnabled } from "astroclaw/plugin-sdk/diagnostic-runtime";
+import { InputFile } from "grammy";
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { isDiagnosticsEnabled } from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   logWebhookError,
   logWebhookProcessed,
   logWebhookReceived,
   startDiagnosticHeartbeat,
   stopDiagnosticHeartbeat,
-} from "astroclaw/plugin-sdk/logging-core";
-import { parseStrictNonNegativeInteger } from "astroclaw/plugin-sdk/number-runtime";
-import type { BackoffPolicy, RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/logging-core";
+import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
+import type { BackoffPolicy, RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   computeBackoff,
   defaultRuntime,
   formatDurationPrecise,
   sleepWithAbort,
-} from "astroclaw/plugin-sdk/runtime-env";
-import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/runtime-env";
+import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   applyBasicWebhookRequestGuards,
   createFixedWindowRateLimiter,
   WEBHOOK_RATE_LIMIT_DEFAULTS,
-} from "astroclaw/plugin-sdk/webhook-ingress";
-import { readJsonBodyWithLimit } from "astroclaw/plugin-sdk/webhook-request-guards";
-import { InputFile } from "grammy";
+} from "openclaw/plugin-sdk/webhook-ingress";
+import { readJsonBodyWithLimit } from "openclaw/plugin-sdk/webhook-request-guards";
 import { mergeTelegramAccountConfig } from "./account-config.js";
 import { resolveTelegramAllowedUpdates } from "./allowed-updates.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
@@ -330,6 +330,9 @@ export async function startTelegramWebhook(opts: {
   const diagnosticsEnabled = isDiagnosticsEnabled(opts.config);
   const spoolDir = opts.spoolDir ?? resolveTelegramIngressSpoolDir({ accountId: opts.accountId });
   let shutDown = false;
+  let ownedServer: ReturnType<typeof createServer> | undefined = undefined;
+  let webhookIngressMonitor: ReturnType<typeof createTelegramTransportIngressMonitor> | undefined;
+  let diagnosticsStarted = false;
   const shutdownAbortController = new AbortController();
   const telegramAccountConfig = opts.config
     ? mergeTelegramAccountConfig(opts.config, opts.accountId ?? "default")
@@ -359,26 +362,66 @@ export async function startTelegramWebhook(opts: {
     accountId: opts.accountId,
     telegramTransport,
   });
-  try {
-    await initializeTelegramWebhookBot({
+  const runShutdownPhase = async (
+    label: string,
+    run: () => void | Promise<void>,
+  ): Promise<void> => {
+    try {
+      await run();
+    } catch (err) {
+      runtime.error?.(`telegram webhook ${label} failed: ${formatErrorMessage(err)}`);
+    }
+  };
+  const shutdown = async () => {
+    if (shutDown) {
+      return;
+    }
+    shutDown = true;
+    botAbortController.abort();
+    shutdownAbortController.abort();
+    // Every fallible phase is isolated so one failed release cannot skip the
+    // remaining resources or reject the fire-and-forget abort hook.
+    const ingressMonitor = webhookIngressMonitor;
+    webhookIngressMonitor = undefined;
+    const ingressStopTask = ingressMonitor
+      ? runShutdownPhase("ingress stop", () => ingressMonitor.stop())
+      : undefined;
+    await runShutdownPhase("server close", () => {
+      ownedServer?.close();
+    });
+    await runShutdownPhase("bot stop", () => bot.stop());
+    // The webhook owns this transport because it resolved and injected it into
+    // createTelegramBot; close once so abort/startup-failure paths cannot leak sockets.
+    await runShutdownPhase("transport close", closeTransportOnce);
+    await runShutdownPhase("ingress drain", () => waitForWebhookIngressStop(ingressStopTask));
+    await runShutdownPhase("status update", () => status.noteWebhookStop());
+    if (diagnosticsStarted) {
+      await runShutdownPhase("diagnostics stop", () => stopDiagnosticHeartbeat());
+    }
+  };
+  const runStartupPhase = async <T>(run: () => T | Promise<T>): Promise<T> => {
+    try {
+      return await run();
+    } catch (err) {
+      if (!opts.abortSignal?.aborted) {
+        status.noteWebhookRegistrationFailure(
+          formatErrorMessage(err),
+          isTelegramAuthenticationError(err) ? "blocked" : undefined,
+        );
+      }
+      await shutdown();
+      throw err;
+    }
+  };
+  await runStartupPhase(() =>
+    initializeTelegramWebhookBot({
       bot,
       runtime,
       abortSignal: opts.abortSignal,
       onRetry: () => status.noteWebhookRecovery(),
       retryPolicy: webhookRegistrationRetryPolicy,
-    });
-  } catch (err) {
-    if (!opts.abortSignal?.aborted) {
-      status.noteWebhookRegistrationFailure(
-        formatErrorMessage(err),
-        isTelegramAuthenticationError(err) ? "blocked" : undefined,
-      );
-    }
-    botAbortController.abort();
-    await bot.stop();
-    await closeTransportOnce();
-    throw err;
-  }
+    }),
+  );
   const botInfo = bot.botInfo;
   const telegramWebhookRateLimiter = createFixedWindowRateLimiter({
     windowMs: WEBHOOK_RATE_LIMIT_DEFAULTS.windowMs,
@@ -387,10 +430,10 @@ export async function startTelegramWebhook(opts: {
   });
   if (diagnosticsEnabled) {
     startDiagnosticHeartbeat(opts.config);
+    diagnosticsStarted = true;
   }
 
   const log = (line: string) => runtime.log?.(line);
-  let webhookIngressMonitor: ReturnType<typeof createTelegramTransportIngressMonitor> | undefined;
   const startWebhookSpoolDrain = () => {
     if (webhookIngressMonitor) {
       return;
@@ -406,8 +449,6 @@ export async function startTelegramWebhook(opts: {
       botInfo,
       cfg: opts.config ?? {},
       accountId: opts.accountId ?? "default",
-      // Pre-migration product default: 25m claim→adoption stall for webhook.
-      adoptionStallTimeoutMs: 25 * 60_000,
       pollIntervalMs: TELEGRAM_WEBHOOK_SPOOLED_DRAIN_INTERVAL_MS,
       abortSignal: webhookAbortSignal,
       onLog: (message) => log(`webhook ${message}`),
@@ -514,12 +555,15 @@ export async function startTelegramWebhook(opts: {
       respondText(500);
     });
   });
+  ownedServer = server;
 
-  await listenHttpServer({
-    server,
-    port,
-    host,
-  });
+  await runStartupPhase(() =>
+    listenHttpServer({
+      server,
+      port,
+      host,
+    }),
+  );
   const boundAddress = server.address();
   const boundPort = boundAddress && typeof boundAddress !== "string" ? boundAddress.port : port;
 
@@ -532,43 +576,6 @@ export async function startTelegramWebhook(opts: {
   });
 
   let webhookAdvertised = false;
-  const runShutdownPhase = async (
-    label: string,
-    run: () => void | Promise<void>,
-  ): Promise<void> => {
-    try {
-      await run();
-    } catch (err) {
-      runtime.error?.(`telegram webhook ${label} failed: ${formatErrorMessage(err)}`);
-    }
-  };
-  const shutdown = async () => {
-    if (shutDown) {
-      return;
-    }
-    shutDown = true;
-    botAbortController.abort();
-    shutdownAbortController.abort();
-    // Every fallible phase is isolated so one failed release cannot skip the
-    // remaining resources or reject the fire-and-forget abort hook.
-    const ingressMonitor = webhookIngressMonitor;
-    webhookIngressMonitor = undefined;
-    const ingressStopTask = ingressMonitor
-      ? runShutdownPhase("ingress stop", () => ingressMonitor.stop())
-      : undefined;
-    await runShutdownPhase("server close", () => {
-      server.close();
-    });
-    await runShutdownPhase("bot stop", () => bot.stop());
-    // The webhook owns this transport because it resolved and injected it into
-    // createTelegramBot; close once so abort/startup-failure paths cannot leak sockets.
-    await runShutdownPhase("transport close", closeTransportOnce);
-    await runShutdownPhase("ingress drain", () => waitForWebhookIngressStop(ingressStopTask));
-    await runShutdownPhase("status update", () => status.noteWebhookStop());
-    if (diagnosticsEnabled) {
-      await runShutdownPhase("diagnostics stop", () => stopDiagnosticHeartbeat());
-    }
-  };
   if (opts.abortSignal?.aborted) {
     void shutdown();
   } else if (opts.abortSignal) {
@@ -660,7 +667,7 @@ export async function startTelegramWebhook(opts: {
   // Drain only after registration succeeds or after the retrying startup path
   // is ready to return a stop handle; failed startup must not claim durable work.
   if (!shutDown) {
-    startWebhookSpoolDrain();
+    await runStartupPhase(startWebhookSpoolDrain);
   }
 
   return { server, bot, stop: shutdown };
