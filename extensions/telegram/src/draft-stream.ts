@@ -1,13 +1,13 @@
-import {
-  createFinalizableDraftStreamControlsForState,
-  takeMessageIdAfterStop,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import type { MarkdownTableMode, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
 // Telegram plugin module implements draft stream behavior.
 import type { Bot } from "grammy";
 import type { Message } from "grammy/types";
+import {
+  createFinalizableDraftStreamControlsForState,
+  takeMessageIdAfterStop,
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
 import { buildTelegramThreadParams, type TelegramThreadSpec } from "./bot/helpers.js";
 import {
   escapeTelegramHtml,
@@ -65,6 +65,7 @@ export type TelegramDraftStream = {
   updateLazy: (resolveText: () => string | undefined) => void;
   updatePreview: (preview: TelegramDraftPreview) => void;
   flush: () => Promise<void>;
+  waitForInFlight: () => Promise<void>;
   messageId: () => number | undefined;
   lastDeliveredText?: () => string;
   currentMessageSnapshot?: () => TelegramDraftMessageSnapshot | undefined;
@@ -758,8 +759,12 @@ export function createTelegramDraftStream(params: {
       throw terminalDeliveryError;
     }
   };
-  const flush = async () => {
+  const waitForInFlight = async () => {
     await loop.waitForInFlight();
+    throwTerminalDeliveryError();
+  };
+  const flush = async () => {
+    await waitForInFlight();
     if (!streamState.stopped) {
       await loop.flush();
     }
@@ -1048,6 +1053,7 @@ export function createTelegramDraftStream(params: {
     updateLazy: requestLazyDraftUpdate,
     updatePreview,
     flush,
+    waitForInFlight,
     messageId: () => streamMessageId,
     lastDeliveredText: () => lastDeliveredText,
     currentMessageSnapshot: () => streamMessageSnapshot,
