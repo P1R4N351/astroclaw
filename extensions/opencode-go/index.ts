@@ -2,8 +2,8 @@
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
 import { buildProviderReplayFamilyHooks } from "openclaw/plugin-sdk/provider-model-shared";
 import { applyOpencodeGoConfig, OPENCODE_GO_DEFAULT_MODEL_REF } from "./api.js";
-import { opencodeGoMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { opencodeGoMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import {
   buildOpencodeGoLiveProviderConfig,
   buildStaticOpencodeGoProviderConfig,
@@ -17,7 +17,7 @@ import { createOpencodeGoWrapper } from "./stream.js";
 
 const PROVIDER_ID = "opencode-go";
 const OPENCODE_SHARED_PROFILE_IDS = ["opencode:default", "opencode-go:default"] as const;
-const OPENCODE_SHARED_HINT = "Shared API key for Zen + Go catalogs";
+const OPENCODE_SHARED_HINT = "Shared API key infrastructure for Zen + Go";
 type OpencodeGoCatalogAuth = {
   apiKey?: string;
   discoveryApiKey?: string;
@@ -55,7 +55,7 @@ export default defineSingleProviderPluginEntry({
       applyConfig: applyOpencodeGoConfig,
       expectedProviders: ["opencode", "opencode-go"],
       noteMessage: [
-        "OpenCode uses one API key across the Zen and Go catalogs.",
+        "OpenCode Go is a separate paid subscription that uses the shared OpenCode API key.",
         "Go focuses on Kimi, GLM, and MiniMax coding models.",
         "Get your API key at: https://opencode.ai/auth",
       ].join("\n"),
