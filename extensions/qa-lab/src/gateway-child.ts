@@ -8,19 +8,19 @@ import os from "node:os";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   isRecord,
   normalizeOptionalString,
   normalizeStringEntries,
   uniqueStrings,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -69,7 +69,7 @@ import {
   stageQaLiveApiKeyProfiles,
   stageQaLiveAnthropicSetupToken,
 } from "./providers/live-frontier/auth.js";
-import { stageQaMockAuthProfiles } from "./providers/shared/mock-auth.js";
+import { buildQaMockProfileId, stageQaMockAuthProfiles } from "./providers/shared/mock-auth.js";
 import { listMockCodexModelInfos } from "./providers/shared/mock-model-config.js";
 import { seedQaAgentWorkspace } from "./qa-agent-workspace.js";
 import { buildQaGatewayConfig, type QaThinkingLevel } from "./qa-gateway-config.js";
@@ -88,6 +88,7 @@ const QA_GATEWAY_CHILD_GRACEFUL_SHUTDOWN_TIMEOUT_MS = 30_000;
 // Loaded Docker runners can take several seconds to reap a force-killed process group.
 const QA_GATEWAY_CHILD_FORCE_SHUTDOWN_TIMEOUT_MS = 10_000;
 const QA_GATEWAY_LOG_CLOSE_TIMEOUT_MS = 5_000;
+const QA_PACKAGE_AUTH_FAILURE_MAX_CHARS = 2_048;
 const QA_MOCK_OPENAI_API_KEY = ["qa", "mock", "openai", "key"].join("-");
 const QA_GATEWAY_CHILD_BLOCKED_SECRET_ENV_VARS = Object.freeze([
   "OPENCLAW_QA_CONVEX_SECRET_CI",
@@ -179,13 +180,64 @@ async function runQaGatewayCliCommand(params: {
   args: readonly string[];
   cwd: string;
   env: NodeJS.ProcessEnv;
+  stdin?: string;
 }): Promise<string> {
+  const hasStdin = params.stdin !== undefined;
   const child = spawn(params.executablePath, [...params.argsPrefix, ...params.args], {
     cwd: params.cwd,
     env: { ...params.env, OPENCLAW_CLI: "1" },
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: [hasStdin ? "pipe" : "ignore", "pipe", "pipe"],
   });
-  return await readQaGatewayCliCommand(child);
+  const result = readQaGatewayCliCommand(child);
+  if (hasStdin) {
+    child.stdin?.once("error", () => {});
+    child.stdin?.end(params.stdin);
+  }
+  return await result;
+}
+
+function createQaPackagedMockApiKey(): string {
+  const prefix = ["s", "k"].join("");
+  return `${prefix}-${["qa", "mock", randomUUID().replaceAll("-", "")].join("-")}`;
+}
+
+async function stageQaPackagedMockAuthProfiles(params: {
+  command: QaGatewayChildCommand;
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+  providers: readonly string[];
+}): Promise<void> {
+  for (const provider of uniqueStrings(params.providers)) {
+    try {
+      await runQaGatewayCliCommand({
+        executablePath: params.command.executablePath,
+        argsPrefix: params.command.argsPrefix ?? [],
+        args: [
+          "models",
+          "auth",
+          "--agent",
+          "qa",
+          "paste-api-key",
+          "--provider",
+          provider,
+          "--profile-id",
+          buildQaMockProfileId(provider),
+        ],
+        cwd: params.command.cwd ?? params.cwd,
+        env: params.env,
+        stdin: `${createQaPackagedMockApiKey()}\n`,
+      });
+    } catch (error) {
+      const errorMessage = toErrorObject(error, "installed package auth command failed").message;
+      const details = sliceUtf16Safe(
+        redactQaGatewayDebugText(errorMessage),
+        0,
+        QA_PACKAGE_AUTH_FAILURE_MAX_CHARS,
+      );
+      // oxlint-disable-next-line preserve-caught-error -- Candidate CLI errors can contain the submitted API key; only the redacted message crosses this boundary.
+      throw new Error(`installed package mock auth bootstrap failed for ${provider}: ${details}`);
+    }
+  }
 }
 
 type QaChildFailure = {
@@ -1170,7 +1222,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
   const keepTemp = process.env.OPENCLAW_QA_KEEP_TEMP === "1";
   const gatewayLogStreams: Array<["stdout" | "stderr", WriteStream]> = [];
   let child: ReturnType<typeof spawn> | null = null;
@@ -1189,6 +1241,7 @@ export async function startQaGatewayChild(params: {
     const gatewayCommand =
       params.command ??
       (params.useRepoCli ? resolveQaGatewayChildCommand(params.repoRoot) : undefined);
+    const usesPackagedCandidate = params.command?.usePackagedPlugins === true;
     const gatewayExecutablePath = gatewayCommand?.executablePath;
     const gatewayArgsPrefix = gatewayCommand?.argsPrefix ?? [];
     const gatewayArgsSuffix = gatewayCommand?.argsSuffix ?? [];
@@ -1282,12 +1335,14 @@ export async function startQaGatewayChild(params: {
       });
       const mockAuthProviders = getQaProvider(providerMode).mockAuthProviders;
       if (mockAuthProviders && mockAuthProviders.length > 0) {
-        cfg = await stageQaMockAuthProfiles({
-          cfg,
-          stateDir,
-          agentIds: params.mockAuthAgentIds,
-          providers: mockAuthProviders,
-        });
+        if (!usesPackagedCandidate) {
+          cfg = await stageQaMockAuthProfiles({
+            cfg,
+            stateDir,
+            agentIds: params.mockAuthAgentIds,
+            providers: mockAuthProviders,
+          });
+        }
       }
       return params.mutateConfig ? params.mutateConfig(cfg) : cfg;
     };
@@ -1506,6 +1561,15 @@ export async function startQaGatewayChild(params: {
           encoding: "utf8",
           mode: 0o600,
         });
+        const mockAuthProviders = getQaProvider(providerMode).mockAuthProviders;
+        if (usesPackagedCandidate && gatewayCommand && mockAuthProviders?.length) {
+          await stageQaPackagedMockAuthProfiles({
+            command: gatewayCommand,
+            cwd: gatewayCwd,
+            env,
+            providers: mockAuthProviders,
+          });
+        }
       }
       if (!env) {
         throw new Error("qa gateway runtime env not initialized");
