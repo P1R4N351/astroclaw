@@ -1,7 +1,7 @@
 // Build Diffs Viewer Runtime tests cover build diffs viewer runtime script behavior.
 import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it } from "vitest";
-import { createPierreDiffsSideEffectImportPlugin } from "../../scripts/build-diffs-viewer-runtime.mjs";
+import { createPierreDiffsSideEffectImportPlugin } from "../../scripts/build-diffs-viewer-runtime.mts";
 
 type ResolveCallback = (args: { importer: string; path: string }) => unknown;
 type LoadCallback = () => unknown;
