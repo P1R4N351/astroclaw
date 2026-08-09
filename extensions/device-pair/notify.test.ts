@@ -2,16 +2,17 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { listDevicePairing as listDevicePairingFn } from "openclaw/plugin-sdk/device-bootstrap";
+import type { listDevicePairing as listDevicePairingFn } from "astroclaw/plugin-sdk/device-bootstrap";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import type {
   OpenKeyedStoreOptions,
   PluginStateKeyedStore,
-} from "openclaw/plugin-sdk/plugin-state-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEVICE_PAIR_NOTIFY_SUBSCRIBER_MAX_ENTRIES,
@@ -24,27 +25,17 @@ const listDevicePairingMock = vi.hoisted(() =>
   vi.fn<typeof listDevicePairingFn>(async () => ({ pending: [], paired: [] })),
 );
 
-vi.mock("openclaw/plugin-sdk/device-bootstrap", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/device-bootstrap")>()),
+vi.mock("astroclaw/plugin-sdk/device-bootstrap", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/device-bootstrap")>()),
   listDevicePairing: listDevicePairingMock,
 }));
 
 import { createPairingNotifierService, handleNotifyCommand } from "./notify.js";
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/device-bootstrap");
+  vi.doUnmock("astroclaw/plugin-sdk/device-bootstrap");
   vi.resetModules();
 });
-
-function createDeferred<T>() {
-  let resolve: (value: T) => void;
-  let reject: (reason?: unknown) => void;
-  const promise = new Promise<T>((innerResolve, innerReject) => {
-    resolve = innerResolve;
-    reject = innerReject;
-  });
-  return { promise, resolve: resolve!, reject: reject! };
-}
 
 describe("device-pair notify persistence", () => {
   let stateDir: string;
