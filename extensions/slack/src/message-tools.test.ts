@@ -1,5 +1,5 @@
 // Slack tests cover message tools plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { createSlackActions } from "./channel-actions.js";
 import { listSlackMessageActions } from "./message-actions.js";
@@ -58,6 +58,61 @@ describe("Slack message tools", () => {
         requesterAccountId: "work",
         requesterSenderId: "U123",
       }),
+    );
+  });
+
+  it("preserves a workspace-qualified channel for reactions", async () => {
+    const invoke = vi.fn(async () => ({ content: [], details: { ok: true } }));
+    const actions = createSlackActions("slack", { invoke });
+    if (!actions.handleAction) {
+      throw new Error("Slack message actions must provide an executor.");
+    }
+
+    await actions.handleAction({
+      channel: "slack",
+      action: "react",
+      cfg: {} as OpenClawConfig,
+      params: {
+        channelId: "team:T123:channel:C123",
+        messageId: "123.456",
+        emoji: "✅",
+      },
+    });
+
+    expect(invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "react",
+        channelId: "team:T123:channel:C123",
+      }),
+      expect.any(Object),
+      undefined,
+    );
+  });
+
+  it("preserves a workspace-qualified channel for implicit upload destinations", async () => {
+    const invoke = vi.fn(async () => ({ content: [], details: { ok: true } }));
+    const actions = createSlackActions("slack", { invoke });
+    if (!actions.handleAction) {
+      throw new Error("Slack message actions must provide an executor.");
+    }
+
+    await actions.handleAction({
+      channel: "slack",
+      action: "upload-file",
+      cfg: {} as OpenClawConfig,
+      params: {
+        channelId: "team:T123:channel:C123",
+        filePath: "/tmp/report.png",
+      },
+    });
+
+    expect(invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "uploadFile",
+        to: "team:T123:channel:C123",
+      }),
+      expect.any(Object),
+      undefined,
     );
   });
 
