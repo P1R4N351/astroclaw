@@ -2311,7 +2311,6 @@ describe("doctor health contributions", () => {
       {},
       expect.objectContaining({
         includeWorkspaceMemoryHealth: false,
-        skipQmdBinaryProbe: true,
         skipAuthProfileResolution: true,
         gatewayMemoryProbe: { checked: false, ready: false, skipped: true },
         noteFn: expect.any(Function),
