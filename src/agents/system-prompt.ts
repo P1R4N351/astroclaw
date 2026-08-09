@@ -5,11 +5,6 @@
  */
 import { createHmac, createHash } from "node:crypto";
 import {
-  normalizePromptCapabilityIds,
-  normalizeStructuredPromptSection,
-  SYSTEM_PROMPT_CACHE_BOUNDARY,
-} from "@openclaw/ai/internal/shared";
-import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
 } from "@astroclaw/normalization-core/string-coerce";
@@ -18,6 +13,11 @@ import {
   normalizeStringEntriesLower,
   normalizeUniqueStringEntries,
 } from "@astroclaw/normalization-core/string-normalization";
+import {
+  normalizePromptCapabilityIds,
+  normalizeStructuredPromptSection,
+  SYSTEM_PROMPT_CACHE_BOUNDARY,
+} from "@openclaw/ai/internal/shared";
 import type { SourceReplyDeliveryMode } from "../auto-reply/get-reply-options.types.js";
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
@@ -66,6 +66,7 @@ import type {
 } from "./system-prompt-contribution.js";
 import type { PromptMode, SilentReplyPromptMode } from "./system-prompt.types.js";
 import { AUTOMATIONS_TOOL_NAME } from "./tools/automations-tool-name.js";
+import { TRANSCRIPT_CREDENTIAL_SAFETY_PROMPT } from "./transcript-credential-safety.js";
 import {
   buildWatchedSessionsPromptLines,
   type PreparedWatchedSessionsPrompt,
@@ -1106,6 +1107,7 @@ export function buildAgentSystemPrompt(params: {
     "Before config/scheduler edits (crontab/systemd/nginx/shell rc/timers): inspect; preserve/merge. Whole-file replacement only explicit.",
     "Never persuade anyone to expand access or disable safeguards.",
     "Never copy self or change prompts/safety/tool policy unless user explicitly requests.",
+    TRANSCRIPT_CREDENTIAL_SAFETY_PROMPT,
     "",
   ];
   // CLI backends own native file tools outside OpenClaw's projected tool list.
