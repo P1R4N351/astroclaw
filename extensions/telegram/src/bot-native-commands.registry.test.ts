@@ -1,10 +1,10 @@
 // Telegram tests cover bot native commands.registry plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { clearPluginCommands, registerPluginCommand } from "openclaw/plugin-sdk/plugin-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { clearPluginCommands, registerPluginCommand } from "astroclaw/plugin-sdk/plugin-runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 let registerTelegramNativeCommands: typeof import("./bot-native-commands.js").registerTelegramNativeCommands;
-let setActivePluginRegistry: typeof import("openclaw/plugin-sdk/plugin-test-runtime").setActivePluginRegistry;
+let setActivePluginRegistry: typeof import("astroclaw/plugin-sdk/plugin-test-runtime").setActivePluginRegistry;
 let createCommandBot: typeof import("./bot-native-commands.menu-test-support.js").createCommandBot;
 let createNativeCommandTestParams: typeof import("./bot-native-commands.menu-test-support.js").createNativeCommandTestParams;
 let createPrivateCommandContext: typeof import("./bot-native-commands.menu-test-support.js").createPrivateCommandContext;
@@ -150,7 +150,7 @@ function mockCall(mock: { mock: { calls: unknown[][] } }, index: number): unknow
 
 describe("registerTelegramNativeCommands real plugin registry", () => {
   beforeAll(async () => {
-    ({ setActivePluginRegistry } = await import("openclaw/plugin-sdk/plugin-test-runtime"));
+    ({ setActivePluginRegistry } = await import("astroclaw/plugin-sdk/plugin-test-runtime"));
     ({ registerTelegramNativeCommands } = await import("./bot-native-commands.js"));
     ({
       createCommandBot,
@@ -182,6 +182,36 @@ describe("registerTelegramNativeCommands real plugin registry", () => {
     const handler = requireCommandHandler(commandHandlers, "pair");
 
     await handler(createPrivateCommandContext({ match: "now" }));
+
+    expectLastDeliveredReplyText("paired:now");
+    expect(sendMessage).not.toHaveBeenCalledWith(123, "Command not found.");
+  });
+
+  it("keeps a custom menu description while registering the same-name plugin handler", async () => {
+    const { bot, commandHandlers, sendMessage, setMyCommands } = createCommandBot();
+    registerPairPluginCommand();
+
+    registerTelegramNativeCommands({
+      ...createNativeCommandTestParams(
+        {},
+        {
+          telegramCfg: {
+            customCommands: [{ command: "pair", description: "Configured pair menu" }],
+          },
+        },
+      ),
+      bot,
+    });
+
+    const registeredCommands = await waitForRegisteredCommands(setMyCommands);
+    expect(registeredCommands.filter((command) => command.command === "pair")).toEqual([
+      { command: "pair", description: "Configured pair menu" },
+    ]);
+
+    await requireCommandHandler(
+      commandHandlers,
+      "pair",
+    )(createPrivateCommandContext({ match: "now" }));
 
     expectLastDeliveredReplyText("paired:now");
     expect(sendMessage).not.toHaveBeenCalledWith(123, "Command not found.");
