@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelProviderConfig } from "../config/types.models.js";
 import { resolveDirectBundledProviderPolicySurface } from "./provider-policy-surface.js";
@@ -177,15 +177,7 @@ describe("provider public artifacts", () => {
         modelId: "deepseek-v4-pro",
       }),
     ).toEqual({
-      levels: [
-        { id: "off" },
-        { id: "minimal" },
-        { id: "low" },
-        { id: "medium" },
-        { id: "high" },
-        { id: "xhigh" },
-        { id: "max" },
-      ],
+      levels: [{ id: "off" }, { id: "high" }, { id: "max" }],
       defaultLevel: "high",
     });
     expect(
