@@ -3,6 +3,7 @@
 
 import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it, vi } from "vitest";
+import { createDeferred } from "../../../test/helpers/promise.js";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import {
   clearRuntimeAuthProfileStoreSnapshots,
@@ -10,9 +11,8 @@ import {
 } from "../../agents/auth-profiles.js";
 import { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } from "../../config/config.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
-import { createDeferred } from "../../test-utils/deferred.js";
-import { withEnvAsync } from "../../test-utils/env.js";
 import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
+import { withEnvAsync } from "../../test-utils/env.js";
 import { modelsHandlers } from "./models.js";
 import type { RespondFn } from "./types.js";
 
