@@ -1,14 +1,13 @@
 // Memory Core plugin module implements manager behavior.
 import type { DatabaseSync } from "node:sqlite";
-import type { FSWatcher } from "chokidar";
-import { resolveAgentConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { resolveAgentConfig } from "astroclaw/plugin-sdk/agent-runtime";
 import {
   formatErrorMessage,
   readErrorName,
   toErrorObject,
-} from "openclaw/plugin-sdk/error-runtime";
-import { listRegisteredMemoryEmbeddingProviderAdapters } from "openclaw/plugin-sdk/memory-core-host-embedding-registry";
-import { classifyMemoryMultimodalPath } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+} from "astroclaw/plugin-sdk/error-runtime";
+import { listRegisteredMemoryEmbeddingProviderAdapters } from "astroclaw/plugin-sdk/memory-core-host-embedding-registry";
+import { classifyMemoryMultimodalPath } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   createSubsystemLogger,
   resolveGlobalSingleton,
@@ -17,8 +16,8 @@ import {
   resolveMemorySearchConfig,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { extractKeywords } from "openclaw/plugin-sdk/memory-core-host-engine-qmd";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { extractKeywords } from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
 import {
   readCuratedProjectMemoryCandidates,
   readMemoryFile,
@@ -36,10 +35,11 @@ import {
   type MemorySessionSyncTarget,
   type MemorySource,
   type MemorySyncParams,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
-import { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
-import { uniqueValues } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+import { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
+import { uniqueValues } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import type { FSWatcher } from "chokidar";
 import {
   resolveMemoryCoreLocalServiceHostIdentity,
   type MemoryCoreAcquireLocalService,
