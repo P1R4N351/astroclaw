@@ -12,7 +12,7 @@ import {
   archiveLegacyStateSource,
   legacyStateFileExists,
   type PluginDoctorStateMigration,
-} from "astroclaw/plugin-sdk/runtime-doctor";
+} from "astroclaw/plugin-sdk/runtime-doctor-migrations";
 import {
   canonicalPathFromExistingAncestor,
   isPathInside,
