@@ -1,6 +1,6 @@
 // Covers compaction token splitting and history pruning helpers.
-import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
-import type { AssistantMessage, ToolResultMessage } from "astroclaw/plugin-sdk/llm";
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AssistantMessage, ToolResultMessage } from "openclaw/plugin-sdk/llm";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { makeAgentAssistantMessage } from "./test-helpers/agent-message-fixtures.js";
 import "./test-helpers/agent-session-token-mock.js";
@@ -190,6 +190,31 @@ describe("splitMessagesByTokenShare", () => {
       .map((m) => m.timestamp);
     expect(resultTimestamps).toEqual([3, 4]);
     expect(parts.flat().length).toBe(messages.length);
+  });
+
+  it("keeps repeated-id tool results with their assistant by occurrence", () => {
+    const assistant = makeAgentAssistantMessage({
+      content: [
+        { type: "toolCall", id: "call_reused", name: "first", arguments: {} },
+        { type: "toolCall", id: "call_reused", name: "second", arguments: {} },
+      ],
+      model: "gpt-5.6-luna",
+      stopReason: "toolUse",
+      timestamp: 2,
+    });
+    const messages: AgentMessage[] = [
+      makeMessage(1, 4000),
+      assistant,
+      makeToolResult(3, "call_reused", "first".repeat(400)),
+      makeToolResult(4, "call_reused", "second".repeat(400)),
+      makeMessage(5, 4000),
+    ];
+
+    const parts = splitMessagesByTokenShare(messages, 2);
+
+    const toolChunk = requireChunkContainingTimestamp(parts, "assistant", 2);
+    expect(requireChunkContainingTimestamp(parts, "toolResult", 3)).toBe(toolChunk);
+    expect(requireChunkContainingTimestamp(parts, "toolResult", 4)).toBe(toolChunk);
   });
 
   it("keeps displaced toolResults with their assistant chunk", () => {
