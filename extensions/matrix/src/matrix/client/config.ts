@@ -1,15 +1,15 @@
 // Matrix helper module supports config behavior.
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { resolveOptionalIntegerOption } from "openclaw/plugin-sdk/number-runtime";
-import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
-import { retryAsync } from "openclaw/plugin-sdk/retry-runtime";
-import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { resolveOptionalIntegerOption } from "astroclaw/plugin-sdk/number-runtime";
+import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import { retryAsync } from "astroclaw/plugin-sdk/retry-runtime";
+import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
 import {
   coerceSecretRef,
   normalizeResolvedSecretInputString,
-} from "openclaw/plugin-sdk/secret-input-runtime";
-import type { PinnedDispatcherPolicy } from "openclaw/plugin-sdk/ssrf-dispatcher";
+} from "astroclaw/plugin-sdk/secret-input-runtime";
+import type { PinnedDispatcherPolicy } from "astroclaw/plugin-sdk/ssrf-dispatcher";
 import {
   requiresExplicitMatrixDefaultAccount,
   resolveMatrixDefaultOrOnlyAccountId,
@@ -26,7 +26,7 @@ import {
   listNormalizedMatrixAccountIds,
 } from "../account-config.js";
 import { resolveMatrixConfigFieldPath } from "../config-paths.js";
-import type { MatrixStoredCredentials } from "../credentials-read.js";
+import type { MatrixStoredCredentials } from "../credentials-state.js";
 import {
   DEFAULT_ACCOUNT_ID,
   isPrivateNetworkOptInEnabled,
