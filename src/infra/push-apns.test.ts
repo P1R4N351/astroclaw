@@ -7,7 +7,7 @@ import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coerc
 // Tests APNS push signing and request construction.
 import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createDeferred } from "../test-utils/deferred.js";
+import { createDeferred } from "../../test/helpers/promise.js";
 import { startProxy, stopProxy, type ProxyHandle } from "./net/proxy/proxy-lifecycle.js";
 import {
   appendApnsResponseBodyCapture,
