@@ -3,8 +3,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   normalizeDiagnosticValue,
   normalizeDiagnosticLane,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import type {
   DiagnosticEventMetadata,
   DiagnosticEventPayload,
@@ -992,6 +992,7 @@ function createMetricsHandler(store: PrometheusMetricStore): OpenClawPluginHttpR
     res.statusCode = 200;
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+    res.setHeader("Content-Length", String(Buffer.byteLength(body)));
     if (req.method === "HEAD") {
       res.end();
       return true;
