@@ -1,15 +1,15 @@
 // Discord tests cover exec approvals plugin behavior.
-import type { ApprovalResolveResult } from "openclaw/plugin-sdk/approval-gateway-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ApprovalResolveResult } from "astroclaw/plugin-sdk/approval-gateway-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildExecApprovalCustomId, parseExecApprovalData } from "../approval-custom-id.js";
 import { parseCustomId, type ButtonInteraction, type ComponentData } from "../internal/discord.js";
 
 const resolveApprovalOverGatewayMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/approval-gateway-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/approval-gateway-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/approval-gateway-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/approval-gateway-runtime")>();
   return {
     ...actual,
     resolveApprovalOverGateway: resolveApprovalOverGatewayMock,
@@ -271,8 +271,9 @@ describe("discord exec approval monitor helpers", () => {
         approvalId: "abc",
         approvalKind,
         decision: "allow-once",
+        channel: "discord",
+        senderId: "default",
         gatewayUrl: "ws://127.0.0.1:18789",
-        clientDisplayName: "Discord approval (default)",
       });
     },
   );
