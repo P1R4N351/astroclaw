@@ -7,13 +7,17 @@ import {
   fetchNpmManifest,
   readBoundedNpmRegistryText,
   renderTransitiveManifestRiskMarkdownReport,
-} from "../../scripts/transitive-manifest-risk-report.mjs";
+} from "../../scripts/transitive-manifest-risk-report.mts";
 
 function runCli(...args: string[]) {
-  return spawnSync(process.execPath, ["scripts/transitive-manifest-risk-report.mjs", ...args], {
-    cwd: path.resolve("."),
-    encoding: "utf8",
-  });
+  return spawnSync(
+    process.execPath,
+    ["--import", "tsx", "scripts/transitive-manifest-risk-report.mts", ...args],
+    {
+      cwd: path.resolve("."),
+      encoding: "utf8",
+    },
+  );
 }
 
 function expectNoNodeStack(stderr: string) {
@@ -143,7 +147,7 @@ describe("transitive-manifest-risk-report", () => {
   it("documents JSON completeness and renders grouped Markdown summaries", async () => {
     const report = await createTransitiveManifestRiskReport({
       packageVersions: [
-        { packageName: "astroclaw/plugin-sdk/llm", version: "0.74.0" },
+        { packageName: "openclaw/plugin-sdk/llm", version: "0.74.0" },
         { packageName: "aaa-package", version: "1.0.0" },
         { packageName: "recent-package", version: "1.0.0" },
       ],
@@ -154,7 +158,7 @@ describe("transitive-manifest-risk-report", () => {
         publishedAt:
           packageName === "recent-package" ? "2026-05-11T23:00:00Z" : "2026-04-01T00:00:00Z",
         manifest:
-          packageName === "astroclaw/plugin-sdk/llm"
+          packageName === "openclaw/plugin-sdk/llm"
             ? {
                 dependencies: {
                   "@mistralai/mistralai": "^2.2.0",
