@@ -4,9 +4,9 @@
  */
 import { createHash } from "node:crypto";
 import path from "node:path";
-import type { AgentHarnessRuntimeArtifactBinding } from "openclaw/plugin-sdk/agent-harness-runtime";
-import { resolveDefaultAgentDir, type AuthProfileStore } from "openclaw/plugin-sdk/agent-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import type { AgentHarnessRuntimeArtifactBinding } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { resolveDefaultAgentDir, type AuthProfileStore } from "astroclaw/plugin-sdk/agent-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { CodexAppServerStartupError } from "./attempt-timeouts.js";
 import {
   applyCodexAppServerAuthProfile,
@@ -59,6 +59,7 @@ type SharedCodexAppServerClientStartup = {
 
 type SharedCodexAppServerClientState = {
   clients: Map<string, SharedCodexAppServerClientEntry>;
+  liveClients: Set<CodexAppServerClient>;
   entriesByClient: WeakMap<CodexAppServerClient, SharedCodexAppServerClientEntry>;
   leasedReleases: WeakMap<CodexAppServerClient, Array<() => void>>;
   warmClientsByConfig?: WeakMap<
@@ -118,6 +119,7 @@ function getSharedCodexAppServerClientState(): SharedCodexAppServerClientState {
   };
   globalState[SHARED_CODEX_APP_SERVER_CLIENT_STATE] ??= {
     clients: new Map(),
+    liveClients: new Set(),
     entriesByClient: new WeakMap(),
     leasedReleases: new WeakMap(),
   };
@@ -843,8 +845,16 @@ function createSharedCodexAppServerClientStartup(params: {
     runtimeArtifactSignal: params.runtimeArtifactSignal,
     config: params.config,
     onStartedClient: (startedClient) => {
+      const state = getSharedCodexAppServerClientState();
       params.entry.client = startedClient;
-      getSharedCodexAppServerClientState().entriesByClient.set(startedClient, params.entry);
+      state.entriesByClient.set(startedClient, params.entry);
+      // Graceful retirement detaches active clients from the acquisition map,
+      // so global teardown tracks physical lifetime until the close notification.
+      state.liveClients.add(startedClient);
+      startedClient.addCloseHandler((closedClient) => {
+        getSharedCodexAppServerClientState().liveClients.delete(closedClient);
+        clearSharedClientEntryIfCurrent(params.key, closedClient);
+      });
       for (const callback of params.entry.onStartedClientCallbacks) {
         callback(startedClient);
       }
@@ -854,9 +864,6 @@ function createSharedCodexAppServerClientStartup(params: {
   }).then(
     (client) => {
       params.entry.client = client;
-      client.addCloseHandler((closedClient) =>
-        clearSharedClientEntryIfCurrent(params.key, closedClient),
-      );
       return client;
     },
     (error: unknown) => {
@@ -1402,12 +1409,6 @@ function retirePendingSharedClientEntryIfUnclaimed(
 }
 
 function collectSharedClients(state: SharedCodexAppServerClientState): CodexAppServerClient[] {
-  return [
-    ...new Set(
-      [...state.clients.values()]
-        .map((entry) => entry.client)
-        .filter((client): client is CodexAppServerClient => Boolean(client)),
-    ),
-  ];
+  return [...state.liveClients];
 }
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
