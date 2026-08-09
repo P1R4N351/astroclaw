@@ -3,7 +3,7 @@ import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/s
 import { listAgentWorkspaceDirs } from "../../agents/workspace-dirs.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { NodeRegistry, NodeSession } from "../../gateway/node-registry.js";
-import { listNodePairing, updatePairedNodeBins } from "../../infra/node-pairing.js";
+import { listNodePairing, updatePairedNodeBins } from "../../infra/device-pairing-node.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { loadWorkspaceSkillEntries } from "../loading/workspace.js";
 import type { SkillEligibilityContext } from "../types.js";
