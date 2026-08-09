@@ -1,3 +1,4 @@
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
@@ -43,11 +44,27 @@ export function shouldDeliverDespiteSourceReplySuppression(
 
 export function readAskUserQuestionId(payload: ReplyPayload): string | undefined {
   const askUser = payload.channelData?.askUser;
-  if (!askUser || typeof askUser !== "object" || Array.isArray(askUser)) {
+  if (!isRecord(askUser)) {
     return undefined;
   }
-  const questionId = (askUser as { questionId?: unknown }).questionId;
+  const questionId = askUser.questionId;
   return typeof questionId === "string" ? questionId : undefined;
+}
+
+export function hasExecApprovalPayload(payload: ReplyPayload): boolean {
+  return isRecord(payload.channelData?.execApproval);
+}
+
+export function hasAskUserPayload(payload: ReplyPayload): boolean {
+  return isRecord(payload.channelData?.askUser);
+}
+
+export function requiresDurableToolResultDelivery(payload: ReplyPayload): boolean {
+  return (
+    resolveSendableOutboundReplyParts(payload).hasMedia ||
+    hasExecApprovalPayload(payload) ||
+    hasAskUserPayload(payload)
+  );
 }
 
 export function createFinalDispatchPayloadDedupeKey(payload: ReplyPayload): string {
