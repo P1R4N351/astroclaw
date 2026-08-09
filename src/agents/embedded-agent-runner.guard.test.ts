@@ -2,13 +2,13 @@
 // redaction.
 import { readFileSync } from "node:fs";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
-import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import { SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "openclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createFileBackedSessionManagerForTest } from "../../test/helpers/session-manager-file-fixture.js";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -324,6 +324,36 @@ describe("guardSessionManager integration", () => {
       provenance: { kind: "inter_session", sourceTool: "sessions_send" },
     });
     expect(recorder.hasPersisted()).toBe(true);
+  });
+
+  it("marks the exact queued recorder blocked when a write hook suppresses its user message", () => {
+    initializeGlobalHookRunner(
+      createMockPluginRegistry([
+        {
+          hookName: "before_message_write",
+          handler: () => ({ block: true }),
+        },
+      ]),
+    );
+    const recorder = createUserTurnTranscriptRecorder({
+      input: { text: "queued prompt" },
+      target: createTestUserTurnTranscriptTarget(),
+    });
+    const preparedMessage = expectDefined(recorder.message, "expected prepared queued turn");
+    const runtimeMessage = attachRuntimeUserTurnTranscriptContext(
+      {
+        role: "user",
+        content: "runtime queued prompt",
+        timestamp: 456,
+      },
+      { message: preparedMessage, recorder },
+    );
+    const sm = guardSessionManager(SessionManager.inMemory());
+
+    sm.appendMessage(runtimeMessage);
+
+    expect(getMessages(sm)).toEqual([]);
+    expect(recorder.isBlocked()).toBe(true);
   });
 
   it("does not consume prepared user persistence for before-agent-run blocked messages", () => {
