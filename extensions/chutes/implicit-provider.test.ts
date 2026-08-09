@@ -1,6 +1,6 @@
 // Chutes tests cover implicit provider plugin behavior.
-import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { resolveOAuthApiKeyMarker } from "openclaw/plugin-sdk/provider-auth";
+import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { resolveOAuthApiKeyMarker } from "astroclaw/plugin-sdk/provider-auth";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import plugin from "./index.js";
 import { CHUTES_BASE_URL } from "./models.js";
@@ -69,12 +69,47 @@ async function withRealChutesDiscovery<T>(
 describe("chutes implicit provider auth mode", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it("publishes the env vars used by core api-key auto-detection", async () => {
     const provider = await registerSingleProviderPlugin(plugin);
 
     expect(provider.envVars).toEqual(["CHUTES_API_KEY", "CHUTES_OAUTH_TOKEN"]);
+  });
+
+  it("registers plugin-owned OAuth refresh behavior", async () => {
+    vi.stubEnv("CHUTES_CLIENT_SECRET", "");
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ access_token: "at_new", refresh_token: "rt_new", expires_in: 1800 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = await registerSingleProviderPlugin(plugin);
+    const credential = {
+      type: "oauth" as const,
+      provider: "chutes",
+      access: "at_old",
+      refresh: "rt_old",
+      expires: 1,
+      clientId: "cid_test",
+      email: "fred@example.com",
+    };
+
+    expect(provider.refreshOAuth).toBeTypeOf("function");
+    await expect(provider.refreshOAuth!(credential)).resolves.toMatchObject({
+      type: "oauth",
+      provider: "chutes",
+      access: "at_new",
+      refresh: "rt_new",
+      clientId: "cid_test",
+      email: "fred@example.com",
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.chutes.ai/idp/token",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
   it("does not publish a provider when no API key is resolved", async () => {
