@@ -40,7 +40,7 @@ const deprecationMarkingCodes = [
 const deprecationMarkingSurfaceCounts: Record<(typeof deprecationMarkingCodes)[number], number> = {
   "plugin-sdk-channel-setup-input-fields": 22,
   "plugin-sdk-broad-runtime-barrels": 12,
-  "plugin-sdk-provider-owned-helper-shims": 35,
+  "plugin-sdk-provider-owned-helper-shims": 34,
   "message-presentation-legacy-bridges": 21,
   "plugin-sdk-focused-compat-aliases": 23,
   "agent-harness-terminal-result-aliases": 10,
@@ -124,8 +124,8 @@ describe("plugin compatibility registry", () => {
       expect(records.get(code)?.replacement).toMatch(/retain/u);
     }
     expect(records.get("agent-harness-sdk-alias")?.surfaces).toEqual([
-      "openclaw/plugin-sdk/agent-harness",
-      "openclaw/plugin-sdk/agent-harness-runtime",
+      "astroclaw/plugin-sdk/agent-harness",
+      "astroclaw/plugin-sdk/agent-harness-runtime",
     ]);
   });
 
@@ -146,18 +146,18 @@ describe("plugin compatibility registry", () => {
     }
     expect(records.get("plugin-sdk-broad-runtime-barrels")?.surfaces).toEqual(
       expect.arrayContaining([
-        "openclaw/plugin-sdk/agent-runtime",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.useCache",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.cacheOnly",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.metadataSnapshot",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog",
-        "openclaw/plugin-sdk/cli-runtime",
-        "openclaw/plugin-sdk/conversation-runtime",
-        "openclaw/plugin-sdk/hook-runtime",
-        "openclaw/plugin-sdk/media-runtime",
-        "openclaw/plugin-sdk/media-runtime buildAgentMediaPayload",
-        "openclaw/plugin-sdk/plugin-runtime",
-        "openclaw/plugin-sdk/security-runtime",
+        "astroclaw/plugin-sdk/agent-runtime",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.useCache",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.cacheOnly",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.metadataSnapshot",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog",
+        "astroclaw/plugin-sdk/cli-runtime",
+        "astroclaw/plugin-sdk/conversation-runtime",
+        "astroclaw/plugin-sdk/hook-runtime",
+        "astroclaw/plugin-sdk/media-runtime",
+        "astroclaw/plugin-sdk/media-runtime buildAgentMediaPayload",
+        "astroclaw/plugin-sdk/plugin-runtime",
+        "astroclaw/plugin-sdk/security-runtime",
       ]),
     );
     expect(records.get("deprecated-session-store-beta5-api")?.surfaces).toEqual(
