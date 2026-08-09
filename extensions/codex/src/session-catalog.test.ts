@@ -4,16 +4,16 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { resolveDefaultAgentDir } from "openclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveDefaultAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   validateJsonSchemaValue,
   type JsonSchemaObject,
-} from "openclaw/plugin-sdk/json-schema-runtime";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
-import type { SessionCatalogProvider } from "openclaw/plugin-sdk/session-catalog";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/json-schema-runtime";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+import type { SessionCatalogProvider } from "astroclaw/plugin-sdk/session-catalog";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveCodexAppServerHomeDir } from "./app-server/auth-start-options.js";
 import { resolveCodexAppServerUserHomeDir } from "./app-server/config.js";
@@ -95,6 +95,7 @@ const transcriptMirrorMocks = vi.hoisted(() => ({
 }));
 const nodeHostMocks = vi.hoisted(() => ({
   runNodePtyCommand: vi.fn(async () => ({ exitCode: 0 })),
+  userShellPaths: new Map<string, string>(),
 }));
 
 vi.mock("./command-rpc.js", () => ({
@@ -110,8 +111,8 @@ vi.mock("./app-server/shared-client.js", () => ({
 vi.mock("./app-server/transcript-mirror.js", () => ({
   importCodexThreadHistoryToTranscript: transcriptMirrorMocks.importCodexThreadHistoryToTranscript,
 }));
-vi.mock("openclaw/plugin-sdk/node-host", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/node-host")>();
+vi.mock("astroclaw/plugin-sdk/node-host", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/node-host")>();
   return {
     ...actual,
     runNodePtyCommand: nodeHostMocks.runNodePtyCommand,
@@ -121,15 +122,33 @@ vi.mock("openclaw/plugin-sdk/node-host", async (importOriginal) => {
         env?: NodeJS.ProcessEnv;
         pathEnv?: string;
         includeExtensionless?: boolean;
+        strategy: "direct" | "fallback" | "prefer";
       },
     ) => {
       const env = options.env ?? process.env;
-      return actual.resolveNodeHostExecutable(command, {
+      const pathEnv = options.pathEnv ?? env.PATH ?? env.Path ?? "";
+      const direct = actual.resolveNodeHostExecutable(command, {
         env,
-        pathEnv: options.pathEnv ?? env.PATH ?? env.Path ?? "",
+        pathEnv,
         includeExtensionless: options.includeExtensionless,
         strategy: "direct",
       });
+      if (direct && options.strategy !== "prefer") {
+        return direct;
+      }
+      const shellPath = nodeHostMocks.userShellPaths.get(command);
+      if (!shellPath) {
+        return direct;
+      }
+      const shellExecutable = actual.resolveNodeHostExecutable(command, {
+        env,
+        pathEnv: shellPath,
+        includeExtensionless: options.includeExtensionless,
+        strategy: "direct",
+      });
+      return shellExecutable
+        ? { executable: shellExecutable.executable, pathEnv: shellPath }
+        : direct;
     },
   };
 });
@@ -424,6 +443,7 @@ function createGatewayApi(runtime: PluginRuntime, apiConfig: OpenClawConfig = {}
 
 beforeEach(() => {
   nodeHostMocks.runNodePtyCommand.mockClear();
+  nodeHostMocks.userShellPaths.clear();
   commandRpcMocks.codexControlRequest.mockReset();
   pinnedConnectionMocks.getClient.mockReset();
   pinnedConnectionMocks.getClient.mockResolvedValue(pinnedConnectionMocks.client);
@@ -3743,7 +3763,8 @@ describe("Codex supervision actions", () => {
     const threadId = "123e4567-e89b-12d3-a456-426614174000";
     const binDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-terminal-"));
     tempDirs.push(binDir);
-    process.env.PATH = binDir;
+    process.env.PATH = "";
+    nodeHostMocks.userShellPaths.set("codex", binDir);
     let now = Date.now();
     vi.spyOn(Date, "now").mockImplementation(() => now);
     const executable = path.join(binDir, process.platform === "win32" ? "codex.cmd" : "codex");
@@ -3819,6 +3840,20 @@ describe("Codex supervision actions", () => {
     await expect(
       getProvider()?.openTerminal?.({ hostId: CODEX_LOCAL_SESSION_HOST_ID, threadId }),
     ).rejects.toThrow("Codex CLI is unavailable");
+    await expect(
+      getProvider()?.startTerminalSession?.({
+        agentId: "main",
+        cwd: "/workspace/new",
+        initialMessage: "--help",
+      }),
+    ).rejects.toThrow("install Codex or add codex to PATH");
+    await expect(
+      getProvider()?.startTerminalSession?.({
+        agentId: "main",
+        cwd: "/workspace/node-new",
+        nodeId: "devbox",
+      }),
+    ).rejects.toThrow("omit hostId to start on the gateway host");
 
     await fs.writeFile(executable, process.platform === "win32" ? "@echo off\r\n" : "#!/bin/sh\n");
     if (process.platform !== "win32") {
@@ -3843,10 +3878,37 @@ describe("Codex supervision actions", () => {
       kind: "local",
       argv: [executable, "resume", threadId],
       cwd: "/workspace/local",
+      pathEnv: binDir,
       env: {
         CODEX_HOME: resolveCodexAppServerHomeDir(resolveDefaultAgentDir(config)),
       },
     });
+    await expect(
+      getProvider()?.startTerminalSession?.({
+        agentId: "main",
+        cwd: "/workspace/new",
+        initialMessage: "--help",
+      }),
+    ).resolves.toEqual({
+      kind: "local",
+      argv: [executable, "--", "--help"],
+      cwd: "/workspace/new",
+      env: {
+        CODEX_HOME: resolveCodexAppServerHomeDir(resolveDefaultAgentDir(config)),
+      },
+      pathEnv: binDir,
+      title: "codex",
+    });
+    await expect(
+      getProvider()?.startTerminalSession?.({
+        agentId: "main",
+        cwd: "/workspace/command-prompt",
+        initialMessage: "resume",
+      }),
+    ).resolves.toMatchObject({ argv: [executable, "--", "resume"] });
+    await expect(
+      getProvider()?.startTerminalSession?.({ agentId: "main", cwd: "/workspace/blank" }),
+    ).resolves.toMatchObject({ argv: [executable], cwd: "/workspace/blank" });
     pluginConfig = { appServer: { homeScope: "user" } };
     await expect(
       getProvider()?.openTerminal?.({ hostId: CODEX_LOCAL_SESSION_HOST_ID, threadId }),
