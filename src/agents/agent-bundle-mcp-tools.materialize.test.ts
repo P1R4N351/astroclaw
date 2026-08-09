@@ -1,8 +1,8 @@
 /** Tests materializing MCP catalog tools into agent tool definitions and results. */
 
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { validateToolArguments } from "astroclaw/plugin-sdk/llm";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { validateToolArguments } from "openclaw/plugin-sdk/llm";
 import { afterEach, describe, expect, it } from "vitest";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import {
@@ -133,6 +133,7 @@ describe("createBundleMcpToolRuntime", () => {
       "demo__hidden_tool",
       "demo__model_tool",
     ]);
+    expect(getPluginToolMeta(runtime.appTools![0]!)?.mcp?.codexApproval).toEqual({ mode: "auto" });
     expect(
       applyEmbeddedAttemptToolsAllow(runtime.appTools ?? [], ["demo__model_tool"], {
         toolMeta: (tool) => getPluginToolMeta(tool),
