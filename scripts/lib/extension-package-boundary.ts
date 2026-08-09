@@ -1,7 +1,7 @@
 // Extension Package Boundary script supports OpenClaw repository automation.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, posix, resolve } from "node:path";
-import { privateLocalOnlyPluginSdkEntrypoints } from "./plugin-sdk-entries.mjs";
+import { privateLocalOnlyPluginSdkEntrypoints } from "./plugin-sdk-entries.mts";
 
 export const EXTENSION_PACKAGE_BOUNDARY_INCLUDE = ["./*.ts", "./src/**/*.ts"] as const;
 export const EXTENSION_PACKAGE_BOUNDARY_EXCLUDE = [
@@ -100,7 +100,9 @@ export const EXTENSION_PACKAGE_BOUNDARY_BASE_PATHS = {
   "@astroclaw/llm-core/types": ["../dist/plugin-sdk/packages/llm-core/src/types.d.ts"],
   "@astroclaw/llm-core/validation": ["../dist/plugin-sdk/packages/llm-core/src/validation.d.ts"],
   "@astroclaw/llm-core/*": ["../dist/plugin-sdk/packages/llm-core/src/*.d.ts"],
-  "@astroclaw/model-catalog-core": ["../dist/plugin-sdk/packages/model-catalog-core/src/index.d.ts"],
+  "@astroclaw/model-catalog-core": [
+    "../dist/plugin-sdk/packages/model-catalog-core/src/index.d.ts",
+  ],
   "@astroclaw/model-catalog-core/configured-model-refs": [
     "../dist/plugin-sdk/packages/model-catalog-core/src/configured-model-refs.d.ts",
   ],
@@ -205,7 +207,9 @@ export const EXTENSION_PACKAGE_BOUNDARY_BASE_PATHS = {
   "@astroclaw/terminal-core/osc-progress": [
     "../dist/plugin-sdk/packages/terminal-core/src/osc-progress.d.ts",
   ],
-  "@astroclaw/terminal-core/palette": ["../dist/plugin-sdk/packages/terminal-core/src/palette.d.ts"],
+  "@astroclaw/terminal-core/palette": [
+    "../dist/plugin-sdk/packages/terminal-core/src/palette.d.ts",
+  ],
   "@astroclaw/terminal-core/progress-line": [
     "../dist/plugin-sdk/packages/terminal-core/src/progress-line.d.ts",
   ],
@@ -218,7 +222,9 @@ export const EXTENSION_PACKAGE_BOUNDARY_BASE_PATHS = {
   "@astroclaw/terminal-core/prompt-style": [
     "../dist/plugin-sdk/packages/terminal-core/src/prompt-style.d.ts",
   ],
-  "@astroclaw/terminal-core/restore": ["../dist/plugin-sdk/packages/terminal-core/src/restore.d.ts"],
+  "@astroclaw/terminal-core/restore": [
+    "../dist/plugin-sdk/packages/terminal-core/src/restore.d.ts",
+  ],
   "@astroclaw/terminal-core/safe-text": [
     "../dist/plugin-sdk/packages/terminal-core/src/safe-text.d.ts",
   ],
