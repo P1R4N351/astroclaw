@@ -32,7 +32,7 @@ export const jsdomOptimizedDeps = {
   optimizer: {
     web: {
       enabled: true,
-      include: ["lit", "lit-html", "@lit/reactive-element", "marked"] as string[],
+      include: ["lit", "lit-html", "@lit/reactive-element"] as string[],
     },
   },
 };
@@ -589,7 +589,7 @@ export const sharedVitestConfig = {
       "test/setup.env.ts",
       "test/setup.shared.ts",
       "test/setup.extensions.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
       ...vitestConfigFiles,
       "test/vitest/**/*.{ts,mjs}",
     ].map(resolveRepoRootPath),
