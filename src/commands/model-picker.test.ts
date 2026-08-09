@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { NormalizedModelCatalogRow } from "@astroclaw/model-catalog-core/model-catalog-types";
 // Model picker tests cover catalog rows, provider metadata, backend defaults, and prompt choices.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { testing as cliBackendsTesting } from "../agents/cli-backends.test-support.js";
 import type { ModelCatalogEntry } from "../agents/model-catalog.js";
@@ -21,6 +21,7 @@ const modelCatalogRouteVariants = vi.hoisted(() => ({
   value: undefined as readonly ModelCatalogEntry[] | undefined,
 }));
 vi.mock("../agents/prepared-model-catalog.js", () => ({
+  loadProviderScopedThinkingCatalog: vi.fn(async () => []),
   loadPreparedModelCatalogSnapshot: async (...args: unknown[]) => {
     const entries = await loadModelCatalog(...args);
     return { entries, routeVariants: modelCatalogRouteVariants.value ?? entries };
