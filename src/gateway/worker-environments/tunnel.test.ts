@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createWorkerSshRunner } from "./tunnel-ssh-runner.js";
 import { createWorkerTunnelManager } from "./tunnel.js";
 import {
+  BUNDLE_HASH,
   PWD_COMMAND,
   SSH,
   deferred,
@@ -93,6 +94,22 @@ describe("worker tunnel manager", () => {
     await handle.stop();
   });
 
+  it("reports stopped when the reconnect loop settles without removing its entry", async () => {
+    const fake = fakeRunner();
+    const { manager, handle } = await startConnectedTunnel(fake, "worker:settled-loop", 1, {
+      manager: {
+        sleep: async () => {
+          throw new Error("retry scheduler stopped");
+        },
+      },
+    });
+
+    fake.starts[0]?.process.exit();
+    await waitForFast(() => expect(manager.status("worker:settled-loop")).toBe("stopped"));
+
+    await handle.stop();
+  });
+
   it("times out a marker-less SSH child and retries", async () => {
     vi.useFakeTimers();
     const fake = fakeRunner();
@@ -121,6 +138,7 @@ describe("worker tunnel manager", () => {
       sleep: async () => {},
     });
     const request = {
+      bundleHash: BUNDLE_HASH,
       environmentId: "worker:port-reconnect",
       ownerEpoch: 1,
       ssh: { ...SSH, port: 2222, fallbackPorts: [22] },
@@ -264,6 +282,7 @@ describe("worker tunnel manager", () => {
     await sleepStarted.promise;
 
     const reconnecting = manager.start({
+      bundleHash: BUNDLE_HASH,
       environmentId: "worker:drain",
       ownerEpoch: 8,
       ssh: SSH,
@@ -300,6 +319,7 @@ describe("worker tunnel manager", () => {
     const fake = fakeRunner();
     const manager = createWorkerTunnelManager({ runner: fake.runner, sleep: async () => {} });
     const initialRequest = {
+      bundleHash: BUNDLE_HASH,
       environmentId: "worker:replacement",
       ownerEpoch: 1,
       ssh: SSH,
@@ -319,6 +339,7 @@ describe("worker tunnel manager", () => {
     const releaseStop = deferred<void>();
     staleReconnect.blockStopUntil(releaseStop.promise);
     const replacement = manager.start({
+      bundleHash: BUNDLE_HASH,
       environmentId: "worker:replacement",
       ownerEpoch: 2,
       ssh: SSH,
