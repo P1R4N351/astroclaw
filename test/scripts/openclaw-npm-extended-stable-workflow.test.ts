@@ -182,7 +182,7 @@ describe("minimal npm extended-stable workflow", () => {
     });
     expect(plugins.run).toContain("--selection-mode all-publishable");
     expect(plugins.run).toContain("--npm-dist-tag extended-stable");
-    expect(plugins.run).toContain("scripts/check-plugin-npm-runtime-builds.mjs");
+    expect(plugins.run).toContain("scripts/check-plugin-npm-runtime-builds.mts");
     expect(plugins.run).toContain("scripts/plugin-npm-publish.sh --pack");
     expect(plugins.run).toContain("OPENCLAW_PLUGIN_NPM_PACK_OUTPUT_DIR");
     expect(plugins.run).not.toContain("--publish");
@@ -335,7 +335,9 @@ describe("minimal npm extended-stable workflow", () => {
     expect(preflightPack.env?.CORE_PACKAGE_DIRS).toBe(
       "packages/ai packages/gateway-protocol packages/gateway-client",
     );
-    expect(readFileSync(workflowPath, "utf8")).toContain('packageName: "@astroclaw/gateway-client"');
+    expect(readFileSync(workflowPath, "utf8")).toContain(
+      'packageName: "@astroclaw/gateway-client"',
+    );
     expect(publish.run).toContain("(.corePackageTarballs // [])[]");
     expect(publish.run).toContain(
       'bash scripts/openclaw-npm-publish.sh --publish "${publish_target}"',
