@@ -1,5 +1,5 @@
 // Qa Lab tests cover web runtime plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -139,7 +139,7 @@ describe("qa web runtime", () => {
     const launchOptions = requireLaunchOptions();
     expect(spawnSync).toHaveBeenCalledWith(
       process.execPath,
-      ["scripts/ensure-playwright-chromium.mjs", "--skip-ffmpeg"],
+      ["--import", "tsx", "scripts/ensure-playwright-chromium.mts", "--skip-ffmpeg"],
       expect.objectContaining({ cwd: process.cwd(), stdio: "inherit" }),
     );
     expect(launchOptions?.channel).toBeUndefined();
