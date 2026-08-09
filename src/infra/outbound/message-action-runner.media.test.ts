@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 // Covers message-action media hydration, sandbox path normalization,
 // attachments, and channel/plugin media source aliases.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonResult } from "../../agents/tools/common.js";
@@ -17,7 +17,7 @@ import {
   createChannelTestPluginBase,
   createTestRegistry,
 } from "../../test-utils/channel-plugins.js";
-import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
 import { runMessageAction } from "./message-action-runner.js";
 
 const onePixelPng = Buffer.from(
@@ -32,6 +32,8 @@ const channelResolutionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./channel-resolution.js", () => ({
+  normalizeDeliverableOutboundChannel: (value?: string | null) =>
+    typeof value === "string" ? value.trim().toLowerCase() || undefined : undefined,
   resolveOutboundChannelPlugin: channelResolutionMocks.resolveOutboundChannelPlugin,
   resetOutboundChannelResolutionStateForTest: vi.fn(),
 }));
@@ -318,6 +320,8 @@ describe("runMessageAction media behavior", () => {
     expect(requireRecord(sendArgs.ctx).idempotencyKey).toBe(
       "run-1:message-tool:send-1:fingerprint",
     );
+    expect(requireRecord(sendArgs.ctx).plugin).toBe(workspacePlugin);
+    expect(channelResolutionMocks.resolveOutboundChannelPlugin).toHaveBeenCalledTimes(1);
   });
 
   it("rejects plugin-declined attachment actions before loading media", async () => {
@@ -1374,7 +1378,7 @@ describe("runMessageAction media behavior", () => {
     );
 
     it("allows media paths under preferred OpenClaw tmp root", async () => {
-      const tmpRoot = resolvePreferredAstroclawTmpDir();
+      const tmpRoot = resolvePreferredOpenClawTmpDir();
       await fs.mkdir(tmpRoot, { recursive: true });
       const sandboxDir = await fs.mkdtemp(path.join(os.tmpdir(), "msg-sandbox-"));
       try {
