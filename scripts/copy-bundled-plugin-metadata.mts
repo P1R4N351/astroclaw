@@ -9,6 +9,11 @@ import {
 import { shouldBuildBundledCluster } from "./lib/optional-bundled-clusters.mjs";
 import { assertRealOutputRoot } from "./lib/output-root-guard.mjs";
 import {
+  pluginPackageMetadata,
+  pluginPackageMetadataKey,
+  resolvePluginManifestPath,
+} from "./lib/plugin-manifest-filenames.mjs";
+import {
   mergeGeneratedChannelConfigs,
   readGeneratedBundledChannelConfigs,
 } from "./lib/plugin-npm-package-manifest.mts";
@@ -282,7 +287,7 @@ export function copyBundledPluginMetadata(params: CopyMetadataParams = {}): void
     }
 
     const pluginDir = path.join(extensionsRoot, dirent.name);
-    const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
+    const manifestPath = resolvePluginManifestPath(pluginDir);
     const distPluginDir = path.join(distExtensionsRoot, dirent.name);
     const packageJsonPath = path.join(pluginDir, "package.json");
     const parsedPackageJson: unknown = fs.existsSync(packageJsonPath)
@@ -309,7 +314,7 @@ export function copyBundledPluginMetadata(params: CopyMetadataParams = {}): void
 
     sourcePluginDirs.add(dirent.name);
 
-    const distManifestPath = path.join(distPluginDir, "openclaw.plugin.json");
+    const distManifestPath = path.join(distPluginDir, path.basename(manifestPath));
     const distPackageJsonPath = path.join(distPluginDir, "package.json");
     if (!fs.existsSync(manifestPath) && !isManifestlessSupportPackage) {
       removePathIfExists(distPluginDir);
@@ -346,12 +351,15 @@ export function copyBundledPluginMetadata(params: CopyMetadataParams = {}): void
       removeFileIfExists(distPackageJsonPath);
       continue;
     }
-    if (packageJson && isRecord(packageJson.openclaw) && "extensions" in packageJson.openclaw) {
-      packageJson.openclaw = {
-        ...packageJson.openclaw,
-        extensions: rewritePackageExtensions(packageJson.openclaw.extensions),
-        ...(typeof packageJson.openclaw.setupEntry === "string"
-          ? { setupEntry: rewritePackageEntry(packageJson.openclaw.setupEntry) }
+    const packageMetadata = pluginPackageMetadata<Record<string, unknown>>(packageJson);
+    if (packageJson && isRecord(packageMetadata) && "extensions" in packageMetadata) {
+      // Write back through whichever metadata key the source carried, so a legacy
+      // package is not left with a stale `openclaw` block beside a fresh `astroclaw` one.
+      packageJson[pluginPackageMetadataKey(packageJson)] = {
+        ...packageMetadata,
+        extensions: rewritePackageExtensions(packageMetadata.extensions),
+        ...(typeof packageMetadata.setupEntry === "string"
+          ? { setupEntry: rewritePackageEntry(packageMetadata.setupEntry) }
           : {}),
       };
     }

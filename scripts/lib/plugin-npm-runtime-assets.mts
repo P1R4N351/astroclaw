@@ -2,11 +2,15 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
 import { discoverStaticExtensionAssets } from "./static-extension-assets.mts";
 
 type PluginRuntimeAssetPlan = {
   packageDir: string;
-  packageJson: { openclaw?: { assetScripts?: { build?: unknown } } };
+  packageJson: {
+    astroclaw?: { assetScripts?: { build?: unknown } };
+    openclaw?: { assetScripts?: { build?: unknown } };
+  };
   pluginDir: string;
 };
 
@@ -15,7 +19,8 @@ type PluginStaticAssetPlan = Pick<PluginRuntimeAssetPlan, "pluginDir"> & {
 };
 
 function resolvePackageAssetBuildCommand(packageJson: PluginRuntimeAssetPlan["packageJson"]) {
-  const command = packageJson?.openclaw?.assetScripts?.build;
+  const command = pluginPackageMetadata<{ assetScripts?: { build?: unknown } }>(packageJson)
+    ?.assetScripts?.build;
   return typeof command === "string" && command.trim() ? command.trim() : null;
 }
 

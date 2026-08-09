@@ -13,10 +13,19 @@ import {
 import { resolveNpmRunner } from "../npm-runner.mts";
 import type { NpmRunnerParams } from "../npm-runner.mts";
 import {
+  pluginPackageMetadata,
+  resolvePluginManifestPath,
+  withPluginPackageMetadata,
+} from "./plugin-manifest-filenames.mjs";
+import {
   listPluginNpmRuntimeBuildOutputs,
   resolvePluginNpmRuntimeBuildPlan,
 } from "./plugin-npm-runtime-build.mts";
-import type { PluginNpmRuntimeBuildPlan, PluginPackageJson } from "./plugin-npm-runtime-build.mts";
+import type {
+  PluginNpmRuntimeBuildPlan,
+  PluginPackageJson,
+  PluginPackageMetadataBlock,
+} from "./plugin-npm-runtime-build.mts";
 import { isRecord } from "./record-shared.mjs";
 
 const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA_PATH =
@@ -187,7 +196,7 @@ function resolvePackagedChannelStateMetadata(
 }
 
 function resolvePackagedChannelMetadata(plan: PluginNpmRuntimeBuildPlan) {
-  const channel = plan.packageJson.openclaw?.channel;
+  const channel = pluginPackageMetadata<PluginPackageMetadataBlock>(plan.packageJson)?.channel;
   if (!isRecord(channel)) {
     return channel;
   }
@@ -505,7 +514,10 @@ function installMissingOptionalBundledDependencies(params: PluginPackageContext)
 }
 
 function packageOptsOutOfBundledRuntimeDependencies(packageJson: PluginPackageJson | undefined) {
-  return packageJson?.openclaw?.release?.bundleRuntimeDependencies === false;
+  return (
+    pluginPackageMetadata<PluginPackageMetadataBlock>(packageJson)?.release
+      ?.bundleRuntimeDependencies === false
+  );
 }
 
 function shouldBundleDependencies(value: unknown, packageJson: PluginPackageJson | undefined) {
@@ -637,13 +649,17 @@ export function resolveAugmentedPluginNpmPackageJson(params: PluginPackageParams
   assertPluginNpmRuntimeBuildExists(plan);
 
   const packagedChannel = resolvePackagedChannelMetadata(plan);
-  const packageJson: PluginPackageJson = {
-    ...plan.packageJson,
-    files: plan.packageFiles,
-    peerDependencies: plan.packagePeerMetadata.peerDependencies,
-    peerDependenciesMeta: plan.packagePeerMetadata.peerDependenciesMeta,
-    openclaw: {
-      ...plan.packageJson.openclaw,
+  // Re-emit the metadata block under whichever key the source carried, so a legacy
+  // package is not published with a stale `openclaw` block beside a fresh `astroclaw` one.
+  const packageJson: PluginPackageJson = withPluginPackageMetadata(
+    {
+      ...plan.packageJson,
+      files: plan.packageFiles,
+      peerDependencies: plan.packagePeerMetadata.peerDependencies,
+      peerDependenciesMeta: plan.packagePeerMetadata.peerDependenciesMeta,
+    },
+    {
+      ...pluginPackageMetadata<PluginPackageMetadataBlock>(plan.packageJson),
       ...(packagedChannel ? { channel: packagedChannel } : {}),
       runtimeExtensions: plan.runtimeExtensions,
       ...(plan.runtimeSetupEntry
@@ -653,7 +669,7 @@ export function resolveAugmentedPluginNpmPackageJson(params: PluginPackageParams
           }
         : {}),
     },
-  };
+  );
   if (shouldBundleDependencies(params.bundleDependencies, plan.packageJson)) {
     packageJson.bundledDependencies = listPackageRuntimeDependencyNames(packageJson);
     delete packageJson.bundleDependencies;
@@ -778,7 +794,7 @@ export function mergeGeneratedChannelConfigs(
 export function resolveAugmentedPluginNpmManifest(params: PluginPackageParams) {
   const repoRoot = path.resolve(params.repoRoot ?? ".");
   const packageDir = resolvePackageDir(repoRoot, params.packageDir);
-  const manifestPath = path.join(packageDir, "openclaw.plugin.json");
+  const manifestPath = resolvePluginManifestPath(packageDir);
   if (!fs.existsSync(manifestPath)) {
     return {
       manifestPath,

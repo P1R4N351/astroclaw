@@ -4,6 +4,7 @@ import {
   BUNDLED_PLUGIN_PATH_PREFIX,
   BUNDLED_PLUGIN_ROOT_DIR,
 } from "./lib/bundled-plugin-paths.mjs";
+import { PLUGIN_MANIFEST_FILENAMES } from "./lib/plugin-manifest-filenames.mjs";
 import { listGeneratedExtensionAssetSources } from "./lib/static-extension-assets.mts";
 
 const RUN_NODE_PACKAGE_SOURCE_ROOTS = [
@@ -36,7 +37,10 @@ export const runNodeConfigFiles = ["tsconfig.json", "package.json", "tsdown.conf
 /** Combined watch list used by the run-node wrapper. */
 export const runNodeWatchedPaths = [...runNodeSourceRoots, ...runNodeConfigFiles];
 /** Plugin metadata files that require a runtime restart even without source edits. */
-export const extensionRestartMetadataFiles = new Set(["openclaw.plugin.json", "package.json"]);
+export const extensionRestartMetadataFiles = new Set([
+  ...PLUGIN_MANIFEST_FILENAMES,
+  "package.json",
+]);
 
 const ignoredRunNodeRepoPathPatterns = [
   /^extensions\/[^/]+\/src\/host\/.+\/\.bundle\.hash$/u,

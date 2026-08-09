@@ -26,6 +26,7 @@ import {
   writeBuildStamp as writeDistBuildStamp,
   writeRuntimePostBuildStamp as writeDistRuntimePostBuildStamp,
 } from "./lib/local-build-metadata.mts";
+import { PLUGIN_MANIFEST_FILENAME } from "./lib/plugin-manifest-filenames.mjs";
 import { sleep } from "./lib/sleep.mjs";
 import {
   discoverStaticExtensionAssets,
@@ -114,6 +115,7 @@ type RunNodeLockDeps = Pick<RunNodeDeps, "cwd" | "env" | "fs" | "process" | "std
 };
 type BundledPluginBuildEntry = ReturnType<typeof collectBundledPluginBuildEntries>[number] & {
   hasManifest: boolean;
+  manifestFilename?: string;
 };
 type BuildRequirement = { shouldBuild: boolean; reason: keyof typeof BUILD_REASON_LABELS };
 type RuntimePostBuildRequirement = {
@@ -475,14 +477,14 @@ const listRequiredBundledPluginMetadataOutputs = (
   pluginEntries: BundledPluginBuildEntry[],
   deps: RunNodeRequirementDeps,
 ) =>
-  pluginEntries.flatMap(({ id, hasManifest, hasPackageJson }) => {
+  pluginEntries.flatMap(({ id, hasManifest, manifestFilename, hasPackageJson }) => {
     const builtPluginDir = path.join(deps.distRoot, "extensions", id);
     const requiredPaths = [];
     if (hasPackageJson) {
       requiredPaths.push(path.join(builtPluginDir, "package.json"));
     }
     if (hasManifest) {
-      requiredPaths.push(path.join(builtPluginDir, "openclaw.plugin.json"));
+      requiredPaths.push(path.join(builtPluginDir, manifestFilename ?? PLUGIN_MANIFEST_FILENAME));
     }
     return requiredPaths;
   });

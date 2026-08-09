@@ -3,6 +3,12 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { isRecord } from "./record-shared.mjs";
+import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
+
+// This helper is copied into standalone updater fixtures without workspace packages.
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+}
 
 type StaticExtensionAsset = {
   pluginDir?: string;
@@ -27,10 +33,10 @@ function readJsonFile(filePath: string, fsImpl: typeof fs) {
   return isRecord(value) ? value : {};
 }
 
+// The 2026-05-17 rebrand moved this block from `openclaw` to `astroclaw`; reading only
+// the legacy key made every declared static asset and build opt-out evaluate as absent.
 function readPackageSection(pkg: Record<string, unknown>, section: "assetScripts" | "build") {
-  const openclaw = isRecord(pkg.openclaw) ? pkg.openclaw : {};
-  const value = openclaw[section];
-  return isRecord(value) ? value : {};
+  return asRecord(asRecord(pluginPackageMetadata(pkg))[section]);
 }
 
 function normalizePackageRelativePath(value: unknown) {

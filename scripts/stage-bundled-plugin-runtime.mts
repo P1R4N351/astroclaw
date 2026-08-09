@@ -5,6 +5,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { assertRealOutputRoot } from "./lib/output-root-guard.mjs";
 import { isRecord } from "./lib/record-shared.mjs";
+import { PLUGIN_MANIFEST_FILENAMES } from "./lib/plugin-manifest-filenames.mjs";
 import { removePathIfExists } from "./runtime-postbuild-shared.mjs";
 
 type SymlinkType = Parameters<typeof fs.symlinkSync>[2];
@@ -235,7 +236,7 @@ function shouldCopyRuntimeFile(relativePath: string) {
   return (
     isBundledSkillRuntimePath(relativePath) ||
     isPathOrNestedPath(relativePath, "package.json") ||
-    isPathOrNestedPath(relativePath, "openclaw.plugin.json") ||
+    PLUGIN_MANIFEST_FILENAMES.some((filename) => isPathOrNestedPath(relativePath, filename)) ||
     isPathOrNestedPath(relativePath, ".codex-plugin/plugin.json") ||
     isPathOrNestedPath(relativePath, ".claude-plugin/plugin.json") ||
     isPathOrNestedPath(relativePath, ".cursor-plugin/plugin.json") ||
