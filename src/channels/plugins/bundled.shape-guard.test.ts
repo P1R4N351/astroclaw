@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { expectNoReaddirSyncDuring } from "../../test-utils/fs-scan-assertions.js";
 
@@ -76,7 +76,7 @@ function writeAlphaSdkAliasDistFixture(pluginDir: string, label: string) {
   fs.writeFileSync(
     path.join(pluginDir, "index.js"),
     [
-      'import { defineBundledChannelEntry } from "astroclaw/plugin-sdk/channel-entry-contract";',
+      'import { defineBundledChannelEntry } from "openclaw/plugin-sdk/channel-entry-contract";',
       "export default defineBundledChannelEntry({",
       "  id: 'alpha',",
       "  name: 'Alpha',",
@@ -791,26 +791,35 @@ describe("bundled channel entry shape guards", () => {
       );
 
       expect(
-        bundled.listBundledChannelLegacyStateMigrationDetectors({
+        bundled.listBundledChannelLegacyStateMigrationDetectorEntries({
           config: { channels: { alpha: { enabled: false } } },
         }),
       ).toStrictEqual([]);
       expect(testGlobal["__bundledSetupOnlySetupLoaded"]).toBeUndefined();
 
-      const detectors = bundled.listBundledChannelLegacyStateMigrationDetectors();
+      const detectorEntries = bundled.listBundledChannelLegacyStateMigrationDetectorEntries();
       expect(
-        detectors.map((detector) =>
-          detector({ cfg: {}, env: {}, stateDir: "/state", oauthDir: "/oauth" } as never),
-        ),
+        detectorEntries.map(({ pluginId, detector }) => ({
+          pluginId,
+          plans: detector({
+            cfg: {},
+            env: {},
+            stateDir: "/state",
+            oauthDir: "/oauth",
+          } as never),
+        })),
       ).toEqual([
-        [
-          {
-            kind: "copy",
-            label: "Alpha state",
-            sourcePath: "/oauth/legacy.json",
-            targetPath: "/oauth/alpha/legacy.json",
-          },
-        ],
+        {
+          pluginId: "alpha",
+          plans: [
+            {
+              kind: "copy",
+              label: "Alpha state",
+              sourcePath: "/oauth/legacy.json",
+              targetPath: "/oauth/alpha/legacy.json",
+            },
+          ],
+        },
       ]);
       expect(testGlobal["__bundledSetupOnlySetupLoaded"]).toBe(1);
       expect(testGlobal["__bundledSetupOnlyMainLoaded"]).toBeUndefined();
@@ -1117,9 +1126,9 @@ describe("bundled channel entry shape guards", () => {
     const offenders = collectBundledChannelEntrypointOffenders(
       bundledPluginRoots,
       (source) =>
-        !source.includes('from "astroclaw/plugin-sdk/channel-entry-contract"') ||
-        source.includes('from "astroclaw/plugin-sdk/core"') ||
-        source.includes('from "astroclaw/plugin-sdk/channel-core"'),
+        !source.includes('from "openclaw/plugin-sdk/channel-entry-contract"') ||
+        source.includes('from "openclaw/plugin-sdk/core"') ||
+        source.includes('from "openclaw/plugin-sdk/channel-core"'),
     );
 
     expect(offenders).toStrictEqual([]);
@@ -1173,7 +1182,7 @@ describe("bundled channel entry shape guards", () => {
         if (!source.includes("createChatChannelPlugin")) {
           continue;
         }
-        if (source.includes('from "astroclaw/plugin-sdk/core"')) {
+        if (source.includes('from "openclaw/plugin-sdk/core"')) {
           offenders.push(path.relative(process.cwd(), filePath));
         }
       }
@@ -1195,7 +1204,7 @@ describe("bundled channel entry shape guards", () => {
       "extensions/irc/src/runtime-api.ts",
       "extensions/matrix/src/runtime-api.ts",
     ].filter((filePath) =>
-      fs.readFileSync(path.resolve(filePath), "utf8").includes("astroclaw/plugin-sdk/core"),
+      fs.readFileSync(path.resolve(filePath), "utf8").includes("openclaw/plugin-sdk/core"),
     );
 
     expect(offenders).toStrictEqual([]);
@@ -1230,7 +1239,7 @@ describe("bundled channel entry shape guards", () => {
     ].filter((filePath) =>
       fs
         .readFileSync(path.resolve(filePath), "utf8")
-        .includes('from "astroclaw/plugin-sdk/runtime"'),
+        .includes('from "openclaw/plugin-sdk/runtime"'),
     );
 
     expect(offenders).toStrictEqual([]);
