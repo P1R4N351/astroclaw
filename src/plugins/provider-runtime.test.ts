@@ -1,6 +1,6 @@
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 /** Exercises provider runtime loading, ordering, and manifest-backed discovery paths. */
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModelProviderConfig, OpenClawConfig } from "../config/types.js";
 import { captureEnv, deleteTestEnvValue, setTestEnvValue } from "../test-utils/env.js";
@@ -874,7 +874,7 @@ describe("provider-runtime", () => {
       plugins: {
         entries: {
           demo: { enabled: true, config: { endpoint: "https://demo.example" } },
-          "active-memory": { enabled: true, config: { qmd: { searchMode: "fast" } } },
+          "active-memory": { enabled: true, config: { queryMode: "recent" } },
         },
       },
     } as OpenClawConfig;
@@ -1168,7 +1168,7 @@ describe("provider-runtime", () => {
       plugins: {
         entries: {
           demo: { enabled: true, config: { endpoint: "https://demo.example" } },
-          "active-memory": { enabled: true, config: { qmd: { searchMode: "fast" } } },
+          "active-memory": { enabled: true, config: { queryMode: "recent" } },
         },
       },
     } as OpenClawConfig;
