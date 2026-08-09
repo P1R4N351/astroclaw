@@ -1,6 +1,6 @@
 // Signal plugin module implements approval reactions behavior.
-import { matchesApprovalRequestFilters } from "openclaw/plugin-sdk/approval-client-runtime";
-import type { ApprovalResolveResult } from "openclaw/plugin-sdk/approval-gateway-runtime";
+import { matchesApprovalRequestFilters } from "astroclaw/plugin-sdk/approval-client-runtime";
+import type { ApprovalResolveResult } from "astroclaw/plugin-sdk/approval-gateway-runtime";
 import {
   addApprovalReactionHintToText,
   buildApprovalReactionHint,
@@ -11,21 +11,22 @@ import {
   resolveTypedApprovalReactionTarget,
   type ApprovalReactionDecisionBinding,
   type ApprovalReactionTargetRecord,
-} from "openclaw/plugin-sdk/approval-reaction-runtime";
+} from "astroclaw/plugin-sdk/approval-reaction-runtime";
 import {
   getExecApprovalReplyMetadata,
   type ExecApprovalReplyDecision,
-} from "openclaw/plugin-sdk/approval-reply-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { createPluginStateErrorReporter } from "openclaw/plugin-sdk/plugin-state-runtime";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
-import { normalizeAccountId } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/approval-reply-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { isApprovalNotFoundError } from "astroclaw/plugin-sdk/error-runtime";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { createPluginStateErrorReporter } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import { normalizeAccountId } from "astroclaw/plugin-sdk/routing";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeE164 } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { resolveSignalTarget } from "./aliases.js";
 import { getSignalApprovalApprovers, signalApprovalAuth } from "./approval-auth.js";
 import { looksLikeUuid } from "./identity.js";
@@ -82,7 +83,9 @@ type SignalApprovalDeliveryResult = {
   meta?: Record<string, unknown>;
 };
 
-const resolverRuntimeLoader = createLazyRuntimeModule(() => import("./approval-resolver.js"));
+const resolverRuntimeLoader = createLazyRuntimeModule(
+  () => import("astroclaw/plugin-sdk/approval-gateway-runtime"),
+);
 
 const reportPersistentApprovalReactionError = createPluginStateErrorReporter(
   getOptionalSignalRuntime,
@@ -907,13 +910,14 @@ export async function maybeResolveSignalApprovalReaction(params: {
     return true;
   }
 
-  const { isApprovalNotFoundError, resolveSignalApproval } = await loadApprovalResolver();
+  const { resolveApprovalOverGateway } = await loadApprovalResolver();
   try {
-    const result = await resolveSignalApproval({
+    const result = await resolveApprovalOverGateway({
       cfg: params.cfg,
       approvalId: target.approvalId,
       approvalKind: target.approvalKind,
       decision: target.decision,
+      channel: "signal",
       senderId: actorId,
       gatewayUrl: params.gatewayUrl,
     });
