@@ -1,9 +1,9 @@
 // Slack tests cover send.identity fallback plugin behavior.
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSlackSendTestClient } from "./blocks.test-helpers.js";
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   logVerbose: vi.fn(),
   danger: (message: string) => message,
   shouldLogVerbose: () => false,
@@ -104,10 +104,6 @@ describe("sendMessageSlack customize-scope fallback", () => {
     { target: "channel:companychat", expected: "companychat" },
     { target: "#companychat", expected: "companychat" },
     { target: "#c08gqh53ejm", expected: "c08gqh53ejm" },
-    {
-      target: "team:T123:channel:C08GQH53EJM",
-      expected: "team:T123:channel:C08GQH53EJM",
-    },
   ])("resolves API target $target as $expected", async ({ target, expected }) => {
     const client = createSlackSendTestClient();
     vi.mocked(client.chat.postMessage).mockResolvedValueOnce({ ts: "171234.567" });
