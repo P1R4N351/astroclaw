@@ -36,13 +36,6 @@ export {
   truncateUtf16Safe,
 } from "./host/astroclaw-runtime-io.js";
 export type { OpenClawConfig } from "./host/astroclaw-runtime-config.js";
-export type { SessionSendPolicyConfig } from "./host/astroclaw-runtime-config.js";
 export type { SecretInput } from "./host/astroclaw-runtime-config.js";
-export type {
-  MemoryBackend,
-  MemoryCitationsMode,
-  MemoryQmdConfig,
-  MemoryQmdIndexPath,
-  MemoryQmdSearchMode,
-} from "./host/astroclaw-runtime-config.js";
+export type { MemoryCitationsMode } from "./host/astroclaw-runtime-config.js";
 export type { MemorySearchConfig } from "./host/astroclaw-runtime-config.js";
