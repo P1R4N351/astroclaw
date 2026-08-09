@@ -1,10 +1,10 @@
 // Telegram plugin module implements bot.create telegram bot harness behavior.
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
-import { buildChannelInboundEventContext } from "astroclaw/plugin-sdk/channel-inbound";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { MockFn } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { GetReplyOptions, MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
+import { buildChannelInboundEventContext } from "openclaw/plugin-sdk/channel-inbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { MockFn } from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { GetReplyOptions, MsgContext } from "openclaw/plugin-sdk/reply-runtime";
 import { beforeEach, vi } from "vitest";
 import type { TelegramBotDeps } from "./bot-deps.js";
 import { runTelegramChannelInboundEventWithHarness } from "./bot.test-helpers.js";
@@ -13,21 +13,18 @@ type AnyMock = ReturnType<typeof vi.fn>;
 type AnyAsyncMock = ReturnType<typeof vi.fn<(...args: unknown[]) => Promise<unknown>>>;
 type TelegramBotRuntimeForTest = typeof import("./bot.runtime.js");
 type GetRuntimeConfigFn =
-  typeof import("astroclaw/plugin-sdk/runtime-config-snapshot").getRuntimeConfig;
-type GetSessionEntryFn =
-  typeof import("astroclaw/plugin-sdk/session-store-runtime").getSessionEntry;
-type ListSessionEntriesFn =
-  typeof import("astroclaw/plugin-sdk/session-store-runtime").listSessionEntries;
+  typeof import("openclaw/plugin-sdk/runtime-config-snapshot").getRuntimeConfig;
+type GetSessionEntryFn = typeof import("openclaw/plugin-sdk/session-store-runtime").getSessionEntry;
 type ResolveStorePathFn =
-  typeof import("astroclaw/plugin-sdk/session-store-runtime").resolveStorePath;
+  typeof import("openclaw/plugin-sdk/session-store-runtime").resolveStorePath;
 type ReadSessionUpdatedAtFn =
-  typeof import("astroclaw/plugin-sdk/session-store-runtime").readSessionUpdatedAt;
-type SessionEntry = import("astroclaw/plugin-sdk/session-store-runtime").SessionEntry;
+  typeof import("openclaw/plugin-sdk/session-store-runtime").readSessionUpdatedAt;
+type SessionEntry = import("openclaw/plugin-sdk/session-store-runtime").SessionEntry;
 type SessionStore = Record<string, SessionEntry>;
 type LoadSessionStoreFn = (storePath?: string, opts?: unknown) => SessionStore;
 type ResolveTelegramApprovalForTest = NonNullable<TelegramBotDeps["resolveApproval"]>;
 type DispatchReplyWithBufferedBlockDispatcherFn =
-  typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
+  typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
 type DispatchReplyWithBufferedBlockDispatcherResult = Awaited<
   ReturnType<DispatchReplyWithBufferedBlockDispatcherFn>
 >;
@@ -62,14 +59,13 @@ export function getLoadWebMediaMock(): AnyMock {
   return loadWebMedia;
 }
 
-vi.mock("astroclaw/plugin-sdk/web-media", () => ({
+vi.mock("openclaw/plugin-sdk/web-media", () => ({
   loadWebMedia,
 }));
 
 const {
   getSessionEntryMock,
   getRuntimeConfig,
-  listSessionEntriesMock,
   loadSessionStoreMock,
   readSessionUpdatedAtMock,
   recordInboundSessionMock,
@@ -79,7 +75,6 @@ const {
   (): {
     getSessionEntryMock: MockFn<GetSessionEntryFn>;
     getRuntimeConfig: MockFn<GetRuntimeConfigFn>;
-    listSessionEntriesMock: MockFn<ListSessionEntriesFn>;
     loadSessionStoreMock: MockFn<LoadSessionStoreFn>;
     readSessionUpdatedAtMock: MockFn<ReadSessionUpdatedAtFn>;
     recordInboundSessionMock: MockFn<NonNullable<TelegramBotDeps["recordInboundSession"]>>;
@@ -96,13 +91,6 @@ const {
     getSessionEntryMock: vi.fn<GetSessionEntryFn>(({ storePath, sessionKey, agentId }) => {
       const resolvedStorePath = storePath ?? resolveStorePathMock(undefined, { agentId });
       return loadSessionStoreMock(resolvedStorePath)[sessionKey];
-    }),
-    listSessionEntriesMock: vi.fn<ListSessionEntriesFn>(({ storePath, agentId } = {}) => {
-      const resolvedStorePath = storePath ?? resolveStorePathMock(undefined, { agentId });
-      return Object.entries(loadSessionStoreMock(resolvedStorePath)).map(([sessionKey, entry]) => ({
-        sessionKey,
-        entry,
-      }));
     }),
     readSessionUpdatedAtMock: vi.fn<ReadSessionUpdatedAtFn>(() => undefined),
     recordInboundSessionMock: vi.fn(async () => undefined),
@@ -210,8 +198,8 @@ vi.mock("../../../src/auto-reply/reply/provider-dispatcher.js", () => ({
   dispatchReplyWithBufferedBlockDispatcher:
     dispatchReplyHoisted.dispatchReplyWithBufferedBlockDispatcher,
 }));
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
+vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
   return {
     ...actual,
     runChannelInboundEvent: async (params: Parameters<typeof actual.runChannelInboundEvent>[0]) =>
@@ -510,7 +498,6 @@ const telegramBotRuntimeForTest = {
 export const telegramBotDepsForTest: TelegramBotDeps = {
   getRuntimeConfig,
   getSessionEntry: getSessionEntryMock,
-  listSessionEntries: listSessionEntriesMock,
   resolveStorePath: resolveStorePathMock,
   readSessionUpdatedAt: readSessionUpdatedAtMock,
   recordInboundSession: recordInboundSessionMock as TelegramBotDeps["recordInboundSession"],
@@ -635,14 +622,6 @@ beforeEach(() => {
   getSessionEntryMock.mockImplementation(({ storePath, sessionKey, agentId }) => {
     const resolvedStorePath = storePath ?? resolveStorePathMock(undefined, { agentId });
     return loadSessionStoreMock(resolvedStorePath)[sessionKey];
-  });
-  listSessionEntriesMock.mockReset();
-  listSessionEntriesMock.mockImplementation(({ storePath, agentId } = {}) => {
-    const resolvedStorePath = storePath ?? resolveStorePathMock(undefined, { agentId });
-    return Object.entries(loadSessionStoreMock(resolvedStorePath)).map(([sessionKey, entry]) => ({
-      sessionKey,
-      entry,
-    }));
   });
   readSessionUpdatedAtMock.mockReset();
   readSessionUpdatedAtMock.mockReturnValue(undefined);
