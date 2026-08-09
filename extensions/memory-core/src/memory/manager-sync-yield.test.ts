@@ -7,7 +7,7 @@ import {
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
 } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
-import type { SessionTranscriptCorpusEntry } from "astroclaw/plugin-sdk/memory-core-host-engine-qmd";
+import type { SessionTranscriptCorpusEntry } from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
 import {
   ensureMemoryIndexSchema,
   requireNodeSqlite,
@@ -49,9 +49,9 @@ vi.mock("undici", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-qmd", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-sessions", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/memory-core-host-engine-qmd")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/memory-core-host-engine-sessions")>();
   const basename = (filePath: string) => filePath.split(/[\\/]/).pop() ?? filePath;
   return {
     ...actual,
