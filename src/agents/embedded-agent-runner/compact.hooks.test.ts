@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { createReplyOperation } from "../../auto-reply/reply/reply-run-registry.js";
 import { upsertSessionEntry } from "../../config/sessions/session-accessor.js";
@@ -373,6 +373,7 @@ describe("compactEmbeddedAgentSessionDirect hooks", () => {
       {
         sessionKey: TEST_SESSION_KEY,
         sessionTarget: wrappedCompactionArgs().sessionTarget,
+        assertOwned: () => undefined,
         withSessionWriteLock,
       },
       async () => await compactEmbeddedAgentSessionDirect(wrappedCompactionArgs()),
