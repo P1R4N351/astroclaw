@@ -1,3 +1,4 @@
+import { isMcpAppViewExpiredError } from "@astroclaw/gateway-protocol";
 import { consume } from "@lit/context";
 import { Task, TaskStatus } from "@lit/task";
 import { AppBridge, PostMessageTransport } from "@modelcontextprotocol/ext-apps/app-bridge";
@@ -7,7 +8,6 @@ import {
   ListToolsRequestSchema,
   type ListToolsResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import { isMcpAppViewExpiredError } from "@astroclaw/gateway-protocol";
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 import { createRef, ref } from "lit/directives/ref.js";
@@ -135,7 +135,7 @@ export class McpAppView extends LitElement {
       display: block;
       width: 100%;
       border: 0;
-      background: transparent;
+      background: var(--board-surface, var(--card));
     }
     .error {
       padding: 14px;
