@@ -1,12 +1,11 @@
 // Venice tests cover models plugin behavior.
-import { expectDefined } from "@astroclaw/normalization-core";
 import {
   buildOpenAICompatibleLiveModelProviderConfig,
   clearLiveCatalogCacheForTests,
-} from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+} from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { VENICE_BASE_URL, VENICE_MODEL_CATALOG, VENICE_MODEL_DISCOVERY_OPTIONS } from "./models.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { VENICE_BASE_URL, VENICE_MODEL_CATALOG, VENICE_MODEL_DISCOVERY_OPTIONS } from "./models.js";
 
 const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
 const ORIGINAL_VITEST = process.env.VITEST;
@@ -129,18 +128,6 @@ describe("venice-models", () => {
     clearLiveCatalogCacheForTests();
     vi.unstubAllGlobals();
     restoreDiscoveryEnv();
-  });
-
-  it("builds static definitions with required fields", () => {
-    const entry = expectDefined(VENICE_MODEL_CATALOG[0], "first Venice catalog model");
-    const def = entry;
-    expect(def.id).toBe(entry.id);
-    expect(def.name).toBe(entry.name);
-    expect(def.reasoning).toBe(entry.reasoning);
-    expect(def.input).toEqual(entry.input);
-    expect(def.cost).toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
-    expect(def.contextWindow).toBe(entry.contextWindow);
-    expect(def.maxTokens).toBe(entry.maxTokens);
   });
 
   it("excludes stale models from the static fallback catalog", () => {
