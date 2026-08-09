@@ -1,19 +1,19 @@
 import { createHash } from "node:crypto";
-import { resolveDefaultAgentDir, resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveDefaultAgentDir, resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type {
   OpenClawPluginApi,
   OpenClawPluginNodeHostCommand,
   OpenClawPluginNodeInvokePolicy,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
 import {
   listSessionCatalogEntries,
   type SessionCatalogEntrySnapshot,
   type SessionCatalogHost,
   type SessionCatalogProvider,
-} from "astroclaw/plugin-sdk/session-catalog";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/session-catalog";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { CODEX_CONTROL_METHODS } from "./app-server/capabilities.js";
 import { resolveCodexAppServerClientInstanceId } from "./app-server/client.js";
 import {
@@ -101,6 +101,7 @@ import {
   openCodexCatalogTerminal,
   requireCatalogEligibleThread,
   resolveLocalCodexTerminalExecutable,
+  type CodexTerminalConfigSources,
 } from "./session-catalog-terminal.js";
 import { toGenericTranscriptItem } from "./session-catalog-transcript-item.js";
 import type {
@@ -667,6 +668,7 @@ async function listCodexSessionCatalog(params: {
 /** Builds the node-local read-only Codex app-server catalog command. */
 export function createCodexSessionCatalogNodeHostCommands(
   control: CodexSessionCatalogControl,
+  configSources: CodexTerminalConfigSources,
 ): OpenClawPluginNodeHostCommand[] {
   return [
     {
@@ -713,7 +715,7 @@ export function createCodexSessionCatalogNodeHostCommands(
         }
       },
     },
-    createCodexTerminalNodeHostCommand(control),
+    createCodexTerminalNodeHostCommand(control, configSources),
   ];
 }
 
@@ -1434,6 +1436,7 @@ function registerCodexSessionCatalog(params: {
   api: OpenClawPluginApi;
   bindingStore: CodexAppServerBindingStore;
   control: CodexSessionCatalogControl;
+  getPluginConfig: () => unknown;
   getRuntimeConfig: () => OpenClawConfig | undefined;
 }): void {
   const provider: SessionCatalogProvider = {
@@ -1531,6 +1534,8 @@ function registerCodexSessionCatalog(params: {
       openCodexCatalogTerminal({
         api: params.api,
         control: params.control,
+        getPluginConfig: params.getPluginConfig,
+        getRuntimeConfig: params.getRuntimeConfig,
         parseCatalogPage,
         ...request,
       }),
