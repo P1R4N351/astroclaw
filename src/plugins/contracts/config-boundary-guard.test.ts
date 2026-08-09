@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   collectDeprecatedInternalConfigApiViolations,
   collectRuntimeActionLoadConfigViolations,
-} from "../../../scripts/lib/config-boundary-guard.mjs";
+} from "../../../scripts/lib/config-boundary-guard.mts";
 
 let tempRoots: string[] = [];
 
@@ -78,9 +78,9 @@ describe("config boundary guard", () => {
       repoRoot,
       "extensions/telegram/src/index.ts",
       [
-        'import type { OpenClawConfig } from "openclaw/plugin-sdk/config-runtime";',
-        'import { requireRuntimeConfig } from "openclaw/plugin-sdk/config-runtime";',
-        'type Loader = typeof import("openclaw/plugin-sdk/config-runtime").getRuntimeConfig;',
+        'import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-runtime";',
+        'import { requireRuntimeConfig } from "astroclaw/plugin-sdk/config-runtime";',
+        'type Loader = typeof import("astroclaw/plugin-sdk/config-runtime").getRuntimeConfig;',
         "export type Config = OpenClawConfig;",
         "export const load: Loader = requireRuntimeConfig;",
       ].join("\n"),
@@ -98,7 +98,7 @@ describe("config boundary guard", () => {
     writeFixture(
       repoRoot,
       "extensions/telegram/src/index.test.ts",
-      'vi.mock("openclaw/plugin-sdk/config-runtime", () => ({}));',
+      'vi.mock("astroclaw/plugin-sdk/config-runtime", () => ({}));',
     );
 
     expect(collectDeprecatedInternalConfigApiViolations({ repoRoot })).toEqual([
@@ -112,9 +112,9 @@ describe("config boundary guard", () => {
       repoRoot,
       "extensions/telegram/src/index.ts",
       [
-        'import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";',
-        'import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";',
-        'type Loader = typeof import("openclaw/plugin-sdk/runtime-config-snapshot").getRuntimeConfig;',
+        'import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";',
+        'import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";',
+        'type Loader = typeof import("astroclaw/plugin-sdk/runtime-config-snapshot").getRuntimeConfig;',
         'export const load = (cfg: OpenClawConfig) => requireRuntimeConfig(cfg, "telegram");',
       ].join("\n"),
     );
