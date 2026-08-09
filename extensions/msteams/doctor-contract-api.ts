@@ -6,15 +6,15 @@ import path from "node:path";
 import type {
   ChannelDoctorConfigMutation,
   ChannelDoctorLegacyConfigRule,
-} from "astroclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   archiveLegacyStateSource,
   defineChannelAliasMigration,
   type PluginDoctorStateMigration,
-} from "astroclaw/plugin-sdk/runtime-doctor";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/runtime-doctor-migrations";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { normalizeStoredConversationId } from "./src/conversation-store-helpers.js";
 import {
   buildMSTeamsConversationStateKey,
