@@ -1,14 +1,14 @@
 // QA Lab Codex auth product proof exercises doctor, SQLite, Gateway, and app-server together.
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createJsonlRequestTailer } from "../../../../scripts/e2e/lib/codex-media-path/jsonl-request-tail.mjs";
+import { createJsonlRequestTailer } from "../../../../scripts/e2e/lib/codex-media-path/jsonl-request-tail.mts";
 import { closeOpenClawAgentDatabasesForTest } from "../../../../src/state/openclaw-agent-db.js";
 import { loadBundledPluginPublicSurface } from "../../../../src/test-utils/bundled-plugin-public-surface.js";
-import { connectGatewayStatusClient, postJson } from "../../../helpers/gateway-e2e-harness.js";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
 } from "../../../helpers/astroclaw-test-instance.js";
+import { connectGatewayStatusClient, postJson } from "../../../helpers/gateway-e2e-harness.js";
 import { runCodexAuthDoctorMigrationProof } from "./codex-auth-product-proof.test-support.js";
 
 const oauthAccess = "test-oauth-access";
