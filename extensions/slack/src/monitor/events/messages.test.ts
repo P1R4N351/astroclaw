@@ -21,8 +21,8 @@ vi.mock("../../draft-message-boundaries.js", () => ({
   noteSlackDraftConversationMessage: (...args: unknown[]) => noteConversationMessageMock(...args),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   const makeLogger = () => {
     const logger = {
       subsystem: "test",
@@ -41,17 +41,17 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
   return { ...actual, createSubsystemLogger: () => makeLogger() };
 });
 
-vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: (...args: unknown[]) => messageQueueMock(...args),
 }));
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-runtime")>();
   return {
     ...actual,
     readChannelAllowFromStore: (...args: unknown[]) => messageAllowMock(...args),
   };
 });
-vi.mock("openclaw/plugin-sdk/text-chunking", () => ({
+vi.mock("astroclaw/plugin-sdk/text-chunking", () => ({
   chunkItems: <T>(items: T[]) => [items],
   markdownToIR: (text: string) => text,
   renderMarkdownIRChunksWithinLimit: (text: string) => [text],
@@ -653,10 +653,15 @@ describe("registerSlackMessageEvents", () => {
         ...makeChangedEvent({ channel: "C1", user: "U1" }),
         channel_type: "channel",
       },
+      body: { event_id: "Ev-message-change-1" },
     });
 
     expect(handleSlackMessage).not.toHaveBeenCalled();
     expect(messageQueueMock).toHaveBeenCalledTimes(1);
+    expect(messageQueueMock).toHaveBeenCalledWith("Slack message edited in #general.", {
+      sessionKey: "agent:main:main",
+      contextKey: "slack:message:changed:C1:123.456:Ev-message-change-1",
+    });
   });
 
   it("keeps bot edit and delete events on a remembered C-prefix mpDM session", async () => {
