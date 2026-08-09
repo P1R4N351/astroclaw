@@ -1,32 +1,32 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   clearPluginInteractiveHandlers,
   registerPluginInteractiveHandler,
-} from "openclaw/plugin-sdk/plugin-runtime";
-import type { PluginStateKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
+} from "astroclaw/plugin-sdk/plugin-runtime";
+import type { PluginStateKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   closeOpenClawStateDatabaseForTest,
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { createNonExitingRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { MsgContext } from "openclaw/plugin-sdk/reply-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { createNonExitingRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
 import {
   listSessionEntries,
   normalizeSessionDeliveryState,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
-import { mockPinnedHostnameResolution } from "openclaw/plugin-sdk/test-env";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+import { mockPinnedHostnameResolution } from "astroclaw/plugin-sdk/test-env";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import {
   registerSessionBindingAdapter,
   type SessionBindingAdapter,
   type SessionBindingRecord,
   unregisterSessionBindingAdapter,
-} from "openclaw/plugin-sdk/thread-bindings-runtime";
+} from "astroclaw/plugin-sdk/thread-bindings-runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildTelegramApprovalCallbackData } from "./approval-callback-data.js";
 import type { TelegramBotDeps } from "./bot-deps.js";
@@ -67,15 +67,15 @@ const questionGatewayHoisted = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("openclaw/plugin-sdk/question-gateway-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/question-gateway-runtime", () => ({
   questionGatewayRuntime: {
     resolveOption: questionGatewayHoisted.resolveQuestionOverGatewaySpy,
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-inbound")>(
-    "openclaw/plugin-sdk/channel-inbound",
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-inbound")>(
+    "astroclaw/plugin-sdk/channel-inbound",
   );
   return {
     ...actual,
@@ -462,7 +462,7 @@ function getTelegramPollHandlerForTests() {
 }
 
 async function loadEnvelopeTimestampHelpers() {
-  return await import("openclaw/plugin-sdk/channel-test-helpers");
+  return await import("astroclaw/plugin-sdk/channel-test-helpers");
 }
 
 async function loadInboundContextContract() {
@@ -4263,37 +4263,41 @@ describe("createTelegramBot", () => {
     expect(payload.Body).toContain("continue after polling restart");
   });
 
-  it("durably retries a spooled reply when shutdown aborts reply media", async () => {
-    const botShutdown = new AbortController();
-    const mediaAbort = new AbortController();
-    getFileSpy.mockImplementationOnce(async () => {
-      botShutdown.abort();
+  it("durably retries a spooled reply when its claim owner aborts reply media", async () => {
+    const claimOwner = new AbortController();
+    getFileSpy.mockImplementationOnce(async (_fileId, signal) => {
+      claimOwner.abort(new Error("claim adoption stalled"));
+      expect((signal as AbortSignal | undefined)?.aborted).toBe(true);
       throw new Error("Bad Request: file is too big");
     });
 
-    createTelegramBot({
-      token: "tok",
-      fetchAbortSignal: botShutdown.signal,
-      mediaAbortSignal: mediaAbort.signal,
-    });
+    createTelegramBot({ token: "tok" });
     const handler = getOnHandler("message") as (ctx: Record<string, unknown>) => Promise<void>;
     const update = { update_id: 98081, message: createReplyPhotoMessage("keep the old image") };
 
     const { result } = await runWithTelegramUpdateProcessingFrame(() =>
-      withTelegramSpooledReplayUpdate(update, () =>
-        handler({
-          update,
-          message: update.message,
-          me: { username: "openclaw_bot" },
-          getFile: async () => ({}),
-        }),
+      runWithTelegramSpooledReplayUpdate(
+        update,
+        () =>
+          handler({
+            update,
+            message: update.message,
+            me: { username: "openclaw_bot" },
+            getFile: async () => ({}),
+          }),
+        {
+          abortSignal: claimOwner.signal,
+          onAdopted: vi.fn(),
+          onDeferred: vi.fn(),
+          onAdoptionFinalizing: vi.fn(),
+          onAbandoned: vi.fn(),
+        },
       ),
     );
 
     expect(result).toEqual({ kind: "failed-retryable", error: expect.any(Error) });
     expect(getFileSpy).toHaveBeenCalledWith("reply-photo-1", expect.any(AbortSignal));
     expect(replySpy).not.toHaveBeenCalled();
-    expect(mediaAbort.signal.aborted).toBe(false);
   });
 
   it("hydrates reply chains from cached Telegram messages", async () => {
