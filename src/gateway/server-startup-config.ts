@@ -3,8 +3,8 @@
 import { isDeepStrictEqual } from "node:util";
 import { hasLegacyAuthProfileSourcesForStartup } from "../agents/auth-profiles/legacy-source-diagnostic.js";
 import { applyConfigOverrides } from "../config/runtime-overrides.js";
-import type { GatewayAuthConfig, GatewayTailscaleConfig } from "../config/types.gateway.js";
 import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
+import type { GatewayAuthConfig, GatewayTailscaleConfig } from "../config/types.gateway.js";
 import { measureDiagnosticsTimelineSpan } from "../infra/diagnostics-timeline.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
@@ -378,6 +378,7 @@ export function createRuntimeSecretsActivator(params: {
             ? null
             : prepareSecretsRuntimeFastPathSnapshot({
                 config: sourceConfig,
+                env: startupEnv,
                 ...(startupManifestRegistry ? { manifestRegistry: startupManifestRegistry } : {}),
               });
           if (fastPath) {
