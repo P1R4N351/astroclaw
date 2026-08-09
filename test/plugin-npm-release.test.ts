@@ -1,7 +1,7 @@
 // Plugin npm release tests validate plugin npm release artifacts.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { bundledPluginFile, bundledPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginFile, bundledPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { collectClawHubPublishablePluginPackages } from "../scripts/lib/plugin-clawhub-release.ts";
 import {
@@ -540,6 +540,28 @@ describe("collectPluginReleasePlan", () => {
 });
 
 describe("collectPublishablePluginPackages", () => {
+  it("defers explicitly bundled plugins from npm and ClawHub release plans", () => {
+    const repoDir = makeTempRepoRoot(tempDirs, "openclaw-plugin-npm-release-");
+    mkdirSync(join(repoDir, "extensions", "demo-plugin"), { recursive: true });
+    writePluginReadme(repoDir, "demo-plugin");
+    writeJsonFile(join(repoDir, "extensions", "demo-plugin", "package.json"), {
+      name: "@openclaw/demo-plugin",
+      version: "2026.4.10",
+      type: "module",
+      repository: { type: "git", url: OPENCLAW_PLUGIN_NPM_REPOSITORY_URL },
+      openclaw: {
+        extensions: ["./index.ts"],
+        ...externalPluginContract("2026.4.10"),
+        build: { openclawVersion: "2026.4.10", bundledDist: true },
+        install: { npmSpec: "@openclaw/demo-plugin" },
+        release: { publishToClawHub: true, publishToNpm: true },
+      },
+    });
+
+    expect(collectPublishablePluginPackages(repoDir)).toStrictEqual([]);
+    expect(collectClawHubPublishablePluginPackages(repoDir)).toStrictEqual([]);
+  });
+
   it("keeps publishable plugin dist trees out of the core npm package unless bundled", () => {
     const corePackageRuntimePluginIds = new Set(["discord"]);
     const rootPackage = JSON.parse(readFileSync("package.json", "utf8")) as {
