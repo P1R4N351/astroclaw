@@ -1,7 +1,7 @@
 // Official channel catalog tests validate catalog metadata and entries.
 import fs from "node:fs";
 import path from "node:path";
-import { bundledPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   buildOfficialChannelDocsCatalog,
@@ -18,7 +18,7 @@ import {
   writeOfficialChannelCatalog,
   writeOfficialChannelDocsIndex,
   writeOfficialChannelCatalogSource,
-} from "../scripts/write-official-channel-catalog.mjs";
+} from "../scripts/write-official-channel-catalog.mts";
 import { describePluginInstallSource } from "../src/plugins/install-source-info.js";
 import { cleanupTempDirs, makeTempRepoRoot, writeJsonFile } from "./helpers/temp-repo.js";
 
