@@ -2,12 +2,12 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   normalizeSessionDeliveryState,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { slackApprovalCapability } from "./approval-native.js";
 
@@ -767,7 +767,7 @@ describe("slack native approval adapter", () => {
     );
 
     expect(target).toEqual({
-      to: "channel:team:T123:channel:C08GQH53EJM",
+      to: "team:T123:channel:C08GQH53EJM",
       threadId: undefined,
     });
   });
