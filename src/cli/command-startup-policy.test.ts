@@ -1,5 +1,5 @@
 // Command startup policy tests cover which CLI commands require startup side effects.
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cliCommandCatalog } from "./command-catalog.js";
 import { resolveCliExecutionStartupContext } from "./command-execution-startup.js";
@@ -72,6 +72,17 @@ describe("command-startup-policy", () => {
           commandPath: ["memory", "status"],
         }).skipConfigGuard,
       ).toBe(false);
+    }
+  });
+
+  it("skips operator-state startup for local Claw authoring commands only", () => {
+    for (const subcommand of ["create", "validate", "build", "dev"]) {
+      const commandPath = ["claws", subcommand];
+      expect(resolvePolicy({ commandPath }).skipConfigGuard, commandPath.join(" ")).toBe(true);
+    }
+    for (const subcommand of ["add", "update", "remove"]) {
+      const commandPath = ["claws", subcommand];
+      expect(resolvePolicy({ commandPath }).skipConfigGuard, commandPath.join(" ")).toBe(false);
     }
   });
 
