@@ -1,5 +1,5 @@
 // Slack tests cover threading tool context plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { buildSlackThreadingToolContext } from "./threading-tool-context.js";
 
@@ -311,5 +311,35 @@ describe("buildSlackThreadingToolContext", () => {
     });
     expect(result.currentChannelId).toBe("user:U8SUVSVGS");
     expect(result.currentMessagingTarget).toBe("user:U8SUVSVGS");
+  });
+
+  it("keeps an Enterprise channel target workspace-qualified", () => {
+    const result = buildSlackThreadingToolContext({
+      cfg: emptyCfg,
+      accountId: null,
+      context: {
+        ChatType: "channel",
+        To: "team:T123:channel:C1234ABC",
+        NativeChannelId: "C1234ABC",
+      },
+    });
+
+    expect(result.currentChannelId).toBe("team:T123:channel:C1234ABC");
+    expect(result.currentMessagingTarget).toBe("team:T123:channel:C1234ABC");
+  });
+
+  it("uses the physical Enterprise DM channel without losing its workspace", () => {
+    const result = buildSlackThreadingToolContext({
+      cfg: emptyCfg,
+      accountId: null,
+      context: {
+        ChatType: "direct",
+        To: "team:T123:user:U8SUVSVGS",
+        NativeChannelId: "D8SRXRDNF",
+      },
+    });
+
+    expect(result.currentChannelId).toBe("team:T123:channel:D8SRXRDNF");
+    expect(result.currentMessagingTarget).toBe("team:T123:user:U8SUVSVGS");
   });
 });
