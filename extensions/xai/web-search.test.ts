@@ -1,14 +1,14 @@
 // Xai tests cover web search plugin behavior.
-import { createTestWizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { NON_ENV_SECRETREF_MARKER } from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { createNonExitingRuntime } from "astroclaw/plugin-sdk/runtime-env";
-import { withEnv, withEnvAsync, withFetchPreconnect } from "astroclaw/plugin-sdk/test-env";
+import { createTestWizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { NON_ENV_SECRETREF_MARKER } from "openclaw/plugin-sdk/provider-auth-runtime";
+import { createNonExitingRuntime } from "openclaw/plugin-sdk/runtime-env";
+import { withEnv, withEnvAsync, withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildXaiCatalogModels, resolveXaiCatalogEntry } from "./model-definitions.js";
 import { isModernXaiModel, resolveXaiForwardCompatModel } from "./provider-models.js";
 import { resolveFallbackXaiAuth } from "./src/tool-auth-shared.js";
+import { testing } from "./src/web-search-provider.runtime.js";
 import { requestXaiWebSearch } from "./src/web-search-shared.js";
-import { testing } from "./test-api.js";
 import { createXaiWebSearchProvider as createXaiWebSearchContractProvider } from "./web-search-contract-api.js";
 import { createXaiWebSearchProvider } from "./web-search.js";
 
@@ -21,8 +21,8 @@ const providerAuthMocks = vi.hoisted(() => ({
   listUsableProviderAuthProfileIds: vi.fn(() => ({ agentDir: "", profileIds: [] as string[] })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth", async (importOriginal) => {
-  const original = await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth")>();
+vi.mock("openclaw/plugin-sdk/provider-auth", async (importOriginal) => {
+  const original = await importOriginal<typeof import("openclaw/plugin-sdk/provider-auth")>();
   return {
     ...original,
     ensureAuthProfileStore: providerAuthMocks.ensureAuthProfileStore,
@@ -30,18 +30,17 @@ vi.mock("astroclaw/plugin-sdk/provider-auth", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/provider-auth-runtime", async (importOriginal) => {
   const original =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/provider-auth-runtime")>();
   return {
     ...original,
     resolveApiKeyForProvider: providerAuthRuntimeMocks.resolveApiKeyForProvider,
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/provider-web-search", async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-web-search")>();
+vi.mock("openclaw/plugin-sdk/provider-web-search", async (importOriginal) => {
+  const original = await importOriginal<typeof import("openclaw/plugin-sdk/provider-web-search")>();
   return {
     ...original,
     postTrustedWebToolsJson: async (
