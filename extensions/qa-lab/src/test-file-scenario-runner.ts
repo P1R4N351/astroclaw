@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { resolvePositiveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { resolvePositiveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import { assertQaSuiteArtifactWritten } from "./artifact-assertion.js";
 import { toRepoRelativePath } from "./cli-paths.js";
 import {
@@ -49,6 +49,7 @@ type QaTestFileScenarioRunParams = {
   commandTimeoutMs?: number;
   evidenceMode?: QaScorecardEvidenceMode;
   env?: NodeJS.ProcessEnv;
+  envMode?: "replace";
   failFast?: boolean;
   outputDir: string;
   primaryModel: string;
@@ -570,10 +571,7 @@ export async function runQaTestFileScenarios(
     params.commandTimeoutMs,
     DEFAULT_QA_TEST_FILE_COMMAND_TIMEOUT_MS,
   );
-  const env = {
-    ...process.env,
-    ...params.env,
-  };
+  const env = params.envMode === "replace" ? (params.env ?? {}) : { ...process.env, ...params.env };
   const results: QaTestFileScenarioResult[] = [];
   const dockerBatchScenarios =
     kind === "script" && !params.failFast ? scenarios.filter(isDockerE2eScenario) : [];
