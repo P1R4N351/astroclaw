@@ -1,10 +1,10 @@
 // Live-sweeps discovered model profiles with optional provider/model filters and probes.
 import { writeSync } from "node:fs";
-import { defaultApiRegistry } from "@openclaw/ai/internal/runtime";
-import { prepareModelForSimpleCompletion } from "@openclaw/ai/transports";
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { type Api, completeSimple, type Model } from "astroclaw/plugin-sdk/llm";
+import { defaultApiRegistry } from "@openclaw/ai/internal/runtime";
+import { prepareModelForSimpleCompletion } from "@openclaw/ai/transports";
+import { type Api, completeSimple, type Model } from "openclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
@@ -21,8 +21,8 @@ import {
 import { resolveDefaultAgentDir } from "./agent-scope.js";
 import { externalCliDiscoveryForProviders } from "./auth-profiles/external-cli-discovery.js";
 import { ensureCustomApiRegistered } from "./custom-api-registry.js";
-import { isRateLimitErrorMessage } from "./embedded-agent-helpers/errors.js";
 import { extractAssistantText } from "./embedded-agent-utils.js";
+import { isRateLimitErrorMessage } from "./failover/classify.js";
 import { collectProviderApiKeys } from "./live-auth-keys.js";
 import { appendPrioritizedDynamicLiveModels } from "./live-model-dynamic-candidates.js";
 import { isModelNotFoundErrorMessage } from "./live-model-errors.js";
