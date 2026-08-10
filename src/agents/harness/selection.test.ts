@@ -1,5 +1,5 @@
 // Covers agent harness selection, fallback behavior, and compaction routing.
-import type { Model } from "astroclaw/plugin-sdk/llm";
+import type { Model } from "openclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { TranscriptEntryAnchor } from "../../config/sessions/transcript-entry-anchor.js";
@@ -695,7 +695,13 @@ describe("runAgentHarnessAttempt", () => {
 
     expect(
       contextEngineTurnAttemptMocks.drainPendingContextEngineTurnsBeforeRun,
-    ).toHaveBeenCalledWith({ admission, isHeartbeat: false, lease });
+    ).toHaveBeenCalledWith({
+      admission,
+      isHeartbeat: false,
+      lease,
+      recorder: params.userTurnTranscriptRecorder,
+      sessionTarget: undefined,
+    });
     expect(order).toEqual(["drain", "begin", "run"]);
     expect(receivedContextEngines).toEqual([undefined]);
   });
