@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 // OpenClaw operation tests cover rescue operation planning and execution.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { resetPluginStateStoreForTests } from "../plugin-state/plugin-state-store.js";
@@ -283,6 +283,14 @@ describe("parseSystemAgentOperation", () => {
       kind: "config-set-ref",
       path: "gateway.auth.token",
       source: "env",
+      id: "GATEWAY_TOKEN",
+    });
+    expect(
+      parseSystemAgentOperation("config set-ref gateway.auth.token store GATEWAY_TOKEN"),
+    ).toEqual({
+      kind: "config-set-ref",
+      path: "gateway.auth.token",
+      source: "store",
       id: "GATEWAY_TOKEN",
     });
     expect(parseSystemAgentOperation("doctor fix")).toEqual({ kind: "doctor-fix" });
