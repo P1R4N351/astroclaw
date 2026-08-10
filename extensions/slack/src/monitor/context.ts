@@ -1,26 +1,24 @@
 // Slack plugin module implements context behavior.
 import type { App } from "@slack/bolt";
-import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
-import { formatAllowlistMatchMeta } from "astroclaw/plugin-sdk/allow-from";
-import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
+import { resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
+import { formatAllowlistMatchMeta } from "openclaw/plugin-sdk/allow-from";
+import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
 import type {
   OpenClawConfig,
   SlackReactionNotificationMode,
-} from "astroclaw/plugin-sdk/config-contracts";
-import type { SessionScope } from "astroclaw/plugin-sdk/config-contracts";
-import type { DmPolicy, GroupPolicy } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveRuntimeConversationBindingRoute } from "astroclaw/plugin-sdk/conversation-runtime";
-import { createDedupeCache } from "astroclaw/plugin-sdk/dedupe-runtime";
-import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { getChildLogger } from "astroclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/config-contracts";
+import type { SessionScope } from "openclaw/plugin-sdk/config-contracts";
+import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/config-contracts";
+import { createDedupeCache } from "openclaw/plugin-sdk/dedupe-runtime";
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { getChildLogger } from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { formatSlackError } from "../errors.js";
 import type { SlackMessageEvent } from "../types.js";
 import { createSlackAgentViewState } from "./agent-view-state.js";
@@ -37,6 +35,8 @@ import {
   type SlackSuggestedPromptsInput,
   updateSlackSuggestedPrompts,
 } from "./suggested-prompts.js";
+import { resolveSlackSystemEventRouteSessionKey } from "./system-event-session.js";
+import { qualifySlackRoutePeerId } from "./workspace-routing.js";
 
 export { normalizeSlackChannelType, resolveSlackChatType } from "./channel-type.js";
 export { DEFAULT_SLACK_SUGGESTED_PROMPTS } from "./suggested-prompts.js";
@@ -149,7 +149,7 @@ export type SlackMonitorContext = {
   replyToMode: "off" | "first" | "all" | "batched";
   threadHistoryScope: "thread" | "channel";
   threadInheritParent: boolean;
-  slashCommand: Required<import("astroclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
+  slashCommand: Required<import("openclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
   textLimit: number;
   ackReactionScope: string;
   typingReaction: string;
@@ -162,6 +162,7 @@ export type SlackMonitorContext = {
     channelType?: string | null;
     senderId?: string | null;
     threadTs?: string | null;
+    eventScope?: SlackEventScope;
   }) => string;
   isChannelAllowed: (params: {
     channelId?: string;
@@ -381,13 +382,14 @@ export function createSlackMonitorContext(params: {
     channelType?: string | null;
     senderId?: string | null;
     threadTs?: string | null;
+    eventScope?: SlackEventScope;
   }) => {
     const channelId = normalizeOptionalString(p.channelId) ?? "";
     const senderId = normalizeOptionalString(p.senderId) ?? "";
     // System events can omit channel_type too; prefer a type already seen on events
     // for this channel over C-prefix inference so they key the same session (#102676).
     const channelType = normalizeSlackChannelType(
-      p.channelType ?? recallSlackChannelType(channelId),
+      p.channelType ?? recallSlackChannelType(channelId, p.eventScope),
       channelId,
     );
     const isDirectMessage = channelType === "im";
@@ -401,60 +403,31 @@ export function createSlackMonitorContext(params: {
         ? `slack:group:${channelId}`
         : `slack:channel:${channelId}`;
     const chatType = isDirectMessage ? "direct" : isGroup ? "group" : "channel";
-    // Resolve through shared channel/account bindings so system events route to
-    // the same agent session as regular inbound messages.
-    try {
-      const peerKind = isDirectMessage ? "direct" : isGroup ? "group" : "channel";
-      const peerId = isDirectMessage ? senderId : channelId;
-      if (peerId) {
-        const route = resolveAgentRoute({
-          cfg: params.cfg,
-          channel: "slack",
-          accountId: params.accountId,
-          teamId: params.teamId,
-          peer: { kind: peerKind, id: peerId },
-        });
-        const threadTs = normalizeOptionalString(p.threadTs);
-        const baseConversationId = isDirectMessage ? `user:${senderId}` : channelId;
-        const threadBindingRoute = threadTs
-          ? resolveRuntimeConversationBindingRoute({
-              route,
-              conversation: {
-                channel: "slack",
-                accountId: params.accountId,
-                conversationId: threadTs,
-                parentConversationId: baseConversationId,
-              },
-            })
-          : null;
-        const runtimeRoute =
-          threadBindingRoute?.boundSessionKey || threadBindingRoute?.bindingRecord
-            ? threadBindingRoute
-            : resolveRuntimeConversationBindingRoute({
-                route,
-                conversation: {
-                  channel: "slack",
-                  accountId: params.accountId,
-                  conversationId: baseConversationId,
-                },
-              });
-        if (runtimeRoute.boundSessionKey) {
-          return runtimeRoute.route.sessionKey;
-        }
-        return resolveThreadSessionKeys({
-          baseSessionKey: runtimeRoute.route.sessionKey,
-          threadId: threadTs,
-          parentSessionKey:
-            threadTs && params.threadInheritParent ? runtimeRoute.route.sessionKey : undefined,
-        }).sessionKey;
-      }
-    } catch {
-      // Fall through to legacy key derivation.
+    const routedSessionKey = resolveSlackSystemEventRouteSessionKey({
+      cfg: params.cfg,
+      accountId: params.accountId,
+      teamId: params.teamId,
+      threadInheritParent: params.threadInheritParent,
+      channelId,
+      channelType,
+      senderId,
+      threadTs: p.threadTs,
+      eventScope: p.eventScope,
+    });
+    if (routedSessionKey) {
+      return routedSessionKey;
     }
 
+    const fallbackFrom = p.eventScope
+      ? `slack:${qualifySlackRoutePeerId({
+          id: isDirectMessage ? senderId : channelId,
+          kind: isDirectMessage ? "user" : "channel",
+          eventScope: p.eventScope,
+        })}`
+      : from;
     const legacySessionKey = resolveSessionKey(
       params.sessionScope,
-      { From: from, ChatType: chatType, Provider: "slack" },
+      { From: fallbackFrom, ChatType: chatType, Provider: "slack" },
       params.mainKey,
       resolveDefaultAgentId(params.cfg),
     );
