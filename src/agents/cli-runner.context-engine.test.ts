@@ -1,5 +1,5 @@
 /** Tests CLI runner integration with context-engine lifecycle hooks. */
-import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContextEngine } from "../context-engine/types.js";
 import type { PreparedCliRunContext } from "./cli-runner/types.js";
@@ -233,7 +233,6 @@ describe("runPreparedCliAgent context engine lifecycle", () => {
     const dispose = vi.fn(async () => {});
     const contextEngine = createContextEngine({ bootstrap, afterTurn, maintain, dispose });
     const context = buildPreparedContext(contextEngine);
-    context.params.bootstrapContextRunKind = "commitment-only";
     const result = await runPreparedCliAgent(context);
 
     expect(result.meta.agentMeta?.sessionId).toBe("external-cli-session-1");
@@ -281,7 +280,7 @@ describe("runPreparedCliAgent context engine lifecycle", () => {
       sessionKey: "agent:main:main",
       sessionFile: "session.jsonl",
       prePromptMessageCount: 2,
-      isHeartbeat: true,
+      isHeartbeat: false,
       tokenBudget: undefined,
       runtimeContext: undefined,
     });
