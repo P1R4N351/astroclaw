@@ -8,13 +8,13 @@ import {
   createChannelIngressResolver,
   defineStableChannelIngressIdentity,
   readChannelIngressStoreAllowFromForDmPolicy,
-} from "openclaw/plugin-sdk/channel-ingress-runtime";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   asDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "openclaw/plugin-sdk/number-runtime";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/number-runtime";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
 import { collectSlackCursorPages } from "../cursor-pages.js";
 import {
   allowListMatches,
@@ -490,6 +490,7 @@ export async function authorizeSlackSystemEventSender(params: {
   senderId?: string;
   channelId?: string;
   channelType?: string | null;
+  eventScope?: SlackEventScope;
   expectedSenderId?: string;
   /** When true, requires expectedSenderId, rejects ambiguous channel types,
    *  and applies interactive-only owner allowFrom checks without changing the
@@ -518,7 +519,7 @@ export async function authorizeSlackSystemEventSender(params: {
     const info: {
       name?: string;
       type?: "im" | "mpim" | "channel" | "group";
-    } = await params.ctx.resolveChannelName(channelId).catch(() => ({}));
+    } = await params.ctx.resolveChannelName(channelId, params.eventScope).catch(() => ({}));
     channelName = info.name;
     const resolvedTypeSource = params.channelType ?? info.type;
     channelType = normalizeSlackChannelType(resolvedTypeSource, channelId);
@@ -564,7 +565,7 @@ export async function authorizeSlackSystemEventSender(params: {
   }
 
   const senderInfo: { name?: string } = await params.ctx
-    .resolveUserName(senderId)
+    .resolveUserName(senderId, params.eventScope)
     .catch(() => ({}));
   const senderName = senderInfo.name;
   const ingressChannelType = channelType ?? "channel";
