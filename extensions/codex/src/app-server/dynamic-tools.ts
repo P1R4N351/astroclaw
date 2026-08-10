@@ -3,7 +3,7 @@
  * tool-call responses.
  */
 import { createHash } from "node:crypto";
-import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
 import {
   consumeAdjustedParamsForToolCall,
   consumePreExecutionBlockedToolCall,
@@ -40,22 +40,22 @@ import {
   type MessagingToolSend,
   type MessagingToolSourceReplyPayload,
   wrapToolWithBeforeToolCallHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { emitTrustedDiagnosticEvent } from "astroclaw/plugin-sdk/diagnostic-runtime";
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
-import type { ImageContent, TextContent } from "astroclaw/plugin-sdk/llm";
-import { normalizeOpenAIToolSchemas } from "astroclaw/plugin-sdk/provider-tools";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { emitTrustedDiagnosticEvent } from "openclaw/plugin-sdk/diagnostic-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import type { ImageContent, TextContent } from "openclaw/plugin-sdk/llm";
+import { normalizeOpenAIToolSchemas } from "openclaw/plugin-sdk/provider-tools";
 import {
   asOptionalRecord,
   isRecord,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   DEFAULT_MAX_LIVE_TOOL_RESULT_CHARS,
   estimateToolResultTextChars,
   resolveLiveToolResultMaxChars,
   sliceToolResultTextToBudget,
-} from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/text-utility-runtime";
 import type { CodexDynamicToolsLoading } from "./config.js";
 import {
   createFailedDynamicToolResponse,
@@ -79,7 +79,6 @@ import {
   prepareCodexRemoteWorkspaceMessageMedia,
   type CodexRemoteWorkspaceFileReader,
 } from "./remote-workspace-media.js";
-import { recordCodexSourceReplyDeliveryIntent } from "./source-reply-finality.js";
 import { resolveCodexToolAbortTerminalReason } from "./tool-abort-terminal-reason.js";
 
 type CodexDynamicToolHookContext = NonNullable<
@@ -779,17 +778,12 @@ export function createCodexDynamicToolBridge(params: {
           toolName === "message" &&
           !resultIsError &&
           (rawResult.terminate === true || result.terminate === true);
-        const hasExplicitFinalControl = typeof executedArgs.final === "boolean";
         const confirmedSourceReply =
           params.hookContext?.sourceReplyDeliveryMode === "message_tool_only" &&
           toolName === "message" &&
           (toolConfirmedSourceReply || deliveredSourceReply || receiptConfirmedSourceReply);
-        const sourceReplyFinal = confirmedSourceReply
-          ? hasExplicitFinalControl
-            ? executedArgs.final === true
-            : undefined
-          : undefined;
-        const sourceReplyRecord = collectToolTelemetry({
+        const sourceReplyFinal = confirmedSourceReply ? executedArgs.final !== false : undefined;
+        collectToolTelemetry({
           toolName,
           args: executedArgs,
           result,
@@ -799,26 +793,19 @@ export function createCodexDynamicToolBridge(params: {
           messagingTarget: confirmedMessagingTarget,
           sourceReplyFinal,
         });
-        if (confirmedSourceReply && sourceReplyRecord) {
-          recordCodexSourceReplyDeliveryIntent(telemetry, {
-            record: sourceReplyRecord,
-            final: sourceReplyFinal,
-          });
-        }
         if (deliveredSourceReply || receiptConfirmedSourceReply || toolConfirmedSourceReply) {
           telemetry.didDeliverSourceReplyViaMessageTool = true;
         }
-        const defersInferredSourceReplyTermination =
-          confirmedSourceReply && executedArgs.final !== true;
+        const continuesSourceReplyProgress = confirmedSourceReply && sourceReplyFinal === false;
         withDynamicToolTermination(
           response,
           ((rawResult.terminate === true || result.terminate === true) &&
-            !defersInferredSourceReplyTermination) ||
+            !continuesSourceReplyProgress) ||
             // Yield is an explicit owner-level turn handoff, not termination
             // inferred from source-reply delivery, so finality does not mask it.
             isToolResultYield(rawResult) ||
             isToolResultYield(result) ||
-            (confirmedSourceReply && executedArgs.final === true),
+            (confirmedSourceReply && sourceReplyFinal === true),
         );
         const asyncStarted =
           isAsyncStartedToolResult(rawResult) || isAsyncStartedToolResult(result);
