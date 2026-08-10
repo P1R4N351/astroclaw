@@ -1,20 +1,20 @@
 // Slack plugin module implements interactions.block actions behavior.
 import type { AllMiddlewareArgs, SlackActionMiddlewareArgs } from "@slack/bolt";
 import type { Block, KnownBlock } from "@slack/web-api";
-import { resolveApprovalOverGateway } from "astroclaw/plugin-sdk/approval-gateway-runtime";
-import { parseExecApprovalCommandText } from "astroclaw/plugin-sdk/approval-reply-runtime";
-import { resolveCommandAuthorization } from "astroclaw/plugin-sdk/command-auth-native";
-import { isApprovalNotFoundError } from "astroclaw/plugin-sdk/error-runtime";
-import { requestHeartbeat } from "astroclaw/plugin-sdk/heartbeat-runtime";
+import { resolveApprovalOverGateway } from "openclaw/plugin-sdk/approval-gateway-runtime";
+import { parseExecApprovalCommandText } from "openclaw/plugin-sdk/approval-reply-runtime";
+import { resolveCommandAuthorization } from "openclaw/plugin-sdk/command-auth-native";
+import { isApprovalNotFoundError } from "openclaw/plugin-sdk/error-runtime";
+import { requestHeartbeat } from "openclaw/plugin-sdk/heartbeat-runtime";
 import {
   parseStrictFiniteNumber,
   timestampMsToIsoString,
-} from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/number-runtime";
 import {
   normalizeOptionalString,
   normalizeUniqueTrimmedStringList,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
 import { decodeSlackApprovalAction, type SlackApprovalAction } from "../../approval-actions.js";
 import { isSlackApprovalAuthorizedSender } from "../../approval-auth.js";
 import { isSlackExecApprovalAuthorizedSender } from "../../exec-approvals.js";
@@ -902,6 +902,7 @@ async function resolveSlackBlockActionCommandAuthorized(params: {
   const isRoom = params.auth.channelType === "channel" || params.auth.channelType === "group";
   const allowFromLower = await resolveSlackEffectiveAllowFrom(params.ctx, {
     includePairingStore: isDirectMessage,
+    eventScope: params.eventScope,
   });
   const sender = await params.ctx
     .resolveUserName(params.parsed.userId, params.eventScope)
