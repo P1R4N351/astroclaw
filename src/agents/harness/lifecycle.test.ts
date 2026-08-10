@@ -1,5 +1,5 @@
 // Verifies harness lifecycle capability checks, diagnostics, and trace scoping.
-import type { Model } from "astroclaw/plugin-sdk/llm";
+import type { Model } from "openclaw/plugin-sdk/llm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OPENCLAW_EMBEDDED_CONTEXT_ENGINE_HOST } from "../../context-engine/host-compat.js";
 import type { ContextEngine } from "../../context-engine/types.js";
@@ -259,7 +259,39 @@ describe("AgentHarness lifecycle runner", () => {
     await flushDiagnosticEvents();
     diagnostics.unsubscribe();
 
-    expect(result.assistant.content).toEqual([{ type: "text", text: "done" }]);
+    expect(result.outcome).toBe("answered");
+    if (result.outcome === "answered") {
+      expect(result.result.assistant.content).toEqual([{ type: "text", text: "done" }]);
+    }
+    expect(diagnostics.events.map(({ event }) => event.type)).toEqual([
+      "harness.run.started",
+      "harness.run.completed",
+    ]);
+  });
+
+  it("records a normally completed empty finalization without emitting an error", async () => {
+    const params = createAttemptParams();
+    const harness: AgentHarness = {
+      id: "codex",
+      label: "Codex",
+      pluginId: "codex-plugin",
+      supports: () => ({ supported: true }),
+      runAttempt: async () => createAttemptResult(),
+    };
+    const diagnostics = captureDiagnosticEvents();
+    const emptyAssistant = { ...createFinalAssistant(), content: [] };
+
+    const result = await runAgentHarnessLifecycleFinalization(harness, params, async () => ({
+      assistant: emptyAssistant,
+      usage: { input: 1, output: 0, total: 1 },
+    }));
+    await flushDiagnosticEvents();
+    diagnostics.unsubscribe();
+
+    expect(result).toMatchObject({
+      outcome: "empty",
+      result: { assistant: emptyAssistant, usage: { input: 1, output: 0, total: 1 } },
+    });
     expect(diagnostics.events.map(({ event }) => event.type)).toEqual([
       "harness.run.started",
       "harness.run.completed",
