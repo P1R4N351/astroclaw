@@ -164,15 +164,20 @@ var GatewayBrowserDeviceAuthLifecycle = class {
   }
   async acceptHello(hello, plan) {
     let token = hello.auth?.deviceToken?.trim();
-    !token ||
-      !plan.identity ||
-      (await this.deps.tokenStore.store({
+    if (!token || !plan.identity) return;
+    let role = hello.auth?.role ?? plan.role,
+      stored = await this.deps.tokenStore.load({
         clientId: plan.clientId,
         deviceId: plan.identity.deviceId,
-        role: hello.auth?.role ?? plan.role,
-        token,
-        scopes: hello.auth?.scopes ?? [],
-      }));
+        role,
+      });
+    await this.deps.tokenStore.store({
+      clientId: plan.clientId,
+      deviceId: plan.identity.deviceId,
+      role,
+      token,
+      scopes: stored?.token === token ? stored.scopes : (hello.auth?.scopes ?? []),
+    });
   }
   async clearStoredToken(plan) {
     plan.identity &&
