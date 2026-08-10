@@ -1,11 +1,12 @@
 // Msteams tests cover messenger plugin behavior.
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
-import { SILENT_REPLY_TOKEN } from "openclaw/plugin-sdk/reply-chunking";
-import type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
-import { withServer } from "openclaw/plugin-sdk/test-env";
+import { pathToFileURL } from "node:url";
+import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
+import { SILENT_REPLY_TOKEN } from "astroclaw/plugin-sdk/reply-chunking";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/runtime-store";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import { withServer } from "astroclaw/plugin-sdk/test-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { StoredConversationReference } from "./conversation-store.js";
 const graphUploadMockState = vi.hoisted(() => ({
@@ -356,7 +357,9 @@ describe("msteams messenger", () => {
     });
 
     it("requires SharePoint storage for channel files", async () => {
-      const tmpDir = await mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "msteams-storage-"));
+      const tmpDir = await mkdtemp(
+        path.join(resolvePreferredAstroclawTmpDir(), "msteams-storage-"),
+      );
       const localFile = path.join(tmpDir, "note.txt");
       await writeFile(localFile, "hello");
 
@@ -384,7 +387,7 @@ describe("msteams messenger", () => {
 
     it("marks local activity preparation failures as never dispatched", async () => {
       const sendActivity = vi.fn(async () => ({ id: "should-not-send" }));
-      const missingPath = path.join(resolvePreferredOpenClawTmpDir(), "missing-msteams-file.txt");
+      const missingPath = path.join(resolvePreferredAstroclawTmpDir(), "missing-msteams-file.txt");
 
       await expect(
         sendMSTeamsMessages({
@@ -399,9 +402,41 @@ describe("msteams messenger", () => {
       expect(sendActivity).not.toHaveBeenCalled();
     });
 
+    it("loads uppercase file URLs before sending personal images", async () => {
+      const tmpDir = await mkdtemp(
+        path.join(resolvePreferredAstroclawTmpDir(), "msteams-file-url-"),
+      );
+      const localFile = path.join(tmpDir, "café image.png");
+      const png = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+        "base64",
+      );
+      await writeFile(localFile, png);
+
+      try {
+        const mediaUrl = pathToFileURL(localFile).href.replace(/^file:/u, "FILE:");
+        const activity = await buildActivity(
+          { mediaUrl },
+          {
+            ...baseRef,
+            conversation: { ...baseRef.conversation, conversationType: "personal" },
+          },
+        );
+        const attachment = (activity.attachments as Array<Record<string, unknown>>)[0];
+
+        expect(attachment).toMatchObject({
+          name: "café image.png",
+          contentType: "image/png",
+          contentUrl: `data:image/png;base64,${png.toString("base64")}`,
+        });
+      } finally {
+        await rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
     it("does not claim no dispatch after an earlier batch message was sent", async () => {
       const sendActivity = vi.fn(async () => ({ id: "sent-first" }));
-      const missingPath = path.join(resolvePreferredOpenClawTmpDir(), "missing-second-file.txt");
+      const missingPath = path.join(resolvePreferredAstroclawTmpDir(), "missing-second-file.txt");
 
       const error = await sendMSTeamsMessages({
         replyStyle: "thread",
@@ -476,7 +511,7 @@ describe("msteams messenger", () => {
     });
 
     it("retries full activity preparation when media upload fails transiently", async () => {
-      const tmpDir = await mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "msteams-retry-"));
+      const tmpDir = await mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "msteams-retry-"));
       const localFile = path.join(tmpDir, "retry.txt");
       await writeFile(localFile, "hello");
 
