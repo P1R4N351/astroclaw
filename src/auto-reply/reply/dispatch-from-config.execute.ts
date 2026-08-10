@@ -1,7 +1,7 @@
 import {
   hasOutboundReplyContent,
   isFastModeAutoProgressPayload,
-} from "openclaw/plugin-sdk/reply-payload";
+} from "astroclaw/plugin-sdk/reply-payload";
 import { isAskUserPromptPending } from "../../agents/tools/ask-user-tool.js";
 import { normalizeAgentPlanSteps } from "../../channels/streaming.js";
 import { logVerbose } from "../../globals.js";
@@ -681,6 +681,7 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
                   originatingThreadId: state.routeReplyThreadId,
                   originatingChatType: replyRoute.chatType,
                   shouldSendToolSummaries: state.shouldSendToolSummaries,
+                  shouldSendFullToolDetails: state.shouldEmitFullVerboseProgress(),
                   sendPolicy: state.sendPolicy,
                   isTailDispatch: true,
                 }),
