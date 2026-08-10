@@ -13,12 +13,12 @@ import {
   normalizeAgentModelRefForConfig,
 } from "../config/model-input.js";
 import type { AgentModelEntryConfig } from "../config/types.agent-defaults.js";
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type {
   ModelApi,
   ModelDefinitionConfig,
   ModelProviderConfig,
 } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 
 export type { OpenClawConfig, ModelApi, ModelDefinitionConfig, ModelProviderConfig };
 export {
@@ -40,7 +40,7 @@ const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = new Set([
 ]);
 
 /** Current OpenCode Zen default model ref used by onboarding and repair flows. */
-export const OPENCODE_ZEN_DEFAULT_MODEL = "opencode/claude-opus-4-6";
+export const OPENCODE_ZEN_DEFAULT_MODEL = "opencode/claude-opus-5";
 
 /** Pair of preset appliers exposed by provider setup modules. */
 export type ProviderOnboardPresetAppliers<TArgs extends unknown[]> = {
