@@ -1,5 +1,5 @@
 // Covers agent harness selection, fallback behavior, and compaction routing.
-import type { Model } from "openclaw/plugin-sdk/llm";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { TranscriptEntryAnchor } from "../../config/sessions/transcript-entry-anchor.js";
@@ -485,7 +485,10 @@ describe("runAgentHarnessAttempt", () => {
     await expect(
       runAgentHarnessSettledTurnFinalization(params, settledAttempt, harness),
     ).resolves.toMatchObject({
-      assistant: { content: [{ type: "text", text: "final answer" }] },
+      outcome: "answered",
+      result: {
+        assistant: { content: [{ type: "text", text: "final answer" }] },
+      },
     });
     expect(runAttempt).not.toHaveBeenCalled();
     expect(hostAuthorityActive).toBe(false);
