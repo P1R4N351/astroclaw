@@ -1,3 +1,4 @@
+import type { SsrFPolicy } from "./astroclaw-runtime-network.js";
 // Memory Host SDK module implements post json behavior.
 import { formatErrorMessage } from "./error-utils.js";
 import { withRemoteHttpResponse } from "./remote-http.js";
@@ -5,7 +6,6 @@ import {
   readMemoryHostResponseTextSnippet,
   readResponseJsonWithLimit,
 } from "./response-snippet.js";
-import type { SsrFPolicy } from "./ssrf-policy.js";
 
 // Shared JSON POST helper for guarded remote memory provider calls.
 
