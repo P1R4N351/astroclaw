@@ -5,7 +5,7 @@
  */
 
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } from "../config/config.js";
 import { setEmbeddedMode } from "../infra/embedded-mode.js";
@@ -616,6 +616,46 @@ describe("runBeforeToolCallHook — embedded mode approvals", () => {
       expect(adjustedApprovalCall.request.toolCallId).toBe("call-skill-hook-apply");
       expect(runBeforeToolCallMock).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it("requires approval before skill_workshop restores a collection", async () => {
+    mockCallGatewayTool.mockResolvedValueOnce({
+      id: "skill-workshop-restore-approval",
+      decision: PluginApprovalResolutions.ALLOW_ONCE,
+    });
+
+    const result = await runBeforeToolCallHook({
+      toolName: "skill_workshop",
+      params: { action: "restore_collection" },
+      toolCallId: "call-skill-restore",
+      ctx: {
+        agentId: "main",
+        sessionKey: "main",
+        config: {
+          skills: {
+            workshop: {
+              approvalPolicy: "pending",
+            },
+          },
+        },
+      },
+    });
+
+    expect(result).toEqual({
+      blocked: false,
+      params: { action: "restore_collection" },
+      approvalResolution: PluginApprovalResolutions.ALLOW_ONCE,
+    });
+    const approvalCall = requireApprovalRequestCall("skill_workshop restore approval request");
+    expect(approvalCall.request).toMatchObject({
+      title: "Restore previous skill collection",
+      description:
+        "Replace current workspace skills with the previous collection backup. Later skill changes may be removed.",
+      severity: "warning",
+      toolName: "skill_workshop",
+      toolCallId: "call-skill-restore",
+    });
+    expect(runBeforeToolCallMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns an actionable pending outcome when skill_workshop approval expires", async () => {
