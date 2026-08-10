@@ -5,34 +5,37 @@ import {
   loadPreparedModelCatalog,
   resolveAgentDir,
   resolveDefaultModelForAgent,
-} from "astroclaw/plugin-sdk/agent-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
 import {
   formatCommandArgMenuTitle,
   resolveEffectiveAgentRuntime,
   resolveStoredModelOverride,
   type ChatCommandDefinition,
-} from "astroclaw/plugin-sdk/command-auth-native";
+} from "openclaw/plugin-sdk/command-auth-native";
 import {
   type CommandArgs,
   resolveNativeCommandSessionTargets,
-} from "astroclaw/plugin-sdk/command-auth-native";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+} from "openclaw/plugin-sdk/command-auth-native";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 import {
   resolveNativeCommandsEnabled,
   resolveNativeSkillsEnabled,
-} from "astroclaw/plugin-sdk/native-command-config-runtime";
-import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { getRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { danger, logVerbose, warn } from "astroclaw/plugin-sdk/runtime-env";
-import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/native-command-config-runtime";
+import {
+  mergeNativeCommandSpecs,
+  type NativeCommandSpec,
+} from "openclaw/plugin-sdk/native-command-registry";
+import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import { getRuntimeConfigSnapshot } from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { danger, logVerbose, warn } from "openclaw/plugin-sdk/runtime-env";
+import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-  normalizeStringEntriesLower,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { chunkItems } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { chunkItems } from "openclaw/plugin-sdk/text-chunking";
 import type { ResolvedSlackAccount } from "../accounts.js";
 import { SLACK_MAX_BLOCKS } from "../blocks-input.js";
 import { formatSlackError } from "../errors.js";
@@ -877,7 +880,7 @@ export async function registerSlackMonitorSlashCommands(params: {
     }
   };
 
-  let nativeCommands: Array<{ name: string }> = [];
+  let nativeCommands: NativeCommandSpec[] = [];
   let slashCommandsRuntime: typeof import("./slash-commands.runtime.js") | null = null;
   if (
     registration.mode === "disabled" &&
@@ -899,18 +902,11 @@ export async function registerSlackMonitorSlashCommands(params: {
       skillCommands,
       provider: "slack",
     });
-    const existingNativeNames = new Set(
-      normalizeStringEntriesLower(nativeCommands.map((command) => command.name)),
-    );
     const { listProviderPluginCommandSpecs } = await loadSlackPluginCommandsRuntime();
-    for (const pluginCommand of listProviderPluginCommandSpecs("slack")) {
-      const normalizedName = normalizeLowercaseStringOrEmpty(pluginCommand.name);
-      if (!normalizedName || existingNativeNames.has(normalizedName)) {
-        continue;
-      }
-      existingNativeNames.add(normalizedName);
-      nativeCommands.push(pluginCommand);
-    }
+    nativeCommands = mergeNativeCommandSpecs({
+      primary: nativeCommands,
+      secondary: listProviderPluginCommandSpecs("slack"),
+    });
     registration = nativeCommands.length > 0 ? { mode: "native" } : { mode: "disabled" };
   }
 
