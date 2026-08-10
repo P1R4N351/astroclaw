@@ -5,19 +5,21 @@ const hoisted = vi.hoisted(() => ({
   resolveImageSanitizationLimits: vi.fn(() => ({ maxDimensionPx: 2048 })),
 }));
 
-vi.mock("@astroclaw/media-core/constants", () => ({
+vi.mock("@astroclaw/media-core/constants", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@astroclaw/media-core/constants")>()),
   MAX_IMAGE_BYTES: 1_234,
   mediaKindFromMime: (mime?: string) =>
     mime ? (mime.startsWith("image/") ? "image" : "unknown") : undefined,
 }));
-vi.mock("../../image-sanitization.js", () => ({
+vi.mock("../../image-sanitization.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../image-sanitization.js")>()),
   resolveImageSanitizationLimits: hoisted.resolveImageSanitizationLimits,
 }));
 vi.mock("./images.js", () => ({
   detectAndLoadPromptImages: hoisted.detectAndLoadPromptImages,
 }));
 
-import { prepareEmbeddedAttemptPromptExecution } from "./attempt-prompt-execution-prepare.js";
+import { prepareEmbeddedAttemptPromptExecution } from "./attempt-prompt-submit.js";
 
 type PromptExecutionInput = Parameters<typeof prepareEmbeddedAttemptPromptExecution>[0];
 
