@@ -1,5 +1,5 @@
 // Tests plugin command install, listing, and config behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
 import { handlePluginsCommand } from "./commands-plugins.js";
@@ -75,7 +75,7 @@ vi.mock("../../infra/archive.js", () => ({
   resolveArchiveKind: vi.fn(() => null),
 }));
 
-vi.mock("../../infra/clawhub.js", () => ({
+vi.mock("../../infra/clawhub-spec.js", () => ({
   parseClawHubPluginSpec: vi.fn(() => null),
 }));
 
