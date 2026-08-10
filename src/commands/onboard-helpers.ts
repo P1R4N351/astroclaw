@@ -2,11 +2,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { inspect } from "node:util";
-import { cancel, isCancel } from "@clack/prompts";
 import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import { cancel, isCancel } from "@clack/prompts";
 import {
   ConnectErrorDetailCodes,
   readConnectErrorDetailCode,
@@ -27,8 +27,8 @@ import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
 import { resolveConfigPath, resolveStateDir } from "../config/paths.js";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions/paths.js";
 import type { OptionalBootstrapFileName } from "../config/types.agent-defaults.js";
-import type { GatewayAuthMode } from "../config/types.gateway.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { GatewayAuthMode } from "../config/types.gateway.js";
 import {
   resolveAdvertisedControlUiLinks,
   resolveControlUiLinks,
@@ -42,7 +42,11 @@ import {
   resolveBrowserOpenCommand,
 } from "../infra/browser-open.js";
 import { detectBinary } from "../infra/detect-binary.js";
-import { movePathToTrash } from "../infra/fs-safe.js";
+import {
+  canonicalPathFromExistingAncestor,
+  isPathInside,
+  movePathToTrash,
+} from "../infra/fs-safe.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { resolveConfigDir, shortenHomeInString, shortenHomePath, sleep } from "../utils.js";
 import { VERSION } from "../version.js";
@@ -308,8 +312,30 @@ async function resolveMoveToTrashAllowedRoots(targetPath: string): Promise<strin
   return uniqueStrings(allowedRoots);
 }
 
+async function assertFullResetPreservesOnboardingLock(workspaceDir: string): Promise<void> {
+  const [workspacePath, migrationDir] = await Promise.all([
+    canonicalPathFromExistingAncestor(path.resolve(workspaceDir)),
+    canonicalPathFromExistingAncestor(path.join(resolveStateDir(), "migration")),
+  ]);
+  if (
+    workspacePath === migrationDir ||
+    isPathInside(workspacePath, migrationDir) ||
+    isPathInside(migrationDir, workspacePath)
+  ) {
+    throw new Error(
+      "Full reset workspace overlaps the active onboarding lock directory. " +
+        "Choose a workspace outside the OpenClaw state migration directory or use a narrower reset scope.",
+    );
+  }
+}
+
 /** Deletes onboarding-managed state according to the selected reset scope. */
 export async function handleReset(scope: ResetScope, workspaceDir: string, runtime: RuntimeEnv) {
+  if (scope === "full") {
+    // Validate before moving config or credentials so an unsafe full reset has
+    // no partial destructive effects and cannot discard its own lock sidecar.
+    await assertFullResetPreservesOnboardingLock(workspaceDir);
+  }
   await moveToTrash(resolveConfigPath(), runtime);
   if (scope === "config") {
     return;
