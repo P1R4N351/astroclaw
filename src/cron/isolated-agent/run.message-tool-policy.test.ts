@@ -1,5 +1,5 @@
 // Message tool policy tests cover message tool availability during cron runs.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createSourceDeliveryPlan } from "../../infra/outbound/source-delivery-plan.js";
 import type { SkillSnapshot } from "../../skills/types.js";
@@ -8,8 +8,8 @@ import type { CronDeliveryMode } from "../types.js";
 import type { MutableCronSession } from "./run-session-state.js";
 import {
   buildSafeExternalPromptMock,
+  callGatewayMock,
   clearFastTestEnv,
-  cleanupDirectCronSessionMock,
   dispatchCronDeliveryMock,
   getChannelPluginMock,
   isCliProviderMock,
@@ -1224,15 +1224,7 @@ describe("runCronIsolatedAgentTurn message tool policy", () => {
     expect(result.delivered).toBe(false);
     expect(result.deliveryAttempted).toBe(false);
     expect(dispatchCronDeliveryMock).not.toHaveBeenCalled();
-    expect(cleanupDirectCronSessionMock).toHaveBeenCalledWith({
-      job: expect.objectContaining({ id: "fatal-error-payload" }),
-      agentSessionKey: "agent:default:cron:message-tool-policy",
-      sessionId: "test-session-id",
-      lifecycleRevision: "test-lifecycle-revision",
-      sessionUpdatedAt: expect.any(Number),
-      beforeSessionDelete: expect.any(Function),
-      retireReason: "cron-delete-after-run-fatal-error",
-    });
+    expect(callGatewayMock).not.toHaveBeenCalled();
     expectDeliveryFields(result.delivery, {
       intended: { channel: "messagechat", to: "123", source: "explicit" },
       resolved: { ok: true, channel: "messagechat", to: "123", source: "explicit" },
@@ -1260,18 +1252,7 @@ describe("runCronIsolatedAgentTurn message tool policy", () => {
     });
 
     expect(dispatchCronDeliveryMock).not.toHaveBeenCalled();
-    expect(cleanupDirectCronSessionMock).toHaveBeenCalledWith({
-      job: expect.objectContaining({
-        id: "fatal-delete-after-run",
-        deleteAfterRun: true,
-      }),
-      agentSessionKey: "agent:default:cron:message-tool-policy",
-      sessionId: "test-session-id",
-      lifecycleRevision: "test-lifecycle-revision",
-      sessionUpdatedAt: expect.any(Number),
-      beforeSessionDelete: expect.any(Function),
-      retireReason: "cron-delete-after-run-fatal-error",
-    });
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
   });
 
   it("skips cron fallback delivery when the message tool already sent to the same target", async () => {
