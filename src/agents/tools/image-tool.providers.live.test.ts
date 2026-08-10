@@ -5,8 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ModelApi } from "../../config/types.models.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { ModelApi } from "../../config/types.models.js";
 import { resizeToJpeg } from "../../media/media-services.js";
 import { encodePngRgba, fillPixel } from "../../media/png-encode.js";
 import {
@@ -18,7 +18,7 @@ import {
   isBillingErrorMessage,
   isOverloadedErrorMessage,
   isServerErrorMessage,
-} from "../embedded-agent-helpers/failover-matches.js";
+} from "../failover/classify.js";
 import { isLiveTestEnabled } from "../live-test-helpers.js";
 import { isLiveAuthDrift } from "../live-test-provider-drift.test-support.js";
 import { createImageTool } from "./image-tool.js";
