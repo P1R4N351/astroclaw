@@ -1,4 +1,3 @@
-import { inspectTlsCertificateError } from "@openclaw/ai/internal/shared";
 /**
  * Classifies provider/runtime failures and formats assistant-facing error text.
  */
@@ -7,6 +6,7 @@ import {
   normalizeOptionalLowercaseString,
 } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import { inspectTlsCertificateError } from "@openclaw/ai/internal/shared";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { AssistantMessage } from "../../llm/types.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
@@ -361,7 +361,7 @@ function stripErrorPrefix(raw: string): string {
   return raw.replace(/^error:\s*/i, "").trim();
 }
 
-export function inferSignalStatus(signal: FailoverSignal): number | undefined {
+function inferSignalStatus(signal: FailoverSignal): number | undefined {
   if (typeof signal.status === "number" && Number.isFinite(signal.status)) {
     return signal.status;
   }
