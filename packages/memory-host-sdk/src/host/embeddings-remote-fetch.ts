@@ -1,7 +1,7 @@
 // Memory Host SDK module implements embeddings remote fetch behavior.
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
+import type { SsrFPolicy } from "./astroclaw-runtime-network.js";
 import { postJson } from "./post-json.js";
-import type { SsrFPolicy } from "./ssrf-policy.js";
 
 // Fetches and validates OpenAI-compatible embedding responses.
 
