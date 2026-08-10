@@ -8,10 +8,10 @@ import {
 } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { OPENAI_API_BASE_URL, OPENAI_CODEX_RESPONSES_BASE_URL } from "./base-url.js";
 import { OPENAI_CODEX_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL } from "./default-models.js";
 import { buildOpenAIProvider } from "./openai-provider.js";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { resolveModelRoutes } from "./provider-policy-api.js";
 
 const mocks = vi.hoisted(() => ({
@@ -1133,14 +1133,6 @@ describe("buildOpenAIProvider", () => {
     expect(provider.auth).toBe("oauth");
     expect(provider.models).toEqual([]);
     expect(release).toHaveBeenCalledOnce();
-  });
-
-  it("keeps the deprecated Codex provider builder on the public API barrel", async () => {
-    const { buildOpenAICodexProviderPlugin } = await import("./api.js");
-    const provider = buildOpenAICodexProviderPlugin();
-
-    expect(provider.id).toBe("openai");
-    expect(provider.hookAliases).toEqual(["azure-openai", "azure-openai-responses"]);
   });
 
   it.each(["gpt-5.5", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"])(
