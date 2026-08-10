@@ -1,4 +1,5 @@
 import { redactSensitiveUrlLikeString } from "@astroclaw/net-policy/redact-sensitive-url";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 /** Session-scoped MCP runtime catalog loader and transport lifecycle. */
 import { Client, type ClientOptions } from "@modelcontextprotocol/sdk/client/index.js";
@@ -58,7 +59,6 @@ import {
   normalizeMcpCodexToolAnnotations,
   resolveMcpCodexToolApprovalMode,
 } from "./mcp-codex-tool-approval.js";
-import { isMcpConfigRecord } from "./mcp-config-shared.js";
 import {
   applyMcpConnectionOverride,
   type McpServerConnectionResolved,
@@ -153,7 +153,7 @@ async function connectWithTimeout(
       }),
     ]);
   } catch (error) {
-    if (deadlineExpired || (isMcpConfigRecord(error) && error.code === ErrorCode.RequestTimeout)) {
+    if (deadlineExpired || (isRecord(error) && error.code === ErrorCode.RequestTimeout)) {
       if (transport instanceof OpenClawStdioClientTransport) {
         await transport.forceClose();
       }
@@ -199,7 +199,7 @@ async function listAllTools(client: Client, timeoutMs: number, signal: AbortSign
 }
 
 function isMcpMethodNotFoundError(error: unknown): boolean {
-  if (isMcpConfigRecord(error) && error.code === ErrorCode.MethodNotFound) {
+  if (isRecord(error) && error.code === ErrorCode.MethodNotFound) {
     return true;
   }
   const message = String(error);
@@ -297,7 +297,7 @@ function normalizeToolUiVisibility(value: unknown): Array<"app" | "model"> | und
 }
 
 function getMcpToolSelection(rawServer: unknown): McpToolSelection {
-  if (!isMcpConfigRecord(rawServer) || !isMcpConfigRecord(rawServer.toolFilter)) {
+  if (!isRecord(rawServer) || !isRecord(rawServer.toolFilter)) {
     return {};
   }
   return {
@@ -1089,7 +1089,7 @@ export function createSessionMcpRuntime(params: {
             session.client.callTool(
               {
                 name: toolName,
-                arguments: isMcpConfigRecord(input) ? input : {},
+                arguments: isRecord(input) ? input : {},
               },
               undefined,
               { timeout: session.requestTimeoutMs, signal },
