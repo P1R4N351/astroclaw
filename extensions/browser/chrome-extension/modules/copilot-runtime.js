@@ -24,6 +24,12 @@ function buildDeviceAuthPayloadV3(params) {
     deviceFamily,
   ].join("|");
 }
+function isProtocolRecord(value) {
+  return !!value && typeof value == "object" && !Array.isArray(value);
+}
+function isNonEmptyProtocolString(value) {
+  return typeof value == "string" && value.length > 0;
+}
 function normalized(value) {
   return (typeof value == "string" && value.trim()) || void 0;
 }
@@ -188,32 +194,28 @@ var GatewayBrowserDeviceAuthLifecycle = class {
       }));
   }
 };
-function isRecord(value) {
-  return !!value && typeof value == "object" && !Array.isArray(value);
-}
-function isNonEmptyString(value) {
-  return typeof value == "string" && value.length > 0;
-}
 function isNonNegativeInteger(value) {
   return typeof value == "number" && Number.isInteger(value) && value >= 0;
 }
 function isGatewayErrorShape(value) {
-  return !isRecord(value) ||
-    !isNonEmptyString(value.code) ||
-    !isNonEmptyString(value.message) ||
+  return !isProtocolRecord(value) ||
+    !isNonEmptyProtocolString(value.code) ||
+    !isNonEmptyProtocolString(value.message) ||
     (value.retryable !== void 0 && typeof value.retryable != "boolean")
     ? !1
     : value.retryAfterMs === void 0 || isNonNegativeInteger(value.retryAfterMs);
 }
 function isGatewayEventFrame(value) {
-  return !isRecord(value) || value.type !== "event" || !isNonEmptyString(value.event)
+  return !isProtocolRecord(value) ||
+    value.type !== "event" ||
+    !isNonEmptyProtocolString(value.event)
     ? !1
     : value.seq === void 0 || isNonNegativeInteger(value.seq);
 }
 function isGatewayResponseFrame(value) {
-  return !isRecord(value) ||
+  return !isProtocolRecord(value) ||
     value.type !== "res" ||
-    !isNonEmptyString(value.id) ||
+    !isNonEmptyProtocolString(value.id) ||
     typeof value.ok != "boolean"
     ? !1
     : value.error === void 0 || isGatewayErrorShape(value.error);
