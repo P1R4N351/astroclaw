@@ -1,7 +1,7 @@
 import {
   buildExecApprovalPendingReplyPayload,
   buildPluginApprovalPendingReplyPayload,
-} from "openclaw/plugin-sdk/approval-reply-runtime";
+} from "astroclaw/plugin-sdk/approval-reply-runtime";
 // Signal tests cover approval reactions plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -20,10 +20,10 @@ const resolverMocks = vi.hoisted(() => ({
   isApprovalNotFoundError: vi.fn(() => false),
 }));
 
-vi.mock("openclaw/plugin-sdk/approval-gateway-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/approval-gateway-runtime", () => ({
   resolveApprovalOverGateway: resolverMocks.resolveSignalApproval,
 }));
-vi.mock("openclaw/plugin-sdk/error-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/error-runtime", () => ({
   isApprovalNotFoundError: resolverMocks.isApprovalNotFoundError,
 }));
 
@@ -761,6 +761,7 @@ describe("Signal approval reactions", () => {
       approvalKind: "plugin",
       decision: "allow-once",
       channel: "signal",
+      accountId: "default",
       senderId: "+15551230000",
       gatewayUrl: undefined,
     });
@@ -822,6 +823,7 @@ describe("Signal approval reactions", () => {
       approvalKind: "exec",
       decision: "allow-once",
       channel: "signal",
+      accountId: "default",
       senderId: "+15551230000",
       gatewayUrl: undefined,
     });
