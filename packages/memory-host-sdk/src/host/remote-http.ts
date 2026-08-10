@@ -4,7 +4,7 @@ import {
   shouldUseEnvHttpProxyForUrl,
   ssrfPolicyFromHttpBaseUrlAllowedHostname,
 } from "./astroclaw-runtime-network.js";
-import type { SsrFPolicy } from "./ssrf-policy.js";
+import type { SsrFPolicy } from "./astroclaw-runtime-network.js";
 
 // Remote memory HTTP wrapper that applies SSRF policy and releases guarded sockets.
 
