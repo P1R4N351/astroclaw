@@ -1,3 +1,4 @@
+import type { SsrFPolicy } from "./astroclaw-runtime-network.js";
 // Memory Host SDK module implements embeddings remote provider behavior.
 import {
   resolveRemoteEmbeddingBearerClient,
@@ -5,7 +6,6 @@ import {
 } from "./embeddings-remote-client.js";
 import { fetchRemoteEmbeddingVectors } from "./embeddings-remote-fetch.js";
 import type { EmbeddingProvider, EmbeddingProviderOptions } from "./embeddings.types.js";
-import type { SsrFPolicy } from "./ssrf-policy.js";
 
 // Remote embedding provider factory for OpenAI-compatible embeddings APIs.
 
