@@ -3,15 +3,23 @@ import fs from "node:fs";
 import {
   type JsonSchemaObject,
   validateJsonSchemaValue,
-} from "openclaw/plugin-sdk/json-schema-runtime";
+} from "astroclaw/plugin-sdk/json-schema-runtime";
 import { describe, expect, it } from "vitest";
 import { memoryConfigSchema } from "./config.js";
 
 const manifest = JSON.parse(
   fs.readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf-8"),
-) as { configSchema: JsonSchemaObject };
+) as { configSchema: JsonSchemaObject; uiHints?: Record<string, unknown> };
 
 describe("memory-lancedb config", () => {
+  it("keeps config presentation metadata manifest-owned", () => {
+    expect(memoryConfigSchema).not.toHaveProperty("uiHints");
+    expect(manifest.uiHints?.["embedding.apiKey"]).toMatchObject({
+      label: "Embedding API Key",
+      sensitive: true,
+    });
+  });
+
   it("accepts dreaming in the manifest schema and preserves it in runtime parsing", () => {
     const manifestResult = validateJsonSchemaValue({
       schema: manifest.configSchema,
