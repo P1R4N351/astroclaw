@@ -3,7 +3,7 @@ import { normalizeOptionalString } from "@astroclaw/normalization-core/string-co
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import pLimit from "p-limit";
 import { z } from "zod";
-import { searchClawHubSkills } from "../infra/clawhub.js";
+import { searchClawHubSkills } from "../infra/clawhub-skills.js";
 import type { InstalledAppsResult } from "../infra/installed-apps.js";
 import {
   getOfficialExternalPluginCatalogManifest,
