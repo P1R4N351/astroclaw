@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { expectDefined } from "@astroclaw/normalization-core";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import JSZip from "jszip";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer, createTinyJpegBuffer } from "../../test/helpers/image-fixtures.js";
 import { isPathWithinBase } from "../../test/helpers/paths.js";
@@ -80,7 +80,7 @@ describe("media store", () => {
             ...actualStore,
             write: async (...args: Parameters<typeof actualStore.write>) => {
               const [relativePath] = args;
-              if (!injectedEnoent && relativePath.includes(`${params.segment}${path.sep}`)) {
+              if (!injectedEnoent && relativePath.includes(`${params.segment}/`)) {
                 injectedEnoent = true;
                 await fs.rm(path.dirname(actualStore.path(relativePath)), {
                   recursive: true,
@@ -126,7 +126,7 @@ describe("media store", () => {
             ...actualStore,
             write: async (...args: Parameters<typeof actualStore.write>) => {
               const [relativePath] = args;
-              if (relativePath.includes(`failed-buffer${path.sep}`)) {
+              if (relativePath.includes("failed-buffer/")) {
                 attemptedRelPaths.push(relativePath);
                 const err = new Error("no space left on device") as NodeJS.ErrnoException;
                 err.code = "ENOSPC";
