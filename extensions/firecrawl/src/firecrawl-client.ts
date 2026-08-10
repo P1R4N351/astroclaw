@@ -1,6 +1,6 @@
 // Firecrawl plugin module implements firecrawl client behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { readProviderJsonObjectResponse } from "astroclaw/plugin-sdk/provider-http";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { readProviderJsonObjectResponse } from "openclaw/plugin-sdk/provider-http";
 import {
   DEFAULT_CACHE_TTL_MINUTES,
   markdownToText,
@@ -11,21 +11,21 @@ import {
   withSelfHostedWebToolsEndpoint,
   withStrictWebToolsEndpoint,
   writeCache,
-} from "astroclaw/plugin-sdk/provider-web-fetch";
-import { normalizeSecretInput } from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/provider-web-fetch";
+import { normalizeSecretInput } from "openclaw/plugin-sdk/secret-input";
 import {
   truncateSanitizedExternalContent,
   wrapExternalContent,
   wrapWebContent,
-} from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/security-runtime";
 import {
   SsrFBlockedError,
   isBlockedHostnameOrIp,
   isPrivateIpAddress,
   resolvePinnedHostnameWithPolicy,
   type LookupFn,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   DEFAULT_FIRECRAWL_BASE_URL,
   resolveFirecrawlApiKey,
@@ -729,7 +729,5 @@ export const testing = {
   postFirecrawlJson,
   readFirecrawlJsonResponse,
   resolveEndpoint,
-  validateFirecrawlBaseUrl,
   resolveSearchItems,
 };
-export { testing as __testing };
