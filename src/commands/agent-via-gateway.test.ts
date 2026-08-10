@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 // Agent via gateway tests cover gateway-backed agent command dispatch and session loading.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configureExecutionIdentityAdmissionSink,
@@ -541,7 +541,7 @@ describe("agentCliCommand", () => {
           localGatewayLockOptions: { ...lockOptions, pollIntervalMs: 2, timeoutMs: 15 },
         }),
       ).rejects.toThrow(
-        `another openclaw agent --local run is active (pid ${process.pid}); lock timeout after 15ms`,
+        `another embedded OpenClaw state writer is active (pid ${process.pid}); lock timeout after 15ms`,
       );
       expect(agentCommand).toHaveBeenCalledTimes(1);
 
