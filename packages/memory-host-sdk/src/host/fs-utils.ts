@@ -1,6 +1,6 @@
 // Memory Host SDK helper module supports fs utils behavior.
-import { configureFsSafePython } from "@openclaw/fs-safe/config";
-// fs-safe facade with the Python helper disabled by default for this package’s
+import { configureFsSafeNative } from "@openclaw/fs-safe/config";
+// fs-safe facade with native acceleration disabled by default for this package's
 // host-side memory file operations.
 export { root } from "@openclaw/fs-safe/root";
 export { isPathInside, isPathInsideWithRealpath } from "@openclaw/fs-safe/path";
@@ -18,19 +18,20 @@ const hasModeOverride = Object.keys(process.env).some((key) =>
 );
 
 if (!hasModeOverride) {
-  configureFsSafePython({ mode: "off" });
+  configureFsSafeNative({ mode: "off" });
 }
 
-/** True for missing-file errors emitted by Node or fs-safe. */
+/** True when a requested file is missing or cannot exist below a non-directory parent. */
 export function isFileMissingError(
   err: unknown,
-): err is NodeJS.ErrnoException & { code: "ENOENT" | "ENOTDIR" | "not-found" } {
+): err is NodeJS.ErrnoException & { code: "ENOENT" | "ENOTDIR" | "not-file" | "not-found" } {
   return Boolean(
     err &&
     typeof err === "object" &&
     "code" in err &&
     ((err as Partial<NodeJS.ErrnoException>).code === "ENOENT" ||
       (err as Partial<NodeJS.ErrnoException>).code === "ENOTDIR" ||
+      (err as { code?: unknown }).code === "not-file" ||
       (err as { code?: unknown }).code === "not-found"),
   );
 }
