@@ -1,8 +1,8 @@
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 // Tool execution component renders tool call status and output in the TUI.
 import { Box, Container, Spacer, Text, truncateToWidth } from "@earendil-works/pi-tui";
-import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { formatToolDetail, resolveToolDisplay } from "../../agents/tool-display.js";
-import { markdownTheme, theme } from "../theme/theme.js";
+import { markdownTheme, tuiTheme as theme } from "../theme/theme.js";
 import * as tuiFormatters from "../tui-formatters.js";
 import { HyperlinkMarkdown } from "./hyperlink-markdown.js";
 
