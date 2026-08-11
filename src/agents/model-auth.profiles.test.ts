@@ -2,15 +2,13 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { Model } from "openclaw/plugin-sdk/llm";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
-import { withEnvAsync } from "../test-utils/env.js";
 import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
-import {
-  clearRuntimeAuthProfileStoreSnapshots,
-  ensureAuthProfileStore,
-} from "./auth-profiles/store.js";
+import { withEnvAsync } from "../test-utils/env.js";
+import { clearRuntimeAuthProfileStoreSnapshots } from "./auth-profiles/runtime-snapshots.js";
+import { ensureAuthProfileStore } from "./auth-profiles/store.js";
 import type {
   AuthProfileCredential,
   AuthProfileStore,
