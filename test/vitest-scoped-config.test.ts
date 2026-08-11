@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { BUNDLED_PLUGIN_TEST_GLOB, bundledPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { BUNDLED_PLUGIN_TEST_GLOB, bundledPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { cleanupTempDirs, makeTempDir } from "./helpers/temp-dir.js";
 import { normalizeConfigPath, normalizeConfigPaths } from "./helpers/vitest-config-paths.js";
@@ -220,7 +220,7 @@ describe("createScopedVitestConfig", () => {
     expect(normalizeConfigPath(testConfig.runner)).toBe("test/non-isolated-runner.ts");
     expect(normalizeConfigPaths(testConfig.setupFiles)).toEqual([
       "test/setup.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
   });
 
@@ -495,7 +495,7 @@ describe("createScopedVitestConfig", () => {
     expect(normalizeConfigPaths(requireTestConfig(config).setupFiles)).toEqual([
       "test/setup.ts",
       "test/setup.extensions.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
   });
 
@@ -610,9 +610,13 @@ describe("scoped vitest configs", () => {
     expect(requireTestConfig(defaultCliConfig).exclude).toEqual(
       expect.arrayContaining(cliProcessTestFiles.map((file) => file.replace("src/cli/", ""))),
     );
-    expect(requireTestConfig(defaultCliProcessConfig).include).toEqual(cliProcessTestFiles);
-    expect(requireTestConfig(defaultCliProcessConfig).fileParallelism).toBe(false);
-    expect(requireTestConfig(defaultCliProcessConfig).env).toMatchObject({
+    const processTestConfig = requireTestConfig(defaultCliProcessConfig);
+    expect(processTestConfig.include).toEqual(cliProcessTestFiles);
+    for (const file of cliProcessTestFiles) {
+      expect(matchingExcludePatterns(processTestConfig.exclude ?? [], file), file).toEqual([]);
+    }
+    expect(processTestConfig.fileParallelism).toBe(false);
+    expect(processTestConfig.env).toMatchObject({
       ESBUILD_WORKER_THREADS: "0",
     });
   });
@@ -630,7 +634,7 @@ describe("scoped vitest configs", () => {
     ]);
     expect(normalizeConfigPaths(requireTestConfig(defaultPluginSdkConfig).setupFiles)).toEqual([
       "test/setup.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
     expect(normalizeConfigPaths(requireTestConfig(defaultToolingConfig).setupFiles)).toEqual([
       "test/setup.ts",
@@ -837,7 +841,7 @@ describe("scoped vitest configs", () => {
     expect(normalizeConfigPaths(testConfig.setupFiles)).toEqual([
       "test/setup.ts",
       "test/setup.extensions.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
     expect(testConfig.include).toEqual([
       "memory-core/**/*.test.ts",
@@ -866,12 +870,12 @@ describe("scoped vitest configs", () => {
     expect(normalizeConfigPaths(extensionsTestConfig.setupFiles)).toEqual([
       "test/setup.ts",
       "test/setup.extensions.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
     expect(normalizeConfigPaths(telegramTestConfig.setupFiles)).toEqual([
       "test/setup.ts",
       "test/setup.extensions.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
   });
 
