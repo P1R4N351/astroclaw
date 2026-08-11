@@ -1,4 +1,5 @@
 // Telegram tests cover bot.fetch abort plugin behavior.
+import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { isTelegramPollingNetworkError } from "./network-errors.js";
 
@@ -13,7 +14,7 @@ const createTelegramBot = (opts: import("./bot.types.js").TelegramBotOptions) =>
 
 function createWrappedTelegramClientFetch(
   proxyFetch: typeof fetch,
-  config?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
+  config?: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig,
 ) {
   const shutdown = new AbortController();
   botCtorSpy.mockClear();
@@ -394,17 +395,3 @@ describe("createTelegramBot fetch abort", () => {
     expect(isTelegramPollingNetworkError(frozenError)).toBe(false);
   });
 });
-
-function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
-  if (value instanceof Error) {
-    return value;
-  }
-  if (typeof value === "string") {
-    return new Error(value);
-  }
-  const error = new Error(fallbackMessage, { cause: value });
-  if ((typeof value === "object" && value !== null) || typeof value === "function") {
-    Object.assign(error, value);
-  }
-  return error;
-}
