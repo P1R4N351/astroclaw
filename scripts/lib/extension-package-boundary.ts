@@ -160,6 +160,9 @@ export const EXTENSION_PACKAGE_BOUNDARY_BASE_PATHS = {
     "../dist/plugin-sdk/packages/media-generation-core/src/*.d.ts",
   ],
   "@astroclaw/media-core": ["../dist/plugin-sdk/packages/media-core/src/index.d.ts"],
+  "@astroclaw/media-core/attachment-classify": [
+    "../dist/plugin-sdk/packages/media-core/src/attachment-classify.d.ts",
+  ],
   "@astroclaw/media-core/base64": ["../dist/plugin-sdk/packages/media-core/src/base64.d.ts"],
   "@astroclaw/media-core/constants": ["../dist/plugin-sdk/packages/media-core/src/constants.d.ts"],
   "@astroclaw/media-core/content-length": [
