@@ -3,8 +3,8 @@ import {
   createPluginSetupWizardConfigure,
   createTestWizardPrompter,
   runSetupWizardConfigure,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { WizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { WizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../runtime-api.js";
 import { nostrPlugin } from "./channel.js";
@@ -18,6 +18,17 @@ import {
   createConfiguredNostrCfg,
 } from "./test-fixtures.js";
 import { listNostrAccountIds, resolveDefaultNostrAccountId, resolveNostrAccount } from "./types.js";
+
+describe("nostr target classification", () => {
+  it("accepts only valid direct-message public keys", () => {
+    expect(nostrPlugin.messaging?.inferTargetChatType?.({ to: TEST_HEX_PUBLIC_KEY })).toBe(
+      "direct",
+    );
+    expect(
+      nostrPlugin.messaging?.inferTargetChatType?.({ to: "not-a-public-key" }),
+    ).toBeUndefined();
+  });
+});
 
 function normalizeNostrTestEntry(entry: string): string {
   return entry
