@@ -12,15 +12,16 @@ import {
   type AgentHarnessAttemptResult as AgentHarnessAttemptResultContract,
   type AgentHarnessV2,
   type AgentMessage,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import type { SandboxContext } from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { SandboxContext } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+} from "openclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runCopilotAttempt } from "./attempt.js";
 import { createCopilotTestHostCapabilities } from "./host-capability.test-support.js";
@@ -51,7 +52,7 @@ const gatewayQuestionMock = vi.hoisted(() => ({
   claimPendingAgentQuestionAnswer: undefined as
     | ((
         ...args: Parameters<
-          typeof import("astroclaw/plugin-sdk/agent-harness-runtime").claimPendingAgentQuestionAnswer
+          typeof import("openclaw/plugin-sdk/agent-harness-runtime").claimPendingAgentQuestionAnswer
         >
       ) => Promise<boolean>)
     | undefined,
@@ -60,9 +61,8 @@ const gatewayQuestionMock = vi.hoisted(() => ({
   setActiveEmbeddedRun: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     embeddedAgentLog: { ...actual.embeddedAgentLog, warn: gatewayQuestionMock.warn },
@@ -145,9 +145,9 @@ const transcriptRuntimeMock = vi.hoisted(() => ({
   }),
   readVisible: vi.fn(async () => []),
 }));
-vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-runtime")>();
   return {
     ...actual,
     appendSessionTranscriptMessageByIdentity: transcriptRuntimeMock.append,
@@ -4904,17 +4904,4 @@ describe("runCopilotAttempt", () => {
   });
 });
 
-function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
-  if (value instanceof Error) {
-    return value;
-  }
-  if (typeof value === "string") {
-    return new Error(value);
-  }
-  const error = new Error(fallbackMessage, { cause: value });
-  if ((typeof value === "object" && value !== null) || typeof value === "function") {
-    Object.assign(error, value);
-  }
-  return error;
-}
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
