@@ -1,12 +1,11 @@
 // Gateway log-tail helpers for status diagnostics.
 // Summaries compact repeated auth/runtime failures while preserving enough context for operators.
 
-import { safeParseJson } from "@astroclaw/normalization-core";
+import { extractBalancedJsonPrefix, safeParseJson } from "@astroclaw/normalization-core";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { classifyOAuthRefreshFailureReason } from "../../agents/auth-profiles/oauth-refresh-failure.js";
 import { readGatewayLogTailLines } from "../../daemon/diagnostics.js";
-import { extractBalancedJsonPrefix } from "../../shared/balanced-json.js";
 
 /** Reads the last non-empty lines from a gateway log file, returning an empty list on read failure. */
 export async function readFileTailLines(filePath: string, maxLines: number): Promise<string[]> {
