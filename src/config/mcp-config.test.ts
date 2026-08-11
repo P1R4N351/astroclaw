@@ -1,14 +1,12 @@
 // Covers MCP config normalization, validation, and serialization.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "openclaw/plugin-sdk/test-env";
+import { withTempHome } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
-import {
-  listConfiguredMcpServers,
-  setConfiguredMcpServer,
-  unsetConfiguredMcpServer,
-} from "./mcp-config.js";
+import { listConfiguredMcpServers, mcpConfigInternal } from "./mcp-config.js";
 import { REDACTED_SENTINEL } from "./redact-snapshot.js";
+
+const { set: setConfiguredMcpServer, unset: unsetConfiguredMcpServer } = mcpConfigInternal;
 
 function validationOk(raw: unknown) {
   return { ok: true as const, config: raw, warnings: [] };
