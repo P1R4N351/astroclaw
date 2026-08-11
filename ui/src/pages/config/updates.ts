@@ -1,5 +1,6 @@
 // Curated Updates settings presentation. The existing update config remains
 // the source of authored policy; the Gateway schedule DTO owns runtime status.
+import { parseDateStringTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import { asNullableRecord as asConfigRecord } from "@astroclaw/normalization-core/record-coerce";
 import { html, nothing, type TemplateResult } from "lit";
 import type { UpdateAvailable, UpdateScheduleState } from "../../api/types.ts";
@@ -71,11 +72,7 @@ function readUpdatesSettings(
 }
 
 function parseTimestampMs(value: string | null): number | null {
-  if (!value) {
-    return null;
-  }
-  const timestampMs = Date.parse(value);
-  return Number.isFinite(timestampMs) ? timestampMs : null;
+  return parseDateStringTimestampMs(value) ?? null;
 }
 
 function renderTimestamp(timestampMs: number, nowMs = Date.now()) {
