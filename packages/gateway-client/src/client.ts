@@ -7,15 +7,9 @@ import {
 } from "@astroclaw/gateway-protocol/client-info";
 import {
   ConnectErrorDetailCodes,
-  formatConnectErrorMessage,
   readConnectErrorDetailCode,
 } from "@astroclaw/gateway-protocol/connect-error-details";
-import type {
-  ConnectParams,
-  ErrorShape,
-  EventFrame,
-  HelloOk,
-} from "@astroclaw/gateway-protocol/frame-guards";
+import type { ConnectParams, EventFrame, HelloOk } from "@astroclaw/gateway-protocol/frame-guards";
 import { resolveGatewayStartupRetryAfterMs } from "@astroclaw/gateway-protocol/startup-unavailable";
 import {
   MIN_CLIENT_PROTOCOL_VERSION,
@@ -50,6 +44,7 @@ import {
 } from "./protocol-client.js";
 import { GatewayProtocolRequestError } from "./protocol-request.js";
 import { shouldPauseGatewayReconnect } from "./reconnect-policy.js";
+import { GatewayClientRequestError } from "./request-error.js";
 import {
   DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS,
   resolveConnectChallengeTimeoutMs,
@@ -245,15 +240,7 @@ export type GatewayClientCloseInfo = {
   transientPreHelloCleanClose: boolean;
 };
 
-export class GatewayClientRequestError extends GatewayProtocolRequestError {
-  constructor(error: Partial<ErrorShape>) {
-    super({
-      ...error,
-      message: formatConnectErrorMessage({ message: error.message, details: error.details }),
-    });
-    this.name = "GatewayClientRequestError";
-  }
-}
+export { GatewayClientRequestError } from "./request-error.js";
 
 export class GatewayClientRequestTimeoutError extends Error {
   readonly method: string;
