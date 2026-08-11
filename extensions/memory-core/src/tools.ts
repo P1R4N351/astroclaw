@@ -1,11 +1,11 @@
 // Memory Core plugin module implements tools behavior.
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   resolveMemorySearchStaleness,
   stripMemoryAnnotationCarriers,
   type MemoryReadResult,
   type MemorySource,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
 import {
   asToolParamsRecord,
   jsonResult,
@@ -16,16 +16,16 @@ import {
   resolveMemorySearchConfig,
   type MemoryCorpusSearchResult,
   type OpenClawConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
 import type {
   MemorySearchResult,
   MemorySearchRuntimeDebug,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-files";
 import {
   resolveMemoryDreamingConfig,
   resolveMemoryDeepDreamingConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-status";
-import type { OpenClawPluginToolContext } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/memory-core-host-status";
+import type { OpenClawPluginToolContext } from "openclaw/plugin-sdk/plugin-entry";
 import { asRecord } from "./dreaming-shared.js";
 import type { MemoryCoreAcquireLocalService } from "./memory/embedding-local-service.js";
 import {
@@ -630,25 +630,6 @@ export function createMemorySearchTool(options: {
                   resolvePausedMemoryIndexIdentityReason(statusBeforeRetry);
                 if (pausedIndexIdentityReason) {
                   return;
-                }
-                // Retry once after an empty result so the builtin index can finish bootstrap.
-                if (
-                  rawResults.length === 0 &&
-                  !runtimeDebug.some((entry) => entry.embeddingBootstrap) &&
-                  activeMemory.manager.sync
-                ) {
-                  await runWithDefaultDeadline(async () => {
-                    // Sync may join shared/background manager maintenance and has
-                    // no request-cancellation contract. Bound only this tool's wait.
-                    await activeMemory.manager.sync?.({ reason: "search", force: true });
-                  });
-                  rawResults = await searchActiveMemory();
-                  pausedIndexIdentityReason = resolvePausedMemoryIndexIdentityReason(
-                    activeMemory.manager.status(),
-                  );
-                  if (pausedIndexIdentityReason) {
-                    return;
-                  }
                 }
                 rawResults = await runWithDefaultDeadline(
                   async () =>
