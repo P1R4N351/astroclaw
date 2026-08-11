@@ -1,5 +1,5 @@
-import { isContextOverflow } from "@openclaw/ai/internal/runtime";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import { isContextOverflow } from "@openclaw/ai/internal/runtime";
 import type { ContextEngine } from "../../../context-engine/types.js";
 import { formatErrorMessage } from "../../../infra/errors.js";
 import type { AssistantMessage } from "../../../llm/types.js";
@@ -25,7 +25,7 @@ import {
   compactEmbeddedRunForRecovery,
   type EmbeddedRunCompactionRecoveryInput,
 } from "./compaction-runtime.js";
-import { createCompactionDiagId } from "./helpers.js";
+import { createRunRecoveryDiagId } from "./helpers.js";
 import {
   isNoRealConversationCompactionNoop,
   resetNoRealConversationTokenSnapshot,
@@ -102,7 +102,7 @@ export async function recoverEmbeddedRunOverflow(
       : undefined;
 
   const runParams = input.runParams;
-  const overflowDiagId = createCompactionDiagId();
+  const overflowDiagId = createRunRecoveryDiagId();
   const errorText = contextOverflowError.text;
   const observedOverflowTokens = extractObservedOverflowTokenCount(errorText);
   const preflightRecovery = input.attempt.preflightRecovery;
