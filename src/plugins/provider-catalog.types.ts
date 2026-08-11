@@ -3,8 +3,11 @@ import type {
   UnifiedModelCatalogKind,
 } from "@astroclaw/model-catalog-core/model-catalog-types";
 import type { ModelCatalogEntry } from "../agents/model-catalog.types.js";
-import type { ModelProviderConfig } from "../config/types.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelProviderConfig } from "../config/types.js";
+import type { ProviderCatalogOutcome } from "./provider-catalog-outcome.js";
+
+export type { ProviderCatalogOutcome } from "./provider-catalog-outcome.js";
 
 export type ProviderCatalogOrder = "simple" | "profile" | "paired" | "late";
 
@@ -32,8 +35,14 @@ export type ProviderCatalogContext = {
 };
 
 export type ProviderCatalogResult =
-  | { provider: ModelProviderConfig }
-  | { providers: Record<string, ModelProviderConfig> }
+  | {
+      provider: ModelProviderConfig;
+      outcomes?: readonly ProviderCatalogOutcome[];
+    }
+  | {
+      providers: Record<string, ModelProviderConfig>;
+      outcomes?: readonly ProviderCatalogOutcome[];
+    }
   | null
   | undefined;
 
