@@ -1,7 +1,7 @@
 // Covers bundling rules encoded in the root tsdown config.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { bundledPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import tsdownConfig, {
   createStateSchemaInlinePlugin,
@@ -228,6 +228,14 @@ describe("tsdown config", () => {
     );
   });
 
+  it("keeps Gateway plugin reload targets behind one stable dist entry", () => {
+    const distGraph = requireUnifiedDistGraph();
+
+    expect(entrySources(distGraph)["gateway/plugin-channel-reload-targets"]).toBe(
+      "src/gateway/plugin-channel-reload-targets.ts",
+    );
+  });
+
   it("keeps PI model discovery synthetic auth refs behind one stable runtime dist entry", () => {
     const distGraph = requireUnifiedDistGraph();
     const importSpecifiers = [
@@ -335,8 +343,8 @@ describe("tsdown config", () => {
 
     expect(alwaysBundle("@openclaw/fs-safe")).toBe(true);
     expect(alwaysBundle("@openclaw/fs-safe/path")).toBe(true);
-    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
-    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime")).toBe(false);
+    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
+    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime")).toBe(false);
     expect(alwaysBundle("zod")).toBe(true);
     expect(alwaysBundle("zod/v4/core")).toBe(true);
     expect(alwaysBundle("not-a-runtime-dependency")).toBe(false);
