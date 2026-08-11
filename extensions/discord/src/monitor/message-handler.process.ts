@@ -1,30 +1,30 @@
-import { resolveAgentConfig, resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+// Discord plugin module implements message handler.process behavior.
+import type { APIAllowedMentions } from "discord-api-types/v10";
+import { resolveAgentConfig, resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   dispatchChannelInboundTurn,
   hasFinalInboundReplyDispatch,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 import {
   bindIngressLifecycleToReplyOptions,
   defineFinalizableLivePreviewAdapter,
   deliverWithFinalizableLivePreviewAdapter,
   resolveChannelMessageSourceReplyDeliveryMode,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { resolveTranscriptBackedChannelFinalText } from "astroclaw/plugin-sdk/channel-outbound";
-import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { resolveTranscriptBackedChannelFinalText } from "openclaw/plugin-sdk/channel-outbound";
+import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
 import {
   getReplyPayloadTtsSupplement,
   isReplyPayloadNonTerminalToolErrorWarning,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyDispatchKind, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyDispatchKind, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import {
   danger,
   logVerbose,
   shouldLogVerbose,
   sleepWithAbort,
-} from "astroclaw/plugin-sdk/runtime-env";
-// Discord plugin module implements message handler.process behavior.
-import type { APIAllowedMentions } from "discord-api-types/v10";
+} from "openclaw/plugin-sdk/runtime-env";
 import { chunkDiscordTextWithMode } from "../chunk.js";
 import { discordTextHasBroadcastMention } from "../mentions.js";
 import { editMessageDiscord } from "../send.messages.js";
@@ -271,7 +271,10 @@ async function processDiscordMessageInner(
 
   const deliverDiscordPayload = async (
     payload: ReplyPayload,
-    info: { kind: ReplyDispatchKind },
+    info: {
+      kind: ReplyDispatchKind;
+      bindPendingFinalDelivery?: <T extends ReplyPayload>(payload: T) => T;
+    },
     options?: {
       allowFallbackOnlyToolWarning?: boolean;
       allowProgressBlock?: boolean;
@@ -328,6 +331,7 @@ async function processDiscordMessageInner(
         threadBindings,
         mediaLocalRoots,
         kind: "block",
+        bindPendingFinalDelivery: info.bindPendingFinalDelivery,
       });
       if (result.visibleReplySent) {
         replyReference.markSent();
@@ -484,6 +488,7 @@ async function processDiscordMessageInner(
             mediaLocalRoots,
             allowedMentions,
             kind: info.kind,
+            bindPendingFinalDelivery: info.bindPendingFinalDelivery,
           });
           return deliveryResult.visibleReplySent;
         },
@@ -542,6 +547,7 @@ async function processDiscordMessageInner(
       threadBindings,
       mediaLocalRoots,
       kind: info.kind,
+      bindPendingFinalDelivery: info.bindPendingFinalDelivery,
     });
     if (!result.visibleReplySent) {
       return result;
