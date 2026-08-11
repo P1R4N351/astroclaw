@@ -5,7 +5,7 @@ import { normalizeOptionalString } from "@astroclaw/normalization-core/string-co
 import {
   DEFAULT_HEARTBEAT_EVERY,
   HEARTBEAT_CRON_TASK_GUIDANCE,
-  resolveHeartbeatPrompt as resolveHeartbeatPromptText,
+  resolveHeartbeatPromptCore as resolveHeartbeatPromptText,
 } from "../auto-reply/heartbeat.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
