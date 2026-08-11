@@ -1,5 +1,5 @@
 /** Covers runtime loading and sorting for plugin web search providers. */
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 type RegistryModule = typeof import("./registry.js");
@@ -276,7 +276,7 @@ describe("resolvePluginWebSearchProviders", () => {
         await vi.importActual<typeof import("./manifest-registry.js")>("./manifest-registry.js");
       return {
         ...actual,
-        loadPluginManifestRegistry: (
+        loadPluginManifestRegistryCore: (
           ...args: Parameters<LoadPluginManifestRegistryForPluginRegistry>
         ) => loadPluginManifestRegistryMock(...args),
       };
