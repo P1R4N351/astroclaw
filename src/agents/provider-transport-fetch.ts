@@ -1,11 +1,3 @@
-/**
- * Guarded provider fetch transport utilities.
- *
- * Applies request timeouts, proxy/TLS overrides, SSRF policy, local-service leases, retry hints, and SSE normalization.
- */
-import { parseRetryAfterHttpDateMs } from "@openclaw/ai/internal/retry-after";
-import { emitModelTransportDebug } from "@openclaw/ai/transports";
-import { formatModelTransportDebugUrl } from "@openclaw/ai/transports";
 import {
   isCloudMetadataIpAddress,
   isLinkLocalIpAddress,
@@ -17,6 +9,14 @@ import {
   parseStrictFiniteNumber,
   parseStrictNonNegativeInteger,
 } from "@astroclaw/normalization-core/number-coercion";
+/**
+ * Guarded provider fetch transport utilities.
+ *
+ * Applies request timeouts, proxy/TLS overrides, SSRF policy, local-service leases, retry hints, and SSE normalization.
+ */
+import { parseRetryAfterHttpDateMs } from "@openclaw/ai/internal/retry-after";
+import { emitModelTransportDebug } from "@openclaw/ai/transports";
+import { formatModelTransportDebugUrl } from "@openclaw/ai/transports";
 import {
   fetchWithSsrFGuard,
   withTrustedEnvProxyGuardedFetchMode,
@@ -50,6 +50,7 @@ import {
   mergeModelProviderRequestOverrides,
   resolveProviderRequestPolicyConfig,
 } from "./provider-request-config.js";
+import { getProviderTransportDispatcherPool } from "./provider-transport-dispatcher-pool.js";
 
 const DEFAULT_MAX_SDK_RETRY_WAIT_SECONDS = 60;
 const OPENAI_SDK_STREAM_CONTENT_SNIFF_BYTES = 2 * 1024;
@@ -862,6 +863,7 @@ export function buildGuardedModelFetch(
         },
       },
       dispatcherPolicy,
+      dispatcherPool: getProviderTransportDispatcherPool(),
       timeoutMs: requestTimeoutMs,
       ...(baseSignal ? { signal: baseSignal } : {}),
       // Provider transport intentionally keeps the secure default and never
@@ -904,6 +906,7 @@ export function buildGuardedModelFetch(
       log,
       `[model-fetch] response provider=${model.provider} api=${model.api} model=${model.id} ` +
         `status=${response.status} elapsedMs=${Date.now() - fetchStartedAt} ` +
+        `dispatcher=${result.dispatcherReused ? "reused" : "new"} ` +
         `contentType=${response.headers.get("content-type") ?? ""}`,
     );
     if (shouldBypassLongSdkRetry(response)) {
