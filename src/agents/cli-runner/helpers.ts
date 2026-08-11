@@ -6,13 +6,13 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { stripSystemPromptCacheBoundary } from "@openclaw/ai/internal/shared";
 import { MAX_IMAGE_BYTES } from "@astroclaw/media-core/constants";
 import { extensionForMime } from "@astroclaw/media-core/mime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
 } from "@astroclaw/normalization-core/string-coerce";
+import { stripSystemPromptCacheBoundary } from "@openclaw/ai/internal/shared";
 import { isAcpRuntimeSpawnAvailable } from "../../acp/runtime/availability.js";
 import type { SourceReplyDeliveryMode } from "../../auto-reply/get-reply-options.types.js";
 import type { ThinkLevel } from "../../auto-reply/thinking.js";
@@ -60,34 +60,6 @@ export function isClaudeCliProvider(providerId: string): boolean {
 /** Enqueues a CLI run under a backend/session key to prevent unsafe overlap. */
 export function enqueueCliRun<T>(key: string, task: () => Promise<T>): Promise<T> {
   return CLI_RUN_QUEUE.enqueue(key, task);
-}
-
-/**
- * Hashes the (account, agent, auth-profile, session) tuple to a stable owner key
- * shared between the CLI run queue (`resolveCliRunQueueKey`) and the Claude live
- * session map (`buildClaudeLiveKey`). The two paths must agree byte-for-byte
- * within a single process so a fresh queued turn picks up the same live session
- * the registry already holds; the golden-hash test below pins the encoding.
- */
-export function buildClaudeOwnerKey(input: {
-  agentAccountId?: string;
-  agentId?: string;
-  authProfileId?: string;
-  sessionId?: string;
-  sessionKey?: string;
-}): string {
-  return crypto
-    .createHash("sha256")
-    .update(
-      JSON.stringify({
-        agentAccountId: input.agentAccountId,
-        agentId: input.agentId,
-        authProfileId: input.authProfileId,
-        sessionId: input.sessionId,
-        sessionKey: input.sessionKey,
-      }),
-    )
-    .digest("hex");
 }
 
 /** Resolves the serialization key for a CLI backend run. */
