@@ -1,7 +1,7 @@
 import type { ModelCatalogAlias } from "@astroclaw/model-catalog-core/model-catalog-types";
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
-import type { ModelProviderConfig } from "../../config/types.models.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { ModelProviderConfig } from "../../config/types.models.js";
 import { planManifestModelCatalogSuppressions } from "../../model-catalog/manifest-planner.js";
 import { normalizePluginsConfig } from "../../plugins/config-state.js";
 import { getCurrentPluginMetadataSnapshot } from "../../plugins/current-plugin-metadata-snapshot.js";
@@ -11,7 +11,7 @@ import {
   isBundledManifestOwner,
 } from "../../plugins/manifest-owner-policy.js";
 import {
-  loadPluginManifestRegistry,
+  loadPluginManifestRegistryCore,
   type PluginManifestRecord,
 } from "../../plugins/manifest-registry.js";
 import { staticModelIdMatches } from "./model.static-id.js";
@@ -310,7 +310,7 @@ export function resolveManifestModelCatalogProviderAliasMetadata(params: {
       : undefined;
   const plugins =
     currentPlugins ??
-    loadPluginManifestRegistry({
+    loadPluginManifestRegistryCore({
       config: params.cfg,
       workspaceDir: params.workspaceDir,
       env,
