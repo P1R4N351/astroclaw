@@ -6,6 +6,7 @@ import { Worker } from "node:worker_threads";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
 import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "astroclaw/plugin-sdk/channel-outbound";
+import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import {
   isIngressClaimOwnedByOtherLiveProcess as isTelegramSpooledUpdateClaimOwnedByOtherLiveProcess,
   resolveIngressRetryDelayMs,
@@ -5164,17 +5165,4 @@ describe("TelegramPollingSession", () => {
   });
 });
 
-function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
-  if (value instanceof Error) {
-    return value;
-  }
-  if (typeof value === "string") {
-    return new Error(value);
-  }
-  const error = new Error(fallbackMessage, { cause: value });
-  if ((typeof value === "object" && value !== null) || typeof value === "function") {
-    Object.assign(error, value);
-  }
-  return error;
-}
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
