@@ -1,12 +1,12 @@
 import { PassThrough, type Readable } from "node:stream";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { DAVESession } from "@discordjs/voice";
-import { VoiceOpcodes, type VoiceSendPayload } from "discord-api-types/voice/v8";
-import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import type {
   RealtimeVoiceAgentControlResult,
   RealtimeVoiceSessionHarness,
-} from "openclaw/plugin-sdk/realtime-voice";
+} from "astroclaw/plugin-sdk/realtime-voice";
+import { VoiceOpcodes, type VoiceSendPayload } from "discord-api-types/voice/v8";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelType } from "../internal/discord.js";
 import { createVoiceCaptureState } from "./capture-state.js";
@@ -227,9 +227,9 @@ vi.mock("./sdk-runtime.js", () => ({
   }),
 }));
 
-vi.mock("openclaw/plugin-sdk/routing", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/routing")>(
-    "openclaw/plugin-sdk/routing",
+vi.mock("astroclaw/plugin-sdk/routing", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/routing")>(
+    "astroclaw/plugin-sdk/routing",
   );
   return {
     ...actual,
@@ -237,9 +237,9 @@ vi.mock("openclaw/plugin-sdk/routing", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/agent-runtime")>(
-    "openclaw/plugin-sdk/agent-runtime",
+vi.mock("astroclaw/plugin-sdk/agent-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/agent-runtime")>(
+    "astroclaw/plugin-sdk/agent-runtime",
   );
   return {
     ...actual,
@@ -248,19 +248,19 @@ vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/realtime-bootstrap-context", async () => {
+vi.mock("astroclaw/plugin-sdk/realtime-bootstrap-context", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/realtime-bootstrap-context")
-  >("openclaw/plugin-sdk/realtime-bootstrap-context");
+    typeof import("astroclaw/plugin-sdk/realtime-bootstrap-context")
+  >("astroclaw/plugin-sdk/realtime-bootstrap-context");
   return {
     ...actual,
     resolveRealtimeBootstrapContextInstructions: resolveRealtimeBootstrapContextInstructionsMock,
   };
 });
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
-    "openclaw/plugin-sdk/runtime-env",
+vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
+    "astroclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -268,13 +268,13 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: enqueueSystemEventMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/realtime-voice", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/realtime-voice")>(
-    "openclaw/plugin-sdk/realtime-voice",
+vi.mock("astroclaw/plugin-sdk/realtime-voice", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/realtime-voice")>(
+    "astroclaw/plugin-sdk/realtime-voice",
   );
   return {
     ...actual,
@@ -286,7 +286,48 @@ vi.mock("openclaw/plugin-sdk/realtime-voice", async () => {
       return {
         ...harness,
         createBridge: (bridgeParams: Parameters<typeof harness.createBridge>[0]) =>
-          createRealtimeVoiceBridgeSessionMock(bridgeParams),
+          harness.createBridge({
+            ...bridgeParams,
+            provider: {
+              ...bridgeParams.provider,
+              label: bridgeParams.provider.label ?? "Test realtime provider",
+              isConfigured: bridgeParams.provider.isConfigured ?? (() => true),
+              createBridge: (request) => {
+                createRealtimeVoiceBridgeSessionMock({
+                  ...bridgeParams,
+                  audioSink: {
+                    ...bridgeParams.audioSink,
+                    sendAudio: request.onAudio,
+                    clearAudio: request.onClearAudio,
+                  },
+                  onEvent: request.onEvent,
+                  onReady: request.onReady,
+                  onResponseDone: request.onResponseDone,
+                  onToolCall: bridgeParams.onToolCall,
+                  onTranscript: request.onTranscript,
+                });
+                return {
+                  supportsToolResultContinuation:
+                    realtimeSessionMock.bridge.supportsToolResultContinuation,
+                  supportsToolResultSuppression:
+                    realtimeSessionMock.bridge.supportsToolResultSuppression,
+                  acknowledgeMark: realtimeSessionMock.acknowledgeMark,
+                  close: realtimeSessionMock.close,
+                  connect: realtimeSessionMock.connect,
+                  handleBargeIn: realtimeSessionMock.handleBargeIn,
+                  isConnected: () => true,
+                  sendAudio: realtimeSessionMock.sendAudio,
+                  sendUserMessage: realtimeSessionMock.sendUserMessage,
+                  setMediaTimestamp: realtimeSessionMock.setMediaTimestamp,
+                  submitToolResult: (callId, result, options) =>
+                    options === undefined
+                      ? realtimeSessionMock.submitToolResult(callId, result)
+                      : realtimeSessionMock.submitToolResult(callId, result, options),
+                  triggerGreeting: realtimeSessionMock.triggerGreeting,
+                };
+              },
+            },
+          }),
         flushOutput: (flush: () => void) => flush(),
         handleBargeIn: (
           options: Parameters<typeof harness.handleBargeIn>[0],
@@ -2944,6 +2985,71 @@ describe("DiscordVoiceManager", () => {
     expect(player.play).toHaveBeenCalledTimes(2);
   });
 
+  it.each([
+    [
+      { status: "failed" as const, responseId: "response-1", message: "provider failed" },
+      "turn.ended",
+    ],
+    [
+      {
+        status: "incomplete" as const,
+        responseId: "response-1",
+        reason: "max_output_tokens",
+        message: "provider response incomplete",
+      },
+      "turn.ended",
+    ],
+    [
+      { status: "cancelled" as const, responseId: "response-1", reason: "client_cancelled" },
+      "turn.cancelled",
+    ],
+  ])("retires each response once and plays a later response", async (outcome, terminalType) => {
+    const { bridgeParams, entry, manager, player } = await createJoinedAgentProxyFixture();
+    const realtime = entry.realtime as unknown as { harness: RealtimeVoiceSessionHarness };
+
+    bridgeParams.onEvent?.({
+      direction: "server",
+      type: "response.created",
+      responseId: outcome.responseId,
+    });
+    bridgeParams.audioSink.sendAudio(Buffer.alloc(480));
+    bridgeParams.onResponseDone?.(outcome);
+    bridgeParams.onEvent?.({
+      direction: "server",
+      responseId: outcome.responseId,
+      type: "response.done",
+    });
+
+    expect(
+      realtime.harness.talk.recentEvents.filter((event) => event.type === terminalType),
+    ).toHaveLength(1);
+    expect(manager.status()).toHaveLength(1);
+    expect(realtimeSessionMock.close).not.toHaveBeenCalled();
+    expect(player.stop).toHaveBeenCalledTimes(1);
+
+    bridgeParams.onEvent?.({
+      direction: "server",
+      type: "response.created",
+      responseId: "response-2",
+    });
+    bridgeParams.audioSink.sendAudio(Buffer.alloc(480));
+    bridgeParams.onResponseDone?.({ status: "completed", responseId: "response-2" });
+    bridgeParams.onEvent?.({
+      direction: "server",
+      responseId: "response-2",
+      type: "response.done",
+    });
+
+    expect(
+      realtime.harness.talk.recentEvents.filter(
+        (event) => event.type === "turn.ended" || event.type === "turn.cancelled",
+      ),
+    ).toHaveLength(2);
+    expect(createAudioResourceMock).toHaveBeenCalledOnce();
+    expect(player.play).toHaveBeenCalledOnce();
+    expect(manager.status()).toHaveLength(1);
+  });
+
   it("discards prebuffered realtime output when the response is cancelled", async () => {
     const { bridgeParams, player } = await createJoinedAgentProxyFixture();
 
@@ -2955,10 +3061,9 @@ describe("DiscordVoiceManager", () => {
     expect(player.stop).toHaveBeenCalledWith(true);
 
     bridgeParams?.audioSink?.sendAudio(Buffer.alloc(480));
-    bridgeParams?.onEvent?.({
-      detail: "response completed with status=cancelled",
-      direction: "server",
-      type: "response.done",
+    bridgeParams?.onResponseDone?.({
+      status: "cancelled",
+      reason: "client_cancelled",
     });
 
     expect(createAudioResourceMock).not.toHaveBeenCalled();
