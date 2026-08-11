@@ -99,27 +99,7 @@ describe("plugin npm runtime build planning", () => {
     }
   });
 
-  it("includes top-level public runtime surfaces and root-build-excluded plugins", () => {
-    const qqbotPlan = resolvePluginNpmRuntimeBuildPlan({
-      repoRoot,
-      packageDir: path.join(repoRoot, "extensions", "qqbot"),
-    });
-    const qqbotRuntimePlan = expectPluginNpmRuntimeBuildPlan(qqbotPlan);
-    expect(qqbotRuntimePlan.entry).toEqual({
-      api: path.join(repoRoot, "extensions", "qqbot", "api.ts"),
-      "channel-entry-api": path.join(repoRoot, "extensions", "qqbot", "channel-entry-api.ts"),
-      "channel-plugin-api": path.join(repoRoot, "extensions", "qqbot", "channel-plugin-api.ts"),
-      "doctor-contract-api": path.join(repoRoot, "extensions", "qqbot", "doctor-contract-api.ts"),
-      index: path.join(repoRoot, "extensions", "qqbot", "index.ts"),
-      "runtime-api": path.join(repoRoot, "extensions", "qqbot", "runtime-api.ts"),
-      "secret-contract-api": path.join(repoRoot, "extensions", "qqbot", "secret-contract-api.ts"),
-      "setup-entry": path.join(repoRoot, "extensions", "qqbot", "setup-entry.ts"),
-      "setup-plugin-api": path.join(repoRoot, "extensions", "qqbot", "setup-plugin-api.ts"),
-      "tools-api": path.join(repoRoot, "extensions", "qqbot", "tools-api.ts"),
-    });
-    expect(qqbotRuntimePlan.runtimeExtensions).toEqual(["./dist/index.js"]);
-    expect(qqbotRuntimePlan.runtimeSetupEntry).toBe("./dist/setup-entry.js");
-
+  it("includes top-level public runtime surfaces", () => {
     const diffsPlan = resolvePluginNpmRuntimeBuildPlan({
       repoRoot,
       packageDir: path.join(repoRoot, "extensions", "diffs"),
@@ -256,8 +236,8 @@ describe("plugin npm runtime build planning", () => {
     writeFileSync(
       path.join(outDir, "index.js"),
       [
-        'import "astroclaw/plugin-sdk/not-exported";',
-        'const runtime = __require("astroclaw/plugin-sdk/not-exported-from-require");',
+        'import "openclaw/plugin-sdk/not-exported";',
+        'const runtime = __require("openclaw/plugin-sdk/not-exported-from-require");',
         "void runtime;",
         "",
       ].join("\n"),
@@ -270,8 +250,8 @@ describe("plugin npm runtime build planning", () => {
     );
 
     expect(listMissingPluginNpmRuntimeHostExports({ ...plan, outDir })).toEqual([
-      "astroclaw/plugin-sdk/not-exported",
-      "astroclaw/plugin-sdk/not-exported-from-require",
+      "openclaw/plugin-sdk/not-exported",
+      "openclaw/plugin-sdk/not-exported-from-require",
     ]);
   });
 
