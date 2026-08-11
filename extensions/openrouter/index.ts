@@ -16,6 +16,7 @@ import {
 } from "openclaw/plugin-sdk/provider-stream-family";
 import { asOptionalRecord as readRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { buildOpenRouterImageGenerationProvider } from "./image-generation-provider.js";
 import { openrouterMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import {
@@ -26,7 +27,6 @@ import {
 import { buildOpenRouterMusicGenerationProvider } from "./music-generation-provider.js";
 import { createOpenRouterOAuthAuthMethod } from "./oauth.js";
 import { applyOpenrouterConfig, OPENROUTER_DEFAULT_MODEL_REF } from "./onboard.js";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
   buildOpenrouterLiveProvider,
   buildOpenrouterProvider,
@@ -325,6 +325,17 @@ export default defineSingleProviderPluginEntry({
               baseUrl: normalizedBaseUrl,
             }
           : undefined;
+      },
+      classifyFailoverReason: ({ provider, errorMessage }) => {
+        if (provider?.trim().toLowerCase() !== PROVIDER_ID) {
+          return undefined;
+        }
+        if (
+          /\b(?:api\s+key\s+budget|key)\s+limit\s*(?:exceeded|reached|hit)\b/i.test(errorMessage)
+        ) {
+          return "billing";
+        }
+        return /provider returned error/i.test(errorMessage) ? "timeout" : undefined;
       },
       ...passthroughGeminiReplayHooks,
       buildReplayPolicy: buildOpenRouterReplayPolicy,
