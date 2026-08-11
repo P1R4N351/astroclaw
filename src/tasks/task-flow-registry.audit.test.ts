@@ -1,11 +1,11 @@
 // Covers managed task-flow audit summaries and stale-flow classification.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { captureEnv } from "../test-utils/env.js";
 import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { captureEnv } from "../test-utils/env.js";
 import { SUBAGENT_KILL_TASK_ERROR } from "./detached-task-runtime-contract.js";
 import {
-  createRunningTaskRun as createRunningTaskRunOrNull,
-  finalizeTaskRunByRunId,
+  createRunningTaskRunCore as createRunningTaskRunOrNull,
+  finalizeTaskRunByRunIdCore as finalizeTaskRunByRunId,
 } from "./task-executor.js";
 import {
   listTaskFlowAuditFindings,
