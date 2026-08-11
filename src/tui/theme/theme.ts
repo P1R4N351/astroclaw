@@ -1,3 +1,5 @@
+import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 // TUI theme defines shared colors and text styles for Pi TUI components.
 import type {
   EditorTheme,
@@ -5,8 +7,6 @@ import type {
   SelectListTheme,
   SettingsListTheme,
 } from "@earendil-works/pi-tui";
-import { expectDefined } from "@astroclaw/normalization-core";
-import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import chalk from "chalk";
 import type { SearchableSelectListTheme } from "../components/searchable-select-list.js";
 
@@ -146,7 +146,7 @@ function highlightCode(code: string): string[] {
   return code.split("\n").map((line) => fg(palette.code)(line));
 }
 
-export const theme = {
+export const tuiTheme = {
   fg: fg(palette.text),
   assistantText: (text: string) => text,
   dim: fg(palette.dim),
