@@ -1,6 +1,6 @@
 import path from "node:path";
 import { registerSessionResourceCleanup } from "@openclaw/ai/internal/runtime";
-import { createAssistantMessageEventStream, type AssistantMessage } from "astroclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream, type AssistantMessage } from "openclaw/plugin-sdk/llm";
 // Agent session SDK tests cover default tool wiring, prompt preservation, and
 // session write-settlement behavior.
 import { Type } from "typebox";
@@ -736,6 +736,41 @@ describe("createAgentSession tool defaults", () => {
 
     expect(events).toEqual(["settlement:start", "settlement:end"]);
     expect(sessionManager.getEntries().some((entry) => entry.type === "message")).toBe(true);
+  });
+
+  it("runs provider response hooks under the configured write settlement", async () => {
+    const events: string[] = [];
+    const handlers = new Map<string, Array<(...args: unknown[]) => Promise<unknown>>>([
+      [
+        "after_provider_response",
+        [
+          async () => {
+            events.push("hook");
+            return undefined;
+          },
+        ],
+      ],
+    ]);
+
+    const { session } = await createAgentSession({
+      model: testModel,
+      resourceLoader: createResourceLoaderWithHandlers(handlers),
+      sessionManager: SessionManager.inMemory(),
+      settingsManager: SettingsManager.inMemory(),
+      modelRegistry: ModelRegistry.inMemory(AuthStorage.inMemory()),
+      withSessionWriteSettlement: async (run) => {
+        events.push("settlement:start");
+        try {
+          return await run();
+        } finally {
+          events.push("settlement:end");
+        }
+      },
+    });
+
+    await session.agent.onResponse?.({ status: 200, headers: {} }, testModel);
+
+    expect(events).toEqual(["settlement:start", "hook", "settlement:end"]);
   });
 
   it("runs write-capable tool hooks under the configured write settlement", async () => {
