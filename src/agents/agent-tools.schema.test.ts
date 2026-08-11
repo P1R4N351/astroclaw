@@ -1,12 +1,12 @@
-import { normalizeToolParameterSchema } from "@openclaw/ai/internal/openai";
 import { expectDefined } from "@astroclaw/normalization-core";
+import { normalizeToolParameterSchema } from "@openclaw/ai/internal/openai";
 /**
  * Tests provider-compatible tool schema normalization.
  * Protects caching, ref inlining, OpenAPI keyword cleanup, and no-parameter
  * tool behavior used by model providers.
  */
-import { runAgentLoop, type AgentEvent, type StreamFn } from "astroclaw/plugin-sdk/agent-core";
-import { createAssistantMessageEventStream, validateToolArguments } from "astroclaw/plugin-sdk/llm";
+import { runAgentLoop, type AgentEvent, type StreamFn } from "openclaw/plugin-sdk/agent-core";
+import { createAssistantMessageEventStream, validateToolArguments } from "openclaw/plugin-sdk/llm";
 import { Type, type TSchema } from "typebox";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -51,7 +51,7 @@ describe("direct exec tool schema", () => {
     expect(descriptions.join("").length).toBeLessThan(550);
     expect(describeField("workdir")).toContain("Blank/whitespace");
     expect(describeField("yieldMs")).toContain("Milliseconds");
-    expect(describeField("timeout")).toContain("seconds");
+    expect(describeField("timeoutSeconds")).toContain("seconds");
     expect(describeField("pty")).toContain("PTY");
     expect(describeField("elevated")).toContain("if allowed");
     expect(describeField("security")).toContain("tools.exec.security");
