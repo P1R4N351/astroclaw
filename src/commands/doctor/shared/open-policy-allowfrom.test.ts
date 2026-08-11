@@ -1,7 +1,7 @@
 // Open policy allow-from tests cover doctor handling of open allowlist policy.
 import { describe, expect, it } from "vitest";
-import type { GoogleChatConfig } from "../../../config/types.googlechat.js";
 import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { GoogleChatConfig } from "../../../config/types.googlechat.js";
 import { GoogleChatConfigSchema } from "../../../config/zod-schema.providers-googlechat.js";
 import {
   collectOpenPolicyAllowFromWarnings,
@@ -173,6 +173,29 @@ describe("doctor open-policy allowFrom repair", () => {
     });
 
     expect(result.config.channels?.discord?.accounts?.work?.allowFrom).toEqual(["*"]);
+  });
+
+  it("does not widen QQBot chat access while allowFrom protects native approvals", () => {
+    const config = {
+      channels: {
+        qqbot: {
+          dmPolicy: "open",
+          allowFrom: ["openclaw:approval-disabled"],
+          accounts: {
+            work: {
+              dmPolicy: "open",
+              allowFrom: ["OPERATOR"],
+            },
+          },
+        },
+      },
+    } as unknown as OpenClawConfig;
+
+    const first = maybeRepairOpenPolicyAllowFrom(config);
+    const second = maybeRepairOpenPolicyAllowFrom(first.config);
+
+    expect(first).toEqual({ config, changes: [] });
+    expect(second).toEqual({ config, changes: [] });
   });
 
   it("formats open-policy wildcard warnings", () => {
