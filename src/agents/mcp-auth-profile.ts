@@ -2,8 +2,8 @@
  * Auth-profile backed bearer injection for remote MCP servers.
  */
 import crypto from "node:crypto";
-import type { FetchLike } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import type { FetchLike } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { BundleMcpConfig, BundleMcpServerConfig } from "../plugins/bundle-mcp.js";
 import { resolveApiKeyForProfile } from "./auth-profiles/oauth.js";
@@ -13,6 +13,7 @@ import {
   withoutMcpAuthorizationHeader,
   withSameOriginMcpHttpHeaders,
 } from "./mcp-http-fetch.js";
+import { operatorMcpOAuthIdentity } from "./mcp-oauth-identity.js";
 import { resolveMcpOAuthAccessToken, type McpOAuthConfig } from "./mcp-oauth.js";
 import { resolveMcpTransportConfig } from "./mcp-transport-config.js";
 
@@ -131,8 +132,7 @@ async function resolveMcpBearerToken(params: {
     resourceUrl: resolved.url,
   });
   return await resolveMcpOAuthAccessToken({
-    serverName: params.serverName,
-    serverUrl: resolved.url,
+    identity: operatorMcpOAuthIdentity(params.serverName, resolved.url),
     config: resolved.oauth as McpOAuthConfig | undefined,
     fetchFn,
   });
