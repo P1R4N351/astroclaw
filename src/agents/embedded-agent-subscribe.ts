@@ -1,6 +1,7 @@
 /**
  * Subscribes to embedded-agent sessions and streams formatted replies/events.
  */
+import { isPromiseLike } from "@astroclaw/normalization-core/promise-like";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { InlineCodeState } from "../../packages/markdown-core/src/code-spans.js";
@@ -51,7 +52,6 @@ import type {
   EmbeddedAgentSubscribeContext,
   EmbeddedAgentSubscribeState,
 } from "./embedded-agent-subscribe.handlers.types.js";
-import { isPromiseLike } from "./embedded-agent-subscribe.promise.js";
 import {
   buildToolLifecycleErrorResult,
   extractToolResultMediaArtifact,
