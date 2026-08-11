@@ -1,5 +1,5 @@
 // Telegram tests cover lane delivery plugin behavior.
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { createTelegramDraftStream } from "./draft-stream.js";
 import { createTestDraftStream } from "./draft-stream.test-helpers.js";
@@ -181,6 +181,35 @@ describe("createLaneTextDeliverer", () => {
     expect(harness.stopDraftLane).toHaveBeenCalledTimes(1);
     expect(harness.sendPayload).not.toHaveBeenCalled();
     expect(harness.markDelivered).toHaveBeenCalledTimes(1);
+    expect(harness.lanes.answer.finalized).toBe(true);
+  });
+
+  it("claims an equal visible preview and survives a cleanup-only crash", async () => {
+    const events: string[] = [];
+    const answer = createTestDraftStream({ messageId: 999 });
+    answer.lastDeliveredText.mockReturnValue(HELLO_FINAL);
+    const harness = createHarness({ answerStream: answer });
+    harness.stopDraftLane.mockImplementationOnce(async () => {
+      events.push("finalize");
+      throw new Error("injected finalization crash");
+    });
+    const onPlatformSendDispatch = vi.fn(async () => {
+      events.push("custody");
+    });
+
+    // The preview text is already on screen: custody must be claimed, and a
+    // cleanup crash must not convert the accepted preview into a send failure.
+    await harness.deliverLaneText({
+      laneName: "answer",
+      text: HELLO_FINAL,
+      payload: { text: HELLO_FINAL },
+      infoKind: "final",
+      onPlatformSendDispatch,
+    });
+
+    expect(events).toEqual(["custody", "finalize"]);
+    expect(answer.update).not.toHaveBeenCalled();
+    expect(onPlatformSendDispatch).toHaveBeenCalledOnce();
     expect(harness.lanes.answer.finalized).toBe(true);
   });
 
@@ -610,6 +639,51 @@ describe("createLaneTextDeliverer", () => {
       expect.any(Object),
       expect.objectContaining({ afterAcceptedDraft: true }),
     );
+  });
+
+  it("preserves a finalized preview when the late media send fails", async () => {
+    const harness = createHarness({ answerMessageId: 999 });
+    const mediaError = new Error("media rejected");
+    harness.lanes.answer.hasStreamedMessage = true;
+    harness.sendPayload.mockRejectedValueOnce(mediaError);
+
+    const result = await harness.deliverLaneText({
+      laneName: "answer",
+      text: "photo",
+      payload: { text: "photo", mediaUrl: "https://example.com/a.png" },
+      infoKind: "final",
+    });
+
+    expect(result).toMatchObject({
+      kind: "preview-finalized-partial",
+      delivery: {
+        content: "photo",
+        messageId: 999,
+        receipt: { primaryPlatformMessageId: "999" },
+      },
+      error: mediaError,
+    });
+    expect(harness.markDelivered).toHaveBeenCalledTimes(1);
+    expect(harness.answer?.clear).not.toHaveBeenCalled();
+  });
+
+  it("keeps throwing late media failures without a concrete preview receipt", async () => {
+    const answer = createTestDraftStream();
+    const harness = createHarness({ answerStream: answer });
+    const mediaError = new Error("media rejected");
+    answer.sendMayHaveLanded.mockReturnValue(true);
+    harness.lanes.answer.hasStreamedMessage = true;
+    harness.sendPayload.mockRejectedValueOnce(mediaError);
+
+    await expect(
+      harness.deliverLaneText({
+        laneName: "answer",
+        text: "photo",
+        payload: { text: "photo", mediaUrl: "https://example.com/a.png" },
+        infoKind: "final",
+      }),
+    ).rejects.toBe(mediaError);
+    expect(harness.markDelivered).toHaveBeenCalledTimes(1);
   });
 
   it("uses normal media final delivery when no preview has streamed", async () => {
