@@ -80,7 +80,7 @@ function mergeStreamingFinalText(
   return `${previousText}\n\n${nextText}`;
 }
 
-function toError(error: unknown): Error {
+function toFeishuError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
@@ -854,7 +854,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
                 if (isChannelPartialDeliveryError(error)) {
                   // The attachment is already visible; text recovery would duplicate delivery.
                   markVisibleReplySent();
-                  throw toError(error);
+                  throw toFeishuError(error);
                 }
                 const fallbackText = await buildFeishuMediaFallbackText({
                   text: sentFallbackText ? undefined : options.fallbackText,
@@ -1072,7 +1072,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
             }
           }
           if (closeOutcome.error !== undefined) {
-            throw toError(closeOutcome.error);
+            throw toFeishuError(closeOutcome.error);
           }
         } while (pendingStreamingDeliveries.length > 0);
       } finally {
@@ -1316,7 +1316,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
           : undefined;
       if (!shouldDeliverText && !hasMedia) {
         if (priorClosedStreamingSettlement?.error !== undefined) {
-          throw toError(priorClosedStreamingSettlement.error);
+          throw toFeishuError(priorClosedStreamingSettlement.error);
         }
         return priorClosedStreamingSettlement?.result ?? noVisibleFeishuReplyDelivery;
       }
