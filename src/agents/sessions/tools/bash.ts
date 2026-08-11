@@ -4,8 +4,8 @@
  * Executes local shell commands with streaming output accumulation and TUI renderers.
  */
 import { existsSync } from "node:fs";
-import { Container, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
+import { Container, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { toErrorObject } from "../../../infra/errors.js";
 import { formatDurationSeconds } from "../../../infra/format-time/format-duration.js";
@@ -13,7 +13,7 @@ import { releaseChildProcessOutputAfterExit } from "../../../process/child-proce
 import { spawnCommand } from "../../../process/exec.js";
 import { keyHint } from "../../modes/interactive/components/keybinding-hints.js";
 import { truncateToVisualLines } from "../../modes/interactive/components/visual-truncate.js";
-import { theme } from "../../modes/interactive/theme/theme.js";
+import { interactiveAgentTheme as theme } from "../../modes/interactive/theme/theme.js";
 import type { AgentTool } from "../../runtime/index.js";
 import {
   buildShellCommandInvocation,
