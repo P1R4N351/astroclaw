@@ -4,8 +4,8 @@ import {
   readPositiveIntegerParam,
   readStringParam,
   withNormalizedTimestamp,
-} from "astroclaw/plugin-sdk/channel-actions";
-import { adaptScopedAccountAccessor } from "astroclaw/plugin-sdk/channel-config-helpers";
+} from "openclaw/plugin-sdk/channel-actions";
+import { adaptScopedAccountAccessor } from "openclaw/plugin-sdk/channel-config-helpers";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionName,
@@ -13,35 +13,35 @@ import type {
   ChannelThreadingContext,
   ChannelThreadingToolContext,
   ChannelToolSend,
-} from "astroclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-outbound";
-import { createLoggedPairingApprovalNotifier } from "astroclaw/plugin-sdk/channel-pairing";
-import { createRestrictSendersChannelSecurity } from "astroclaw/plugin-sdk/channel-policy";
+} from "openclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-outbound";
+import { createLoggedPairingApprovalNotifier } from "openclaw/plugin-sdk/channel-pairing";
+import { createRestrictSendersChannelSecurity } from "openclaw/plugin-sdk/channel-policy";
 import {
   attachChannelToResult,
   createAttachedChannelResultAdapter,
   type ChannelOutboundAdapter,
-} from "astroclaw/plugin-sdk/channel-send-result";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createChannelDirectoryAdapter } from "astroclaw/plugin-sdk/directory-runtime";
-import { buildPassiveProbedChannelStatusSummary } from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/channel-send-result";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createChannelDirectoryAdapter } from "openclaw/plugin-sdk/directory-runtime";
+import { buildPassiveProbedChannelStatusSummary } from "openclaw/plugin-sdk/extension-shared";
 import {
   type MessagePresentation,
   normalizeMessagePresentation,
   renderMessagePresentationFallbackText,
   resolveMessagePresentationButtonAction,
   resolveMessagePresentationControlValue,
-} from "astroclaw/plugin-sdk/interactive-runtime";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { resolvePayloadMediaUrls, sendTextMediaPayload } from "astroclaw/plugin-sdk/reply-payload";
-import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/interactive-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { resolvePayloadMediaUrls, sendTextMediaPayload } from "openclaw/plugin-sdk/reply-payload";
+import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/status-helpers";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
 import { mattermostApprovalAuth } from "./approval-auth.js";
 import {
   chunkTextForOutbound,
@@ -972,6 +972,13 @@ export const mattermostPlugin: ChannelPlugin<ResolvedMattermostAccount> = create
       targetIdComparison: "case-sensitive",
       defaultMarkdownTableMode: "off",
       normalizeTarget: normalizeMattermostMessagingTarget,
+      inferTargetChatType: ({ to }) => {
+        const target = normalizeMattermostMessagingTarget(to);
+        if (!target) {
+          return undefined;
+        }
+        return target.startsWith("user:") || target.startsWith("@") ? "direct" : "channel";
+      },
       resolveDeliveryTarget: ({ conversationId, parentConversationId }) => {
         const parent = parentConversationId?.trim();
         const child = conversationId.trim();
