@@ -1,4 +1,5 @@
 // Telegram tests cover send.proxy plugin behavior.
+import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { botApi, botCtorSpy } = vi.hoisted(() => ({
@@ -62,9 +63,9 @@ const resolveTelegramApiBase = vi.hoisted(
   () => (apiRoot?: string) => apiRoot?.trim()?.replace(/\/+$/, "") || "https://api.telegram.org",
 );
 
-vi.mock("openclaw/plugin-sdk/plugin-config-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-config-runtime")>(
-    "openclaw/plugin-sdk/plugin-config-runtime",
+vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-config-runtime")>(
+    "astroclaw/plugin-sdk/plugin-config-runtime",
   );
   return {
     ...actual,
@@ -564,17 +565,3 @@ describe("telegram proxy client", () => {
     vi.useRealTimers();
   });
 });
-
-function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
-  if (value instanceof Error) {
-    return value;
-  }
-  if (typeof value === "string") {
-    return new Error(value);
-  }
-  const error = new Error(fallbackMessage, { cause: value });
-  if ((typeof value === "object" && value !== null) || typeof value === "function") {
-    Object.assign(error, value);
-  }
-  return error;
-}
