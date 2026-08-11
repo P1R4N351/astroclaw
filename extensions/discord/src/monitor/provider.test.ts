@@ -3,6 +3,10 @@ import { EventEmitter } from "node:events";
 import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
 import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import {
+  createEmptyPluginRegistry,
+  setActivePluginRegistry,
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { RateLimitError } from "../internal/discord.js";
 import {
@@ -29,7 +33,6 @@ const {
   createNoopThreadBindingManagerMock,
   createThreadBindingManagerMock,
   getAcpSessionStatusMock,
-  getPluginCommandSpecsMock,
   isNativeCommandsExplicitlyDisabledMock,
   isVerboseMock,
   listNativeCommandSpecsForConfigMock,
@@ -208,9 +211,6 @@ describe("monitorDiscordProvider", () => {
   };
 
   beforeAll(async () => {
-    vi.doMock("astroclaw/plugin-sdk/plugin-runtime", () => ({
-      getPluginCommandSpecs: getPluginCommandSpecsMock,
-    }));
     vi.doMock("../accounts.js", () => ({
       resolveDiscordAccount: (...args: Parameters<typeof resolveDiscordAccountMock>) =>
         resolveDiscordAccountMock(...args),
@@ -313,9 +313,7 @@ describe("monitorDiscordProvider", () => {
           clientGetPluginMock(name) ?? pluginRegistry.find((entry) => entry.id === name)?.plugin,
       } as never;
     });
-    providerTesting.setGetPluginCommandSpecs((provider?: string) =>
-      getPluginCommandSpecsMock(provider),
-    );
+    setActivePluginRegistry(createEmptyPluginRegistry());
     providerTesting.setResolveDiscordAccount(
       (...args) => resolveDiscordAccountMock(...args) as never,
     );
@@ -1111,7 +1109,6 @@ describe("monitorDiscordProvider", () => {
     });
 
     expect(listNativeCommandSpecsForConfigMock).not.toHaveBeenCalled();
-    expect(getPluginCommandSpecsMock).not.toHaveBeenCalled();
     expect(clientDeployCommandsMock).not.toHaveBeenCalled();
     expectMockLogNotContains(runtime.log, "cleared native commands");
   });
