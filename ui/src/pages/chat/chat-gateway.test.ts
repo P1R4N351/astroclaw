@@ -1,7 +1,7 @@
 import { reduceSessionProjection } from "@astroclaw/gateway-client/browser";
 // @vitest-environment node
 // Control UI tests cover chat behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
 import { GatewayRequestError } from "../../api/gateway.ts";
@@ -372,6 +372,27 @@ describe("handleChatGatewayEvent", () => {
         sessionKey: "other",
       }),
     ).toEqual([payload.message]);
+  });
+
+  it("caches one background final when three retained panes receive the same event", () => {
+    const cache = new Map();
+    const states = ["one", "two", "three"].map((sessionKey) =>
+      createState({ chatMessagesBySession: cache, sessionKey }),
+    );
+    const payload: ChatEventPayload = {
+      runId: "run-1",
+      sessionKey: "background",
+      state: "final",
+      message: createTextChatMessage("assistant", "background final"),
+    };
+
+    for (const state of states) {
+      expect(handleChatGatewayEvent(state, payload)).toBeNull();
+    }
+
+    expect(readChatMessagesFromCache(cache, states[0]!, { sessionKey: "background" })).toEqual([
+      payload.message,
+    ]);
   });
 
   it.each([
