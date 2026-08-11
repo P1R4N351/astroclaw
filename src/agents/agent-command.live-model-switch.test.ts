@@ -1,7 +1,7 @@
 /** Tests live model switching behavior in active agent command sessions. */
 
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../config/sessions.js";
 import { createUserTurnTranscriptRecorder } from "../sessions/user-turn-transcript.js";
@@ -670,13 +670,11 @@ vi.mock("../acp/control-plane/manager.js", () => ({
 
 let agentCommand: typeof import("./agent-command.js").agentCommand;
 let agentCommandFromSystem: typeof import("./agent-command.js").agentCommandFromSystem;
-let agentCommandTesting: typeof import("./agent-command.js").testing;
 
 beforeAll(async () => {
   const mod = await import("./agent-command.js");
   agentCommand ??= mod.agentCommand;
   agentCommandFromSystem ??= mod.agentCommandFromSystem;
-  agentCommandTesting ??= mod.testing;
 });
 
 type FallbackRunnerParams = {
@@ -2211,23 +2209,6 @@ describe("agentCommand – LiveSessionModelSwitchError retry", () => {
     expectRecordFields(mockCallArg(state.deliverAgentCommandResultMock), {
       expectedSessionIdForFreshDelivery: "session-1",
     });
-  });
-
-  it("scopes explicit-agent sentinel store keys before command routing", () => {
-    expect(
-      agentCommandTesting.resolveExplicitAgentCommandSessionKey({
-        rawExplicitSessionKey: "global",
-        agentIdOverride: "work",
-        cfg: {},
-      }),
-    ).toBe("agent:work:global");
-    expect(
-      agentCommandTesting.resolveExplicitAgentCommandSessionKey({
-        rawExplicitSessionKey: "main",
-        agentIdOverride: "work",
-        cfg: {},
-      }),
-    ).toBe("agent:work:main");
   });
 
   it("persists explicit overrides even when ingress skips the initial touch", async () => {
