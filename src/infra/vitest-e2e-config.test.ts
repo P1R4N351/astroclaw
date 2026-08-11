@@ -5,7 +5,7 @@ import {
   normalizeConfigPaths,
 } from "../../test/helpers/vitest-config-paths.js";
 import { BUNDLED_PLUGIN_E2E_TEST_GLOB } from "../../test/vitest/vitest.bundled-plugin-paths.ts";
-import e2eConfig from "../../test/vitest/vitest.e2e.config.ts";
+import e2eConfig, { createE2EVitestConfig } from "../../test/vitest/vitest.e2e.config.ts";
 
 describe("e2e vitest config", () => {
   it("runs as a standalone config instead of inheriting unit projects", () => {
@@ -29,7 +29,15 @@ describe("e2e vitest config", () => {
     expect(normalizeConfigPath(e2eConfig.test?.runner)).toBe("test/non-isolated-runner.ts");
     expect(normalizeConfigPaths(e2eConfig.test?.setupFiles)).toEqual([
       "test/setup.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
+  });
+
+  it("serializes default e2e runs while preserving explicit worker overrides", () => {
+    expect(createE2EVitestConfig({}).test?.maxWorkers).toBe(1);
+    expect(createE2EVitestConfig({ OPENCLAW_E2E_WORKERS: "4" }).test?.maxWorkers).toBe(4);
+    expect(createE2EVitestConfig({ OPENCLAW_E2E_WORKERS: "99" }).test?.maxWorkers).toBe(16);
+    expect(createE2EVitestConfig({ OPENCLAW_E2E_WORKERS: "0" }).test?.maxWorkers).toBe(1);
+    expect(createE2EVitestConfig({ OPENCLAW_E2E_WORKERS: "invalid" }).test?.maxWorkers).toBe(1);
   });
 });
