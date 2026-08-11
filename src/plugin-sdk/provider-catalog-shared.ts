@@ -16,13 +16,17 @@ import {
 import { normalizeOptionalString } from "../../packages/normalization-core/src/string-coerce.js";
 import { normalizeConfiguredProviderCatalogModelId } from "../agents/model-ref-shared.js";
 import { resolveProviderRequestCapabilities } from "../agents/provider-attribution.js";
-import type { ModelDefinitionConfig } from "../config/types.models.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelDefinitionConfig } from "../config/types.models.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import type { ProviderPlugin } from "../plugins/types.js";
 import type { ModelProviderConfig } from "./provider-model-shared.js";
 
-export type { ProviderCatalogContext, ProviderCatalogResult } from "../plugins/types.js";
+export type {
+  ProviderCatalogContext,
+  ProviderCatalogOutcome,
+  ProviderCatalogResult,
+} from "../plugins/types.js";
 
 export {
   buildPairedProviderApiKeyCatalog,
