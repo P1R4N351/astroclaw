@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { AgentHarnessPreflightError } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { AgentHarnessPreflightError } from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   ensureAuthProfileStore,
   findPersistedAuthProfileCredential,
@@ -20,9 +20,9 @@ import {
   type AuthProfileCredential,
   type AuthProfileStore,
   type OAuthCredential,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import { hasUsableOAuthCredential } from "astroclaw/plugin-sdk/provider-auth";
-import { readSecretFile } from "astroclaw/plugin-sdk/secret-file";
+} from "openclaw/plugin-sdk/agent-runtime";
+import { hasUsableOAuthCredential } from "openclaw/plugin-sdk/provider-auth";
+import { readSecretFile } from "openclaw/plugin-sdk/secret-file";
 import {
   resolveCodexAppServerHomeDir,
   resolveCodexAppServerLocalHomeDir,
@@ -240,6 +240,8 @@ export function resolveCodexAppServerAuthProfileStore(params: {
 type CodexAppServerPreparedAuthProfileSnapshot = {
   loginParams: CodexLoginAccountParams;
   secretFreeCacheKey: string;
+  /** Genuine ChatGPT principal id; email/profile fallbacks are not authorization identity. */
+  chatgptAccountId?: string;
 };
 
 export type CodexAppServerPreparedAuth =
@@ -304,7 +306,12 @@ export async function resolveCodexAppServerPreparedAuthProfileSnapshot(params: {
           (credential.type === "token" || !stableChatgptAccountId)
         ? `${accountId}:${fingerprintTokenAuthProfileCacheKey(loginParams.accessToken)}`
         : accountId;
-  return { loginParams, secretFreeCacheKey };
+  const chatgptAccountId = resolveExplicitChatgptAccountId(credential);
+  return {
+    loginParams,
+    secretFreeCacheKey,
+    ...(chatgptAccountId ? { chatgptAccountId } : {}),
+  };
 }
 
 /** Maps one prepared route to one mutually exclusive app-server auth handoff. */
@@ -1136,12 +1143,15 @@ function resolveChatgptAccountId(profileId: string, credential: AuthProfileCrede
 }
 
 function resolveStableChatgptAccountId(credential: AuthProfileCredential): string | undefined {
+  return resolveExplicitChatgptAccountId(credential) ?? (credential.email?.trim() || undefined);
+}
+
+function resolveExplicitChatgptAccountId(credential: AuthProfileCredential): string | undefined {
   if ("accountId" in credential && typeof credential.accountId === "string") {
     const accountId = credential.accountId.trim();
     if (accountId) {
       return accountId;
     }
   }
-  const email = credential.email?.trim();
-  return email || undefined;
+  return undefined;
 }
