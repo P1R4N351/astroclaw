@@ -48,17 +48,17 @@ const {
   sanitizeConfiguredModelProviderRequestMock: vi.fn((request) => request),
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
   isProviderApiKeyConfigured: isProviderApiKeyConfiguredMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-http", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/provider-http")>(
-    "openclaw/plugin-sdk/provider-http",
+vi.mock("astroclaw/plugin-sdk/provider-http", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/provider-http")>(
+    "astroclaw/plugin-sdk/provider-http",
   );
   return {
     assertOkOrThrowHttpError: assertOkOrThrowHttpErrorMock,
@@ -72,12 +72,19 @@ vi.mock("openclaw/plugin-sdk/provider-http", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/string-coerce-runtime", () => ({
-  normalizeOptionalString: (v: unknown) => (typeof v === "string" ? v.trim() : undefined),
-  normalizeOptionalLowercaseString: (v: unknown) =>
-    typeof v === "string" ? v.trim().toLowerCase() : undefined,
-  readStringValue: (v: unknown) => (typeof v === "string" ? v.trim() : undefined),
-}));
+vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", () => {
+  const normalizeMockOptionalString = (value: unknown) =>
+    typeof value === "string" ? value.trim() : undefined;
+  const normalizeMockOptionalLowercaseString = (value: unknown) =>
+    typeof value === "string" ? value.trim().toLowerCase() : undefined;
+  const readMockStringValue = (value: unknown) =>
+    typeof value === "string" ? value.trim() : undefined;
+  return {
+    normalizeOptionalString: normalizeMockOptionalString,
+    normalizeOptionalLowercaseString: normalizeMockOptionalLowercaseString,
+    readStringValue: readMockStringValue,
+  };
+});
 
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
