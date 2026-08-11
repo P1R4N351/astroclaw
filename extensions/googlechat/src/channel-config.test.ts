@@ -1,7 +1,7 @@
 // Googlechat tests cover channel config plugin behavior.
-import type { ChannelOutboundPayloadHint } from "openclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import type { ChannelOutboundPayloadHint } from "astroclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   registerGoogleChatApprovalCardBinding,
@@ -23,6 +23,14 @@ describe("googlechatPlugin config adapter", () => {
     );
     expect(googlechatPlugin.capabilities?.media).toBe(true);
     expect(googlechatPlugin.capabilities?.reactions).toBeUndefined();
+  });
+
+  it("classifies Google Chat users as direct and spaces as groups", () => {
+    const inferTargetChatType = googlechatPlugin.messaging?.inferTargetChatType;
+
+    expect(inferTargetChatType?.({ to: "users/abc" })).toBe("direct");
+    expect(inferTargetChatType?.({ to: "spaces/xyz" })).toBe("group");
+    expect(inferTargetChatType?.({ to: "unknown" })).toBeUndefined();
   });
 
   it("does not advertise user-auth-only actions", () => {
