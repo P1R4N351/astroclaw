@@ -15,7 +15,7 @@ import {
 } from "astroclaw/plugin-sdk/param-readers";
 import { resolveLivePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
 import { isIncognitoSessionKey, normalizeAgentId } from "astroclaw/plugin-sdk/routing";
-import { asOptionalRecord as asRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { Type } from "typebox";
 import { definePluginEntry, type OpenClawPluginApi } from "./api.js";
@@ -157,7 +157,7 @@ export default definePluginEntry({
           ...(typeof cfg.embedding.dimensions === "number"
             ? { dimensions: cfg.embedding.dimensions }
             : {}),
-          ...asRecord(runtimePluginConfig.embedding),
+          ...asOptionalRecord(runtimePluginConfig.embedding),
         },
         ...(cfg.dreaming ? { dreaming: cfg.dreaming } : {}),
         dbPath: cfg.dbPath,
@@ -166,7 +166,7 @@ export default definePluginEntry({
         captureMaxChars: cfg.captureMaxChars,
         recallMaxChars: cfg.recallMaxChars,
         ...(cfg.storageOptions ? { storageOptions: cfg.storageOptions } : {}),
-        ...asRecord(runtimePluginConfig),
+        ...asOptionalRecord(runtimePluginConfig),
       });
     };
     const readMemoryRecallCooldown = (agentId: string): { error: string } | undefined => {
