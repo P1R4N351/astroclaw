@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 /** Tests CLI runner reliability paths for hooks, transcripts, failover, and reply ops. */
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -43,6 +43,7 @@ import {
 } from "../sessions/user-turn-transcript.js";
 import { createTestUserTurnTranscriptTarget } from "../sessions/user-turn-transcript.test-support.js";
 import { captureEnv, setTestEnvValue } from "../test-utils/env.js";
+import { createTestAdmittedRunContext } from "./admitted-run-context.test-support.js";
 import { testing as cliBackendsTesting } from "./cli-backends.test-support.js";
 import {
   restoreCliRunnerTestDeps,
@@ -199,8 +200,10 @@ function buildPreparedContext(params: PreparedContextOverrides = {}): PreparedCl
     sessionMode: "existing" as const,
     serialize: true,
   };
+  const runId = params?.runId ?? "run-2";
   return {
     params: {
+      admittedRunContext: createTestAdmittedRunContext(runId),
       sessionId: "s1",
       sessionKey: params?.sessionKey,
       sessionFile: "/tmp/session.jsonl",
@@ -210,7 +213,7 @@ function buildPreparedContext(params: PreparedContextOverrides = {}): PreparedCl
       model,
       thinkLevel: "low",
       timeoutMs: 1_000,
-      runId: params?.runId ?? "run-2",
+      runId,
       lane: params?.lane,
       executionMode: params?.executionMode,
       allowEmptyAssistantReplyAsSilent: params?.allowEmptyAssistantReplyAsSilent,
@@ -4405,6 +4408,7 @@ describe("runCliAgent reliability", () => {
 
     try {
       const context = await prepareCliRunContext({
+        admittedRunContext: createTestAdmittedRunContext("run-history-hook"),
         sessionId: "s1",
         sessionFile,
         workspaceDir: dir,
