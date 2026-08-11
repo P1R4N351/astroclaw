@@ -1,5 +1,5 @@
 /** Resolves ACP request metadata into OpenClaw Gateway session keys and reset behavior. */
-import { readBool, readString } from "@astroclaw/acp-core/meta";
+import { readBool, readMetadataString } from "@astroclaw/acp-core/meta";
 import type { AcpServerOptions } from "@astroclaw/acp-core/types";
 import type { GatewayClient } from "../gateway/client.js";
 
@@ -18,8 +18,8 @@ export function parseSessionMeta(meta: unknown): AcpSessionMeta {
   }
   const record = meta as Record<string, unknown>;
   return {
-    sessionKey: readString(record, ["sessionKey", "session", "key"]),
-    sessionLabel: readString(record, ["sessionLabel", "label"]),
+    sessionKey: readMetadataString(record, ["sessionKey", "session", "key"]),
+    sessionLabel: readMetadataString(record, ["sessionLabel", "label"]),
     resetSession: readBool(record, ["resetSession", "reset"]),
     requireExisting: readBool(record, ["requireExistingSession", "requireExisting"]),
     prefixCwd: readBool(record, ["prefixCwd"]),
