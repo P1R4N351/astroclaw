@@ -3,12 +3,10 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { extnameFromAnyPath } from "@astroclaw/media-core/file-name";
 import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
-export { asFiniteNumber as asNumber } from "../../packages/normalization-core/src/number-coercion.js";
-import { readStringValue } from "../../packages/normalization-core/src/string-coerce.js";
-export { asRecord } from "../../packages/normalization-core/src/record-coerce.js";
+export { asFiniteNumber as asNumber } from "@astroclaw/normalization-core/number-coercion";
+export { asRecord } from "@astroclaw/normalization-core/record-coerce";
+export { readStringValue } from "@astroclaw/normalization-core/string-coerce";
 export { asBoolean } from "../utils/boolean.js";
-
-export const asString = readStringValue;
 
 function normalizeMediaExtension(value: string): string | undefined {
   const raw = (value.startsWith(".") ? value.slice(1) : value).toLowerCase();
