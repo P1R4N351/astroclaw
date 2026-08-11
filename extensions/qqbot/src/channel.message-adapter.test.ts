@@ -1,10 +1,17 @@
 // Qqbot tests cover channel.message adapter plugin behavior.
-import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { qqbotPlugin } from "./channel.js";
 
 describe("qqbotPlugin metadata", () => {
+  it("distinguishes c2c targets from shared targets", () => {
+    const infer = qqbotPlugin.messaging?.inferTargetChatType;
+    expect(infer?.({ to: "qqbot:c2c:owner" })).toBe("direct");
+    expect(infer?.({ to: "qqbot:group:operators" })).toBe("group");
+    expect(infer?.({ to: "qqbot:channel:alerts" })).toBe("group");
+  });
+
   it("opts announce delivery into persisted session lookup", () => {
     expect(qqbotPlugin.meta.preferSessionLookupForAnnounceTarget).toBe(true);
   });
