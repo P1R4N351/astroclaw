@@ -1,13 +1,42 @@
-// Plugin Npm Release script supports OpenClaw repository automation.
+// Plugin npm release tooling: selects and validates the Astroclaw plugin packages to publish.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { expectDefined } from "../../packages/normalization-core/src/expect.js";
 import { normalizeOptionalString } from "../../packages/normalization-core/src/string-coerce.js";
-import { validateExternalCodePluginPackageJson } from "../../packages/plugin-package-contract/src/index.ts";
+import {
+  pluginPackageMetadata,
+  validateExternalCodePluginPackageJson,
+} from "../../packages/plugin-package-contract/src/index.ts";
 import { resolveNpmPublishPlan } from "./npm-publish-plan.mjs";
 import { collectReleaseVersionFloorErrors, parseReleaseVersion } from "./release-version.mjs";
+
+/** Build and release metadata a plugin package.json declares under its metadata key. */
+type PluginPackageMetadata = {
+  extensions?: string[];
+  install?: {
+    defaultChoice?: string;
+    minHostVersion?: string;
+    npmSpec?: string;
+  };
+  compat?: {
+    pluginApi?: string;
+    minGatewayVersion?: string;
+  };
+  build?: {
+    bundledDist?: boolean;
+    astroclawVersion?: string;
+    /** Pre-rebrand spelling, still accepted when reading. See PLUGIN_PACKAGE_METADATA_KEY. */
+    openclawVersion?: string;
+    pluginSdkVersion?: string;
+  };
+  release?: {
+    publishToClawHub?: boolean;
+    publishToNpm?: boolean;
+    requireLatestDependencies?: unknown;
+  };
+};
 
 type PluginPackageJson = {
   name?: string;
@@ -22,35 +51,27 @@ type PluginPackageJson = {
         type?: string;
         url?: string;
       };
-  openclaw?: {
-    extensions?: string[];
-    install?: {
-      defaultChoice?: string;
-      minHostVersion?: string;
-      npmSpec?: string;
-    };
-    compat?: {
-      pluginApi?: string;
-      minGatewayVersion?: string;
-    };
-    build?: {
-      bundledDist?: boolean;
-      openclawVersion?: string;
-      pluginSdkVersion?: string;
-    };
-    release?: {
-      publishToClawHub?: boolean;
-      publishToNpm?: boolean;
-      requireLatestDependencies?: unknown;
-    };
-  };
+  /** Canonical metadata key. Read through readPluginMetadata(), never directly. */
+  astroclaw?: PluginPackageMetadata;
+  /** Pre-rebrand metadata key, still accepted from external plugin packages when reading. */
+  openclaw?: PluginPackageMetadata;
 };
 
+/**
+ * Typed view of the plugin metadata block, canonical `astroclaw` key first.
+ *
+ * The cast is the boundary between the untyped package.json this module parses off disk and the
+ * local structural view of it; readPluginPackageJson() already returns `unknown` for the same
+ * reason. Reading either key by hand is what produced the silent publication no-op this helper
+ * replaces, so every call site in this file goes through here.
+ */
+function readPluginMetadata(packageJson: PluginPackageJson): PluginPackageMetadata | undefined {
+  return pluginPackageMetadata(packageJson) as PluginPackageMetadata | undefined;
+}
+
 /** Explicit core ownership defers staged external publication until the plugin is externalized. */
-export function isPluginExternalPublicationDeferred(packageJson: {
-  openclaw?: { build?: { bundledDist?: unknown } };
-}): boolean {
-  return packageJson.openclaw?.build?.bundledDist === true;
+export function isPluginExternalPublicationDeferred(packageJson: PluginPackageJson): boolean {
+  return readPluginMetadata(packageJson)?.build?.bundledDist === true;
 }
 
 export type RequiredLatestDependency = {
@@ -116,21 +137,33 @@ type PublishablePluginPackageCandidate<TPackageJson extends PluginPackageJson = 
     readmeText?: string;
   };
 
-export const OPENCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/openclaw/openclaw";
+/**
+ * The repository url npm provenance validates against for published plugin packages.
+ *
+ * This must equal what the shipped manifests declare or provenance rejects the publish; all 30
+ * publishable `extensions/*` manifests declare `https://github.com/astroclaw/astroclaw`
+ * (measured 2026-08-11). The constant previously held the pre-rebrand upstream url, which no
+ * manifest declares.
+ */
+export const ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/astroclaw/astroclaw";
+
+/** Package-name scope every publishable plugin must use. */
+const ASTROCLAW_PLUGIN_NPM_PACKAGE_SCOPE = "@astroclaw/";
+
 const PLUGIN_NPM_VIEW_TIMEOUT_MS = 60_000;
 
 export function collectRequiredLatestDependencies(packageJson: PluginPackageJson): {
   dependencies: RequiredLatestDependency[];
   errors: string[];
 } {
-  const configured = packageJson.openclaw?.release?.requireLatestDependencies;
+  const configured = readPluginMetadata(packageJson)?.release?.requireLatestDependencies;
   if (configured === undefined) {
     return { dependencies: [], errors: [] };
   }
   if (!Array.isArray(configured)) {
     return {
       dependencies: [],
-      errors: ["openclaw.release.requireLatestDependencies must be an array of package names."],
+      errors: ["astroclaw.release.requireLatestDependencies must be an array of package names."],
     };
   }
 
@@ -145,14 +178,14 @@ export function collectRequiredLatestDependencies(packageJson: PluginPackageJson
   for (const value of configured) {
     if (typeof value !== "string" || !value.trim()) {
       errors.push(
-        "openclaw.release.requireLatestDependencies must contain only non-empty package names.",
+        "astroclaw.release.requireLatestDependencies must contain only non-empty package names.",
       );
       continue;
     }
     const packageName = value.trim();
     if (seen.has(packageName)) {
       errors.push(
-        `openclaw.release.requireLatestDependencies must not contain duplicate package names; found "${packageName}".`,
+        `astroclaw.release.requireLatestDependencies must not contain duplicate package names; found "${packageName}".`,
       );
       continue;
     }
@@ -161,7 +194,7 @@ export function collectRequiredLatestDependencies(packageJson: PluginPackageJson
     const version = runtimeDependencies[packageName];
     if (typeof version !== "string" || !version.trim()) {
       errors.push(
-        `openclaw.release.requireLatestDependencies must reference package.json dependencies or optionalDependencies; "${packageName}" is not a runtime dependency.`,
+        `astroclaw.release.requireLatestDependencies must reference package.json dependencies or optionalDependencies; "${packageName}" is not a runtime dependency.`,
       );
       continue;
     }
@@ -361,17 +394,18 @@ export function collectPublishablePluginPackageErrors(
   const errors: string[] = [];
   const packageName = packageJson.name?.trim() ?? "";
   const packageVersion = packageJson.version?.trim() ?? "";
-  const installNpmSpec = normalizeOptionalString(packageJson.openclaw?.install?.npmSpec);
+  const metadata = readPluginMetadata(packageJson);
+  const installNpmSpec = normalizeOptionalString(metadata?.install?.npmSpec);
   const repositoryUrl =
     typeof packageJson.repository === "string"
       ? packageJson.repository.trim()
       : (packageJson.repository?.url?.trim() ?? "");
-  const extensions = packageJson.openclaw?.extensions ?? [];
+  const extensions = metadata?.extensions ?? [];
   const requiredLatestDependencies = collectRequiredLatestDependencies(packageJson);
 
-  if (!packageName.startsWith("@openclaw/")) {
+  if (!packageName.startsWith(ASTROCLAW_PLUGIN_NPM_PACKAGE_SCOPE)) {
     errors.push(
-      `package name must start with "@openclaw/"; found "${packageName || "<missing>"}".`,
+      `package name must start with "${ASTROCLAW_PLUGIN_NPM_PACKAGE_SCOPE}"; found "${packageName || "<missing>"}".`,
     );
   }
   if (packageJson.private === true) {
@@ -383,9 +417,9 @@ export function collectPublishablePluginPackageErrors(
   if (!candidate.readmeText?.trim()) {
     errors.push("README.md must exist and contain package documentation.");
   }
-  if (repositoryUrl !== OPENCLAW_PLUGIN_NPM_REPOSITORY_URL) {
+  if (repositoryUrl !== ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL) {
     errors.push(
-      `package.json repository.url must be "${OPENCLAW_PLUGIN_NPM_REPOSITORY_URL}" so npm provenance can validate GitHub trusted publishing; found "${repositoryUrl || "<missing>"}".`,
+      `package.json repository.url must be "${ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL}" so npm provenance can validate GitHub trusted publishing; found "${repositoryUrl || "<missing>"}".`,
     );
   }
   if (!packageVersion) {
@@ -396,13 +430,13 @@ export function collectPublishablePluginPackageErrors(
     );
   }
   if (!Array.isArray(extensions) || extensions.length === 0) {
-    errors.push("openclaw.extensions must contain at least one entry.");
+    errors.push("astroclaw.extensions must contain at least one entry.");
   }
   if (extensions.some((entry) => typeof entry !== "string" || !entry.trim())) {
-    errors.push("openclaw.extensions must contain only non-empty strings.");
+    errors.push("astroclaw.extensions must contain only non-empty strings.");
   }
   if (!installNpmSpec) {
-    errors.push("openclaw.install.npmSpec must be a non-empty string for publishable plugins.");
+    errors.push("astroclaw.install.npmSpec must be a non-empty string for publishable plugins.");
   }
   errors.push(...requiredLatestDependencies.errors);
   errors.push(
@@ -441,7 +475,7 @@ export function collectPublishablePluginPackages(
     if (isPluginExternalPublicationDeferred(packageJson)) {
       continue;
     }
-    if (packageJson.openclaw?.release?.publishToNpm !== true) {
+    if (readPluginMetadata(packageJson)?.release?.publishToNpm !== true) {
       continue;
     }
 
@@ -469,7 +503,7 @@ export function collectPublishablePluginPackages(
       version,
       channel: parsedVersion.channel,
       publishTag: resolveNpmPublishPlan(version, undefined, filters.npmDistTag).publishTag,
-      installNpmSpec: normalizeOptionalString(packageJson.openclaw?.install?.npmSpec),
+      installNpmSpec: normalizeOptionalString(readPluginMetadata(packageJson)?.install?.npmSpec),
       ...(requiredLatestDependencies.length > 0 ? { requiredLatestDependencies } : {}),
     });
   }
@@ -657,7 +691,7 @@ function isNpmViewTimeoutError(error: unknown): error is Error & { code: "ETIMED
 }
 
 function runNpmView(args: string[]): string {
-  const tempDir = mkdtempSync(join(tmpdir(), "openclaw-plugin-npm-view-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "astroclaw-plugin-npm-view-"));
   const userconfigPath = join(tempDir, "npmrc");
   writeFileSync(userconfigPath, "");
 

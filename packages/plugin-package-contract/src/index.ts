@@ -1,6 +1,14 @@
 // External code plugin package.json compatibility and validation contracts.
 import { isRecord } from "../../normalization-core/src/record-coerce.js";
 import { normalizeOptionalString } from "../../normalization-core/src/string-coerce.js";
+import { pluginPackageMetadata, PLUGIN_PACKAGE_METADATA_KEY } from "./metadata-key.js";
+
+export {
+  LEGACY_PLUGIN_PACKAGE_METADATA_KEY,
+  PLUGIN_PACKAGE_METADATA_KEY,
+  pluginPackageMetadata,
+  pluginPackageMetadataKey,
+} from "./metadata-key.js";
 
 /** JSON object shape accepted by package contract helpers. */
 export type JsonObject = Record<string, unknown>;
@@ -27,25 +35,40 @@ export type ExternalCodePluginValidationResult = {
 
 /** Required package.json field paths for external code plugin packages. */
 export const EXTERNAL_CODE_PLUGIN_REQUIRED_FIELD_PATHS = [
-  "openclaw.compat.pluginApi",
-  "openclaw.build.openclawVersion",
+  `${PLUGIN_PACKAGE_METADATA_KEY}.compat.pluginApi`,
+  `${PLUGIN_PACKAGE_METADATA_KEY}.build.astroclawVersion`,
 ] as const;
 
-/** Read OpenClaw package.json blocks without trusting caller input shape. */
-function readOpenClawBlock(packageJson: unknown) {
+/** Read plugin package.json metadata blocks without trusting caller input shape. */
+function readPluginMetadataBlock(packageJson: unknown) {
   const root = isRecord(packageJson) ? packageJson : undefined;
-  const openclaw = isRecord(root?.openclaw) ? root.openclaw : undefined;
-  const compat = isRecord(openclaw?.compat) ? openclaw.compat : undefined;
-  const build = isRecord(openclaw?.build) ? openclaw.build : undefined;
-  const install = isRecord(openclaw?.install) ? openclaw.install : undefined;
-  return { root, openclaw, compat, build, install };
+  const metadata = pluginPackageMetadata(packageJson);
+  const compat = isRecord(metadata?.compat) ? metadata.compat : undefined;
+  const build = isRecord(metadata?.build) ? metadata.build : undefined;
+  const install = isRecord(metadata?.install) ? metadata.install : undefined;
+  return { root, metadata, compat, build, install };
+}
+
+/**
+ * The host version a plugin declares it was built against.
+ *
+ * MIGRATION SHIM, matching the metadata-key fallback: the rebrand renamed the inner field
+ * `openclawVersion` to `astroclawVersion` alongside the enclosing key, so an external plugin
+ * package authored before the rebrand carries `openclaw.build.openclawVersion`. Reading only the
+ * canonical name would report every such package as missing a required field.
+ */
+function readDeclaredHostVersion(build: Record<string, unknown> | undefined): string | undefined {
+  return (
+    normalizeOptionalString(build?.astroclawVersion) ??
+    normalizeOptionalString(build?.openclawVersion)
+  );
 }
 
 /** Normalize compatibility metadata from an external plugin package.json. */
 export function normalizeExternalPluginCompatibility(
   packageJson: unknown,
 ): ExternalPluginCompatibility | undefined {
-  const { root, compat, build, install } = readOpenClawBlock(packageJson);
+  const { root, compat, build, install } = readPluginMetadataBlock(packageJson);
   const version = normalizeOptionalString(root?.version);
   const minHostVersion = normalizeOptionalString(install?.minHostVersion);
   const compatibility: ExternalPluginCompatibility = {};
@@ -60,9 +83,13 @@ export function normalizeExternalPluginCompatibility(
     compatibility.minGatewayVersion = minGatewayVersion;
   }
 
-  const builtWithOpenClawVersion = normalizeOptionalString(build?.openclawVersion) ?? version;
-  if (builtWithOpenClawVersion) {
-    compatibility.builtWithOpenClawVersion = builtWithOpenClawVersion;
+  // The `builtWithOpenClawVersion` property name is carried unchanged on purpose: it is a public
+  // in-memory field consumed across src/plugins and src/infra, and renaming a symbol in this
+  // substrate asserts that the consuming files were audited. Only the manifest field being read
+  // is corrected here.
+  const builtWithHostVersion = readDeclaredHostVersion(build) ?? version;
+  if (builtWithHostVersion) {
+    compatibility.builtWithOpenClawVersion = builtWithHostVersion;
   }
 
   const pluginSdkVersion = normalizeOptionalString(build?.pluginSdkVersion);
@@ -75,13 +102,14 @@ export function normalizeExternalPluginCompatibility(
 
 /** List missing required field paths for an external code plugin package.json. */
 export function listMissingExternalCodePluginFieldPaths(packageJson: unknown): string[] {
-  const { compat, build } = readOpenClawBlock(packageJson);
+  const { compat, build } = readPluginMetadataBlock(packageJson);
+  const [pluginApiFieldPath, hostVersionFieldPath] = EXTERNAL_CODE_PLUGIN_REQUIRED_FIELD_PATHS;
   const missing: string[] = [];
   if (!normalizeOptionalString(compat?.pluginApi)) {
-    missing.push("openclaw.compat.pluginApi");
+    missing.push(pluginApiFieldPath);
   }
-  if (!normalizeOptionalString(build?.openclawVersion)) {
-    missing.push("openclaw.build.openclawVersion");
+  if (!readDeclaredHostVersion(build)) {
+    missing.push(hostVersionFieldPath);
   }
   return missing;
 }

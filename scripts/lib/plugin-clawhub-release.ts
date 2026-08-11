@@ -1,8 +1,11 @@
-// Plugin Clawhub Release script supports OpenClaw repository automation.
+// Plugin ClawHub release tooling: selects and validates the plugin packages to publish.
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { truncateUtf16Safe } from "../../packages/normalization-core/src/utf16-slice.js";
-import { validateExternalCodePluginPackageJson } from "../../packages/plugin-package-contract/src/index.ts";
+import {
+  pluginPackageMetadata,
+  validateExternalCodePluginPackageJson,
+} from "../../packages/plugin-package-contract/src/index.ts";
 import { retryClawHubRead } from "../../src/infra/clawhub-retry.js";
 import { runTasksWithConcurrency } from "../../src/utils/run-with-concurrency.js";
 import { readBoundedResponseText } from "./bounded-response.mjs";
@@ -32,30 +35,50 @@ export {
   parsePluginReleaseArgs,
 };
 
+/** Build and release metadata a plugin package.json declares under its metadata key. */
+type PluginPackageMetadata = {
+  extensions?: string[];
+  install?: {
+    npmSpec?: string;
+  };
+  compat?: {
+    pluginApi?: string;
+    minGatewayVersion?: string;
+  };
+  build?: {
+    bundledDist?: boolean;
+    astroclawVersion?: string;
+    /** Pre-rebrand spelling, still accepted when reading. See PLUGIN_PACKAGE_METADATA_KEY. */
+    openclawVersion?: string;
+    pluginSdkVersion?: string;
+  };
+  release?: {
+    publishToClawHub?: boolean;
+    publishToNpm?: boolean;
+  };
+};
+
 type PluginPackageJson = {
   name?: string;
   version?: string;
   private?: boolean;
-  openclaw?: {
-    extensions?: string[];
-    install?: {
-      npmSpec?: string;
-    };
-    compat?: {
-      pluginApi?: string;
-      minGatewayVersion?: string;
-    };
-    build?: {
-      bundledDist?: boolean;
-      openclawVersion?: string;
-      pluginSdkVersion?: string;
-    };
-    release?: {
-      publishToClawHub?: boolean;
-      publishToNpm?: boolean;
-    };
-  };
+  /** Canonical metadata key. Read through readPluginMetadata(), never directly. */
+  astroclaw?: PluginPackageMetadata;
+  /** Pre-rebrand metadata key, still accepted when reading. */
+  openclaw?: PluginPackageMetadata;
 };
+
+/**
+ * Typed view of the plugin metadata block, canonical `astroclaw` key first.
+ *
+ * Reading a single key by hand is what turned the npm publication gate into a silent no-op; this
+ * path selects the same 30 packages off the same manifests, so it reads through the same helper.
+ */
+function readPluginMetadata(
+  packageJson: PluginPackageJson | undefined,
+): PluginPackageMetadata | undefined {
+  return pluginPackageMetadata(packageJson) as PluginPackageMetadata | undefined;
+}
 
 export type PublishablePluginPackage = {
   extensionId: string;
@@ -122,7 +145,7 @@ const CLAWHUB_SHARED_RELEASE_INPUT_PATHS = [
   "scripts/lib/release-version.mjs",
   "scripts/lib/plugin-npm-release.ts",
   "scripts/lib/plugin-clawhub-release.ts",
-  "scripts/openclaw-npm-release-check.ts",
+  "scripts/astroclaw-npm-release-check.ts",
   "scripts/plugin-clawhub-publish.sh",
   "scripts/plugin-clawhub-release-check.ts",
   "scripts/plugin-clawhub-release-plan.ts",
@@ -287,7 +310,7 @@ export function collectClawHubPublishablePluginPackages(
     if (isPluginExternalPublicationDeferred(packageJson)) {
       continue;
     }
-    if (packageJson.openclaw?.release?.publishToClawHub !== true) {
+    if (readPluginMetadata(packageJson)?.release?.publishToClawHub !== true) {
       continue;
     }
     if (!SAFE_EXTENSION_ID_RE.test(extensionId)) {
@@ -467,7 +490,11 @@ export function collectClawHubVersionGateErrors(params: {
       ref: params.gitRange.baseRef,
       packageDir: plugin.packageDir,
     });
-    if (baseManifest?.openclaw?.release?.publishToClawHub !== true) {
+    // baseManifest is read at the range's base git ref, so it can predate the metadata-key
+    // rebrand. The legacy read fallback is what keeps history-spanning comparisons working.
+    // The explicit null check keeps the narrowing the previous optional chain provided; the
+    // reads below depend on baseManifest being non-null past this guard.
+    if (!baseManifest || readPluginMetadata(baseManifest)?.release?.publishToClawHub !== true) {
       continue;
     }
     const baseVersion =
