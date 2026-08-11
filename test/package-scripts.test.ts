@@ -233,6 +233,10 @@ describe("package scripts", () => {
     );
   });
 
+  it("runs native port diagnostics coverage in Windows CI", () => {
+    expect(readPackageJson().scripts["test:windows:ci"]).toContain("src/infra/ports.test.ts");
+  });
+
   it("keeps the native Scheduled Task lifecycle proof opt-in", () => {
     const scripts = readPackageJson().scripts;
 
@@ -322,6 +326,7 @@ describe("package scripts", () => {
   it("runs web and Teams file URL coverage in Windows CI", () => {
     const script = readPackageJson().scripts["test:windows:ci"];
 
+    expect(script).toContain("src/agents/tools/media-tool-file-url.windows.test.ts");
     expect(script).toContain("src/media/web-media.file-url.windows.test.ts");
     expect(script).toContain("extensions/msteams/src/media-helpers.test.ts");
     expect(script).toContain("extensions/msteams/src/messenger.test.ts");
@@ -348,6 +353,14 @@ describe("package scripts", () => {
     expect(script).toContain("packages/terminal-core/src/display-string.test.ts");
     expect(script).toContain("src/agents/sandbox/fs-paths.test.ts");
     expect(script).toContain("src/agents/sessions/tools/render-utils.test.ts");
+  });
+
+  it("runs native OS-home path tool coverage in Windows CI", () => {
+    const script = readPackageJson().scripts["test:windows:ci"];
+
+    expect(script).toContain("src/agents/agent-tools.read.windows.test.ts");
+    expect(script).toContain("src/agents/agent-tools.read.host-operations.test.ts");
+    expect(script).toContain("src/agents/sessions/tools/path-utils.test.ts");
   });
 
   it("runs child environment and native doctor coverage in Windows CI", () => {
