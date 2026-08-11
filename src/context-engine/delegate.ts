@@ -3,7 +3,7 @@ import path from "node:path";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStructuredPromptSection } from "@openclaw/ai/internal/shared";
 import { parseSqliteSessionFileMarker } from "../config/sessions/legacy-sqlite-marker.js";
-import { listSessionEntries, loadSessionEntry } from "../config/sessions/session-accessor.js";
+import { listSessionEntriesCore, loadSessionEntry } from "../config/sessions/session-accessor.js";
 import {
   buildMemoryPromptSection,
   getActivePreparedMemoryPromptSection,
@@ -74,7 +74,7 @@ function buildCompactionResultSessionTarget(params: {
         })
       : undefined;
   const markerMatches = marker
-    ? listSessionEntries({
+    ? listSessionEntriesCore({
         agentId: marker.agentId,
         storePath: marker.storePath,
       }).filter(({ entry }) => entry.sessionId === marker.sessionId)
