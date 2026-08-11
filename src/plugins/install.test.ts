@@ -2,7 +2,7 @@ import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
 // Covers plugin install flows, manifests, and install records.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
@@ -31,7 +31,7 @@ import {
 } from "./install.js";
 import { markRetainedManagedNpmInstall } from "./managed-npm-retention.js";
 import { packToArchive } from "./test-helpers/archive-fixtures.js";
-import { createSuiteTempRootTracker } from "./test-helpers/fs-fixtures.js";
+import { createSyncSuiteTempRootTracker } from "./test-helpers/fs-fixtures.js";
 import {
   createBundleInstallFixtureFactory,
   createDualFormatInstallFixtureFactory,
@@ -77,7 +77,7 @@ const archiveFixturePathCache = new Map<string, string>();
 const dynamicArchiveTemplatePathCache = new Map<string, string>();
 let installPluginFromDirTemplateDir = "";
 let manifestInstallTemplateDir = "";
-const suiteTempRootTracker = createSuiteTempRootTracker("openclaw-plugin-install");
+const suiteTempRootTracker = createSyncSuiteTempRootTracker("openclaw-plugin-install");
 const setupBundleInstallFixture = createBundleInstallFixtureFactory(
   suiteTempRootTracker.makeTempDir,
 );
