@@ -1,8 +1,9 @@
-import { notifyLlmRequestActivity } from "@openclaw/ai/internal/runtime";
 import { expectDefined } from "@astroclaw/normalization-core";
+import { toErrorObject as toLintErrorObject } from "@astroclaw/normalization-core/error-coercion";
 // LLM idle-timeout tests cover timeout selection and stream wrapping for
 // embedded provider calls, including local-provider and cron exceptions.
 import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
+import { notifyLlmRequestActivity } from "@openclaw/ai/internal/runtime";
 import {
   createAssistantMessageEventStream,
   type AssistantMessageEventStream,
@@ -1167,19 +1168,3 @@ describe("streamWithIdleTimeout", () => {
     expect((timeoutError as Error).message).toMatch(/LLM idle timeout/);
   });
 });
-
-function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
-  // Abort reasons can be arbitrary values; normalize them into Error objects
-  // so rejection assertions and provider wrappers see a stable shape.
-  if (value instanceof Error) {
-    return value;
-  }
-  if (typeof value === "string") {
-    return new Error(value);
-  }
-  const error = new Error(fallbackMessage, { cause: value });
-  if ((typeof value === "object" && value !== null) || typeof value === "function") {
-    Object.assign(error, value);
-  }
-  return error;
-}
