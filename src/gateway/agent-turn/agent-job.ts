@@ -2,6 +2,7 @@
 // Gateway dedupe retains response payloads only for idempotent RPC replay.
 import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
+import { readNonBlankString } from "@astroclaw/normalization-core/string-coerce";
 import {
   normalizeAgentRunTerminalDeliverySnapshot,
   type AgentRunTerminalDeliverySnapshot,
@@ -378,10 +379,6 @@ function ensureAgentRunListener() {
     clearPendingAgentRunTimeout(evt.runId);
     recordAgentRunSnapshot(terminalSnapshot, snapshot.version);
   });
-}
-
-function readNonBlankString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 function parseDedupeObservation(entry: DedupeEntry): DedupeObservation {
