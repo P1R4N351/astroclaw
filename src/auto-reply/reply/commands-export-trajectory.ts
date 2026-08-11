@@ -5,12 +5,12 @@ import type { ExecToolDetails } from "../../agents/bash-tools.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import type { ExecApprovalRequest } from "../../infra/exec-approvals.js";
 import type { ReplyPayload } from "../types.js";
-import { parseExportCommandOutputPath } from "./commands-export-common.js";
 import {
   buildCurrentOpenClawCliArgv,
   buildCurrentOpenClawCliCommand,
   buildCurrentOpenClawCliExecEnv,
 } from "./commands-astroclaw-cli.js";
+import { parseExportCommandOutputPath } from "./commands-export-common.js";
 import {
   deliverPrivateCommandReply,
   readCommandDeliveryTarget,
@@ -203,7 +203,7 @@ async function requestTrajectoryExportApproval(
       security: "allowlist",
       ask: "always",
       background: true,
-      timeout: timeoutSec,
+      timeoutSeconds: timeoutSec,
     });
     return [
       `Trajectory bundle: requested \`${request.displayCommand}\` through exec approval. Approve once to create the bundle; do not use allow-all for trajectory exports.`,
