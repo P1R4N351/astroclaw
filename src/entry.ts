@@ -26,14 +26,15 @@ import {
 } from "./entry.compile-cache.js";
 import { buildCliRespawnPlan, runCliRespawnPlan } from "./entry.respawn.js";
 import { tryHandleRootVersionFastPath } from "./entry.version-fast-path.js";
+import { ensureOpenClawExecMarkerOnProcess } from "./infra/astroclaw-exec-env.js";
 import { normalizeEnv } from "./infra/env.js";
 import { isMainModule } from "./infra/is-main.js";
-import { ensureOpenClawExecMarkerOnProcess } from "./infra/astroclaw-exec-env.js";
 import { installProcessWarningFilter } from "./infra/warning-filter.js";
 import { defaultRuntime } from "./runtime.js";
 
 const ENTRY_WRAPPER_PAIRS = [
   { wrapperBasename: "openclaw.mjs", entryBasename: "entry.js" },
+  { wrapperBasename: "openclaw.mjs", entryBasename: "entry.mjs" },
   { wrapperBasename: "openclaw.js", entryBasename: "entry.js" },
 ] as const;
 
