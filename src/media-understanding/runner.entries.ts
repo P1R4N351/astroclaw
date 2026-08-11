@@ -37,7 +37,7 @@ import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { hasErrnoCode } from "../infra/errors.js";
 import { writeExternalFileWithinRoot } from "../infra/fs-safe.js";
 import { resolveProxyFetchFromEnv } from "../infra/net/proxy-fetch.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { runFfmpeg } from "../media/media-services.js";
 import {
   getOfficialExternalPluginCatalogManifest,
@@ -562,9 +562,10 @@ async function resolveProviderExecutionAuth(params: {
       providerConfig,
     };
   };
-  const { isProviderAuthError, requireApiKey, resolveApiKeyForProvider } = await loadModelAuth();
+  const { isProviderAuthError, requireApiKey, resolveApiKeyForProviderCore } =
+    await loadModelAuth();
   try {
-    const auth = await resolveApiKeyForProvider({
+    const auth = await resolveApiKeyForProviderCore({
       provider: params.providerId,
       cfg: params.cfg,
       profileId: params.entry.profile,
@@ -1037,7 +1038,7 @@ export async function runCliEntry(params: {
     assertMinAudioSize({ size: stat.size, attachmentIndex });
   }
   const outputDir = await fs.mkdtemp(
-    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-media-cli-"),
+    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-media-cli-"),
   );
   try {
     const mediaPath = await resolveCliMediaPath({
