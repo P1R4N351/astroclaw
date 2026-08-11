@@ -7,8 +7,9 @@ describe("external preview App SDK boundary", () => {
     const consumer = await createPackedSdkConsumer();
     try {
       await consumer.run(`
-        import { OpenClaw, normalizeGatewayEvent } from "@astroclaw/sdk";
+        import { GatewayClientTransport, OpenClaw, normalizeGatewayEvent } from "@astroclaw/sdk";
 
+        if (typeof GatewayClientTransport !== "function") throw new Error("missing transport export");
         const event = normalizeGatewayEvent({
           event: "agent",
           payload: { runId: "packed-run", stream: "lifecycle", data: { phase: "start" } }
