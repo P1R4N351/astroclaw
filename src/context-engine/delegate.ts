@@ -1,7 +1,7 @@
 // Context-engine delegates bridge custom engines to built-in compaction and memory prompt paths.
 import path from "node:path";
-import { normalizeStructuredPromptSection } from "@openclaw/ai/internal/shared";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeStructuredPromptSection } from "@openclaw/ai/internal/shared";
 import { parseSqliteSessionFileMarker } from "../config/sessions/legacy-sqlite-marker.js";
 import { listSessionEntries, loadSessionEntry } from "../config/sessions/session-accessor.js";
 import {
@@ -152,8 +152,8 @@ export async function delegateCompactionToRuntime(
 ): Promise<CompactResult> {
   // Load through the dedicated runtime boundary without introducing another
   // source-level static edge into the embedded runner graph.
-  const { compactEmbeddedAgentSessionDirect } = await loadCompactRuntime();
-  type RuntimeCompactionParams = Parameters<typeof compactEmbeddedAgentSessionDirect>[0];
+  const { compactEmbeddedAgentSessionOnDemand } = await loadCompactRuntime();
+  type RuntimeCompactionParams = Parameters<typeof compactEmbeddedAgentSessionOnDemand>[0];
 
   // runtimeContext carries host-resolved runtime fields set by internal
   // callers. Keep the public delegate keyed by session identity, not by the
@@ -172,7 +172,7 @@ export async function delegateCompactionToRuntime(
       ? Math.floor(runtimeContext.currentTokenCount)
       : undefined);
 
-  const result = await compactEmbeddedAgentSessionDirect({
+  const result = await compactEmbeddedAgentSessionOnDemand({
     ...runtimeContextParams,
     ...(agentId ? { agentId } : {}),
     sessionId: params.sessionId,
