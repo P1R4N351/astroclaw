@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
-import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
+import type { EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
 import {
   embeddedAgentLog,
   supportsModelTools,
