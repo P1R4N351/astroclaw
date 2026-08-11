@@ -1,5 +1,5 @@
 // Whatsapp tests cover inbound dispatch plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createTestWebInboundMessage } from "../../inbound/test-message.test-helper.js";
 
@@ -35,6 +35,7 @@ type CapturedDispatchParams = {
 const {
   dispatchReplyWithBufferedBlockDispatcherMock,
   deliverInboundReplyWithMessageSendContextMock,
+  readAgentRunTerminalOutcomeMock,
   sourceReplyDeliveryModeContexts,
 } = vi.hoisted(() => ({
   dispatchReplyWithBufferedBlockDispatcherMock: vi.fn(async (params: CapturedDispatchParams) => {
@@ -44,11 +45,20 @@ const {
   deliverInboundReplyWithMessageSendContextMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(
     async () => null,
   ),
+  readAgentRunTerminalOutcomeMock: vi.fn(),
   sourceReplyDeliveryModeContexts: [] as unknown[],
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
+vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
+  return {
+    ...actual,
+    readAgentRunTerminalOutcome: readAgentRunTerminalOutcomeMock,
+  };
+});
+
+vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     deliverInboundReplyWithMessageSendContext: deliverInboundReplyWithMessageSendContextMock,
@@ -701,6 +711,7 @@ describe("whatsapp inbound dispatch", () => {
     capturedDispatchParams = undefined;
     sourceReplyDeliveryModeContexts.length = 0;
     dispatchReplyWithBufferedBlockDispatcherMock.mockClear();
+    readAgentRunTerminalOutcomeMock.mockReset().mockReturnValue(undefined);
     deliverInboundReplyWithMessageSendContextMock.mockReset();
     deliverInboundReplyWithMessageSendContextMock.mockResolvedValue({
       status: "unsupported",
@@ -1886,6 +1897,52 @@ describe("whatsapp inbound dispatch", () => {
 
     expect(deliverReply).not.toHaveBeenCalled();
     expect(rememberSentText).not.toHaveBeenCalled();
+  });
+
+  it("keeps visible delivery successful while marking a failed agent run as an error", async () => {
+    const deliverReply = vi.fn(async () => acceptedDeliveryResult());
+    const rememberSentText = vi.fn();
+    const statusReactionController = {
+      setQueued: vi.fn(),
+      setThinking: vi.fn(),
+      setTool: vi.fn(),
+      setCompacting: vi.fn(),
+      cancelPending: vi.fn(),
+      setDone: vi.fn(async () => undefined),
+      setError: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined),
+      restoreInitial: vi.fn(async () => undefined),
+    };
+    readAgentRunTerminalOutcomeMock.mockReturnValueOnce("failed");
+    dispatchReplyWithBufferedBlockDispatcherMock.mockImplementationOnce(
+      async (params: CapturedDispatchParams) => {
+        capturedDispatchParams = params;
+        await params.dispatcherOptions?.deliver?.({ text: "visible failure" }, { kind: "final" });
+        return {
+          queuedFinal: false,
+          counts: { tool: 0, block: 0, final: 1 },
+        };
+      },
+    );
+
+    await expect(
+      dispatchBufferedReply({
+        deliverReply,
+        rememberSentText,
+        statusReactionController,
+      }),
+    ).resolves.toBe(true);
+    await vi.waitFor(() => {
+      expect(statusReactionController.restoreInitial).toHaveBeenCalledTimes(1);
+    });
+
+    expect(deliverReply).toHaveBeenCalledTimes(1);
+    expect(rememberSentText).toHaveBeenCalledTimes(1);
+    expect(statusReactionController.setError).toHaveBeenCalledTimes(1);
+    expect(statusReactionController.setDone).not.toHaveBeenCalled();
+    expect(statusReactionController.setError.mock.invocationCallOrder[0]).toBeLessThan(
+      statusReactionController.restoreInitial.mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
   it("does not treat generated WhatsApp text as sent when the provider did not accept it", async () => {
