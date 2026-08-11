@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
-import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
+import type { EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
 import { classifyEmbeddedAgentRunResultForModelFallback } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   createContractRunResult,
