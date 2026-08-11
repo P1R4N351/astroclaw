@@ -483,6 +483,16 @@ export const sharedVitestConfig = {
         ),
       },
       {
+        find: "@astroclaw/normalization-core/promise-like",
+        replacement: path.join(
+          repoRoot,
+          "packages",
+          "normalization-core",
+          "src",
+          "promise-like.ts",
+        ),
+      },
+      {
         find: "@astroclaw/normalization-core/record-coerce",
         replacement: path.join(
           repoRoot,
