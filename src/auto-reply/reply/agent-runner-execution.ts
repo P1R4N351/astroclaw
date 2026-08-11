@@ -4,17 +4,18 @@ import {
   hasNonEmptyString,
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
-import { hasOutboundReplyContent } from "openclaw/plugin-sdk/reply-payload";
+import { hasOutboundReplyContent } from "astroclaw/plugin-sdk/reply-payload";
 import type { ChatRunStartupPhase } from "../../../packages/gateway-protocol/src/index.js";
 import { peekSessionMcpRuntime } from "../../agents/agent-bundle-mcp-manager-api.js";
 import { resolveBootstrapWarningSignaturesSeen } from "../../agents/bootstrap-budget.js";
 import {
-  formatRateLimitOrOverloadedErrorCopy,
+  classifyFailoverReason,
   isContextOverflowError,
 } from "../../agents/embedded-agent-helpers.js";
 import type { EmbeddedAgentExecutionPhase } from "../../agents/embedded-agent-runner/execution-phase.js";
 import type { RunEmbeddedAgentParams } from "../../agents/embedded-agent-runner/run/params.js";
 import { runEmbeddedAgent } from "../../agents/embedded-agent.js";
+import { renderRateLimitOrOverloadedCopy } from "../../agents/failover/user-copy.js";
 import { LiveSessionModelSwitchError } from "../../agents/live-model-switch-error.js";
 import { leaseMcpAppModelContextForTurn } from "../../agents/mcp-app-model-context.js";
 import { isAgentRunRestartAbortReason } from "../../agents/run-termination.js";
@@ -421,9 +422,11 @@ async function executeAgentTurnInternalWithRetryState(
           (p) => p.isError && hasNonEmptyString(p.text) && !p.text.startsWith("⚠️"),
         )?.text ?? "";
       const errorCandidate = metaErrorMsg || rawErrorPayloadText;
-      const formattedErrorCandidate = errorCandidate
-        ? formatRateLimitOrOverloadedErrorCopy(errorCandidate)
-        : undefined;
+      const candidateReason = errorCandidate ? classifyFailoverReason(errorCandidate) : null;
+      const formattedErrorCandidate =
+        candidateReason === "rate_limit" || candidateReason === "overloaded"
+          ? renderRateLimitOrOverloadedCopy({ reason: candidateReason, raw: errorCandidate })
+          : undefined;
       if (formattedErrorCandidate) {
         runResult.payloads = [
           markAgentRunFailureReplyPayload({
