@@ -1,19 +1,20 @@
 // Whatsapp plugin module implements inbound dispatch behavior.
-import type { StatusReactionController } from "astroclaw/plugin-sdk/channel-feedback";
+import type { StatusReactionController } from "openclaw/plugin-sdk/channel-feedback";
 import {
   createChannelPartialDeliveryError,
   isChannelPartialDeliveryError,
+  readAgentRunTerminalOutcome,
   type ChannelInboundTurnPlan,
   toInboundMediaFactsWithMetadata,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { hasVisibleInboundReplyDispatch } from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { hasVisibleInboundReplyDispatch } from "openclaw/plugin-sdk/channel-inbound";
 import {
   listMessageReceiptPlatformIds,
   resolveChannelStreamingBlockEnabled,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { buildInboundHistoryFromEntries } from "astroclaw/plugin-sdk/reply-history";
-import type { FinalizedMsgContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { buildInboundHistoryFromEntries } from "openclaw/plugin-sdk/reply-history";
+import type { FinalizedMsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { requireWhatsAppInboundAdmission } from "../../inbound/admission.js";
 import type { AdmittedWebInboundMessage } from "../../inbound/types.js";
 import {
@@ -922,7 +923,10 @@ export function createWhatsAppReplyPlan(params: {
       if (statusReactionController) {
         void finalizeWhatsAppStatusReaction({
           controller: statusReactionController,
-          outcome: didDeliverVisibleReply ? "done" : "error",
+          outcome:
+            readAgentRunTerminalOutcome(dispatchResult) === "failed" || !didDeliverVisibleReply
+              ? "error"
+              : "done",
         });
       }
       if (params.shouldClearGroupHistory) {
