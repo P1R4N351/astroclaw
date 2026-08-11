@@ -1,4 +1,4 @@
-import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { isIncognitoSessionKey } from "../incognito-session.js";
 import { closeCodexStartupClientBestEffort } from "./attempt-client-cleanup.js";
 import { resolveCodexAppServerClientInstanceId } from "./client.js";
@@ -502,18 +502,23 @@ export async function startOrResumeThread(
       });
       if (
         !pluginBindingStale &&
-        shouldRecheckRecoverablePluginBinding({
-          binding,
-          pluginThreadConfig: params.pluginThreadConfig,
-        })
+        (params.pluginThreadConfig?.requiresCurrentPolicyCheck ||
+          shouldRecheckRecoverablePluginBinding({
+            binding,
+            pluginThreadConfig: params.pluginThreadConfig,
+          }))
       ) {
         try {
+          const bindingThreadId = binding.threadId;
           prebuiltPluginThreadConfig = await lifecycleTiming.measure("plugin-config-recovery", () =>
-            params.pluginThreadConfig?.build(),
+            params.pluginThreadConfig?.build({ threadId: bindingThreadId }),
           );
           pluginBindingStale =
             prebuiltPluginThreadConfig?.fingerprint !== binding.pluginAppsFingerprint;
         } catch (error) {
+          if (params.pluginThreadConfig?.requiresCurrentPolicyCheck) {
+            throw error;
+          }
           embeddedAgentLog.warn("codex app-server plugin app config recovery check failed", {
             error,
             threadId: binding.threadId,
@@ -654,6 +659,7 @@ export async function startOrResumeThread(
           throwIfAborted,
           clearCurrentBinding,
           prebuiltFinalConfigPatch: warmReuse.prebuiltFinalConfigPatch,
+          prebuiltPluginThreadConfig,
         });
         if (resumed) {
           return resumed;
