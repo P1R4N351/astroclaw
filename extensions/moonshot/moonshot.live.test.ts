@@ -1,13 +1,14 @@
 // Moonshot tests cover moonshot plugin behavior.
+import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import {
   streamSimple,
   type AssistantMessage,
   type Context,
   type Model,
   type Tool,
-} from "openclaw/plugin-sdk/llm";
-import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { isLiveTestEnabled } from "openclaw/plugin-sdk/test-live";
+} from "astroclaw/plugin-sdk/llm";
+import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { isLiveTestEnabled } from "astroclaw/plugin-sdk/test-live";
 import { Type } from "typebox";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
@@ -438,17 +439,3 @@ describeModelLive("moonshot K3 live", () => {
     throw toLintErrorObject(lastAuthError, "Moonshot K3 rejected the API key in both regions");
   }, 180_000);
 });
-
-function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
-  if (value instanceof Error) {
-    return value;
-  }
-  if (typeof value === "string") {
-    return new Error(value);
-  }
-  const error = new Error(fallbackMessage, { cause: value });
-  if ((typeof value === "object" && value !== null) || typeof value === "function") {
-    Object.assign(error, value);
-  }
-  return error;
-}
