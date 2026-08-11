@@ -239,7 +239,7 @@ function shouldNeverBundleDeclarationDependency(id: string): boolean {
 
 function shouldAlwaysBundleDependency(id: string): boolean {
   return (
-    id === "openclaw/plugin-sdk/ssrf-runtime-internal" ||
+    id === "astroclaw/plugin-sdk/ssrf-runtime-internal" ||
     id === "@openclaw/fs-safe" ||
     id.startsWith("@openclaw/fs-safe/") ||
     id === "@astroclaw/normalization-core" ||
@@ -310,7 +310,7 @@ function buildCoreDistEntries(): Record<string, string> {
     "plugins/hook-runner-global": "src/plugins/hook-runner-global.ts",
     "plugins/memory-state": "src/plugins/memory-state.ts",
     "plugins/synthetic-auth.runtime": "src/plugins/synthetic-auth.runtime.ts",
-    "subagent-registry.runtime": "src/agents/subagent-registry.runtime.ts",
+    "subagent-registry.runtime": "src/agents/subagents/registry/subagent-registry.runtime.ts",
     "task-registry-control.runtime": "src/tasks/task-registry-control.runtime.ts",
     "link-understanding/apply.runtime": "src/link-understanding/apply.runtime.ts",
     "media-understanding/apply.runtime": "src/media-understanding/apply.runtime.ts",
