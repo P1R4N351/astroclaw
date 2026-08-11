@@ -1,7 +1,7 @@
 /** Tests live model switching behavior in active agent command sessions. */
 
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../config/sessions.js";
 import { createUserTurnTranscriptRecorder } from "../sessions/user-turn-transcript.js";
@@ -240,7 +240,7 @@ vi.mock("./command/types.js", () => ({}));
 
 // Recovery ownership has dedicated store-backed coverage. This command suite
 // uses an intentionally synthetic session resolver with no durable store path.
-vi.mock("./main-session-recovery-store.js", () => ({
+vi.mock("./main-session-recovery/main-session-recovery-store.js", () => ({
   claimMainSessionRecoveryOwner: vi.fn(async () => ({ kind: "not_required" })),
   inspectMainSessionRecoveryRequired: vi.fn(async () => ({ kind: "not_required" })),
   releaseMainSessionRecoveryOwner: vi.fn(async () => undefined),
