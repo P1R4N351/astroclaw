@@ -8,7 +8,7 @@ import type {
   PromptResponse,
   StopReason,
 } from "@agentclientprotocol/sdk";
-import { readBool, readNonNegativeInteger, readString } from "@astroclaw/acp-core/meta";
+import { readBool, readMetadataString, readNonNegativeInteger } from "@astroclaw/acp-core/meta";
 import type { AcpSessionStore } from "@astroclaw/acp-core/session";
 import type { AcpServerOptions } from "@astroclaw/acp-core/types";
 import { normalizeLowercaseStringOrEmpty as normalizedChatSendAckStatus } from "@astroclaw/normalization-core/string-coerce";
@@ -192,7 +192,7 @@ export class AcpTranslatorPromptStream {
       message,
       attachments: attachments.length > 0 ? attachments : undefined,
       idempotencyKey: runId,
-      thinking: readString(params["_meta"], ["thinking", "thinkingLevel"]),
+      thinking: readMetadataString(params["_meta"], ["thinking", "thinkingLevel"]),
       deliver: readBool(params["_meta"], ["deliver"]),
       timeoutMs: readNonNegativeInteger(params["_meta"], ["timeoutMs"]),
     };
