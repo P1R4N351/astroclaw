@@ -1,3 +1,4 @@
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "../../lib/string-coerce.ts";
 
 export type DraftBranches = {
@@ -37,6 +38,9 @@ export function readDraftNodes(value: unknown): DraftNode[] {
   const rawNodes = Array.isArray(value) ? value : [];
   return rawNodes
     .flatMap((raw) => {
+      if (!isRecord(raw)) {
+        return [];
+      }
       const node = raw as {
         nodeId?: unknown;
         displayName?: unknown;
