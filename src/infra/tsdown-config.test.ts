@@ -1,7 +1,7 @@
 // Covers bundling rules encoded in the root tsdown config.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { bundledPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import tsdownConfig, {
   createStateSchemaInlinePlugin,
@@ -302,7 +302,6 @@ describe("tsdown config", () => {
       expect(neverBundle("@vitest/expect")).toBe(true);
       expect(neverBundle("jimp")).toBe(true);
       expect(neverBundle("matrix-js-sdk/lib/client.js")).toBe(true);
-      expect(neverBundle("qrcode-terminal/lib/main.js")).toBe(true);
       expect(neverBundle("sharp")).toBe(true);
       expect(neverBundle("vitest")).toBe(true);
       expect(neverBundle("not-a-runtime-dependency")).toBe(false);
@@ -317,7 +316,6 @@ describe("tsdown config", () => {
         "@vitest/expect",
         "jimp",
         "matrix-js-sdk",
-        "qrcode-terminal",
         "sharp",
         "vitest",
       ]) {
@@ -329,7 +327,6 @@ describe("tsdown config", () => {
     }
     const externalize = external;
     expect(externalize("jimp", undefined, false)).toBe(true);
-    expect(externalize("qrcode-terminal/lib/main.js", undefined, false)).toBe(true);
     expect(externalize("sharp", undefined, false)).toBe(true);
   });
 
@@ -343,8 +340,8 @@ describe("tsdown config", () => {
 
     expect(alwaysBundle("@openclaw/fs-safe")).toBe(true);
     expect(alwaysBundle("@openclaw/fs-safe/path")).toBe(true);
-    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
-    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime")).toBe(false);
+    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
+    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime")).toBe(false);
     expect(alwaysBundle("zod")).toBe(true);
     expect(alwaysBundle("zod/v4/core")).toBe(true);
     expect(alwaysBundle("not-a-runtime-dependency")).toBe(false);
