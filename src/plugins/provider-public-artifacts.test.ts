@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelProviderConfig } from "../config/types.models.js";
 import { resolveDirectBundledProviderPolicySurface } from "./provider-policy-surface.js";
@@ -418,7 +418,7 @@ describe("provider public artifacts", () => {
       const actual = await importOriginal<typeof import("./manifest-registry.js")>();
       return {
         ...actual,
-        loadPluginManifestRegistry,
+        loadPluginManifestRegistryCore: loadPluginManifestRegistry,
       };
     });
     vi.doMock("./public-surface-loader.js", () => ({
@@ -479,7 +479,7 @@ describe("provider public artifacts", () => {
       const actual = await importOriginal<typeof import("./manifest-registry.js")>();
       return {
         ...actual,
-        loadPluginManifestRegistry,
+        loadPluginManifestRegistryCore: loadPluginManifestRegistry,
       };
     });
     vi.doMock("./public-surface-loader.js", () => ({
@@ -604,7 +604,7 @@ describe("provider public artifacts", () => {
       const actual = await importOriginal<typeof import("./manifest-registry.js")>();
       return {
         ...actual,
-        loadPluginManifestRegistry,
+        loadPluginManifestRegistryCore: loadPluginManifestRegistry,
       };
     });
     vi.doMock("./public-surface-loader.js", () => ({
