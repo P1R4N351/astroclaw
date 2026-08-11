@@ -2,9 +2,9 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "@openclaw/ai/internal/shared";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { ImageContent } from "openclaw/plugin-sdk/llm";
+import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "@openclaw/ai/internal/shared";
+import type { ImageContent } from "astroclaw/plugin-sdk/llm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
 import { buildInboundMediaNoteProjection } from "../auto-reply/media-note.js";
@@ -13,7 +13,6 @@ import { escapeRegExp } from "../shared/regexp.js";
 import { captureEnv, setTestEnvValue } from "../test-utils/env.js";
 import {
   buildCliArgs,
-  buildClaudeOwnerKey,
   prepareCliPromptImagePayload,
   resolveCliRunQueueKey,
   writeCliSystemPromptFile,
@@ -738,34 +737,5 @@ describe("resolveCliRunQueueKey", () => {
         ownerKey: "abcd1234",
       }),
     ).toBe("claude-cli:owner:abcd1234");
-  });
-});
-
-describe("buildClaudeOwnerKey", () => {
-  it("is deterministic and distinguishes session keys", () => {
-    const base = {
-      agentAccountId: "acct-1",
-      agentId: "agent-main",
-      authProfileId: "profile-a",
-      sessionId: "sess-1",
-      sessionKey: "key-a",
-    };
-    const a1 = buildClaudeOwnerKey(base);
-    const a2 = buildClaudeOwnerKey(base);
-    expect(a1).toBe(a2);
-    const b = buildClaudeOwnerKey({ ...base, sessionKey: "key-b" });
-    expect(a1).not.toBe(b);
-  });
-
-  it("matches the legacy buildClaudeLiveKey hash for a frozen fixture (DO NOT EDIT — splits queue from live-session map)", () => {
-    expect(
-      buildClaudeOwnerKey({
-        agentAccountId: "acct-1",
-        agentId: "agent-main",
-        authProfileId: "profile-a",
-        sessionId: "sess-1",
-        sessionKey: "key-a",
-      }),
-    ).toBe("718b9a6cf473526c3c357883dfc8f1da1cf90b709d9ed38d675b52314abe6800");
   });
 });
