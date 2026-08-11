@@ -1,10 +1,10 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import { hasOutboundReplyContent } from "openclaw/plugin-sdk/reply-payload";
+import { hasOutboundReplyContent } from "astroclaw/plugin-sdk/reply-payload";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { appendCronStyleCurrentTimeLine } from "../agents/current-time.js";
 import { resolveEmbeddedSessionLane } from "../agents/embedded-agent-runner/lanes.js";
 import { listActiveEmbeddedRunSessionKeys } from "../agents/embedded-agent-runner/run-state.js";
-import { transitionMainSessionRecovery } from "../agents/main-session-recovery-state.js";
+import { transitionMainSessionRecovery } from "../agents/main-session-recovery/main-session-recovery-state.js";
 import {
   resolveHeartbeatReplyPayload,
   resolveHeartbeatTerminalToolFailure,
