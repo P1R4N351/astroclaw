@@ -4,12 +4,12 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { bundledPluginFile, getBundledPluginRoots } from "./test-helpers/bundled-plugin-roots.js";
+import { contractPluginPath, getBundledPluginRoots } from "./test-helpers/bundled-plugin-roots.js";
 
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 function runtimeApiPluginFile(pluginId: string): string {
-  return bundledPluginFile({ rootDir: ROOT_DIR, pluginId, relativePath: "runtime-api.ts" });
+  return contractPluginPath({ rootDir: ROOT_DIR, pluginId, relativePath: "runtime-api.ts" });
 }
 
 const UNGUARDED_RUNTIME_API_PLUGIN_IDS = [
@@ -43,7 +43,7 @@ const UNGUARDED_RUNTIME_API_PLUGIN_IDS = [
 ] as const;
 
 const RUNTIME_API_EXPORT_GUARDS: Record<string, readonly string[]> = {
-  [bundledPluginFile({
+  [contractPluginPath({
     rootDir: ROOT_DIR,
     pluginId: "diagnostics-otel",
     relativePath: "runtime-api.ts",
@@ -51,23 +51,24 @@ const RUNTIME_API_EXPORT_GUARDS: Record<string, readonly string[]> = {
     'export { createDiagnosticsOtelService } from "./src/service.js";',
     'export type { OpenClawPluginServiceContext } from "./api.js";',
   ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "discord", relativePath: "runtime-api.ts" })]: [
-    'export { discordMessageActions, handleDiscordAction, isDiscordModerationAction, readDiscordChannelCreateParams, readDiscordChannelEditParams, readDiscordChannelMoveParams, readDiscordModerationCommand, readDiscordParentIdParam, requiredGuildPermissionForModerationAction, type DiscordModerationAction, type DiscordModerationCommand } from "./runtime-api.actions.js";',
-    'export { auditDiscordChannelPermissions, collectDiscordAuditChannelIds, fetchDiscordApplicationId, fetchDiscordApplicationSummary, listDiscordDirectoryGroupsLive, listDiscordDirectoryPeersLive, parseApplicationIdFromToken, probeDiscord, resolveDiscordChannelAllowlist, resolveDiscordPrivilegedIntentsFromFlags, resolveDiscordUserAllowlist, setDiscordRuntime, type DiscordApplicationSummary, type DiscordChannelResolution, type DiscordPrivilegedIntentsSummary, type DiscordPrivilegedIntentStatus, type DiscordProbe, type DiscordUserResolution } from "./runtime-api.lookup.js";',
-    'export { DISCORD_ATTACHMENT_IDLE_TIMEOUT_MS, DISCORD_ATTACHMENT_TOTAL_TIMEOUT_MS, DISCORD_DEFAULT_INBOUND_WORKER_TIMEOUT_MS, DISCORD_DEFAULT_LISTENER_TIMEOUT_MS, allowListMatches, clearGateways, clearPresences, createDiscordGatewayPlugin, createDiscordMessageHandler, createDiscordNativeCommand, getGateway, getPresence, isAbortError, isDiscordGroupAllowedByPolicy, monitorDiscordProvider, normalizeDiscordAllowList, normalizeDiscordInboundWorkerTimeoutMs, normalizeDiscordListenerTimeoutMs, normalizeDiscordSlug, presenceCacheSize, registerDiscordListener, registerGateway, resolveDiscordChannelConfig, resolveDiscordChannelConfigWithFallback, resolveDiscordCommandAuthorized, resolveDiscordGatewayIntents, resolveDiscordGuildEntry, resolveDiscordReplyTarget, resolveDiscordShouldRequireMention, resolveGroupDmAllow, runDiscordTaskWithTimeout, sanitizeDiscordThreadName, setPresence, shouldEmitDiscordReactionNotification, unregisterGateway, waitForDiscordGatewayPluginRegistration, type DiscordAllowList, type DiscordChannelConfigResolved, type DiscordGuildEntryResolved, type DiscordMessageEvent, type DiscordMessageHandler, type MonitorDiscordOpts } from "./runtime-api.monitor.js";',
-    'export { DiscordSendError, addRoleDiscord, banMemberDiscord, createChannelDiscord, createScheduledEventDiscord, createThreadDiscord, deleteChannelDiscord, deleteMessageDiscord, editChannelDiscord, editDiscordComponentMessage, editMessageDiscord, fetchChannelInfoDiscord, fetchChannelPermissionsDiscord, fetchMemberGuildPermissionsDiscord, fetchMemberInfoDiscord, fetchMessageDiscord, fetchReactionsDiscord, fetchRoleInfoDiscord, fetchVoiceStatusDiscord, hasAllGuildPermissionsDiscord, hasAnyGuildPermissionDiscord, kickMemberDiscord, listGuildChannelsDiscord, listGuildEmojisDiscord, listPinsDiscord, listScheduledEventsDiscord, listThreadsDiscord, moveChannelDiscord, pinMessageDiscord, reactMessageDiscord, readMessagesDiscord, registerBuiltDiscordComponentMessage, removeChannelPermissionDiscord, removeOwnReactionsDiscord, removeReactionDiscord, removeRoleDiscord, resolveDiscordOutboundSessionRoute, resolveEventCoverImage, searchMessagesDiscord, sendDiscordComponentMessage, sendMessageDiscord, sendPollDiscord, sendStickerDiscord, sendTypingDiscord, sendVoiceMessageDiscord, sendWebhookMessageDiscord, setChannelPermissionDiscord, timeoutMemberDiscord, unpinMessageDiscord, uploadEmojiDiscord, uploadStickerDiscord, type DiscordChannelCreate, type DiscordChannelEdit, type DiscordChannelMove, type DiscordChannelPermissionSet, type DiscordEmojiUpload, type DiscordMessageEdit, type DiscordMessageQuery, type DiscordModerationTarget, type DiscordPermissionsSummary, type DiscordReactionRuntimeContext, type DiscordReactionSummary, type DiscordReactionUser, type DiscordReactOpts, type DiscordRoleChange, type DiscordRuntimeAccountContext, type DiscordSearchQuery, type DiscordSendResult, type DiscordStickerUpload, type DiscordThreadCreate, type DiscordThreadList, type DiscordTimeoutTarget, type ResolveDiscordOutboundSessionRouteParams } from "./runtime-api.send.js";',
-    'export { testing as __testing, testing, autoBindSpawnedDiscordSubagent, createNoopThreadBindingManager, createThreadBindingManager, formatThreadBindingDurationLabel, getThreadBindingManager, listThreadBindingsBySessionKey, listThreadBindingsForAccount, reconcileAcpThreadBindingsOnStartup, resolveDiscordThreadBindingIdleTimeoutMs, resolveDiscordThreadBindingMaxAgeMs, resolveThreadBindingIdleTimeoutMs, resolveThreadBindingInactivityExpiresAt, resolveThreadBindingIntroText, resolveThreadBindingMaxAgeExpiresAt, resolveThreadBindingMaxAgeMs, resolveThreadBindingPersona, resolveThreadBindingPersonaFromRecord, resolveThreadBindingsEnabled, resolveThreadBindingThreadName, setThreadBindingIdleTimeoutBySessionKey, setThreadBindingMaxAgeBySessionKey, unbindThreadBindingsBySessionKey, type AcpThreadBindingReconciliationResult, type ThreadBindingManager, type ThreadBindingRecord, type ThreadBindingTargetKind } from "./runtime-api.threads.js";',
-  ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "imessage", relativePath: "runtime-api.ts" })]:
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "discord", relativePath: "runtime-api.ts" })]:
     [
-      'export { DEFAULT_ACCOUNT_ID, getChatChannelMeta, type ChannelPlugin } from "astroclaw/plugin-sdk/core";',
+      'export { discordMessageActions, handleDiscordAction, isDiscordModerationAction, readDiscordChannelCreateParams, readDiscordChannelEditParams, readDiscordChannelMoveParams, readDiscordModerationCommand, readDiscordParentIdParam, requiredGuildPermissionForModerationAction, type DiscordModerationAction, type DiscordModerationCommand } from "./runtime-api.actions.js";',
+      'export { auditDiscordChannelPermissions, collectDiscordAuditChannelIds, fetchDiscordApplicationId, fetchDiscordApplicationSummary, listDiscordDirectoryGroupsLive, listDiscordDirectoryPeersLive, parseApplicationIdFromToken, probeDiscord, resolveDiscordChannelAllowlist, resolveDiscordPrivilegedIntentsFromFlags, resolveDiscordUserAllowlist, setDiscordRuntime, type DiscordApplicationSummary, type DiscordChannelResolution, type DiscordPrivilegedIntentsSummary, type DiscordPrivilegedIntentStatus, type DiscordProbe, type DiscordUserResolution } from "./runtime-api.lookup.js";',
+      'export { DISCORD_ATTACHMENT_IDLE_TIMEOUT_MS, DISCORD_ATTACHMENT_TOTAL_TIMEOUT_MS, DISCORD_DEFAULT_INBOUND_WORKER_TIMEOUT_MS, DISCORD_DEFAULT_LISTENER_TIMEOUT_MS, allowListMatches, clearGateways, clearPresences, createDiscordGatewayPlugin, createDiscordMessageHandler, createDiscordNativeCommand, getGateway, getPresence, isAbortError, isDiscordGroupAllowedByPolicy, monitorDiscordProvider, normalizeDiscordAllowList, normalizeDiscordInboundWorkerTimeoutMs, normalizeDiscordListenerTimeoutMs, normalizeDiscordSlug, presenceCacheSize, registerDiscordListener, registerGateway, resolveDiscordChannelConfig, resolveDiscordChannelConfigWithFallback, resolveDiscordCommandAuthorized, resolveDiscordGatewayIntents, resolveDiscordGuildEntry, resolveDiscordReplyTarget, resolveDiscordShouldRequireMention, resolveGroupDmAllow, runDiscordTaskWithTimeout, sanitizeDiscordThreadName, setPresence, shouldEmitDiscordReactionNotification, unregisterGateway, waitForDiscordGatewayPluginRegistration, type DiscordAllowList, type DiscordChannelConfigResolved, type DiscordGuildEntryResolved, type DiscordMessageEvent, type DiscordMessageHandler, type MonitorDiscordOpts } from "./runtime-api.monitor.js";',
+      'export { DiscordSendError, addRoleDiscord, banMemberDiscord, createChannelDiscord, createScheduledEventDiscord, createThreadDiscord, deleteChannelDiscord, deleteMessageDiscord, editChannelDiscord, editDiscordComponentMessage, editMessageDiscord, fetchChannelInfoDiscord, fetchChannelPermissionsDiscord, fetchMemberGuildPermissionsDiscord, fetchMemberInfoDiscord, fetchMessageDiscord, fetchReactionsDiscord, fetchRoleInfoDiscord, fetchVoiceStatusDiscord, hasAllGuildPermissionsDiscord, hasAnyGuildPermissionDiscord, kickMemberDiscord, listGuildChannelsDiscord, listGuildEmojisDiscord, listPinsDiscord, listScheduledEventsDiscord, listThreadsDiscord, moveChannelDiscord, pinMessageDiscord, reactMessageDiscord, readMessagesDiscord, registerBuiltDiscordComponentMessage, removeChannelPermissionDiscord, removeOwnReactionsDiscord, removeReactionDiscord, removeRoleDiscord, resolveDiscordOutboundSessionRoute, resolveEventCoverImage, searchMessagesDiscord, sendDiscordComponentMessage, sendMessageDiscord, sendPollDiscord, sendStickerDiscord, sendTypingDiscord, sendVoiceMessageDiscord, sendWebhookMessageDiscord, setChannelPermissionDiscord, timeoutMemberDiscord, unpinMessageDiscord, uploadEmojiDiscord, uploadStickerDiscord, type DiscordChannelCreate, type DiscordChannelEdit, type DiscordChannelMove, type DiscordChannelPermissionSet, type DiscordEmojiUpload, type DiscordMessageEdit, type DiscordMessageQuery, type DiscordModerationTarget, type DiscordPermissionsSummary, type DiscordReactionRuntimeContext, type DiscordReactionSummary, type DiscordReactionUser, type DiscordReactOpts, type DiscordRoleChange, type DiscordRuntimeAccountContext, type DiscordSearchQuery, type DiscordSendResult, type DiscordStickerUpload, type DiscordThreadCreate, type DiscordThreadList, type DiscordTimeoutTarget, type ResolveDiscordOutboundSessionRouteParams } from "./runtime-api.send.js";',
+      'export { testing as __testing, testing, autoBindSpawnedDiscordSubagent, createNoopThreadBindingManager, createThreadBindingManager, formatThreadBindingDurationLabel, getThreadBindingManager, listThreadBindingsBySessionKey, listThreadBindingsForAccount, reconcileAcpThreadBindingsOnStartup, resolveDiscordThreadBindingIdleTimeoutMs, resolveDiscordThreadBindingMaxAgeMs, resolveThreadBindingIdleTimeoutMs, resolveThreadBindingInactivityExpiresAt, resolveThreadBindingIntroText, resolveThreadBindingMaxAgeExpiresAt, resolveThreadBindingMaxAgeMs, resolveThreadBindingPersona, resolveThreadBindingPersonaFromRecord, resolveThreadBindingsEnabled, resolveThreadBindingThreadName, setThreadBindingIdleTimeoutBySessionKey, setThreadBindingMaxAgeBySessionKey, unbindThreadBindingsBySessionKey, type AcpThreadBindingReconciliationResult, type ThreadBindingManager, type ThreadBindingRecord, type ThreadBindingTargetKind } from "./runtime-api.threads.js";',
+    ],
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "imessage", relativePath: "runtime-api.ts" })]:
+    [
+      'export { DEFAULT_ACCOUNT_ID, getChatChannelMeta, type ChannelPlugin } from "openclaw/plugin-sdk/core";',
       'export { buildChannelConfigSchema, IMessageConfigSchema } from "./config-api.js";',
-      'export { PAIRING_APPROVED_MESSAGE } from "astroclaw/plugin-sdk/channel-status";',
-      'export { buildComputedAccountStatusSnapshot, collectStatusIssuesFromLastError } from "astroclaw/plugin-sdk/status-helpers";',
-      'export { formatTrimmedAllowFromEntries } from "astroclaw/plugin-sdk/channel-config-helpers";',
+      'export { PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk/channel-status";',
+      'export { buildComputedAccountStatusSnapshot, collectStatusIssuesFromLastError } from "openclaw/plugin-sdk/status-helpers";',
+      'export { formatTrimmedAllowFromEntries } from "openclaw/plugin-sdk/channel-config-helpers";',
       'export { resolveIMessageConfigAllowFrom, resolveIMessageConfigDefaultTo } from "./src/config-accessors.js";',
       'export { looksLikeIMessageTargetId, normalizeIMessageMessagingTarget } from "./src/normalize.js";',
-      'export { resolveChannelMediaMaxBytes } from "astroclaw/plugin-sdk/media-runtime";',
+      'export { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";',
       'export { resolveIMessageGroupRequireMention, resolveIMessageGroupToolPolicy } from "./src/group-policy.js";',
       'export { monitorIMessageProvider } from "./src/monitor.js";',
       'export type { MonitorIMessageOpts } from "./src/monitor.js";',
@@ -79,116 +80,117 @@ const RUNTIME_API_EXPORT_GUARDS: Record<string, readonly string[]> = {
       'export { chunkTextForOutbound } from "./src/channel-api.js";',
       'export type IMessageAccountConfig = Omit< NonNullable<NonNullable<RuntimeApiOpenClawConfig["channels"]>["imessage"]>, "accounts" | "defaultAccount" >;',
     ],
-  [bundledPluginFile({
+  [contractPluginPath({
     rootDir: ROOT_DIR,
     pluginId: "googlechat",
     relativePath: "runtime-api.ts",
   })]: [
-    'export { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";',
-    'export { createActionGate, jsonResult, readNumberParam, readReactionParams, readStringParam } from "astroclaw/plugin-sdk/channel-actions";',
+    'export { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";',
+    'export { createActionGate, jsonResult, readNumberParam, readReactionParams, readStringParam } from "openclaw/plugin-sdk/channel-actions";',
     'export { buildChannelConfigSchema, GoogleChatConfigSchema } from "./config-api.js";',
-    'export type { ChannelMessageActionAdapter, ChannelMessageActionName, ChannelStatusIssue } from "astroclaw/plugin-sdk/channel-contract";',
-    'export { missingTargetError } from "astroclaw/plugin-sdk/channel-feedback";',
-    'export { createAccountStatusSink, runPassiveAccountLifecycle } from "astroclaw/plugin-sdk/channel-outbound";',
-    'export { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";',
-    'export { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-outbound";',
-    'export { PAIRING_APPROVED_MESSAGE } from "astroclaw/plugin-sdk/channel-status";',
-    'export { chunkTextForOutbound } from "astroclaw/plugin-sdk/text-chunking";',
-    'export type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";',
-    'export { GROUP_POLICY_BLOCKED_LABEL, resolveAllowlistProviderRuntimeGroupPolicy, resolveDefaultGroupPolicy, warnMissingProviderGroupPolicyFallbackOnce } from "astroclaw/plugin-sdk/runtime-group-policy";',
-    'export { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";',
-    'export type { PluginRuntime } from "astroclaw/plugin-sdk/runtime-store";',
-    'export { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";',
-    'export type { GoogleChatAccountConfig, GoogleChatConfig } from "astroclaw/plugin-sdk/config-contracts";',
-    'export { extractToolSend } from "astroclaw/plugin-sdk/tool-send";',
-    'export { resolveInboundMentionDecision } from "astroclaw/plugin-sdk/channel-inbound";',
-    'export { resolveWebhookPath } from "astroclaw/plugin-sdk/webhook-ingress";',
-    'export { registerWebhookTargetWithPluginRoute, resolveWebhookTargetWithAuthOrReject, withResolvedWebhookRequestPipeline } from "astroclaw/plugin-sdk/webhook-targets";',
-    'export { createWebhookInFlightLimiter, readJsonWebhookBodyOrReject, type WebhookInFlightLimiter } from "astroclaw/plugin-sdk/webhook-request-guards";',
+    'export type { ChannelMessageActionAdapter, ChannelMessageActionName, ChannelStatusIssue } from "openclaw/plugin-sdk/channel-contract";',
+    'export { missingTargetError } from "openclaw/plugin-sdk/channel-feedback";',
+    'export { createAccountStatusSink, runPassiveAccountLifecycle } from "openclaw/plugin-sdk/channel-outbound";',
+    'export { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";',
+    'export { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-outbound";',
+    'export { PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk/channel-status";',
+    'export { chunkTextForOutbound } from "openclaw/plugin-sdk/text-chunking";',
+    'export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";',
+    'export { GROUP_POLICY_BLOCKED_LABEL, resolveAllowlistProviderRuntimeGroupPolicy, resolveDefaultGroupPolicy, warnMissingProviderGroupPolicyFallbackOnce } from "openclaw/plugin-sdk/runtime-group-policy";',
+    'export { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";',
+    'export type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";',
+    'export { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";',
+    'export type { GoogleChatAccountConfig, GoogleChatConfig } from "openclaw/plugin-sdk/config-contracts";',
+    'export { extractToolSend } from "openclaw/plugin-sdk/tool-send";',
+    'export { resolveInboundMentionDecision } from "openclaw/plugin-sdk/channel-inbound";',
+    'export { resolveWebhookPath } from "openclaw/plugin-sdk/webhook-ingress";',
+    'export { registerWebhookTargetWithPluginRoute, resolveWebhookTargetWithAuthOrReject, withResolvedWebhookRequestPipeline } from "openclaw/plugin-sdk/webhook-targets";',
+    'export { createWebhookInFlightLimiter, readJsonWebhookBodyOrReject, type WebhookInFlightLimiter } from "openclaw/plugin-sdk/webhook-request-guards";',
     'export { setGoogleChatRuntime } from "./src/runtime.js";',
   ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "msteams", relativePath: "runtime-api.ts" })]: [
-    'export { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";',
-    'export type { AllowlistMatch } from "astroclaw/plugin-sdk/allow-from";',
-    'export { mergeAllowlist, resolveAllowlistMatchSimple, summarizeMapping } from "astroclaw/plugin-sdk/allow-from";',
-    'export type { BaseProbeResult, ChannelDirectoryEntry, ChannelGroupContext, ChannelMessageActionName, ChannelOutboundAdapter } from "astroclaw/plugin-sdk/channel-contract";',
-    'export type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";',
-    'export { logTypingFailure } from "astroclaw/plugin-sdk/channel-outbound";',
-    'export { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";',
-    'export { resolveToolsBySender } from "astroclaw/plugin-sdk/channel-policy";',
-    'export { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-outbound";',
-    'export { PAIRING_APPROVED_MESSAGE, buildProbeChannelStatusSummary, createDefaultChannelRuntimeState } from "astroclaw/plugin-sdk/channel-status";',
-    'export { buildChannelKeyCandidates, normalizeChannelSlug, resolveChannelEntryMatchWithFallback, resolveNestedAllowlistDecision } from "astroclaw/plugin-sdk/channel-targets";',
-    'export type { GroupPolicy, GroupToolPolicyConfig, MSTeamsChannelConfig, MSTeamsCloudName, MSTeamsConfig, MSTeamsReplyStyle, MSTeamsTeamConfig, MarkdownTableMode, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";',
-    'export { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";',
-    'export { resolveDefaultGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";',
-    'export { withFileLock } from "astroclaw/plugin-sdk/file-lock";',
-    'export { keepHttpServerTaskAlive } from "astroclaw/plugin-sdk/channel-outbound";',
-    'export { detectMime, extensionForMime, extractOriginalFilename, getFileExtension, resolveChannelMediaMaxBytes } from "astroclaw/plugin-sdk/media-runtime";',
-    'export { loadOutboundMediaFromUrl } from "astroclaw/plugin-sdk/outbound-media";',
-    'export { buildMediaPayload } from "astroclaw/plugin-sdk/reply-payload";',
-    'export type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";',
-    'export type { PluginRuntime } from "astroclaw/plugin-sdk/runtime-store";',
-    'export type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";',
-    'export type { SsrFPolicy } from "astroclaw/plugin-sdk/ssrf-runtime";',
-    'export { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";',
-    'export { normalizeStringEntries } from "astroclaw/plugin-sdk/string-normalization-runtime";',
-    'export { chunkTextForOutbound } from "astroclaw/plugin-sdk/text-chunking";',
-    'export { DEFAULT_WEBHOOK_MAX_BODY_BYTES } from "astroclaw/plugin-sdk/webhook-ingress";',
-    'export { setMSTeamsRuntime } from "./src/runtime.js";',
-  ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "irc", relativePath: "runtime-api.ts" })]: [
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "msteams", relativePath: "runtime-api.ts" })]:
+    [
+      'export { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";',
+      'export type { AllowlistMatch } from "openclaw/plugin-sdk/allow-from";',
+      'export { mergeAllowlist, resolveAllowlistMatchSimple, summarizeMapping } from "openclaw/plugin-sdk/allow-from";',
+      'export type { BaseProbeResult, ChannelDirectoryEntry, ChannelGroupContext, ChannelMessageActionName, ChannelOutboundAdapter } from "openclaw/plugin-sdk/channel-contract";',
+      'export type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";',
+      'export { logTypingFailure } from "openclaw/plugin-sdk/channel-outbound";',
+      'export { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";',
+      'export { resolveToolsBySender } from "openclaw/plugin-sdk/channel-policy";',
+      'export { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-outbound";',
+      'export { PAIRING_APPROVED_MESSAGE, buildProbeChannelStatusSummary, createDefaultChannelRuntimeState } from "openclaw/plugin-sdk/channel-status";',
+      'export { buildChannelKeyCandidates, normalizeChannelSlug, resolveChannelEntryMatchWithFallback, resolveNestedAllowlistDecision } from "openclaw/plugin-sdk/channel-targets";',
+      'export type { GroupPolicy, GroupToolPolicyConfig, MSTeamsChannelConfig, MSTeamsCloudName, MSTeamsConfig, MSTeamsReplyStyle, MSTeamsTeamConfig, MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";',
+      'export { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";',
+      'export { resolveDefaultGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";',
+      'export { withFileLock } from "openclaw/plugin-sdk/file-lock";',
+      'export { keepHttpServerTaskAlive } from "openclaw/plugin-sdk/channel-outbound";',
+      'export { detectMime, extensionForMime, extractOriginalFilename, getFileExtension, resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";',
+      'export { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk/outbound-media";',
+      'export { buildMediaPayload } from "openclaw/plugin-sdk/reply-payload";',
+      'export type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";',
+      'export type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";',
+      'export type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";',
+      'export type { SsrFPolicy } from "openclaw/plugin-sdk/ssrf-runtime";',
+      'export { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";',
+      'export { normalizeStringEntries } from "openclaw/plugin-sdk/string-normalization-runtime";',
+      'export { chunkTextForOutbound } from "openclaw/plugin-sdk/text-chunking";',
+      'export { DEFAULT_WEBHOOK_MAX_BODY_BYTES } from "openclaw/plugin-sdk/webhook-ingress";',
+      'export { setMSTeamsRuntime } from "./src/runtime.js";',
+    ],
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "irc", relativePath: "runtime-api.ts" })]: [
     'export { setIrcRuntime } from "./src/runtime.js";',
   ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "matrix", relativePath: "runtime-api.ts" })]: [
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "matrix", relativePath: "runtime-api.ts" })]: [
     'export { type MatrixResolvedStringField, type MatrixResolvedStringValues, resolveMatrixAccountStringValues } from "./src/auth-precedence.js";',
     'export { requiresExplicitMatrixDefaultAccount, resolveMatrixDefaultOrOnlyAccountId } from "./src/account-selection.js";',
     'export { findMatrixAccountEntry, resolveConfiguredMatrixAccountIds, resolveMatrixChannelConfig } from "./src/account-selection.js";',
     'export { getMatrixScopedEnvVarNames, listMatrixEnvAccountIds, resolveMatrixEnvAccountToken } from "./src/env-vars.js";',
     'export { hashMatrixAccessToken, resolveMatrixAccountStorageRoot, resolveMatrixCredentialsDir, resolveMatrixCredentialsFilename, resolveMatrixCredentialsPath, resolveMatrixHomeserverKey, sanitizeMatrixPathSegment } from "./src/storage-paths.js";',
     'export { ensureMatrixSdkInstalled, isMatrixSdkAvailable } from "./src/matrix/deps.js";',
-    'export { assertHttpUrlTargetsPrivateNetwork, closeDispatcher, createPinnedDispatcher, resolvePinnedHostnameWithPolicy, ssrfPolicyFromDangerouslyAllowPrivateNetwork, type LookupFn, type SsrFPolicy } from "astroclaw/plugin-sdk/ssrf-runtime";',
+    'export { assertHttpUrlTargetsPrivateNetwork, closeDispatcher, createPinnedDispatcher, resolvePinnedHostnameWithPolicy, ssrfPolicyFromDangerouslyAllowPrivateNetwork, type LookupFn, type SsrFPolicy } from "openclaw/plugin-sdk/ssrf-runtime";',
     'export { setMatrixThreadBindingIdleTimeoutBySessionKey, setMatrixThreadBindingMaxAgeBySessionKey } from "./src/matrix/thread-bindings-shared.js";',
     'export { setMatrixRuntime } from "./src/runtime.js";',
-    'export { writeJsonFileAtomically } from "astroclaw/plugin-sdk/json-store";',
-    'export type { ChannelDirectoryEntry, ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";',
-    'export type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";',
-    'export { formatZonedTimestamp } from "astroclaw/plugin-sdk/time-runtime";',
-    'export type { PluginRuntime, RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";',
-    'export type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";',
-    'export type { WizardPrompter } from "astroclaw/plugin-sdk/setup";',
+    'export { writeJsonFileAtomically } from "openclaw/plugin-sdk/json-store";',
+    'export type { ChannelDirectoryEntry, ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";',
+    'export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";',
+    'export { formatZonedTimestamp } from "openclaw/plugin-sdk/time-runtime";',
+    'export type { PluginRuntime, RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";',
+    'export type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";',
+    'export type { WizardPrompter } from "openclaw/plugin-sdk/setup";',
     'export function chunkTextForOutbound(text: string, limit: number): string[] { if (text.length === 0) { return [""]; } if (Number.isFinite(limit) && limit > 0 && !Number.isInteger(limit)) { return chunkTextForOutboundSdk(text, limit); } const chunks: string[] = []; let remaining = text; while (remaining.length > limit) { const window = remaining.slice(0, limit); const splitAt = Math.max(window.lastIndexOf("\\n"), window.lastIndexOf(" ")); const breakAt = splitAt > 0 ? splitAt : limit; chunks.push(remaining.slice(0, breakAt).trimEnd()); remaining = remaining.slice(breakAt).trimStart(); } if (remaining.length > 0) { chunks.push(remaining); } return chunks; }',
   ],
-  [bundledPluginFile({
+  [contractPluginPath({
     rootDir: ROOT_DIR,
     pluginId: "nextcloud-talk",
     relativePath: "runtime-api.ts",
   })]: [
-    'export type { AllowlistMatch } from "astroclaw/plugin-sdk/allow-from";',
-    'export type { ChannelGroupContext } from "astroclaw/plugin-sdk/channel-contract";',
-    'export { logInboundDrop } from "astroclaw/plugin-sdk/channel-inbound";',
-    'export { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";',
-    'export type { BlockStreamingCoalesceConfig, DmConfig, DmPolicy, GroupPolicy, GroupToolPolicyConfig, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";',
-    'export { GROUP_POLICY_BLOCKED_LABEL, resolveAllowlistProviderRuntimeGroupPolicy, resolveDefaultGroupPolicy, warnMissingProviderGroupPolicyFallbackOnce } from "astroclaw/plugin-sdk/runtime-group-policy";',
-    'export { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-outbound";',
-    'export type { OutboundReplyPayload } from "astroclaw/plugin-sdk/reply-payload";',
-    'export { deliverFormattedTextWithAttachments } from "astroclaw/plugin-sdk/reply-payload";',
-    'export type { PluginRuntime } from "astroclaw/plugin-sdk/runtime-store";',
-    'export type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";',
-    'export type { SecretInput } from "astroclaw/plugin-sdk/secret-input";',
-    'export { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";',
+    'export type { AllowlistMatch } from "openclaw/plugin-sdk/allow-from";',
+    'export type { ChannelGroupContext } from "openclaw/plugin-sdk/channel-contract";',
+    'export { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";',
+    'export { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";',
+    'export type { BlockStreamingCoalesceConfig, DmConfig, DmPolicy, GroupPolicy, GroupToolPolicyConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";',
+    'export { GROUP_POLICY_BLOCKED_LABEL, resolveAllowlistProviderRuntimeGroupPolicy, resolveDefaultGroupPolicy, warnMissingProviderGroupPolicyFallbackOnce } from "openclaw/plugin-sdk/runtime-group-policy";',
+    'export { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-outbound";',
+    'export type { OutboundReplyPayload } from "openclaw/plugin-sdk/reply-payload";',
+    'export { deliverFormattedTextWithAttachments } from "openclaw/plugin-sdk/reply-payload";',
+    'export type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";',
+    'export type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";',
+    'export type { SecretInput } from "openclaw/plugin-sdk/secret-input";',
+    'export { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";',
     'export { setNextcloudTalkRuntime } from "./src/runtime.js";',
   ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "nostr", relativePath: "runtime-api.ts" })]: [
-    'export type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";',
-    'export { getPluginRuntimeGatewayRequestScope } from "astroclaw/plugin-sdk/plugin-runtime";',
-    'export type { PluginRuntime } from "astroclaw/plugin-sdk/runtime-store";',
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "nostr", relativePath: "runtime-api.ts" })]: [
+    'export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";',
+    'export { getPluginRuntimeGatewayRequestScope } from "openclaw/plugin-sdk/plugin-runtime";',
+    'export type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";',
   ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "signal", relativePath: "runtime-api.ts" })]: [
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "signal", relativePath: "runtime-api.ts" })]: [
     'export { applyAccountNameToChannelSection, buildBaseAccountStatusSnapshot, buildBaseChannelStatusSummary, buildChannelConfigSchema, type ChannelMessageActionAdapter, type ChannelPlugin, chunkText, collectStatusIssuesFromLastError, createDefaultChannelRuntimeState, DEFAULT_ACCOUNT_ID, deleteAccountFromConfigSection, detectBinary, emptyPluginConfigSchema, formatCliCommand, formatDocsLink, formatPairingApproveHint, getChatChannelMeta, installSignalCli, listEnabledSignalAccounts, listSignalAccountIds, looksLikeSignalTargetId, migrateBaseNameToDefaultAccount, monitorSignalProvider, normalizeAccountId, normalizeE164, normalizeSignalMessagingTarget, type OpenClawConfig, type OpenClawPluginApi, PAIRING_APPROVED_MESSAGE, type PluginRuntime, probeSignal, removeReactionSignal, resolveAllowlistProviderRuntimeGroupPolicy, resolveChannelMediaMaxBytes, resolveDefaultGroupPolicy, resolveDefaultSignalAccountId, type ResolvedSignalAccount, resolveSignalAccount, resolveSignalReactionLevel, sendMessageSignal, sendReactionSignal, setAccountEnabledInConfigSection, type SignalAccountConfig, SignalConfigSchema, signalMessageActions } from "./src/runtime-api.js";',
     'export { setSignalRuntime } from "./src/runtime.js";',
   ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "slack", relativePath: "runtime-api.ts" })]: [
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "slack", relativePath: "runtime-api.ts" })]: [
     'export { handleSlackAction, slackActionRuntime, type SlackActionContext } from "./src/action-runtime.js";',
     'export { listSlackDirectoryGroupsLive, listSlackDirectoryPeersLive } from "./src/directory-live.js";',
     'export { deleteSlackMessage, editSlackMessage, getSlackMemberInfo, listEnabledSlackAccounts, listSlackAccountIds, listSlackEmojis, listSlackPins, listSlackReactions, monitorSlackProvider, pinSlackMessage, probeSlack, reactSlackMessage, readSlackMessages, removeOwnSlackReactions, removeSlackReaction, resolveDefaultSlackAccountId, resolveSlackAccount, resolveSlackAppToken, resolveSlackBotToken, resolveSlackGroupRequireMention, resolveSlackGroupToolPolicy, sendMessageSlack, sendSlackMessage, unpinSlackMessage } from "./src/index.js";',
@@ -197,21 +199,21 @@ const RUNTIME_API_EXPORT_GUARDS: Record<string, readonly string[]> = {
     'export { registerSlackPluginHttpRoutes } from "./src/http/plugin-routes.js";',
     'export { setSlackRuntime } from "./src/runtime.js";',
   ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "telegram", relativePath: "runtime-api.ts" })]:
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "telegram", relativePath: "runtime-api.ts" })]:
     [
-      'export type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";',
-      'export type { ChannelMessageActionAdapter } from "astroclaw/plugin-sdk/channel-contract";',
+      'export type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";',
+      'export type { ChannelMessageActionAdapter } from "openclaw/plugin-sdk/channel-contract";',
       'export type { TelegramApiOverride } from "./src/send.js";',
-      'export type { OpenClawPluginService, OpenClawPluginServiceContext, PluginLogger } from "astroclaw/plugin-sdk/plugin-entry";',
-      'export type { PluginRuntime } from "astroclaw/plugin-sdk/runtime-store";',
-      'export type { AcpRuntime, AcpRuntimeCapabilities, AcpRuntimeDoctorReport, AcpRuntimeEnsureInput, AcpRuntimeEvent, AcpRuntimeHandle, AcpRuntimeStatus, AcpRuntimeTurnInput, AcpRuntimeErrorCode, AcpSessionUpdateTag } from "astroclaw/plugin-sdk/acp-runtime";',
-      'export { AcpRuntimeError } from "astroclaw/plugin-sdk/acp-runtime";',
-      'export { emptyPluginConfigSchema, formatPairingApproveHint, getChatChannelMeta } from "astroclaw/plugin-sdk/channel-plugin-common";',
-      'export { clearAccountEntryFields } from "astroclaw/plugin-sdk/channel-core";',
+      'export type { OpenClawPluginService, OpenClawPluginServiceContext, PluginLogger } from "openclaw/plugin-sdk/plugin-entry";',
+      'export type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";',
+      'export type { AcpRuntime, AcpRuntimeCapabilities, AcpRuntimeDoctorReport, AcpRuntimeEnsureInput, AcpRuntimeEvent, AcpRuntimeHandle, AcpRuntimeStatus, AcpRuntimeTurnInput, AcpRuntimeErrorCode, AcpSessionUpdateTag } from "openclaw/plugin-sdk/acp-runtime";',
+      'export { AcpRuntimeError } from "openclaw/plugin-sdk/acp-runtime";',
+      'export { emptyPluginConfigSchema, formatPairingApproveHint, getChatChannelMeta } from "openclaw/plugin-sdk/channel-plugin-common";',
+      'export { clearAccountEntryFields } from "openclaw/plugin-sdk/channel-core";',
       'export { buildChannelConfigSchema, TelegramConfigSchema } from "./config-api.js";',
-      'export { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "astroclaw/plugin-sdk/account-id";',
-      'export { PAIRING_APPROVED_MESSAGE, buildTokenChannelStatusSummary, projectCredentialSnapshotFields, resolveConfiguredFromCredentialStatuses } from "astroclaw/plugin-sdk/channel-status";',
-      'export { jsonResult, readNumberParam, readReactionParams, readStringArrayParam, readStringOrNumberParam, readStringParam, resolvePollMaxSelections } from "astroclaw/plugin-sdk/channel-actions";',
+      'export { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";',
+      'export { PAIRING_APPROVED_MESSAGE, buildTokenChannelStatusSummary, projectCredentialSnapshotFields, resolveConfiguredFromCredentialStatuses } from "openclaw/plugin-sdk/channel-status";',
+      'export { jsonResult, readNumberParam, readReactionParams, readStringArrayParam, readStringOrNumberParam, readStringParam, resolvePollMaxSelections } from "openclaw/plugin-sdk/channel-actions";',
       'export type { TelegramProbe } from "./src/probe.js";',
       'export { auditTelegramGroupMembership, collectTelegramUnmentionedGroupIds } from "./src/audit.js";',
       'export { resolveTelegramRuntimeGroupPolicy } from "./src/group-access.js";',
@@ -225,37 +227,37 @@ const RUNTIME_API_EXPORT_GUARDS: Record<string, readonly string[]> = {
       'export { createTelegramThreadBindingManager, getTelegramThreadBindingManager, resetTelegramThreadBindingsForTests, setTelegramThreadBindingIdleTimeoutBySessionKey, setTelegramThreadBindingMaxAgeBySessionKey } from "./src/thread-bindings.js";',
       'export { resolveTelegramToken } from "./src/token.js";',
       'export { setTelegramRuntime } from "./src/runtime.js";',
-      'export type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";',
-      'export type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";',
+      'export type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";',
+      'export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";',
       'export type TelegramAccountConfig = NonNullable< NonNullable<RuntimeOpenClawConfig["channels"]>["telegram"] >;',
       'export type TelegramActionConfig = NonNullable<TelegramAccountConfig["actions"]>;',
       'export type TelegramNetworkConfig = NonNullable<TelegramAccountConfig["network"]>;',
       'export { parseTelegramTopicConversation } from "./src/topic-conversation.js";',
       'export { resolveTelegramPollVisibility } from "./src/poll-visibility.js";',
     ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "twitch", relativePath: "runtime-api.ts" })]: [
-    'export type { ChannelAccountSnapshot, ChannelCapabilities, ChannelGatewayContext, ChannelLogSink, ChannelMessageActionAdapter, ChannelMessageActionContext, ChannelMeta, ChannelOutboundAdapter, ChannelOutboundContext, ChannelResolveKind, ChannelResolveResult, ChannelStatusAdapter } from "astroclaw/plugin-sdk/channel-contract";',
-    'export type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";',
-    'export type { OutboundDeliveryResult } from "astroclaw/plugin-sdk/channel-send-result";',
-    'export type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";',
-    'export type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";',
-    'export type { WizardPrompter } from "astroclaw/plugin-sdk/setup";',
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "twitch", relativePath: "runtime-api.ts" })]: [
+    'export type { ChannelAccountSnapshot, ChannelCapabilities, ChannelGatewayContext, ChannelLogSink, ChannelMessageActionAdapter, ChannelMessageActionContext, ChannelMeta, ChannelOutboundAdapter, ChannelOutboundContext, ChannelResolveKind, ChannelResolveResult, ChannelStatusAdapter } from "openclaw/plugin-sdk/channel-contract";',
+    'export type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";',
+    'export type { OutboundDeliveryResult } from "openclaw/plugin-sdk/channel-send-result";',
+    'export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";',
+    'export type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";',
+    'export type { WizardPrompter } from "openclaw/plugin-sdk/setup";',
   ],
-  [bundledPluginFile({
+  [contractPluginPath({
     rootDir: ROOT_DIR,
     pluginId: "voice-call",
     relativePath: "runtime-api.ts",
   })]: [
-    'export { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";',
-    'export type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";',
-    'export type { GatewayRequestHandlerOptions } from "astroclaw/plugin-sdk/gateway-runtime";',
-    'export { isRequestBodyLimitError, readRequestBodyWithLimit, requestBodyErrorToText } from "astroclaw/plugin-sdk/webhook-request-guards";',
-    'export { fetchWithSsrFGuard, isBlockedHostnameOrIp } from "astroclaw/plugin-sdk/ssrf-runtime";',
-    'export type { SessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";',
-    'export { TtsAutoSchema, TtsConfigSchema, TtsModeSchema, TtsProviderSchema } from "astroclaw/plugin-sdk/tts-runtime";',
-    'export { sleep } from "astroclaw/plugin-sdk/runtime-env";',
+    'export { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";',
+    'export type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";',
+    'export type { GatewayRequestHandlerOptions } from "openclaw/plugin-sdk/gateway-runtime";',
+    'export { isRequestBodyLimitError, readRequestBodyWithLimit, requestBodyErrorToText } from "openclaw/plugin-sdk/webhook-request-guards";',
+    'export { fetchWithSsrFGuard, isBlockedHostnameOrIp } from "openclaw/plugin-sdk/ssrf-runtime";',
+    'export type { SessionEntry } from "openclaw/plugin-sdk/session-store-runtime";',
+    'export { TtsAutoSchema, TtsConfigSchema, TtsModeSchema, TtsProviderSchema } from "openclaw/plugin-sdk/tts-runtime";',
+    'export { sleep } from "openclaw/plugin-sdk/runtime-env";',
   ],
-  [bundledPluginFile({ rootDir: ROOT_DIR, pluginId: "whatsapp", relativePath: "runtime-api.ts" })]:
+  [contractPluginPath({ rootDir: ROOT_DIR, pluginId: "whatsapp", relativePath: "runtime-api.ts" })]:
     [
       'export { getActiveWebListener, resolveWebAccountId, type ActiveWebListener, type ActiveWebSendOptions } from "./src/active-listener.js";',
       'export { handleWhatsAppAction, whatsAppActionRuntime } from "./src/action-runtime.js";',
@@ -276,7 +278,7 @@ function collectRuntimeApiFiles(): string[] {
   return [...getBundledPluginRoots().entries()]
     .filter(([, rootDir]) => existsSync(resolve(rootDir, "runtime-api.ts")))
     .map(([pluginId]) =>
-      bundledPluginFile({
+      contractPluginPath({
         rootDir: ROOT_DIR,
         pluginId,
         relativePath: "runtime-api.ts",
@@ -350,11 +352,11 @@ describe("runtime api guardrails", () => {
       expect(
         source,
         `${pluginId} runtime api should use generic sdk subpaths or local exports`,
-      ).not.toContain(`"astroclaw/plugin-sdk/${pluginId}"`);
+      ).not.toContain(`"openclaw/plugin-sdk/${pluginId}"`);
       expect(
         source,
         `${pluginId} runtime api should use generic sdk subpaths or local exports`,
-      ).not.toContain(`'astroclaw/plugin-sdk/${pluginId}'`);
+      ).not.toContain(`'openclaw/plugin-sdk/${pluginId}'`);
     }
   });
 
@@ -409,7 +411,7 @@ describe("runtime api guardrails", () => {
     // cost of importing the full runtime-api barrel. If a future change
     // re-broadens this file, this test fails so the perf regression is
     // surfaced explicitly rather than silently re-introduced.
-    const setterFile = bundledPluginFile({
+    const setterFile = contractPluginPath({
       rootDir: ROOT_DIR,
       pluginId: "slack",
       relativePath: "runtime-setter-api.ts",
@@ -420,7 +422,7 @@ describe("runtime api guardrails", () => {
   });
 
   it("keeps Matrix's narrow runtime-setter entrypoint pinned to a single export", () => {
-    const setterFile = bundledPluginFile({
+    const setterFile = contractPluginPath({
       rootDir: ROOT_DIR,
       pluginId: "matrix",
       relativePath: "runtime-setter-api.ts",
@@ -431,7 +433,7 @@ describe("runtime api guardrails", () => {
   });
 
   it("keeps Feishu's narrow runtime-setter entrypoint pinned to a single export", () => {
-    const setterFile = bundledPluginFile({
+    const setterFile = contractPluginPath({
       rootDir: ROOT_DIR,
       pluginId: "feishu",
       relativePath: "runtime-setter-api.ts",
