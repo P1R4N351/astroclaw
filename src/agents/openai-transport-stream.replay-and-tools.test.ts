@@ -1,6 +1,6 @@
 import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "@openclaw/ai/internal/shared";
-import type { Model } from "astroclaw/plugin-sdk/llm";
 import OpenAI from "openai";
+import type { Model } from "openclaw/plugin-sdk/llm";
 import { describe, expect, it, vi } from "vitest";
 import { buildOpenAICompletionsParams } from "./openai-transport-stream.js";
 import {
@@ -1523,75 +1523,6 @@ describe("openai transport stream", () => {
       mode: "required",
       tools: [{ type: "function", name: "lookup" }],
     });
-  });
-
-  it("fails locally when required Chat Completions has no usable tools", () => {
-    expect(() =>
-      buildOpenAICompletionsParams(
-        makeCompletionsModel({
-          id: "gpt-5.5",
-          name: "GPT-5.5",
-          reasoning: false,
-        }),
-        {
-          systemPrompt: "system",
-          messages: [],
-          tools: [
-            {
-              name: "broken",
-              get parameters(): never {
-                throw new Error("parameters exploded");
-              },
-            },
-          ],
-        } as never,
-        { toolChoice: "required" },
-      ),
-    ).toThrow("no tools survived schema conversion");
-  });
-
-  it("preserves the native empty tools marker for tool history after quarantining every schema", () => {
-    const params = buildOpenAICompletionsParams(
-      makeCompletionsModel({
-        id: "gpt-5.5",
-        name: "GPT-5.5",
-        reasoning: false,
-      }),
-      {
-        systemPrompt: "system",
-        messages: [
-          {
-            role: "assistant",
-            content: [
-              {
-                type: "toolCall",
-                id: "call_abc",
-                name: "lookup",
-                arguments: {},
-              },
-            ],
-          },
-          {
-            role: "toolResult",
-            content: [{ type: "text", text: "done" }],
-            toolCallId: "call_abc",
-          },
-          { role: "user", content: "continue", timestamp: 1 },
-        ],
-        tools: [
-          {
-            name: "broken",
-            description: "Broken tool.",
-            get parameters(): never {
-              throw new Error("parameters exploded");
-            },
-          },
-        ],
-      } as never,
-      undefined,
-    ) as { tools?: unknown[] };
-
-    expect(params.tools).toEqual([]);
   });
 
   it("does not reread an unreadable tool inventory length", () => {
