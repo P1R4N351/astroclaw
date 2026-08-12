@@ -1,3 +1,4 @@
+import { safeParseJsonRecord } from "@astroclaw/normalization-core";
 import { asPositiveSafeInteger } from "@astroclaw/normalization-core/number-coercion";
 import { asOptionalRecord as readRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
@@ -30,11 +31,7 @@ function normalizeToolHistoryType(value: unknown): string | undefined {
 }
 
 function parseJsonRecord(value: string): Record<string, unknown> | undefined {
-  try {
-    return readRecord(JSON.parse(value));
-  } catch {
-    return undefined;
-  }
+  return safeParseJsonRecord(value);
 }
 
 function readMaybeJsonRecord(value: unknown): Record<string, unknown> | undefined {
