@@ -6,6 +6,7 @@ import { stableStringify } from "@astroclaw/normalization-core";
 import {
   asDateTimestampMs,
   isFutureDateTimestampMs,
+  parseDateStringTimestampMs,
   resolveExpiresAtMsFromDurationMs,
 } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
@@ -203,10 +204,7 @@ async function appendGooglePromptCacheEntry(
 }
 
 function parseExpireTimeMs(expireTime: string | undefined): number | null {
-  if (!expireTime) {
-    return null;
-  }
-  return asDateTimestampMs(Date.parse(expireTime)) ?? null;
+  return parseDateStringTimestampMs(expireTime) ?? null;
 }
 
 function convertManagedGoogleTools(tools: NonNullable<GooglePromptCacheContext["tools"]>) {
