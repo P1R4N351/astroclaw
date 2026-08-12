@@ -1,3 +1,4 @@
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { consume } from "@lit/context";
 import { initialState, Task, TaskStatus } from "@lit/task";
 import type { PropertyValues } from "lit";
@@ -28,7 +29,6 @@ import {
   requestSessionUsageLogs,
   requestSessionUsageTimeSeries,
 } from "../../lib/sessions/index.ts";
-import { normalizeLowercaseStringOrEmpty } from "../../lib/string-coerce.ts";
 import {
   GatewayPageController,
   type GatewayPageChange,
