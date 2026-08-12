@@ -1,28 +1,26 @@
 // Feishu plugin module implements reply dispatcher behavior.
-import {
-  formatReasoningMessage,
-  resolveHumanDelayConfig,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
+import { formatReasoningMessage, resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
 import {
   isChannelPartialDeliveryError,
   type ChannelInboundTurnPlan,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-outbound";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-outbound";
 import {
   formatChannelProgressDraftLineForEntry,
   isChannelProgressDraftWorkToolName,
   resolveChannelPreviewStreamMode,
   resolveChannelStreamingBlockEnabled,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { toStringifiedError as toFeishuError } from "openclaw/plugin-sdk/error-runtime";
+import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
 import {
   getReplyPayloadTtsSupplement,
   resolveSendableOutboundReplyParts,
   resolveTextChunksWithFallback,
   sendMediaWithLeadingCaption,
-} from "astroclaw/plugin-sdk/reply-payload";
-import { stripReasoningTagsFromText } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/reply-payload";
+import { stripReasoningTagsFromText } from "openclaw/plugin-sdk/text-chunking";
 import { resolveFeishuRuntimeAccount } from "./accounts.js";
 import { resolveConfiguredHttpTimeoutMs } from "./client-timeout.js";
 import { createFeishuClient } from "./client.js";
@@ -78,10 +76,6 @@ function mergeStreamingFinalText(
     return previousText;
   }
   return `${previousText}\n\n${nextText}`;
-}
-
-function toFeishuError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
 }
 
 /** Maximum age (ms) for a message to receive a typing indicator reaction.
