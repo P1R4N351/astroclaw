@@ -1,5 +1,5 @@
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "../../lib/string-coerce.ts";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 
 export type DraftBranches = {
   repoRoot: string;
