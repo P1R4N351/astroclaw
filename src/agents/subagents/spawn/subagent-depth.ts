@@ -1,3 +1,4 @@
+import { parseStrictNonNegativeInteger } from "@astroclaw/normalization-core/number-coercion";
 /**
  * Subagent spawn-depth lookup helpers.
  *
@@ -7,7 +8,6 @@ import { normalizeOptionalString } from "@astroclaw/normalization-core/string-co
 import { resolveSessionStorePathCore } from "../../../config/sessions/paths.js";
 import { listSessionEntriesReadOnly } from "../../../config/sessions/session-accessor.js";
 import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
-import { parseStrictNonNegativeInteger } from "../../../infra/parse-finite-number.js";
 import { getSubagentDepth, parseAgentSessionKey } from "../../../sessions/session-key-utils.js";
 import { resolveDefaultAgentId } from "../../agent-scope.js";
 
