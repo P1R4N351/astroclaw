@@ -5,6 +5,7 @@
  */
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { readNonBlankString } from "@astroclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { coerceSecretRef } from "../../config/types.secrets.js";
 import type { OpenClawAgentDatabase } from "../../state/openclaw-agent-db.js";
@@ -56,11 +57,7 @@ function isRetainedUsageStatsId(
 // Persisted credential normalization accepts old field names and SecretRef-ish
 // values, then emits the current credential discriminated union.
 function normalizeOptionalCredentialString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed ? value : undefined;
+  return readNonBlankString(value);
 }
 
 function normalizeExpiryField(value: unknown): number | undefined {
