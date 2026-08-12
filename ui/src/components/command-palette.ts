@@ -1,3 +1,7 @@
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@astroclaw/normalization-core/string-coerce";
 // Control UI component renders the command palette.
 import { consume } from "@lit/context";
 import { html, nothing } from "lit";
@@ -9,7 +13,6 @@ import { t } from "../i18n/index.ts";
 import { formatRelativeTimestamp } from "../lib/format.ts";
 import { resolveSessionDisplayName } from "../lib/session-display.ts";
 import { getVisibleSessionRows } from "../lib/sessions/index.ts";
-import { normalizeLowercaseStringOrEmpty, normalizeOptionalString } from "../lib/string-coerce.ts";
 import { OpenClawLightDomContentsElement } from "../lit/openclaw-element.ts";
 import { SubscriptionsController } from "../lit/subscriptions-controller.ts";
 import { isCommandPaletteShortcut } from "./command-palette-contract.ts";
