@@ -6,22 +6,22 @@
  * to keep the two modes cleanly isolated.
  */
 
-import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { resolveFetch } from "astroclaw/plugin-sdk/fetch-runtime";
+import { coerceErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { resolveFetch } from "openclaw/plugin-sdk/fetch-runtime";
 import {
   detectMime,
   extractOriginalFilename,
   parseMediaContentLength,
-} from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/media-runtime";
 import {
   parseStrictNonNegativeInteger,
   resolveTimerTimeoutMs,
-} from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/number-runtime";
 import {
   readResponseTextPrefix,
   readResponseWithLimit,
-} from "astroclaw/plugin-sdk/response-limit-runtime";
-import { readRegularFile } from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/response-limit-runtime";
+import { readRegularFile } from "openclaw/plugin-sdk/security-runtime";
 import WebSocket from "ws";
 
 type ContainerRpcOptions = {
@@ -243,7 +243,7 @@ export async function containerCheck(
     return {
       ok: false,
       status: null,
-      error: err instanceof Error ? err.message : String(err),
+      error: coerceErrorMessage(err),
     };
   } finally {
     await releaseUnreadResponseBody(res);
@@ -279,7 +279,7 @@ function containerReceiveCheck(
       settle({
         ok: false,
         status: null,
-        error: err instanceof Error ? err.message : String(err),
+        error: coerceErrorMessage(err),
       });
       return;
     }
@@ -301,7 +301,7 @@ function containerReceiveCheck(
       settle({
         ok: false,
         status: null,
-        error: err instanceof Error ? err.message : String(err),
+        error: coerceErrorMessage(err),
       });
     });
     ws.once("close", (code, reason) => {
@@ -478,9 +478,7 @@ export async function streamContainerEvents(params: {
     try {
       ws = new WebSocket(wsUrl, { maxPayload: WS_MAX_PAYLOAD, handshakeTimeout: WS_HANDSHAKE_MS });
     } catch (err) {
-      logError(
-        `[signal-ws] failed to create WebSocket: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      logError(`[signal-ws] failed to create WebSocket: ${coerceErrorMessage(err)}`);
       reject(toErrorObject(err, "Non-Error rejection"));
       return;
     }
@@ -504,20 +502,18 @@ export async function streamContainerEvents(params: {
             await params.onEvent(envelope);
           });
           void eventChain.catch((err: unknown) => {
-            logError(
-              `[signal-ws] receive handler failed: ${err instanceof Error ? err.message : String(err)}`,
-            );
+            logError(`[signal-ws] receive handler failed: ${coerceErrorMessage(err)}`);
             rejectOnce(err);
             ws.close();
           });
         }
       } catch (err) {
-        logError(`[signal-ws] parse error: ${err instanceof Error ? err.message : String(err)}`);
+        logError(`[signal-ws] parse error: ${coerceErrorMessage(err)}`);
       }
     });
 
     ws.on("error", (err) => {
-      logError(`[signal-ws] error: ${err instanceof Error ? err.message : String(err)}`);
+      logError(`[signal-ws] error: ${coerceErrorMessage(err)}`);
       // Don't resolve here - the close event will fire next
     });
 
