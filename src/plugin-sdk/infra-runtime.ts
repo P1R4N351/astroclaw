@@ -250,7 +250,22 @@ export * from "../infra/net/undici-global-dispatcher.js";
 export * from "../infra/net/ssrf.js";
 export * from "../infra/outbound/identity.js";
 export * from "../infra/outbound/sanitize-text.js";
-export * from "../infra/parse-finite-number.js";
+export {
+  clampTimerTimeoutMs,
+  finiteSecondsToTimerSafeMilliseconds,
+  MAX_TIMER_TIMEOUT_MS,
+  MAX_TIMER_TIMEOUT_SECONDS,
+  nonNegativeSecondsToSafeMilliseconds,
+  parseFiniteNumber,
+  parseStrictFiniteNumber,
+  parseStrictInteger,
+  parseStrictNonNegativeInteger,
+  parseStrictPositiveInteger,
+  positiveSecondsToSafeMilliseconds,
+  resolveExpiresAtMsFromDurationOrEpoch,
+  resolveExpiresAtMsFromDurationSeconds,
+  resolveExpiresAtMsFromEpochSeconds,
+} from "@astroclaw/normalization-core/number-coercion";
 export * from "../infra/outbound/send-deps.js";
 export * from "../infra/retry.js";
 export * from "../infra/retry-policy.js";
