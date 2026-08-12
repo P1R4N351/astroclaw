@@ -4,9 +4,9 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import zlib from "node:zlib";
 import { expectDefined } from "@astroclaw/normalization-core";
+import { estimateTokensFromChars } from "@astroclaw/normalization-core/cjk-chars";
 import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
 import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
-import { estimateTokensFromChars } from "../../utils/cjk-chars.js";
 
 /** PNG treemap renderer for visualizing prompt context size by section. */
 type Rect = {
