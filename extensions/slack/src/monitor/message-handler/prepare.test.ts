@@ -2,17 +2,17 @@
 import fs from "node:fs/promises";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { App } from "@slack/bolt";
-import { expectChannelInboundContextContract as expectInboundContextContract } from "astroclaw/plugin-sdk/channel-contract-testing";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { expectChannelInboundContextContract as expectInboundContextContract } from "openclaw/plugin-sdk/channel-contract-testing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   registerSessionBindingAdapter,
   unregisterSessionBindingAdapter,
   type SessionBindingAdapter,
   type SessionBindingRecord,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
-import { upsertSessionEntry, type SessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
+import { upsertSessionEntry, type SessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import { registerSlackInstallationState } from "../../installation-identity-state.js";
@@ -56,9 +56,9 @@ vi.mock("../conversation.runtime.js", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/media-understanding-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/media-understanding-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/media-understanding-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/media-understanding-runtime")>();
   return {
     ...actual,
     createChannelPreflightAudio: (
@@ -72,8 +72,8 @@ vi.mock("astroclaw/plugin-sdk/media-understanding-runtime", async (importOrigina
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
+vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     logVerbose: (...args: unknown[]) => logVerboseMock(...args),
@@ -81,8 +81,8 @@ vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/system-event-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/system-event-runtime")>();
+vi.mock("openclaw/plugin-sdk/system-event-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/system-event-runtime")>();
   return {
     ...actual,
     enqueueSystemEvent: (...args: unknown[]) => enqueueSystemEventMock(...args),
@@ -1900,6 +1900,26 @@ describe("slack prepareSlackMessage inbound contract", () => {
 
     assertPrepared(prepared);
     expect(prepared.ctxPayload.RawBody).toContain("[Forwarded message from Bob]\nForwarded hello");
+  });
+
+  it("surfaces forwarded shared image download failures in raw body", async () => {
+    const originalFetch = globalThis.fetch;
+    const mockFetch = vi.fn(async () => new Response("Not Found", { status: 404 }));
+    globalThis.fetch = mockFetch as typeof fetch;
+
+    try {
+      const prepared = await prepareWithDefaultCtx(
+        createSlackMessage({
+          text: "caption",
+          attachments: [{ is_share: true, image_url: "https://files.slack.com/forwarded.jpg" }],
+        }),
+      );
+
+      assertPrepared(prepared);
+      expect(prepared.ctxPayload.RawBody).toBe("caption\n\n[slack forwarded image unavailable]");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it.each([
@@ -5003,7 +5023,7 @@ describe("slack implicit mention policy", () => {
   }) {
     const { storePath } = storeFixture.makeTmpStorePath();
     vi.spyOn(
-      await import("astroclaw/plugin-sdk/session-store-runtime"),
+      await import("openclaw/plugin-sdk/session-store-runtime"),
       "resolveStorePath",
     ).mockReturnValue(storePath);
     return await prepareSlackMessage({
