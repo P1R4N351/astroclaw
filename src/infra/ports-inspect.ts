@@ -2,10 +2,10 @@
 import net from "node:net";
 import os from "node:os";
 import { expectDefined } from "@astroclaw/normalization-core";
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import pMap from "p-map";
 import { runCommandWithTimeout } from "../process/exec.js";
-import { parseStrictPositiveInteger } from "./parse-finite-number.js";
 import { buildPortHints } from "./ports-format.js";
 import {
   parseLsofListenerRecordsByPort,
