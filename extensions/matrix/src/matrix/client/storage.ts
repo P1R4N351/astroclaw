@@ -2,13 +2,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
-import { loadJsonFile } from "astroclaw/plugin-sdk/json-store";
+import { normalizeAccountId } from "openclaw/plugin-sdk/account-id";
+import { loadJsonFile } from "openclaw/plugin-sdk/json-store";
 import type {
   PluginStateKeyedStore,
   PluginStateSyncKeyedStore,
-} from "astroclaw/plugin-sdk/plugin-state-runtime";
-import { isRecord } from "../../record-shared.js";
+} from "openclaw/plugin-sdk/plugin-state-runtime";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { getMatrixRuntime } from "../../runtime.js";
 import { resolveMatrixAccountStorageRoot } from "../../storage-paths.js";
 import {
