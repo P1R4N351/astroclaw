@@ -5,6 +5,7 @@ import type {
   SessionAcpIdentity,
   SessionAcpMeta,
 } from "@astroclaw/acp-core/types";
+import { asNonNegativeFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeOptionalString,
   type FastMode,
@@ -262,7 +263,10 @@ export interface QuotaSuspension {
   summary?: string;
   /** Opaque pointer to an external snapshot blob (path/key); not the briefing text itself. */
   snapshotRef?: string;
-  /** Lane that was set to concurrency=0 when this suspension was issued. */
+  /**
+   * @deprecated Lane suspension was removed; nothing writes this anymore. Kept only to
+   * hold the shipped SDK surface stable; drop at the next surface window.
+   */
   laneId?: string;
   expectedResumeBy?: number; // Reaper TTL (e.g. 30min)
   state: LaneExecutionState; // State machine check for hot-path
@@ -810,11 +814,7 @@ export function mergeSessionEntryPreserveActivity(
 }
 
 export function resolveSessionTotalTokens(entry?: Pick<SessionEntry, "totalTokens"> | null) {
-  const total = entry?.totalTokens;
-  if (typeof total !== "number" || !Number.isFinite(total) || total < 0) {
-    return undefined;
-  }
-  return total;
+  return asNonNegativeFiniteNumber(entry?.totalTokens);
 }
 
 export function resolveFreshSessionTotalTokens(
