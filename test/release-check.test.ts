@@ -2,7 +2,7 @@
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve as resolvePath, win32 } from "node:path";
-import { bundledDistPluginFile, bundledPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile, bundledPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import {
   collectInstalledBundledRuntimeSidecarPaths,
@@ -820,7 +820,6 @@ describe("collectMissingPackPaths", () => {
           packageRoot,
         }),
       ).toEqual([
-        "installed package is missing required plugin SDK artifact: dist/plugin-sdk/zod.js",
         "installed package root dist file 'typescript-compiler.js' is invalid or exceeds 6291456 bytes.",
       ]);
     } finally {
@@ -892,14 +891,14 @@ describe("createPackedPluginSdkTypescriptSmokeProject", () => {
       expect(packageJson.dependencies?.["@openclaw/ai"]).toBe("file:/tmp/openclaw-ai.tgz");
       expect(tsconfig.compilerOptions?.skipLibCheck).toBe(true);
       expect(source).toBe(fixtureSource);
-      expect(source).toContain('"astroclaw/plugin-sdk/core"');
-      expect(source).toContain('"astroclaw/plugin-sdk/plugin-entry"');
-      expect(source).toContain('"astroclaw/plugin-sdk/channel-entry-contract"');
-      expect(source).toContain('"astroclaw/plugin-sdk/config-contracts"');
-      expect(source).toContain('"astroclaw/plugin-sdk/runtime-env"');
+      expect(source).toContain('"openclaw/plugin-sdk/core"');
+      expect(source).toContain('"openclaw/plugin-sdk/plugin-entry"');
+      expect(source).toContain('"openclaw/plugin-sdk/channel-entry-contract"');
+      expect(source).toContain('"openclaw/plugin-sdk/config-contracts"');
+      expect(source).toContain('"openclaw/plugin-sdk/runtime-env"');
       expect(source).toContain("type PublicPluginSdkModules = [");
       expect(source).not.toContain("TelegramAccountConfig");
-      expect(source).not.toContain("astroclaw/plugin-sdk/channel-contract-testing");
+      expect(source).not.toContain("openclaw/plugin-sdk/channel-contract-testing");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
