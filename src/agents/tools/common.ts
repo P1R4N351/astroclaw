@@ -9,6 +9,7 @@ import {
   asSafeIntegerInRange,
   parseStrictFiniteNumber,
 } from "@astroclaw/normalization-core/number-coercion";
+import { asNonArrayRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import type { TSchema } from "typebox";
 import { readLocalFileSafely } from "../../infra/fs-safe.js";
@@ -70,9 +71,7 @@ export type AnyAgentTool = Omit<AgentTool, "execute"> &
   };
 
 export function asToolParamsRecord(params: unknown): Record<string, unknown> {
-  return params && typeof params === "object" && !Array.isArray(params)
-    ? (params as Record<string, unknown>)
-    : {};
+  return asNonArrayRecord(params);
 }
 
 type StringParamOptions = {
