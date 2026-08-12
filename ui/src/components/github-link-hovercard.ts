@@ -1,5 +1,6 @@
 import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { readNonBlankString } from "@astroclaw/normalization-core/string-coerce";
 import { initialState, Task } from "@lit/task";
 import { ReactiveElement } from "lit";
 import type { ControlUiGitHubPreview } from "../../../src/gateway/control-ui-contract.js";
@@ -35,19 +36,11 @@ type CacheEntry = {
 let nextHovercardId = 0;
 
 function requiredString(record: Record<string, unknown>, key: string): string {
-  const value = record[key];
-  if (typeof value !== "string" || !value.trim()) {
+  const value = readNonBlankString(record[key]);
+  if (value === undefined) {
     throw new Error(`GitHub response omitted ${key}`);
   }
   return value;
-}
-
-function readOptionalGitHubString(
-  record: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = record[key];
-  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 function parseGitHubIssueOrPullRequestLink(href: string): GitHubLinkTarget | null {
@@ -96,19 +89,19 @@ function parsePreviewResponse(target: GitHubLinkTarget, value: unknown): GitHubP
     additions: asFiniteNumber(value.additions),
     avatarDataUrl: safeAvatarDataUrl(value.avatarDataUrl),
     changedFiles: asFiniteNumber(value.changedFiles),
-    closedAt: readOptionalGitHubString(value, "closedAt"),
+    closedAt: readNonBlankString(value.closedAt),
     comments: asFiniteNumber(value.comments),
     createdAt: requiredString(value, "createdAt"),
     deletions: asFiniteNumber(value.deletions),
     draft: typeof value.draft === "boolean" ? value.draft : undefined,
     kind: target.kind,
-    login: readOptionalGitHubString(value, "login") ?? "ghost",
-    mergedAt: readOptionalGitHubString(value, "mergedAt"),
+    login: readNonBlankString(value.login) ?? "ghost",
+    mergedAt: readNonBlankString(value.mergedAt),
     number: target.number,
     owner: target.owner,
     repo: target.repo,
     state: requiredString(value, "state"),
-    stateReason: readOptionalGitHubString(value, "stateReason"),
+    stateReason: readNonBlankString(value.stateReason),
     title: requiredString(value, "title"),
     updatedAt: requiredString(value, "updatedAt"),
   };
