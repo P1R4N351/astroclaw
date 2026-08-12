@@ -1,4 +1,4 @@
-import { normalizeOptionalString } from "../../lib/string-coerce.ts";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { DraftNode } from "./discovery.ts";
 
 type RecentPlaceSource = {
