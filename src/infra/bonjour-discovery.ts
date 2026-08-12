@@ -1,5 +1,6 @@
 // Discovers gateways over Bonjour and normalizes service records.
 import { expectDefined } from "@astroclaw/normalization-core";
+import { parseStrictInteger } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import {
   normalizeStringEntries,
@@ -7,7 +8,6 @@ import {
 } from "@astroclaw/normalization-core/string-normalization";
 import pLimit from "p-limit";
 import { runCommandWithTimeout } from "../process/exec.js";
-import { parseStrictInteger } from "./parse-finite-number.js";
 import { isTailnetIPv4 } from "./tailnet.js";
 import { resolveWideAreaDiscoveryDomain } from "./widearea-dns.js";
 
