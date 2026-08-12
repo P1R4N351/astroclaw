@@ -1,3 +1,4 @@
+import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { readNonBlankString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { HEARTBEAT_TRANSCRIPT_PROMPT } from "../auto-reply/heartbeat.js";
@@ -241,7 +242,7 @@ export function noteSessionActivityEvent(
         return;
       }
       const title = readNonBlankString(data.title) ?? readNonBlankString(data.name) ?? "command";
-      const exitCode = readFiniteNumber(data.exitCode);
+      const exitCode = asFiniteNumber(data.exitCode);
       const status = readNonBlankString(data.status) ?? (exitCode === 0 ? "completed" : "failed");
       addActivityNote(
         state,
@@ -326,10 +327,6 @@ export function noteSessionActivityEvent(
     default:
       break;
   }
-}
-
-export function readFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 export function terminalHealthFor(event: AgentEventPayload): "done" | "failed" {
