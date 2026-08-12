@@ -1,7 +1,10 @@
 /** launchctl state parsing, inspection, and bootstrap primitives. */
 import fs from "node:fs/promises";
+import {
+  parseStrictInteger,
+  parseStrictPositiveInteger,
+} from "@astroclaw/normalization-core/number-coercion";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
-import { parseStrictInteger, parseStrictPositiveInteger } from "../infra/parse-finite-number.js";
 import { parseTcpPort, parseTcpPortFromArgs } from "../infra/tcp-port.js";
 import { sleep } from "../utils.js";
 import { resolveGatewayServiceProbeHosts } from "./gateway-service-probe-hosts.js";
