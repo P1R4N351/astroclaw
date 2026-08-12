@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import acpCorePackageJson from "../../packages/acp-core/package.json" with { type: "json" };
+import normalizationCorePackageJson from "../../packages/normalization-core/package.json" with { type: "json" };
 import { pluginSdkSubpaths } from "../../scripts/lib/plugin-sdk-entries.mts";
 import privateLocalOnlyPluginSdkSubpaths from "../../scripts/lib/plugin-sdk-private-local-only-subpaths.json" with { type: "json" };
 import { createStateSchemaInlinePlugin } from "../../scripts/lib/state-schema-inline-plugin.mts";
@@ -430,120 +431,10 @@ export const sharedVitestConfig = {
         find: "@astroclaw/net-policy",
         replacement: path.join(repoRoot, "packages", "net-policy", "src", "index.ts"),
       },
-      {
-        find: "@astroclaw/normalization-core/agent-id",
-        replacement: path.join(repoRoot, "packages", "normalization-core", "src", "agent-id.ts"),
-      },
-      {
-        find: "@astroclaw/normalization-core/boolean-coercion",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "boolean-coercion.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/cjk-chars",
-        replacement: path.join(repoRoot, "packages", "normalization-core", "src", "cjk-chars.ts"),
-      },
-      {
-        find: "@astroclaw/normalization-core/error-coercion",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "error-coercion.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/json-schema",
-        replacement: path.join(repoRoot, "packages", "normalization-core", "src", "json-schema.ts"),
-      },
-      {
-        find: "@astroclaw/normalization-core/number-coercion",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "number-coercion.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/phone-presentation",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "phone-presentation.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/promise-like",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "promise-like.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/record-coerce",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "record-coerce.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/result",
-        replacement: path.join(repoRoot, "packages", "normalization-core", "src", "result.ts"),
-      },
-      {
-        find: "@astroclaw/normalization-core/stable-node-path",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "stable-node-path.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/string-coerce",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "string-coerce.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/string-normalization",
-        replacement: path.join(
-          repoRoot,
-          "packages",
-          "normalization-core",
-          "src",
-          "string-normalization.ts",
-        ),
-      },
-      {
-        find: "@astroclaw/normalization-core/utf16-slice",
-        replacement: path.join(repoRoot, "packages", "normalization-core", "src", "utf16-slice.ts"),
-      },
-      {
-        find: /^@openclaw\/normalization-core$/u,
-        replacement: path.join(repoRoot, "packages", "normalization-core", "src", "index.ts"),
-      },
+      ...sourcePackageAliasesFromExports(
+        "normalization-core",
+        normalizationCorePackageJson.exports,
+      ),
       sourcePackageAlias("markdown-core", "code-spans"),
       sourcePackageAlias("markdown-core", "fences"),
       sourcePackageAlias("media-core", "attachment-classify"),
