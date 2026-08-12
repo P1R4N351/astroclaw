@@ -6,8 +6,8 @@ import {
   runAgentHarnessBeforeCompactionHook,
   type BeforeToolCallFailureDisposition,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { readStringField as readString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { readStringField as readString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { AttemptFailureSource } from "./attempt-terminal.js";
 import type { EmbeddedRunAttemptResult } from "./attempt-terminal.js";
 import { CodexAssistantProjection } from "./event-projector-assistant.js";
@@ -343,6 +343,13 @@ export class CodexAppServerEventProjector {
 
   recordDynamicToolCall(params: { callId: string; tool: string; arguments?: JsonValue }): void {
     this.toolTranscriptProjection.recordDynamicToolCall(params);
+  }
+
+  /** Projects a successful OpenClaw update_plan call through the native plan stream. */
+  recordDynamicPlanUpdate(params: unknown): void {
+    if (isJsonObject(params)) {
+      this.reasoningProjection.handleTurnPlanUpdated(params, "openclaw");
+    }
   }
 
   recordDynamicToolResult(params: {
