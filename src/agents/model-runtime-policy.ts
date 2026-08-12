@@ -6,10 +6,11 @@
  */
 import { parseModelCatalogRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
+import { tryResolveLegacyCompatibilityAgentId } from "../config/legacy.default-agent-owner.js";
 import type { AgentModelEntryConfig } from "../config/types.agent-defaults.js";
 import type { AgentRuntimePolicyConfig } from "../config/types.agents-shared.js";
-import type { ModelDefinitionConfig, ModelProviderConfig } from "../config/types.models.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelDefinitionConfig, ModelProviderConfig } from "../config/types.models.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { listAgentEntries, resolveSessionAgentIds } from "./agent-scope.js";
 
@@ -152,14 +153,17 @@ function resolveAgentModelEntryRuntimePolicy(params: {
   if (!params.config || (!modelId && params.matchKind !== "provider-wildcard")) {
     return {};
   }
-  const { sessionAgentId } = resolveSessionAgentIds({
-    config: params.config,
-    agentId: params.agentId,
-    sessionKey: params.sessionKey,
-  });
-  const agentEntry = listAgentEntries(params.config).find(
-    (entry) => normalizeAgentId(entry.id) === sessionAgentId,
-  );
+  const hasSessionScope = Boolean(params.agentId?.trim() || params.sessionKey?.trim());
+  const sessionAgentId = hasSessionScope
+    ? resolveSessionAgentIds({
+        config: params.config,
+        agentId: params.agentId,
+        sessionKey: params.sessionKey,
+      }).sessionAgentId
+    : tryResolveLegacyCompatibilityAgentId(params.config);
+  const agentEntry = sessionAgentId
+    ? listAgentEntries(params.config).find((entry) => normalizeAgentId(entry.id) === sessionAgentId)
+    : undefined;
   const modelMaps: Array<Record<string, AgentModelEntryConfig> | undefined> = [
     agentEntry?.models,
     params.config.agents?.defaults?.models,
