@@ -1,5 +1,6 @@
 // Whatsapp tests cover qa driver plugin behavior.
 import { EventEmitter } from "node:events";
+import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import type { proto, WAMessage } from "baileys";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { startWhatsAppQaDriverSession, type WhatsAppQaDriverSession } from "./qa-driver.runtime.js";
@@ -22,7 +23,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("./session.js", () => ({
   createWaSocket: mocks.createWaSocket,
-  formatError: (error: unknown) => (error instanceof Error ? error.message : String(error)),
+  formatError: coerceErrorMessage,
   getStatusCode: (error: unknown) =>
     (error as { output?: { statusCode?: number } } | undefined)?.output?.statusCode,
   waitForWaConnection: mocks.waitForWaConnection,
