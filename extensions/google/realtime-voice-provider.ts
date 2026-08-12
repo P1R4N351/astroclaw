@@ -21,8 +21,8 @@ import {
 import {
   resolveExpiresAtMsFromDurationMs,
   timestampMsToIsoString,
-} from "astroclaw/plugin-sdk/number-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/provider-onboard";
+} from "openclaw/plugin-sdk/number-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-onboard";
 import type {
   RealtimeVoiceAudioFormat,
   RealtimeVoiceBridge,
@@ -34,7 +34,7 @@ import type {
   RealtimeVoiceRole,
   RealtimeVoiceTool,
   RealtimeVoiceToolResultOptions,
-} from "astroclaw/plugin-sdk/realtime-voice";
+} from "openclaw/plugin-sdk/realtime-voice";
 import {
   convertPcmToMulaw8k,
   createRealtimeVoiceAudioQueue,
@@ -43,15 +43,16 @@ import {
   REALTIME_VOICE_AUDIO_FORMAT_PCM16_24KHZ,
   REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME,
   resamplePcm,
-} from "astroclaw/plugin-sdk/realtime-voice";
-import { warn } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/realtime-voice";
+import { warn } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
 import {
   asBoolean,
   asFiniteNumber,
+  asSafeIntegerInRange,
   isRecord,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { canonicalizeGoogleProviderBase64 } from "./base64.js";
 import { createGoogleGenAI } from "./google-genai-runtime.js";
 import { resolveGoogleGemini3ThinkingLevel } from "./thinking.js";
@@ -209,8 +210,7 @@ function asTurnCoverage(value: unknown): GoogleRealtimeTurnCoverage | undefined 
 }
 
 function asNonNegativeInteger(value: unknown): number | undefined {
-  const number = asFiniteNumber(value);
-  return number !== undefined && Number.isSafeInteger(number) && number >= 0 ? number : undefined;
+  return asSafeIntegerInRange(value, { min: 0 });
 }
 
 function asGoogleRealtimeThinkingBudget(value: unknown): number | undefined {
