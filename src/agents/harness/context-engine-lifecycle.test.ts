@@ -1,5 +1,5 @@
 // Covers context-engine message filtering, assemble validation, and turn finalization.
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { describe, expect, it, vi } from "vitest";
 import { buildMemorySystemPromptAddition } from "../../context-engine/delegate.js";
 import {
@@ -154,7 +154,8 @@ describe("harness context engine lifecycle", () => {
       const result = await assembleHarnessContextEngine({
         contextEngine: createContextEngine({ assemble }),
         sessionId: sessionParams.sessionId,
-        sessionKey: "agent:support:main",
+        sessionKey: "global",
+        agentId: "support",
         messages: [textMessage("user", "visible ask", 1)],
         availableTools,
         citationsMode: "on",
@@ -168,7 +169,7 @@ describe("harness context engine lifecycle", () => {
       expect(prepare).toHaveBeenCalledWith(
         expect.objectContaining({
           agentId: "support",
-          agentSessionKey: "agent:support:main",
+          agentSessionKey: "global",
           sandboxed: true,
         }),
       );
