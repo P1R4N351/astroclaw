@@ -4,7 +4,7 @@
  * predicates used by rotation and failure handling.
  */
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
-import { asDateTimestampMs } from "../../shared/number-coercion.js";
+import { asDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import type { AuthProfileFailureReason, AuthProfileStore, ProfileUsageStats } from "./types.js";
 
 /** Returns true for providers whose auth-profile cooldowns are provider-managed. */
