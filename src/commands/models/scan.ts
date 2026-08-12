@@ -1,3 +1,7 @@
+import {
+  parseStrictFiniteNumber,
+  parseStrictPositiveInteger,
+} from "@astroclaw/normalization-core/number-coercion";
 /** OpenRouter free-model scanner and fallback updater for model commands. */
 import { cancel, multiselect as clackMultiselect, isCancel } from "@clack/prompts";
 import { getEnvApiKey } from "@openclaw/ai/internal/runtime";
@@ -10,10 +14,6 @@ import { formatCliCommand } from "../../cli/command-format.js";
 import { withProgressTotals } from "../../cli/progress.js";
 import { logConfigUpdated } from "../../config/logging.js";
 import { toAgentModelListLike } from "../../config/model-input.js";
-import {
-  parseStrictFiniteNumber,
-  parseStrictPositiveInteger,
-} from "../../infra/parse-finite-number.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../../runtime.js";
 import { padTerminalCell, truncate } from "./list.format.js";
 import { loadModelsConfig } from "./load-config.js";
