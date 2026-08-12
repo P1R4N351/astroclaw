@@ -282,7 +282,7 @@ export {
   readStringArrayParam,
   readToolStringParam as readStringParam,
 } from "../agents/tools/common.js";
-export { parseStrictPositiveInteger } from "../infra/parse-finite-number.js";
+export { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 export { isTrustedProxyAddress, resolveClientIp } from "../gateway/net.js";
 export { formatZonedTimestamp } from "../infra/format-time/format-datetime.js";
 export { resolveConfiguredAcpBindingRecord } from "../acp/persistent-bindings.resolve.js";
