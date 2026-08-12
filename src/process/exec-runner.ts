@@ -1,11 +1,11 @@
 import process from "node:process";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { toErrorObject } from "@astroclaw/normalization-core/error-coercion";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import {
   decodeWindowsOutputBuffer,
   resolveWindowsConsoleEncoding,
 } from "../infra/windows-encoding.js";
-import { resolveTimerTimeoutMs } from "../shared/number-coercion.js";
 import { releaseChildProcessOutputAfterExit } from "./child-process.js";
 import {
   appendCapturedOutput,
