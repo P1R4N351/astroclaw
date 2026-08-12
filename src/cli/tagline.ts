@@ -1,6 +1,6 @@
 import { expectDefined } from "@astroclaw/normalization-core";
 // CLI tagline selection helpers, including deterministic random/default/holiday modes.
-import { parseStrictNonNegativeInteger } from "../infra/parse-finite-number.js";
+import { parseStrictNonNegativeInteger } from "@astroclaw/normalization-core/number-coercion";
 
 const DEFAULT_TAGLINE = "All your chats, one OpenClaw.";
 export type TaglineMode = "random" | "default" | "off";
