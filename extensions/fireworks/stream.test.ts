@@ -1,6 +1,6 @@
 // Fireworks tests cover stream plugin behavior.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { Context, Model } from "openclaw/plugin-sdk/llm";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import type { Context, Model } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { wrapFireworksProviderStream } from "./stream.js";
 
@@ -37,7 +37,7 @@ function capturePayload(params: {
   return captured;
 }
 
-describe("createFireworksKimiThinkingDisabledWrapper", () => {
+describe("wrapFireworksProviderStream", () => {
   it("forces thinking disabled for Fireworks Kimi models", () => {
     expect(
       capturePayload({
