@@ -6,6 +6,7 @@ import type {
   ToolResultMessage,
 } from "@astroclaw/llm-core";
 import type { EventStream as SourceEventStream } from "@astroclaw/llm-core";
+import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 // Keep the runtime class on the public package specifier so OpenClaw and
 // external consumers share one constructor identity.
 import { EventStream as LlmEventStream } from "@openclaw/ai/event-stream";
@@ -1879,9 +1880,7 @@ type TurnTaintMetadata = {
 
 function readTurnTaintMetadata(message: AgentMessage): TurnTaintMetadata | undefined {
   const metadata = (message as unknown as Record<string, unknown>)["__openclaw"];
-  return metadata && typeof metadata === "object" && !Array.isArray(metadata)
-    ? (metadata as TurnTaintMetadata)
-    : undefined;
+  return asOptionalRecord(metadata) as TurnTaintMetadata | undefined;
 }
 
 function toolResultTaintsTurn(message: ToolResultMessage): boolean {
