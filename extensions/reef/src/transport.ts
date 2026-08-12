@@ -1,5 +1,6 @@
-import { buildTimeoutAbortSignal } from "openclaw/plugin-sdk/extension-shared";
-import { readProviderJsonResponse } from "openclaw/plugin-sdk/provider-http";
+import { toStringifiedError as asError } from "astroclaw/plugin-sdk/error-runtime";
+import { buildTimeoutAbortSignal } from "astroclaw/plugin-sdk/extension-shared";
+import { readProviderJsonResponse } from "astroclaw/plugin-sdk/provider-http";
 import WebSocket from "ws";
 import { sha256Hex, signDeviceRequest, utf8 } from "../protocol/index.js";
 import type { Envelope, SignedReceipt } from "../protocol/index.js";
@@ -588,10 +589,6 @@ export class ReefInboxConnection {
       }
     });
   }
-}
-
-function asError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
 }
 
 function reefInboxCloseError(event: { code?: number; reason?: string }): Error {
