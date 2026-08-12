@@ -1,6 +1,7 @@
 // File lock helpers serialize plugin writes that share a filesystem-backed state file.
 import "../infra/fs-safe-defaults.js";
 import fs from "node:fs/promises";
+import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   acquireFileLock as acquireFsSafeFileLock,
   drainFileLockManagerForTest,
@@ -86,9 +87,7 @@ function createCurrentProcessLockPayload(): Record<string, unknown> {
 }
 
 function asLockPayload(payload: unknown): Record<string, unknown> | null {
-  return payload && typeof payload === "object" && !Array.isArray(payload)
-    ? (payload as Record<string, unknown>)
-    : null;
+  return asNullableRecord(payload);
 }
 
 function sameStatValue(left: number | bigint, right: number | bigint): boolean {
