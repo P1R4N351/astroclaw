@@ -1,7 +1,6 @@
 /** SQLite-backed ACP session metadata storage keyed through session-store entries. */
 import type { DatabaseSync } from "node:sqlite";
-import { safeParseJson } from "@astroclaw/normalization-core";
-import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
+import { safeParseJsonRecord } from "@astroclaw/normalization-core";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import type { Insertable, Selectable } from "kysely";
 import { getRuntimeConfig } from "../../config/config.js";
@@ -57,10 +56,8 @@ function getAcpSessionKysely(db: DatabaseSync) {
 }
 
 function rowToAcpSessionMeta(row: AcpSessionRow): SessionAcpMeta {
-  const identity = asOptionalRecord(safeParseJson(row.identity_json ?? "")) as
-    | SessionAcpIdentity
-    | undefined;
-  const runtimeOptions = asOptionalRecord(safeParseJson(row.runtime_options_json ?? "")) as
+  const identity = safeParseJsonRecord(row.identity_json ?? "") as SessionAcpIdentity | undefined;
+  const runtimeOptions = safeParseJsonRecord(row.runtime_options_json ?? "") as
     | AcpSessionRuntimeOptions
     | undefined;
   return {
