@@ -1,6 +1,7 @@
 /** Interactive and noninteractive secrets configure workflow. */
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
@@ -20,7 +21,6 @@ import {
   type SecretRefSource,
 } from "../config/types.secrets.js";
 import { isSafeExecutableValue } from "../infra/exec-safety.js";
-import { parseStrictPositiveInteger } from "../infra/parse-finite-number.js";
 import { loadPluginManifestRegistryCore } from "../plugins/manifest-registry.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { runSecretsApply, type SecretsApplyResult } from "./apply.js";
