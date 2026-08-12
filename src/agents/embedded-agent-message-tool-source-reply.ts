@@ -1,7 +1,7 @@
 /**
  * Detects message-tool sends that delivered a visible reply to the current source.
  */
-import { safeParseJson } from "@astroclaw/normalization-core";
+import { safeParseJsonRecord } from "@astroclaw/normalization-core";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import { hasNonEmptyString, readStringValue } from "@astroclaw/normalization-core/string-coerce";
 import type { SourceReplyDeliveryMode } from "../auto-reply/get-reply-options.types.js";
@@ -100,7 +100,7 @@ function isBareSentDeliveryStatus(value: unknown): boolean {
 }
 
 function parseJsonRecord(value: string): Record<string, unknown> | undefined {
-  return asOptionalRecord(safeParseJson(value));
+  return safeParseJsonRecord(value);
 }
 
 function recordHasDeliveredMessageId(record: Record<string, unknown>): boolean {
