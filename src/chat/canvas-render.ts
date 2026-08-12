@@ -1,5 +1,5 @@
 // Renders chat canvas payloads into text and metadata for transcript output.
-import { expectDefined, safeParseJson } from "@astroclaw/normalization-core";
+import { expectDefined, safeParseJsonRecord } from "@astroclaw/normalization-core";
 import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import { parseFenceSpans } from "../../packages/markdown-core/src/fences.js";
@@ -259,7 +259,7 @@ export function extractCanvasFromText(
   outputText: string | undefined,
   _toolName?: string,
 ): CanvasPreview | undefined {
-  const parsed = outputText ? asOptionalRecord(safeParseJson(outputText)) : undefined;
+  const parsed = outputText ? safeParseJsonRecord(outputText) : undefined;
   return coerceCanvasPreview(parsed);
 }
 
