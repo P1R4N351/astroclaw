@@ -1,4 +1,5 @@
 /** Dependency-light normalization helpers for stored cron run diagnostics. */
+import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 
@@ -76,10 +77,7 @@ export function normalizeDiagnosticToolName(value: unknown): string | undefined 
 }
 
 export function normalizeExitCode(value: unknown): number | null | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  return value === null ? null : undefined;
+  return asFiniteNumber(value) ?? (value === null ? null : undefined);
 }
 
 export function tailText(value: string, maxChars: number): string {
