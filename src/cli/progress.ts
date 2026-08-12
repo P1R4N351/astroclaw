@@ -1,3 +1,4 @@
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 // Terminal progress reporter used by long-running CLI commands.
 import { spinner } from "@clack/prompts";
 import {
@@ -10,7 +11,6 @@ import {
   unregisterActiveProgressLine,
 } from "../../packages/terminal-core/src/progress-line.js";
 import { theme } from "../../packages/terminal-core/src/theme.js";
-import { resolveTimerTimeoutMs } from "../shared/number-coercion.js";
 
 const DEFAULT_DELAY_MS = 0;
 // Only one active progress renderer may own the terminal line at a time.
