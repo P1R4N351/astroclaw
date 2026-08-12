@@ -1,30 +1,30 @@
 // Fal provider module implements model/runtime integration.
-import { resolveGeneratedMediaMaxBytes } from "astroclaw/plugin-sdk/media-generation-runtime";
-import { extensionForMime } from "astroclaw/plugin-sdk/media-mime";
-import { resolvePositiveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
-import { isProviderApiKeyConfigured } from "astroclaw/plugin-sdk/provider-auth";
+import { resolveGeneratedMediaMaxBytes } from "openclaw/plugin-sdk/media-generation-runtime";
+import { extensionForMime } from "openclaw/plugin-sdk/media-mime";
+import { resolvePositiveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import { isProviderApiKeyConfigured } from "openclaw/plugin-sdk/provider-auth";
 import {
   assertOkOrThrowHttpError,
   createProviderOperationDeadline,
   readProviderJsonResponse,
   type ProviderOperationDeadline,
-} from "astroclaw/plugin-sdk/provider-http";
-import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
+} from "openclaw/plugin-sdk/provider-http";
+import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
 import {
   fetchWithSsrFGuard,
   type SsrFPolicy,
   ssrfPolicyFromDangerouslyAllowPrivateNetwork,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   isRecord,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import type {
   GeneratedVideoAsset,
   VideoGenerationProvider,
   VideoGenerationRequest,
-} from "astroclaw/plugin-sdk/video-generation";
+} from "openclaw/plugin-sdk/video-generation";
 import { resolveFalHttpRequestConfig } from "./http-config.js";
 
 const DEFAULT_FAL_QUEUE_BASE_URL = "https://queue.fal.run";
@@ -96,18 +96,6 @@ type FalQueueResponse = {
     message?: string;
   };
 };
-
-let falFetchGuard = fetchWithSsrFGuard;
-
-function setFalVideoFetchGuardForTesting(impl: typeof fetchWithSsrFGuard | null): void {
-  falFetchGuard = impl ?? fetchWithSsrFGuard;
-}
-
-if (process.env.VITEST === "true") {
-  const key = Symbol.for("openclaw.falTestApi");
-  const api = (Reflect.get(globalThis, key) as Record<string, unknown> | undefined) ?? {};
-  Reflect.set(globalThis, key, { ...api, setVideoFetchGuard: setFalVideoFetchGuardForTesting });
-}
 
 function normalizeFalVideoUrl(value: unknown): string | undefined {
   const normalized = normalizeOptionalString(value);
@@ -208,7 +196,7 @@ async function downloadFalVideo(
   policy: SsrFPolicy | undefined,
   maxBytes: number,
 ): Promise<GeneratedVideoAsset> {
-  const { response, release } = await falFetchGuard({
+  const { response, release } = await fetchWithSsrFGuard({
     url,
     timeoutMs: DEFAULT_HTTP_TIMEOUT_MS,
     policy,
@@ -468,7 +456,7 @@ async function fetchFalJson(params: {
   auditContext: string;
   errorContext: string;
 }): Promise<unknown> {
-  const { response, release } = await falFetchGuard({
+  const { response, release } = await fetchWithSsrFGuard({
     url: params.url,
     init: params.init,
     timeoutMs: params.timeoutMs,
