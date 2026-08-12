@@ -1,7 +1,7 @@
 import { estimateBase64DecodedBytes } from "@astroclaw/media-core/base64";
 import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { asOptionalRecord as readRecord } from "@astroclaw/normalization-core/record-coerce";
-import { parseInboundMediaUri } from "../media/media-reference.js";
+import { parseInboundMediaUri, buildInboundMediaUriFromPath } from "../media/media-reference.js";
 import {
   parseAssistantTextSignature,
   resolveAssistantMessagePhase,
@@ -100,7 +100,11 @@ function projectChatHistoryMediaBlock(entry: Record<string, unknown>, fact = fal
       if (!Object.hasOwn(record, field)) {
         continue;
       }
-      const projected = projectChatHistoryMediaReference(record[field]);
+      // Managed inbound file paths persisted on media facts are host-local absolute
+      // paths; rewrite them to canonical `media://inbound/<id>` URIs the UI loads through
+      // the authenticated assistant-media route, instead of redacting the reference entirely.
+      const inboundUri = fact ? buildInboundMediaUriFromPath(String(record[field])) : undefined;
+      const projected = inboundUri ?? projectChatHistoryMediaReference(record[field]);
       record[field] = projected;
       if (projected === undefined) {
         delete record[field];
