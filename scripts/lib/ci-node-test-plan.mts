@@ -962,7 +962,7 @@ function resolveInfraShardName(file: string): string {
     name.startsWith("json") ||
     name.startsWith("path") ||
     name.startsWith("shell") ||
-    name.startsWith("tmp-openclaw-dir")
+    name.startsWith("tmp-astroclaw-dir")
   ) {
     return "core-runtime-infra-files-commands";
   }
@@ -1047,7 +1047,6 @@ function resolveInfraShardName(file: string): string {
     name.startsWith("fixed-window") ||
     name.startsWith("format-time/") ||
     name.startsWith("http-body") ||
-    name.startsWith("parse-finite-number") ||
     name.startsWith("plain-object") ||
     name.startsWith("prototype-keys") ||
     name.startsWith("retry") ||
