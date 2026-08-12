@@ -1,3 +1,4 @@
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { consume } from "@lit/context";
 import { initialState, Task, TaskStatus } from "@lit/task";
@@ -70,7 +71,7 @@ import {
   sessionAgentIds,
 } from "./agent-scope.ts";
 import { rememberSessionCustomGroup, sessionCategoryNames } from "./custom-groups.ts";
-import { loadStoredGroupBy, parseFilterInteger, saveStoredGroupBy } from "./page-state.ts";
+import { loadStoredGroupBy, saveStoredGroupBy } from "./page-state.ts";
 import { renderSessions, type SessionsProps, type TranscriptSearchState } from "./view.ts";
 
 const SESSIONS_DOCS_URL = "https://docs.openclaw.ai/concepts/session";
@@ -566,8 +567,10 @@ class SessionsPage extends OpenClawLightDomElement {
       activeMinutes:
         deepLinkKey || this.statusFilter !== "active"
           ? undefined
-          : parseFilterInteger(this.activeMinutes),
-      limit: deepLinkKey ? DEFAULT_SESSION_LIST_QUERY.limit : parseFilterInteger(this.limit),
+          : parseStrictPositiveInteger(this.activeMinutes),
+      limit: deepLinkKey
+        ? DEFAULT_SESSION_LIST_QUERY.limit
+        : parseStrictPositiveInteger(this.limit),
       search: deepLinkKey ?? undefined,
       includeGlobal: deepLinkKey ? true : this.includeGlobal,
       includeUnknown: deepLinkKey ? true : this.includeUnknown,
