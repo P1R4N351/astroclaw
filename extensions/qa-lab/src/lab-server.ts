@@ -2,12 +2,12 @@
 import fs from "node:fs";
 import { createServer } from "node:http";
 import path from "node:path";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   acquireDebugProxyCaptureStore,
   resolveDebugProxySettings,
-} from "astroclaw/plugin-sdk/proxy-capture";
+} from "openclaw/plugin-sdk/proxy-capture";
 import {
   closeQaHttpServer,
   handleQaBusRequest,
@@ -18,6 +18,7 @@ import {
   writeQaRequestBodyLimitError,
 } from "./bus-server.js";
 import { createQaBusState, type QaBusState } from "./bus-state.js";
+import { toQaError } from "./errors.js";
 import {
   QaEvidenceGalleryError,
   buildQaEvidenceGalleryModel,
@@ -220,10 +221,6 @@ function createQaLabConfig(baseUrl: string): OpenClawConfig {
   return createQaChannelGatewayConfig({ baseUrl });
 }
 
-function normalizeQaLabCleanupError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(formatErrorMessage(error));
-}
-
 function detectQaEvidenceArtifactContentType(filePath: string): string {
   const lower = filePath.toLowerCase();
   if (lower.endsWith(".png")) {
@@ -257,7 +254,7 @@ function detectQaEvidenceArtifactContentType(filePath: string): string {
 }
 
 async function startQaGatewayLoop(params: { state: QaBusState; baseUrl: string }) {
-  const { qaChannelPlugin, setQaChannelRuntime } = await import("astroclaw/plugin-sdk/qa-channel");
+  const { qaChannelPlugin, setQaChannelRuntime } = await import("openclaw/plugin-sdk/qa-channel");
   const runtime = createQaRunnerRuntime();
   setQaChannelRuntime(runtime);
   const cfg = createQaLabConfig(params.baseUrl);
@@ -589,7 +586,7 @@ export async function startQaLabServer(
             return;
           }
           fs.createReadStream(artifactFile)
-            .on("error", (error) => res.destroy(normalizeQaLabCleanupError(error)))
+            .on("error", (error) => res.destroy(toQaError(error)))
             .pipe(res);
           return;
         }
@@ -957,14 +954,14 @@ export async function startQaLabServer(
     try {
       await gateway?.stop();
     } catch (error) {
-      cleanupError = normalizeQaLabCleanupError(error);
+      cleanupError = toQaError(error);
     }
     const results = await Promise.allSettled([
       Promise.resolve().then(() => (serverListening ? closeQaHttpServer(server) : undefined)),
       Promise.resolve().then(releaseCaptureStore),
     ]);
     const failed = results.find((result) => result.status === "rejected");
-    return cleanupError ?? (failed ? normalizeQaLabCleanupError(failed.reason) : undefined);
+    return cleanupError ?? (failed ? toQaError(failed.reason) : undefined);
   };
 
   try {
