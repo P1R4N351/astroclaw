@@ -5,8 +5,8 @@
  */
 
 import { expectDefined } from "@astroclaw/normalization-core";
+import { MAX_DATE_TIMESTAMP_MS } from "@astroclaw/normalization-core/number-coercion";
 import { describe, expect, it, vi } from "vitest";
-import { MAX_DATE_TIMESTAMP_MS } from "../../shared/number-coercion.js";
 import {
   overlayRuntimeExternalOAuthProfiles,
   shouldReplaceStoredOAuthCredential,
