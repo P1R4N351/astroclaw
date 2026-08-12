@@ -1,7 +1,7 @@
+import type { OpenClawConfig } from "../config/types.astroclaw.js";
 // Gateway early-startup runtime helpers.
 // Starts discovery, remote skills, task maintenance, and delayed maintenance setup.
 import type { GatewayTailscaleMode } from "../config/types.gateway.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { PluginRegistry } from "../plugins/registry-types.js";
 import { measureStartup, type GatewayStartupTrace } from "./server-startup-trace.js";
 
@@ -77,6 +77,9 @@ export async function startGatewayEarlyRuntime(params: {
   getPresenceVersion: GatewayMaintenanceParams["getPresenceVersion"];
   getHealthVersion: GatewayMaintenanceParams["getHealthVersion"];
   refreshGatewayHealthSnapshot: GatewayMaintenanceParams["refreshGatewayHealthSnapshot"];
+  restartRunningChannels: GatewayMaintenanceParams["restartRunningChannels"];
+  refreshPresence: GatewayMaintenanceParams["refreshPresence"];
+  resetEventLoopHealth: GatewayMaintenanceParams["resetEventLoopHealth"];
   logHealth: GatewayMaintenanceParams["logHealth"];
   dedupe: GatewayMaintenanceParams["dedupe"];
   chatAbortControllers: GatewayMaintenanceParams["chatAbortControllers"];
@@ -177,6 +180,9 @@ export async function startGatewayEarlyRuntime(params: {
         getPresenceVersion: params.getPresenceVersion,
         getHealthVersion: params.getHealthVersion,
         refreshGatewayHealthSnapshot: params.refreshGatewayHealthSnapshot,
+        restartRunningChannels: params.restartRunningChannels,
+        refreshPresence: params.refreshPresence,
+        resetEventLoopHealth: params.resetEventLoopHealth,
         logHealth: params.logHealth,
         dedupe: params.dedupe,
         chatAbortControllers: params.chatAbortControllers,
