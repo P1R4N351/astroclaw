@@ -1,8 +1,8 @@
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 // Converts queue directives into normalized queue settings.
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import type { QueueMode } from "../../../../packages/gateway-protocol/src/schema/logs-chat.js";
 import { parseDurationMs } from "../../../cli/parse-duration.js";
-import { parseStrictPositiveInteger } from "../../../infra/parse-finite-number.js";
 import { skipDirectiveArgPrefix, takeDirectiveToken } from "../directive-parsing.js";
 import { normalizeQueueDropPolicy, normalizeQueueMode } from "./normalize.js";
 import type { QueueDropPolicy } from "./types.js";
