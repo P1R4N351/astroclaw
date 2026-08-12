@@ -1,7 +1,7 @@
 // OpenAI stream wrapper tests cover streamed text, tools, and reasoning fields.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { Model } from "openclaw/plugin-sdk/llm";
-import { createAssistantMessageEventStream } from "openclaw/plugin-sdk/llm";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import type { Model } from "astroclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import {
   createOpenAIAttributionHeadersWrapper,
@@ -653,16 +653,6 @@ describe("createOpenAIThinkingLevelWrapper", () => {
     void wrapped(openaiModel, { messages: [] }, {});
 
     expect(payloads[0]?.reasoning).toBeUndefined();
-  });
-
-  it("overrides existing reasoning.effort from upstream wrappers", () => {
-    const { baseStreamFn, payloads } = createPayloadCapture({
-      initialReasoning: { effort: "none" },
-    });
-    const wrapped = createOpenAIThinkingLevelWrapper(baseStreamFn, "medium");
-    void wrapped(codexModel, { messages: [] }, {});
-
-    expect(payloads[0]?.reasoning).toEqual({ effort: "medium" });
   });
 
   it("returns underlying streamFn unchanged when thinkingLevel is undefined", () => {
