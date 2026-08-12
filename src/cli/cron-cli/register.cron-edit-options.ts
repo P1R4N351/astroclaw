@@ -1,6 +1,6 @@
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { CronJob } from "../../cron/types.js";
-import { parseStrictPositiveInteger } from "../../infra/parse-finite-number.js";
 import {
   parseCronCommandArgv,
   parseCronCommandEnv,
