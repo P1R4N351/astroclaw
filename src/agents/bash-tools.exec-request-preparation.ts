@@ -1,4 +1,5 @@
 /** Prepares exec workdir and environment facts before policy and host dispatch. */
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeChatChannelId } from "../channels/ids.js";
 import { OPENCLAW_CLI_ENV_VAR } from "../infra/astroclaw-exec-env.js";
@@ -96,7 +97,7 @@ function buildChannelContextEnv(
 }
 
 function isExecToolArgsObject(value: unknown): value is ExecToolArgs {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return isRecord(value);
 }
 
 function filterPluginExecEnv(rawEnv: Record<string, string>): Record<string, string> | undefined {
