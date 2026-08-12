@@ -4,23 +4,24 @@ import {
   formatErrorMessage,
   resolveActiveEmbeddedRunSessionId,
   resolveSandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { resolveSessionAgentIds } from "astroclaw/plugin-sdk/agent-runtime";
-import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-binding-runtime";
-import { loadExecApprovals } from "astroclaw/plugin-sdk/exec-approvals-runtime";
-import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/keyed-async-queue";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { resolveSessionAgentIds } from "openclaw/plugin-sdk/agent-runtime";
+import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-binding-runtime";
+import { loadExecApprovals } from "openclaw/plugin-sdk/exec-approvals-runtime";
+import { KeyedAsyncQueue } from "openclaw/plugin-sdk/keyed-async-queue";
 import type {
   PluginConversationBindingResolvedEvent,
   PluginHookInboundClaimContext,
   PluginHookInboundClaimEvent,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+} from "openclaw/plugin-sdk/plugin-entry";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
+import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
 import {
   getSessionEntry,
   resolveStorePath,
   resolveTranscriptSessionKeyBySessionId,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-import { readVisibleSessionTranscriptMessageEntries } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/session-store-runtime";
+import { readVisibleSessionTranscriptMessageEntries } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { resolveCodexAppServerForModelProvider } from "./app-server/app-server-policy.js";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
@@ -122,11 +123,6 @@ import { isIncognitoSessionKey } from "./incognito-session.js";
 import { resumeCodexCliSessionOnNode } from "./node-cli-sessions.js";
 
 const DEFAULT_BOUND_TURN_TIMEOUT_MS = 20 * 60_000;
-const DEFAULT_AGENT_ID = "main";
-const VALID_AGENT_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
-const INVALID_AGENT_ID_CHARS_PATTERN = /[^a-z0-9_-]+/g;
-const LEADING_DASH_PATTERN = /^-+/;
-const TRAILING_DASH_PATTERN = /-+$/;
 const NATIVE_CONVERSATION_INTERACTIVE_APPROVALS_UNAVAILABLE =
   "OpenClaw native Codex conversation binding cannot route interactive approvals yet; use the Codex harness or explicit /acp spawn codex for that workflow.";
 
@@ -1484,25 +1480,7 @@ function resolveDefaultPolicyAgentId(config: ResolvedCodexConversationConfig): s
 
 function normalizeAgentIdOrDefault(value?: string | null): string | undefined {
   const normalized = normalizeAgentId(value);
-  return normalized === DEFAULT_AGENT_ID && !(value ?? "").trim() ? undefined : normalized;
-}
-
-function normalizeAgentId(value?: string | null): string {
-  const trimmed = (value ?? "").trim();
-  if (!trimmed) {
-    return DEFAULT_AGENT_ID;
-  }
-  const normalized = trimmed.toLowerCase();
-  if (VALID_AGENT_ID_PATTERN.test(trimmed)) {
-    return normalized;
-  }
-  return (
-    normalized
-      .replace(INVALID_AGENT_ID_CHARS_PATTERN, "-")
-      .replace(LEADING_DASH_PATTERN, "")
-      .replace(TRAILING_DASH_PATTERN, "")
-      .slice(0, 64) || DEFAULT_AGENT_ID
-  );
+  return normalized === "main" && !(value ?? "").trim() ? undefined : normalized;
 }
 
 function isCodexThreadNotFoundError(error: unknown): boolean {
