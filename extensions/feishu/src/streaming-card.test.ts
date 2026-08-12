@@ -1,7 +1,7 @@
 // Feishu tests cover streaming card plugin behavior.
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { LookupFn } from "openclaw/plugin-sdk/ssrf-runtime";
-import { withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
+import type { LookupFn } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { withFetchPreconnect } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveStreamingCardSendMode } from "./streaming-card-send-mode.js";
 import {
@@ -43,10 +43,9 @@ type StreamingRequest = {
 const serverStops: Array<() => Promise<void>> = [];
 const HERMETIC_PUBLIC_LOOKUP_ADDRESS = "93.184.216.34";
 
-const hermeticPublicLookup: LookupFn = (async (_hostname: string, _options?: unknown) => ({
-  address: HERMETIC_PUBLIC_LOOKUP_ADDRESS,
-  family: 4,
-})) as LookupFn;
+const hermeticPublicLookup: LookupFn = async () => [
+  { address: HERMETIC_PUBLIC_LOOKUP_ADDRESS, family: 4 },
+];
 
 async function readRequestBody(req: IncomingMessage): Promise<string> {
   let body = "";
