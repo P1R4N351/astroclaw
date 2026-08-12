@@ -5,8 +5,8 @@ import { isRecord } from "@astroclaw/normalization-core/record-coerce";
  * Applies provider and conversation allow/deny rules to mention pattern matching.
  */
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { MentionPatternsMode, MentionPatternsPolicyConfig } from "../config/types.messages.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { MentionPatternsMode, MentionPatternsPolicyConfig } from "../config/types.messages.js";
 
 /**
  * Inputs for resolving whether mention-pattern matching is enabled in a conversation.
@@ -41,7 +41,7 @@ function normalizeIdList(values?: string[]): Set<string> {
 }
 
 function isMentionPatternsPolicyConfig(value: unknown): value is MentionPatternsPolicyConfig {
-  return value != null && typeof value === "object" && !Array.isArray(value);
+  return isRecord(value);
 }
 
 function resolveProviderMentionPatternsPolicy(
