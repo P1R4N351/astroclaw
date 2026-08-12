@@ -3,6 +3,7 @@
  *
  * Implements only the Gateway calls needed by session tools and rejects unsupported methods.
  */
+import { asPositiveSafeInteger } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeFastMode, type FastMode } from "@astroclaw/normalization-core/string-coerce";
 import type {
   SessionsListParams,
@@ -145,7 +146,7 @@ function readChatHistoryMessageSeq(message: unknown): number | undefined {
     return undefined;
   }
   const seq = (metadata as Record<string, unknown>).seq;
-  return typeof seq === "number" && Number.isSafeInteger(seq) && seq > 0 ? seq : undefined;
+  return asPositiveSafeInteger(seq);
 }
 
 function resolveChatHistoryNextOffset(params: {
