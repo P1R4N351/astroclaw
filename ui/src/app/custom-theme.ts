@@ -1,7 +1,7 @@
 import { asNullableRecord as readThemeRecord } from "@astroclaw/normalization-core/record-coerce";
-import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 // Control UI module implements custom theme behavior.
-import { normalizeOptionalString } from "../lib/string-coerce.ts";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 
 const TWEAKCN_HOSTS = new Set(["tweakcn.com", "www.tweakcn.com"]);
 const THEME_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
