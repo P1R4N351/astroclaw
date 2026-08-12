@@ -1,7 +1,7 @@
 // Media fetch tests cover remote media download limits and validation.
 import fs from "node:fs/promises";
+import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { MAX_TIMER_TIMEOUT_MS } from "../shared/number-coercion.js";
 import { createTempHomeEnv, type TempHomeEnv } from "../test-utils/temp-home.js";
 
 const fetchWithSsrFGuardMock = vi.hoisted(() => vi.fn());
@@ -246,7 +246,8 @@ describe("readRemoteMediaBuffer", () => {
     saveRemoteMedia = fetchModule.saveRemoteMedia;
     saveResponseMedia = fetchModule.saveResponseMedia;
     // Default cap mirrors the module-private DEFAULT_FETCH_MEDIA_MAX_BYTES.
-    defaultFetchMediaMaxBytes = (await import("@astroclaw/media-core/constants")).MAX_DOCUMENT_BYTES;
+    defaultFetchMediaMaxBytes = (await import("@astroclaw/media-core/constants"))
+      .MAX_DOCUMENT_BYTES;
   });
 
   beforeEach(() => {
