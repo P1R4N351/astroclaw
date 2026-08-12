@@ -1,9 +1,6 @@
 // Memory Host SDK module implements session files behavior.
 import fsSync from "node:fs";
 import path from "node:path";
-import { normalizeAgentId } from "./config-utils.js";
-import { readRegularFile, statRegularFile } from "./fs-utils.js";
-import { hashText } from "./hash.js";
 import { createSubsystemLogger, redactSensitiveText } from "./astroclaw-runtime-io.js";
 import {
   DREAMING_NARRATIVE_RUN_PREFIX,
@@ -30,7 +27,11 @@ import {
   stripInboundMetadata,
   stripInternalRuntimeContext,
 } from "./astroclaw-runtime-session.js";
+import { normalizeAgentId } from "./config-utils.js";
+import { readRegularFile, statRegularFile } from "./fs-utils.js";
+import { hashText } from "./hash.js";
 import { retryTransientMemoryRead } from "./read-retry.js";
+import { resolveSessionResetRecallCutoff } from "./session-reset-recall.js";
 import {
   listSessionTranscriptCorpusEntriesForAgent,
   listSessionTranscriptCorpusEntriesForAgentSync,
@@ -775,11 +776,13 @@ export async function buildSessionEntry(
           const records = loadTranscriptEventsSync({
             ...sqliteIdentity,
           });
+          const resetRecallCutoff = resolveSessionResetRecallCutoff(records);
           const raw = serializeTranscriptEvents(records);
           return {
             mtimeMs: opts.updatedAtMs ?? stats.maxSeq,
             path: sessionPathForSessionIdentity(sqliteIdentity.agentId, sqliteIdentity.sessionId),
             raw,
+            resetRecallCutoff,
             size: stats.sizeBytes,
           };
         })()
@@ -959,7 +962,7 @@ export async function buildSessionEntry(
       lineProvenance.push(...renderedLines.map(() => memoryProvenance));
     }
     const content = collected.join("\n");
-    return {
+    const entry: SessionFileEntry = {
       path: memoryPath,
       absPath,
       mtimeMs,
@@ -971,7 +974,9 @@ export async function buildSessionEntry(
           "\n" +
           messageTimestampsMs.join(",") +
           "\n" +
-          JSON.stringify(lineProvenance),
+          JSON.stringify(lineProvenance) +
+          "\n" +
+          JSON.stringify(rawSource?.resetRecallCutoff ?? { state: "absent" }),
       ),
       content,
       lineMap,
@@ -981,6 +986,13 @@ export async function buildSessionEntry(
       ...(generatedByDreamingNarrative ? { generatedByDreamingNarrative: true } : {}),
       ...(generatedByCronRun ? { generatedByCronRun: true } : {}),
     };
+    Object.defineProperty(entry, Symbol.for("openclaw.memory.sessionResetRecallCutoff"), {
+      configurable: false,
+      enumerable: false,
+      value: rawSource?.resetRecallCutoff ?? { state: "absent" },
+      writable: false,
+    });
+    return entry;
   } catch (err) {
     void logSessionFileReadFailure(absPath, err);
     return null;
