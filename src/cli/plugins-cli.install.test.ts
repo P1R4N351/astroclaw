@@ -2,10 +2,11 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { installedPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
+import { installedPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { hashConfigIncludeRaw } from "../config/includes.js";
+import { recordPluginManifestInstallOwner } from "../plugins/manifest-install-owner.js";
 import {
   listOfficialExternalPluginCatalogEntries,
   resolveOfficialExternalPluginId,
@@ -1268,7 +1269,7 @@ describe("plugins cli install", () => {
       marketplaceSource: "local/repo",
       marketplacePlugin: "alpha",
     });
-    enablePluginInConfigMock.mockReturnValue({ config: enabledCfg });
+    enablePluginInConfigMock.mockReturnValue({ config: enabledCfg, enabled: true });
     buildPluginSnapshotReportMock.mockReturnValue({
       plugins: [{ id: "alpha", kind: "provider" }],
       diagnostics: [],
@@ -1276,19 +1277,22 @@ describe("plugins cli install", () => {
     const alphaRoot = cliInstallPath("alpha");
     loadPluginManifestRegistryMock.mockReturnValue({
       plugins: [
-        {
-          id: "alpha",
-          kind: "memory",
-          origin: "global",
-          channels: [],
-          providers: [],
-          cliBackends: [],
-          skills: [],
-          hooks: [],
-          rootDir: alphaRoot,
-          source: `${alphaRoot}/index.js`,
-          manifestPath: `${alphaRoot}/openclaw.plugin.json`,
-        },
+        recordPluginManifestInstallOwner(
+          {
+            id: "alpha",
+            kind: "memory",
+            origin: "global",
+            channels: [],
+            providers: [],
+            cliBackends: [],
+            skills: [],
+            hooks: [],
+            rootDir: alphaRoot,
+            source: `${alphaRoot}/index.js`,
+            manifestPath: `${alphaRoot}/openclaw.plugin.json`,
+          },
+          "alpha",
+        ),
       ],
       diagnostics: [],
     });
