@@ -1,7 +1,7 @@
 /**
  * Waits for tool-result streams to become idle before flushing output.
  */
-import { resolveTimerTimeoutMs } from "../../shared/number-coercion.js";
+import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 
 type IdleAwareAgent = {
   waitForIdle?: (() => Promise<void>) | undefined;
