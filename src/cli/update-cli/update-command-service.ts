@@ -2,6 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Writable } from "node:stream";
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import { err as resultError, ok, type Result } from "@astroclaw/normalization-core/result";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { confirm, isCancel } from "@clack/prompts";
@@ -30,7 +31,6 @@ import { summarizeGatewayServiceLayout } from "../../daemon/service-layout.js";
 import type { GatewayServiceCommandConfig } from "../../daemon/service-types.js";
 import { readGatewayServiceState, resolveGatewayService } from "../../daemon/service.js";
 import { assertGatewayServiceMutationAllowed } from "../../infra/gateway-supervision.js";
-import { parseStrictPositiveInteger } from "../../infra/parse-finite-number.js";
 import { getSelfAndAncestorPidsSync } from "../../infra/restart-stale-pids.js";
 import { nodeVersionSatisfiesEngine } from "../../infra/runtime-guard.js";
 import { fetchNpmPackageTargetStatus } from "../../infra/update-check-package-target.js";
