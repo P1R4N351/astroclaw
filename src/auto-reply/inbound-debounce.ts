@@ -3,8 +3,8 @@ import {
   resolveNonNegativeIntegerOption,
   resolveOptionalIntegerOption,
 } from "@astroclaw/normalization-core/number-coercion";
-import type { InboundDebounceByProvider } from "../config/types.messages.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { InboundDebounceByProvider } from "../config/types.messages.js";
 import { toErrorObject } from "../infra/errors.js";
 
 const resolveMs = (value: unknown): number | undefined =>
@@ -108,7 +108,11 @@ function createInboundDebounceFlush(params: {
     onAdoptionFinalizing: () => source?.onAdoptionFinalizing?.(),
     onFailed: source?.onFailed
       ? async (error) => {
-          await source.onFailed?.(error);
+          try {
+            await source.onFailed?.(error);
+          } finally {
+            markAdmitted();
+          }
         }
       : undefined,
     onAbandoned: async () => {
@@ -121,9 +125,15 @@ function createInboundDebounceFlush(params: {
   } catch (error) {
     completion = Promise.reject(toErrorObject(error, "Inbound debounce dispatch failed"));
   }
-  // A skipped or failed dispatch may never call a lifecycle hook; its terminal
-  // completion must still release the keyed chain.
-  void completion.then(markAdmitted, markAdmitted);
+  // A failed dispatch must settle its source claim before releasing the keyed
+  // lane; an already-admitted turn owns its later completion failure.
+  completion = completion.then(markAdmitted).catch(async (error: unknown) => {
+    if (!admitted && lifecycle.onFailed) {
+      await Promise.allSettled([lifecycle.onFailed(error)]);
+    }
+    markAdmitted();
+    throw error;
+  });
   return { admission, completion };
 }
 
