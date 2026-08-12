@@ -10,7 +10,7 @@
  * returning so the timer correctly skips the system-event fallback.
  */
 
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.js";
 import type { ChannelMessagingAdapter } from "../../channels/plugins/types.public.js";
@@ -2325,6 +2325,25 @@ describe("dispatchCronDelivery — double-announce guard", () => {
     expect(state.deliveryAttempted).toBe(true);
     expect(state.delivered).toBe(true);
     expect(deliverOutboundPayloads).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry permanent typed pre-dispatch rejections", async () => {
+    vi.stubEnv("OPENCLAW_TEST_FAST", "1");
+    const rejection = new PlatformMessageNotDispatchedError("payload rejected", {
+      cause: new Error("invalid payload"),
+      retryable: false,
+    });
+    vi.mocked(deliverOutboundPayloads).mockRejectedValue(rejection);
+
+    const params = makeBaseParams({ synthesizedText: "Reject this once." });
+    const state = await dispatchCronDelivery(params);
+
+    expect(deliverOutboundPayloads).toHaveBeenCalledTimes(1);
+    expectResultFields(state.result, {
+      status: "error",
+      error: String(rejection),
+      deliveryAttempted: true,
+    });
   });
 
   it.each(["structured", "threaded"] as const)(
