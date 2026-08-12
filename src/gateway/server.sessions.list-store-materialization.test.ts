@@ -45,11 +45,11 @@ async function countMaterializedEntriesForRows(rows: number): Promise<number> {
 
   let materialized = 0;
   // Only the lookup-store path used by sharing resolution goes through
-  // `listSessionEntries`; the listing itself and ACP metadata use the read-only
+  // `listSessionEntriesCore`; the listing itself and ACP metadata use the read-only
   // variant, so this isolates the per-row store loads under test.
-  const original = sessionAccessor.listSessionEntries;
+  const original = sessionAccessor.listSessionEntriesCore;
   const spies = [
-    vi.spyOn(sessionAccessor, "listSessionEntries").mockImplementation(((...args: never[]) => {
+    vi.spyOn(sessionAccessor, "listSessionEntriesCore").mockImplementation(((...args: never[]) => {
       const result = (original as (...inner: never[]) => unknown[])(...args);
       materialized += Array.isArray(result) ? result.length : 0;
       return result;
@@ -95,7 +95,7 @@ test("sessions.list discovers store targets at most once per agent", async () =>
   }
 });
 
-test("startup prewarm fills session snapshot and title caches before the first list", async () => {
+test("startup prewarm fills the session snapshot before the first list", async () => {
   const { storePath } = await createSessionStoreDir();
   const sessionKey = "agent:main:warm-cache";
   const sessionId = "warm-cache";
@@ -114,8 +114,6 @@ test("startup prewarm fills session snapshot and title caches before the first l
     sessionKey,
     storePath,
   });
-  const titleBatchSpy = vi.spyOn(sessionAccessor, "readSessionTranscriptTitleProbeBatch");
-  const titlePageSpy = vi.spyOn(sessionAccessor, "readSessionTranscriptMessageEventPage");
   let sidecar: ReturnType<typeof scheduleGatewayHandlerPrewarm> | undefined;
   vi.useFakeTimers();
   try {
@@ -145,10 +143,6 @@ test("startup prewarm fills session snapshot and title caches before the first l
     await vi.advanceTimersToNextTimerAsync();
     await sessionPrewarm;
     sidecar.stop();
-    expect(titleBatchSpy).toHaveBeenCalled();
-    expect(titlePageSpy).not.toHaveBeenCalled();
-    titleBatchSpy.mockClear();
-    titlePageSpy.mockClear();
     vi.useRealTimers();
     const cachedEntries = sessionAccessor.listSessionEntriesReadOnly({
       agentId: "main",
@@ -157,14 +151,17 @@ test("startup prewarm fills session snapshot and title caches before the first l
       storePath,
     });
 
-    const result = await directSessionReq("sessions.list", {
+    const result = await directSessionReq<{
+      sessions: Array<{ derivedTitle?: string; key?: string }>;
+    }>("sessions.list", {
       ...LIST_PARAMS,
       includeDerivedTitles: true,
     });
 
     expect(result.ok).toBe(true);
-    expect(titleBatchSpy).not.toHaveBeenCalled();
-    expect(titlePageSpy).not.toHaveBeenCalled();
+    expect(result.payload?.sessions).toContainEqual(
+      expect.objectContaining({ key: sessionKey, derivedTitle: "Warm title" }),
+    );
     const afterListEntries = sessionAccessor.listSessionEntriesReadOnly({
       agentId: "main",
       clone: false,
@@ -175,8 +172,6 @@ test("startup prewarm fills session snapshot and title caches before the first l
   } finally {
     sidecar?.stop();
     vi.useRealTimers();
-    titleBatchSpy.mockRestore();
-    titlePageSpy.mockRestore();
   }
 });
 
@@ -281,13 +276,13 @@ test("sessions.list projects out prompt snapshots without changing full entry re
 
   const projections: Array<string | undefined> = [];
   const originalReadOnly = sessionAccessor.listSessionEntriesReadOnly;
-  const originalWritable = sessionAccessor.listSessionEntries;
+  const originalWritable = sessionAccessor.listSessionEntriesCore;
   const spies = [
     vi.spyOn(sessionAccessor, "listSessionEntriesReadOnly").mockImplementation((scope) => {
       projections.push(scope?.projection);
       return originalReadOnly(scope);
     }),
-    vi.spyOn(sessionAccessor, "listSessionEntries").mockImplementation((scope) => {
+    vi.spyOn(sessionAccessor, "listSessionEntriesCore").mockImplementation((scope) => {
       projections.push(scope?.projection);
       return originalWritable(scope);
     }),
