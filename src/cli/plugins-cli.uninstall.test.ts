@@ -1,4 +1,4 @@
-import { installedPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
+import { installedPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Plugins CLI uninstall tests cover plugin removal selection and uninstall output.
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -149,6 +149,9 @@ describe("plugins cli uninstall", () => {
     buildPluginSnapshotReportMock.mockReturnValue({
       plugins: [{ id: "alpha", name: "alpha" }],
       diagnostics: [],
+    });
+    setInstalledPluginIndexInstallRecords({
+      alpha: { source: "path", sourcePath: ALPHA_INSTALL_PATH, installPath: ALPHA_INSTALL_PATH },
     });
     primeUninstallPlan({} as OpenClawConfig, { actions: { contextEngineSlot: true } });
 
@@ -564,42 +567,58 @@ describe("plugins cli uninstall", () => {
     expect(refreshPluginRegistryMock).not.toHaveBeenCalled();
   });
 
-  it("cleans stale policy refs even when plugin is absent from the current registry", async () => {
+  it("rejects stale child-keyed records that claim one package path", async () => {
+    const sharedPath = "/tmp/openclaw-ambiguous-uninstall-pack";
+    const installRecords = {
+      "pack/one": {
+        source: "npm" as const,
+        spec: "@acme/pack",
+        installPath: sharedPath,
+      },
+      "pack/two": {
+        source: "npm" as const,
+        spec: "@acme/pack",
+        installPath: sharedPath,
+      },
+    };
+    const config = {} as OpenClawConfig;
+    pluginCliConfigMock.mockReturnValue(config);
+    setInstalledPluginIndexInstallRecords(installRecords);
+    buildPluginSnapshotReportMock.mockReturnValue({
+      plugins: [{ id: "pack/one", name: "pack/one" }],
+      diagnostics: [],
+    });
+
+    await expect(
+      runPluginsCommand(["plugins", "uninstall", "pack/one", "--force"]),
+    ).rejects.toThrow("__exit__:1");
+
+    expect(runtimeErrors.at(-1)).toContain('Plugin "pack/one"');
+    expect(planPluginUninstallMock).not.toHaveBeenCalled();
+    expect(configWriteMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed for stale policy refs without authoritative installed children", async () => {
     const baseConfig = {
       plugins: {
         allow: ["alpha", "beta"],
         deny: ["alpha"],
       },
     } as OpenClawConfig;
-    const nextConfig = {
-      plugins: {
-        allow: ["beta"],
-      },
-    } as OpenClawConfig;
-
     pluginCliConfigMock.mockReturnValue(baseConfig);
     buildPluginSnapshotReportMock.mockReturnValue({
       plugins: [],
       diagnostics: [],
     });
-    primeUninstallPlan(nextConfig, {
-      actions: {
-        entry: false,
-        install: false,
-        allowlist: true,
-        denylist: true,
-        channelConfig: false,
-      },
-    });
 
-    await runPluginsCommand(["plugins", "uninstall", "alpha", "--force"]);
-
-    expectLatestUninstallPlanParams({ pluginId: "alpha", deleteFiles: true });
-    expect(configWriteMock).toHaveBeenCalledWith(nextConfig);
-    expect(pluginsCliRuntimeLogs.at(-2)).toContain('Uninstalled plugin "alpha"');
+    await expect(runPluginsCommand(["plugins", "uninstall", "alpha", "--force"])).rejects.toThrow(
+      "__exit__:1",
+    );
+    expect(planPluginUninstallMock).not.toHaveBeenCalled();
+    expect(configWriteMock).not.toHaveBeenCalled();
   });
 
-  it("uninstalls stale enabled entries when plugin is absent from the current registry", async () => {
+  it("fails closed for stale enabled entries without authoritative installed children", async () => {
     const baseConfig = {
       plugins: {
         entries: {
@@ -607,28 +626,18 @@ describe("plugins cli uninstall", () => {
         },
       },
     } as OpenClawConfig;
-    const nextConfig = {} as OpenClawConfig;
-
     pluginCliConfigMock.mockReturnValue(baseConfig);
     buildPluginSnapshotReportMock.mockReturnValue({
       plugins: [],
       diagnostics: [],
     });
-    primeUninstallPlan(nextConfig, {
-      actions: { install: false, channelConfig: false },
-    });
 
-    await runPluginsCommand(["plugins", "uninstall", "alpha", "--force"]);
-
-    expectLatestUninstallPlanParams({ pluginId: "alpha", deleteFiles: true });
-    expect(configWriteMock).toHaveBeenCalledWith(nextConfig);
-    expect(refreshPluginRegistryMock).toHaveBeenCalledWith({
-      config: nextConfig,
-      installRecords: {},
-      reason: "source-changed",
-    });
-    expect(runtimeErrors).not.toContain("Plugin not found: alpha");
-    expect(pluginsCliRuntimeLogs.at(-2)).toContain('Uninstalled plugin "alpha"');
+    await expect(runPluginsCommand(["plugins", "uninstall", "alpha", "--force"])).rejects.toThrow(
+      "__exit__:1",
+    );
+    expect(planPluginUninstallMock).not.toHaveBeenCalled();
+    expect(configWriteMock).not.toHaveBeenCalled();
+    expect(refreshPluginRegistryMock).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -782,7 +791,7 @@ describe("plugins cli uninstall", () => {
       "__exit__:1",
     );
 
-    expect(runtimeErrors.at(-1)).toContain("is not managed by plugins config/install records");
-    expect(planPluginUninstallMock).toHaveBeenCalledTimes(1);
+    expect(runtimeErrors.at(-1)).toContain("is not associated with a tracked package install");
+    expect(planPluginUninstallMock).not.toHaveBeenCalled();
   });
 });
