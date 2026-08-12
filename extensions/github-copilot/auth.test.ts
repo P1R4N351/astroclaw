@@ -7,15 +7,17 @@ const coerceSecretRefMock = vi.hoisted(() => vi.fn());
 const resolveConfiguredSecretInputWithFallbackMock = vi.hoisted(() => vi.fn());
 const resolveRequiredConfiguredSecretRefInputStringMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
-  coerceSecretRef: coerceSecretRefMock,
-  ensureAuthProfileStore: ensureAuthProfileStoreMock,
-  listProfilesForProvider: listProfilesForProviderMock,
-  normalizeOptionalSecretInput: (value: unknown) =>
-    typeof value === "string" && value.trim() ? value.trim() : undefined,
-}));
+vi.mock("astroclaw/plugin-sdk/provider-auth", async () => {
+  const { normalizeOptionalString } = await import("astroclaw/plugin-sdk/string-coerce-runtime");
+  return {
+    coerceSecretRef: coerceSecretRefMock,
+    ensureAuthProfileStore: ensureAuthProfileStoreMock,
+    listProfilesForProvider: listProfilesForProviderMock,
+    normalizeOptionalSecretInput: normalizeOptionalString,
+  };
+});
 
-vi.mock("openclaw/plugin-sdk/secret-input-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/secret-input-runtime", () => ({
   resolveConfiguredSecretInputWithFallback: resolveConfiguredSecretInputWithFallbackMock,
   resolveRequiredConfiguredSecretRefInputString: resolveRequiredConfiguredSecretRefInputStringMock,
 }));
@@ -23,8 +25,8 @@ vi.mock("openclaw/plugin-sdk/secret-input-runtime", () => ({
 import { resolveFirstGithubToken } from "./auth.js";
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/provider-auth");
-  vi.doUnmock("openclaw/plugin-sdk/secret-input-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/provider-auth");
+  vi.doUnmock("astroclaw/plugin-sdk/secret-input-runtime");
   vi.resetModules();
 });
 
