@@ -2,9 +2,9 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import {
   asSafeIntegerInRange,
   MAX_DATE_TIMESTAMP_MS,
+  parseStrictNonNegativeInteger,
 } from "@astroclaw/normalization-core/number-coercion";
 /** Resolves deterministic cron stagger windows for recurring schedules. */
-import { parseStrictNonNegativeInteger } from "../infra/parse-finite-number.js";
 import type { CronSchedule } from "./types.js";
 
 /** Default jitter window applied to recurring top-of-hour cron schedules. */
