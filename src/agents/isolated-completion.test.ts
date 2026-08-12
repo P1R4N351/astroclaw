@@ -101,7 +101,7 @@ vi.mock("../infra/private-temp-workspace.js", () => ({
     await run({ dir: "/tmp/isolated" }),
 }));
 vi.mock("../infra/tmp-astroclaw-dir.js", () => ({
-  resolvePreferredAstroclawTmpDir: () => "/tmp",
+  resolvePreferredOpenClawTmpDir: () => "/tmp",
 }));
 
 import { runIsolatedCompletion } from "./isolated-completion.js";
