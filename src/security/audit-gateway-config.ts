@@ -1,17 +1,17 @@
 // Audits gateway config for bind, auth, and exposure risks.
 import { isIP } from "node:net";
+import { parseStrictNonNegativeInteger } from "@astroclaw/normalization-core/number-coercion";
 import {
   hasNonEmptyString,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
 } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
-import type { GatewayAuthConfig } from "../config/types.gateway.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { GatewayAuthConfig } from "../config/types.gateway.js";
 import { hasConfiguredSecretInput } from "../config/types.secrets.js";
 import { resolveGatewayAuth } from "../gateway/auth-resolve.js";
 import { resolveGatewayAuthTokenSourceConflict } from "../gateway/auth-token-source-conflict.js";
-import { parseStrictNonNegativeInteger } from "../infra/parse-finite-number.js";
 import type { SecurityAuditFinding } from "./audit.types.js";
 import { collectCoreInsecureOrDangerousFlags } from "./core-dangerous-config-flags.js";
 import { DEFAULT_GATEWAY_HTTP_TOOL_DENY } from "./dangerous-tools.js";
