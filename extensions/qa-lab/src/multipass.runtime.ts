@@ -4,11 +4,12 @@ import fs from "node:fs";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { OpenClawCrablineChannelDriverSelection } from "@openclaw/crabline";
-import { runExec } from "astroclaw/plugin-sdk/process-runtime";
-import { sleep } from "astroclaw/plugin-sdk/runtime-env";
-import { appendRegularFile } from "astroclaw/plugin-sdk/security-runtime";
-import { uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import { coerceErrorMessage, toStringifiedError } from "openclaw/plugin-sdk/error-runtime";
+import { runExec } from "openclaw/plugin-sdk/process-runtime";
+import { sleep } from "openclaw/plugin-sdk/runtime-env";
+import { appendRegularFile } from "openclaw/plugin-sdk/security-runtime";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import type { QaProviderMode } from "./model-selection.js";
 import { resolveQaForwardedLiveEnv, resolveQaLiveProviderConfigPath } from "./providers/env.js";
 import { DEFAULT_QA_LIVE_PROVIDER_MODE, getQaProvider } from "./providers/index.js";
@@ -481,14 +482,14 @@ async function waitForGuestReady(logPath: string, vmName: string) {
       lastError = error;
       await appendMultipassLog(
         logPath,
-        `guest-ready retry ${attempt}/12: ${error instanceof Error ? error.message : String(error)}\n\n`,
+        `guest-ready retry ${attempt}/12: ${coerceErrorMessage(error)}\n\n`,
       );
       if (attempt < 12) {
         await sleep(2_000);
       }
     }
   }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  throw toStringifiedError(lastError);
 }
 
 async function mountRepo(logPath: string, repoRoot: string, vmName: string) {
@@ -505,14 +506,14 @@ async function mountRepo(logPath: string, repoRoot: string, vmName: string) {
       lastError = error;
       await appendMultipassLog(
         logPath,
-        `mount retry ${attempt}/5: ${error instanceof Error ? error.message : String(error)}\n\n`,
+        `mount retry ${attempt}/5: ${coerceErrorMessage(error)}\n\n`,
       );
       if (attempt < 5) {
         await sleep(2_000);
       }
     }
   }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  throw toStringifiedError(lastError);
 }
 
 async function mountCodexHome(logPath: string, hostCodexHomePath: string, vmName: string) {
@@ -529,14 +530,14 @@ async function mountCodexHome(logPath: string, hostCodexHomePath: string, vmName
       lastError = error;
       await appendMultipassLog(
         logPath,
-        `codex-home mount retry ${attempt}/5: ${error instanceof Error ? error.message : String(error)}\n\n`,
+        `codex-home mount retry ${attempt}/5: ${coerceErrorMessage(error)}\n\n`,
       );
       if (attempt < 5) {
         await sleep(2_000);
       }
     }
   }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  throw toStringifiedError(lastError);
 }
 
 async function transferLiveProviderConfig(plan: QaMultipassPlan) {
@@ -560,7 +561,7 @@ async function tryCopyGuestBootstrapLog(plan: QaMultipassPlan) {
   } catch (error) {
     await appendMultipassLog(
       plan.hostLogPath,
-      `bootstrap log transfer skipped: ${error instanceof Error ? error.message : String(error)}\n\n`,
+      `bootstrap log transfer skipped: ${coerceErrorMessage(error)}\n\n`,
     );
   }
 }
@@ -605,10 +606,9 @@ export async function runQaMultipass(params: {
     await execFileAsync("multipass", ["version"]);
   } catch (error) {
     if ((error as ExecFileError).code !== "ENOENT") {
-      throw new Error(
-        `Unable to verify Multipass availability: ${error instanceof Error ? error.message : String(error)}.`,
-        { cause: error },
-      );
+      throw new Error(`Unable to verify Multipass availability: ${coerceErrorMessage(error)}.`, {
+        cause: error,
+      });
     }
     throw new Error(
       `Multipass is not installed on this host. Install it with '${resolveMultipassInstallHint()}', then rerun 'pnpm openclaw qa suite --runner multipass'.`,
@@ -617,7 +617,7 @@ export async function runQaMultipass(params: {
   }
 
   const hostTransferDirPath = await fs.promises.mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), `${plan.vmName}-qa-suite-`),
+    path.join(resolvePreferredOpenClawTmpDir(), `${plan.vmName}-qa-suite-`),
   );
   const hostTransferScriptPath = path.join(hostTransferDirPath, "guest-run.sh");
   await writeFile(hostTransferScriptPath, renderQaMultipassGuestScript(plan), {
@@ -668,7 +668,7 @@ export async function runQaMultipass(params: {
       await tryCopyGuestBootstrapLog(plan);
     }
     throw new Error(
-      `QA Multipass run failed: ${error instanceof Error ? error.message : String(error)}. See ${plan.hostLogPath}.`,
+      `QA Multipass run failed: ${coerceErrorMessage(error)}. See ${plan.hostLogPath}.`,
       { cause: error },
     );
   } finally {
@@ -679,7 +679,7 @@ export async function runQaMultipass(params: {
       } catch (error) {
         await appendMultipassLog(
           plan.hostLogPath,
-          `cleanup error: ${error instanceof Error ? error.message : String(error)}\n\n`,
+          `cleanup error: ${coerceErrorMessage(error)}\n\n`,
         );
       }
     }
