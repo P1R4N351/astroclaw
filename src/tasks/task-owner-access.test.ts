@@ -1,7 +1,7 @@
 // Verifies requester and owner access checks for task records.
 import { afterEach, describe, expect, it } from "vitest";
-import { captureEnv } from "../test-utils/env.js";
 import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { captureEnv } from "../test-utils/env.js";
 import {
   findLatestTaskForRelatedSessionKeyForOwner,
   findTaskByRunIdForOwner,
@@ -122,6 +122,34 @@ describe("task owner access", () => {
           callerOwnerKey: "agent:main:mixedcase",
         }),
       ).toBeUndefined();
+    });
+  });
+
+  it("rejects an agentless caller for a bare owner key", async () => {
+    await withTaskRegistryTempDir(() => {
+      const task = createTaskRecord({
+        runtime: "acp",
+        ownerKey: "global",
+        scopeKind: "session",
+        requesterAgentId: "ops",
+        runId: "bare-owner-run",
+        task: "Agent-owned global task",
+        status: "queued",
+      });
+
+      expect(
+        getTaskByIdForOwner({
+          taskId: task.taskId,
+          callerOwnerKey: "global",
+        }),
+      ).toBeUndefined();
+      expect(
+        getTaskByIdForOwner({
+          taskId: task.taskId,
+          callerOwnerKey: "global",
+          callerAgentId: "ops",
+        })?.taskId,
+      ).toBe(task.taskId);
     });
   });
 
