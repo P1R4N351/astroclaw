@@ -1,9 +1,9 @@
 // Starts and monitors SSH tunnels for remote gateway access.
 import { spawn } from "node:child_process";
 import net from "node:net";
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { formatErrorMessage, isErrno } from "./errors.js";
-import { parseStrictPositiveInteger } from "./parse-finite-number.js";
 import { ensurePortAvailable, PortInUseError } from "./ports.js";
 import { resolveSshClient } from "./ssh-client.js";
 
