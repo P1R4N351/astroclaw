@@ -1,5 +1,5 @@
+import { estimateStringChars } from "@astroclaw/normalization-core/cjk-chars";
 import { sliceUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
-import { estimateStringChars } from "../../utils/cjk-chars.js";
 
 type ToolResultTextBudgetOptions = {
   minimumRawWeight?: number;
