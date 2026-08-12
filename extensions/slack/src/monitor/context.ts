@@ -1,23 +1,24 @@
 // Slack plugin module implements context behavior.
 import type { App } from "@slack/bolt";
-import { formatAllowlistMatchMeta } from "astroclaw/plugin-sdk/allow-from";
-import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
+import { formatAllowlistMatchMeta } from "openclaw/plugin-sdk/allow-from";
+import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
 import type {
   OpenClawConfig,
   SlackReactionNotificationMode,
-} from "astroclaw/plugin-sdk/config-contracts";
-import type { SessionScope } from "astroclaw/plugin-sdk/config-contracts";
-import type { DmPolicy, GroupPolicy } from "astroclaw/plugin-sdk/config-contracts";
-import { createDedupeCache } from "astroclaw/plugin-sdk/dedupe-runtime";
-import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { getChildLogger } from "astroclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/config-contracts";
+import type { SessionScope } from "openclaw/plugin-sdk/config-contracts";
+import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/config-contracts";
+import { createDedupeCache } from "openclaw/plugin-sdk/dedupe-runtime";
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { getChildLogger } from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { formatSlackError } from "../errors.js";
+import { buildSlackChannelIdCandidates } from "../group-policy.js";
 import type { SlackMessageEvent } from "../types.js";
 import { createSlackAgentViewState } from "./agent-view-state.js";
 import { normalizeAllowList, normalizeAllowListLower, normalizeSlackSlug } from "./allow-list.js";
@@ -100,7 +101,7 @@ export type SlackMonitorContext = {
   replyToMode: "off" | "first" | "all" | "batched";
   threadHistoryScope: "thread" | "channel";
   threadInheritParent: boolean;
-  slashCommand: Required<import("astroclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
+  slashCommand: Required<import("openclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
   textLimit: number;
   ackReactionScope: string;
   typingReaction: string;
@@ -116,6 +117,7 @@ export type SlackMonitorContext = {
     eventScope?: SlackEventScope;
   }) => string;
   isChannelAllowed: (params: {
+    teamId?: string;
     channelId?: string;
     channelName?: string;
     channelType?: SlackMessageEvent["channel_type"];
@@ -374,6 +376,7 @@ export function createSlackMonitorContext(params: {
     });
 
   const isChannelAllowed = (p: {
+    teamId?: string;
     channelId?: string;
     channelName?: string;
     channelType?: SlackMessageEvent["channel_type"];
@@ -392,7 +395,9 @@ export function createSlackMonitorContext(params: {
 
     if (isGroupDm && groupDmChannels.length > 0) {
       const candidates = [
-        p.channelId,
+        ...buildSlackChannelIdCandidates(p.channelId, p.teamId, {
+          allowUnscoped: params.installationIdentity?.kind !== "enterprise",
+        }),
         p.channelName ? `#${p.channelName}` : undefined,
         p.channelName,
         p.channelName ? normalizeSlackSlug(p.channelName) : undefined,
@@ -409,6 +414,8 @@ export function createSlackMonitorContext(params: {
 
     if (isRoom && p.channelId) {
       const channelConfig = resolveSlackChannelConfig({
+        teamId: p.teamId,
+        allowUnscoped: params.installationIdentity?.kind !== "enterprise",
         channelId: p.channelId,
         channelName: p.channelName,
         channels: params.channelsConfig,
@@ -433,7 +440,7 @@ export function createSlackMonitorContext(params: {
       if (shouldDrop) {
         if (explicitlyDisabled) {
           const reason = "channel_not_allowed";
-          const warningKey = `${params.accountId}:${p.channelId}:${reason}`;
+          const warningKey = `${params.accountId}:${p.teamId ? `${p.teamId}:` : ""}${p.channelId}:${reason}`;
           if (!channelDenialWarnings.peek(warningKey)) {
             channelDenialWarnings.check(warningKey);
             logger.warn(
