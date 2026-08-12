@@ -1,11 +1,11 @@
 /** Validation and normalization for ACP session runtime options and config controls. */
 import { isAbsolute } from "node:path";
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString as normalizeText,
 } from "@astroclaw/normalization-core/string-coerce";
 import type { AcpSessionRuntimeOptions, SessionAcpMeta } from "../../config/sessions/types.js";
-import { parseStrictPositiveInteger } from "../../infra/parse-finite-number.js";
 import { AcpRuntimeError } from "../runtime/errors.js";
 
 export { normalizeOptionalString as normalizeText } from "@astroclaw/normalization-core/string-coerce";
