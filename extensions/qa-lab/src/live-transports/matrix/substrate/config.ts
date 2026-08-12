@@ -1,10 +1,10 @@
 // Qa Lab Matrix helper module supports config behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   isRecord,
   normalizeStringEntries,
   uniqueStrings,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { MatrixQaProvisionedTopology } from "./topology.js";
 
 type MatrixQaReplyToMode = "off" | "first" | "all" | "batched";
@@ -287,7 +287,7 @@ function resolveMatrixQaStreamingMode(
 function isMatrixQaStreamingConfig(
   value: MatrixQaConfigOverrides["streaming"],
 ): value is MatrixQaStreamingConfig {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  return isRecord(value);
 }
 
 function resolveMatrixQaStreamingPreviewToolProgress(
