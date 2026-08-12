@@ -4,16 +4,16 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { resolveDefaultAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveDefaultAgentDir } from "openclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   validateJsonSchemaValue,
   type JsonSchemaObject,
-} from "astroclaw/plugin-sdk/json-schema-runtime";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
-import type { SessionCatalogProvider } from "astroclaw/plugin-sdk/session-catalog";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/json-schema-runtime";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+import type { SessionCatalogProvider } from "openclaw/plugin-sdk/session-catalog";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveCodexAppServerHomeDir } from "./app-server/auth-start-options.js";
 import { resolveCodexAppServerUserHomeDir } from "./app-server/config.js";
@@ -111,8 +111,8 @@ vi.mock("./app-server/shared-client.js", () => ({
 vi.mock("./app-server/transcript-mirror.js", () => ({
   importCodexThreadHistoryToTranscript: transcriptMirrorMocks.importCodexThreadHistoryToTranscript,
 }));
-vi.mock("astroclaw/plugin-sdk/node-host", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/node-host")>();
+vi.mock("openclaw/plugin-sdk/node-host", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/node-host")>();
   return {
     ...actual,
     runNodePtyCommand: nodeHostMocks.runNodePtyCommand,
@@ -1563,6 +1563,9 @@ describe("Codex supervision catalog", () => {
     const binDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-node-terminal-"));
     tempDirs.push(binDir);
     const executable = path.join(binDir, process.platform === "win32" ? "codex.cmd" : "codex");
+    if (process.platform === "win32") {
+      await fs.writeFile(path.join(binDir, "codex"), "#!/bin/sh\n");
+    }
     await fs.writeFile(executable, process.platform === "win32" ? "@echo off\r\n" : "#!/bin/sh\n");
     if (process.platform !== "win32") {
       await fs.chmod(executable, 0o755);
@@ -3887,11 +3890,11 @@ describe("Codex supervision actions", () => {
       getProvider()?.startTerminalSession?.({
         agentId: "main",
         cwd: "/workspace/new",
-        initialMessage: "--help",
+        initialMessage: "Fix A&B and 100%",
       }),
     ).resolves.toEqual({
       kind: "local",
-      argv: [executable, "--", "--help"],
+      argv: [executable, "--", "Fix A&B and 100%"],
       cwd: "/workspace/new",
       env: {
         CODEX_HOME: resolveCodexAppServerHomeDir(resolveDefaultAgentDir(config)),
