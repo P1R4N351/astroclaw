@@ -1,11 +1,11 @@
 // Runtime bridge for plugin install security scanning.
 import fs from "node:fs/promises";
 import path from "node:path";
+import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { tryReadJson } from "../infra/json-files.js";
-import { parseStrictPositiveInteger } from "../infra/parse-finite-number.js";
 import {
   runInstallPolicy,
   type InstallPolicyFinding,
