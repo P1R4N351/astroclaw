@@ -1,5 +1,8 @@
 // Thread-binding policy resolution for channel/account session spawning.
-import { MAX_DATE_TIMESTAMP_MS } from "@astroclaw/normalization-core/number-coercion";
+import {
+  asNonNegativeFiniteNumber,
+  MAX_DATE_TIMESTAMP_MS,
+} from "@astroclaw/normalization-core/number-coercion";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { normalizeAccountId } from "../routing/session-key.js";
@@ -89,13 +92,7 @@ function normalizeBoolean(value: unknown): boolean | undefined {
 }
 
 function normalizeThreadBindingHours(raw: unknown): number | undefined {
-  if (typeof raw !== "number" || !Number.isFinite(raw)) {
-    return undefined;
-  }
-  if (raw < 0) {
-    return undefined;
-  }
-  return raw;
+  return asNonNegativeFiniteNumber(raw);
 }
 
 function resolveThreadBindingHoursMs(raw: unknown, fallbackHours: number): number {
