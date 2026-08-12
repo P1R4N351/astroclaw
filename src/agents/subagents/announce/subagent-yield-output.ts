@@ -3,7 +3,7 @@
  *
  * Accepts provider-specific tool-call and tool-result shapes used by transcript repair and announce capture.
  */
-import { safeParseJson } from "@astroclaw/normalization-core";
+import { safeParseJsonRecord } from "@astroclaw/normalization-core";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import { readTrimmedStringAlias } from "../../../utils/string-readers.js";
 
@@ -61,7 +61,7 @@ function parseJsonObject(text: string): Record<string, unknown> | undefined {
   if (!trimmed.startsWith("{")) {
     return undefined;
   }
-  return asOptionalRecord(safeParseJson(trimmed));
+  return safeParseJsonRecord(trimmed);
 }
 
 function readStructuredToolPayload(content: unknown): Record<string, unknown> | undefined {
