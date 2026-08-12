@@ -5,6 +5,7 @@ import path from "node:path";
 import type { ResolvedTtsConfig } from "astroclaw/plugin-sdk/agent-runtime";
 import { AuthStorage, ModelRegistry } from "astroclaw/plugin-sdk/agent-sessions";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { coerceErrorMessage as formatLiveOpenAIError } from "astroclaw/plugin-sdk/error-runtime";
 import { encodePngRgba, fillPixel } from "astroclaw/plugin-sdk/media-runtime";
 import {
   registerProviderPlugin,
@@ -79,10 +80,6 @@ function createReferencePng(): Buffer {
   }
 
   return encodePngRgba(buf, width, height);
-}
-
-function formatLiveOpenAIError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function resolveLiveOpenAISkipReason(error: unknown): string | null {
