@@ -1,13 +1,13 @@
 import { expectDefined } from "@astroclaw/normalization-core";
 // Slack tests cover media plugin behavior.
 import type { WebClient } from "@slack/web-api";
-import type { FetchLike, SavedMedia } from "astroclaw/plugin-sdk/media-runtime";
+import type { FetchLike, SavedMedia } from "openclaw/plugin-sdk/media-runtime";
 import {
   fetchWithSsrFGuard,
   type LookupFn,
   type SsrFPolicy,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/ssrf-runtime";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   resolveSlackAttachmentContent,
@@ -1178,6 +1178,7 @@ describe("resolveSlackAttachmentContent", () => {
     expect(result).toEqual({
       text: "[Forwarded message from Bob]\nPlease review this",
       media: [],
+      unavailableImageCount: 0,
     });
     expect(mockFetch).not.toHaveBeenCalled();
   });
@@ -1190,7 +1191,7 @@ describe("resolveSlackAttachmentContent", () => {
       maxBytes: 1024 * 1024,
     });
 
-    expect(result).toEqual({ text: "", media: [], files: [file] });
+    expect(result).toEqual({ text: "", media: [], unavailableImageCount: 0, files: [file] });
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
@@ -1231,12 +1232,31 @@ describe("resolveSlackAttachmentContent", () => {
           placeholder: "[Forwarded image: forwarded.jpg]",
         },
       ],
+      unavailableImageCount: 0,
     });
     const firstCall = requireMockCall(mockFetch, 0, "fetch");
     expect(firstCall[0]).toBe("https://files.slack.com/forwarded.jpg");
     const firstInit = requireRecord(firstCall[1], "fetch init") as RequestInit;
     expect(firstInit.redirect).toBe("manual");
     expect(new Headers(firstInit.headers).get("Authorization")).toBe("Bearer xoxb-test-token");
+  });
+
+  it("reports Slack-hosted forwarded image download failures", async () => {
+    mockFetch.mockResolvedValueOnce(new Response("Not Found", { status: 404 }));
+
+    const result = await resolveSlackAttachmentContent({
+      attachments: [{ is_share: true, image_url: "https://files.slack.com/forwarded.jpg" }],
+      token: "xoxb-test-token",
+      maxBytes: 1024 * 1024,
+    });
+
+    expect(result).toEqual({
+      text: "",
+      media: [],
+      unavailableImageCount: 1,
+    });
+    expect(saveMediaBufferMock).not.toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledOnce();
   });
 
   it.each([
