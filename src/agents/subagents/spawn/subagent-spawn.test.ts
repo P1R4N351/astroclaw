@@ -1,7 +1,7 @@
 import os from "node:os";
 // Subagent spawn tests cover target policy, session patching, runtime model
 // persistence, registry registration, and lifecycle event emission.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
 import { resolveIncognitoOpenClawAgentSqlitePath } from "../../../state/openclaw-agent-db.paths.js";
@@ -741,7 +741,11 @@ describe("spawnSubagentDirect seam flow", () => {
     );
     expect(liveRejected.status).toBe("forbidden");
     expect(liveRejected.error).toContain("tools.swarm.maxChildrenPerGroup");
-    expect(hoisted.listSwarmRunsForGroupMock).toHaveBeenLastCalledWith("group", "agent:main:main");
+    expect(hoisted.listSwarmRunsForGroupMock).toHaveBeenLastCalledWith(
+      "group",
+      "agent:main:main",
+      "main",
+    );
 
     hoisted.listSwarmRunsForGroupMock.mockReturnValueOnce([
       { runId: "done", collect: true, collectorCompletion: { status: "done" } },
@@ -765,7 +769,11 @@ describe("spawnSubagentDirect seam flow", () => {
     );
 
     expect(accepted.status).toBe("accepted");
-    expect(hoisted.listSwarmRunsForGroupMock).toHaveBeenCalledWith("fresh", "agent:main:main");
+    expect(hoisted.listSwarmRunsForGroupMock).toHaveBeenCalledWith(
+      "fresh",
+      "agent:main:main",
+      "main",
+    );
   });
 
   it("enforces group caps atomically across concurrent collector registration", async () => {
@@ -844,6 +852,7 @@ describe("spawnSubagentDirect seam flow", () => {
     expect(hoisted.registerSubagentRunMock).toHaveBeenCalledTimes(2);
     expect(hoisted.countActiveRunsForSessionMock).toHaveBeenCalledWith(controllerSessionKey, {
       collect: false,
+      requesterAgentId: "main",
     });
   });
 
@@ -989,6 +998,7 @@ describe("spawnSubagentDirect seam flow", () => {
     expect(accepted.status).toBe("accepted");
     expect(hoisted.countActiveRunsForSessionMock).toHaveBeenCalledWith("agent:main:main", {
       collect: false,
+      requesterAgentId: "main",
     });
   });
 
@@ -1641,7 +1651,11 @@ describe("spawnSubagentDirect seam flow", () => {
       requesterSessionKey: "agent:main:main",
       swarmRequesterSessionKey: spawningSessionKey,
     });
-    expect(hoisted.listSwarmRunsForGroupMock).toHaveBeenCalledWith("routed", spawningSessionKey);
+    expect(hoisted.listSwarmRunsForGroupMock).toHaveBeenCalledWith(
+      "routed",
+      spawningSessionKey,
+      "main",
+    );
   });
 
   it("keeps spawn cwd separate from inherited agent workspace", async () => {
