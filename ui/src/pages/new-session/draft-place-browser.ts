@@ -1,3 +1,4 @@
+import { readMissingScopeError } from "@astroclaw/gateway-client/browser";
 import { initialState, Task, TaskStatus } from "@lit/task";
 import type { ReactiveControllerHost } from "lit";
 import type {
@@ -372,7 +373,7 @@ export class DraftPlaceBrowser {
     this.loadBrowser(path);
   }
 
-  loadBrowser(path: string | undefined) {
+  loadBrowser(path: string | undefined, retainedError: string | null = null) {
     const snapshot = this.read();
     const gatewaySnapshot = snapshot.context?.gateway.snapshot;
     const client = gatewaySnapshot?.client;
@@ -390,7 +391,7 @@ export class DraftPlaceBrowser {
     }
     const requestId = ++this.browserRequestToken;
     this.browserLoadingValue = true;
-    this.browserErrorValue = null;
+    this.browserErrorValue = retainedError;
     this.browserProjectPathValue = null;
     this.browserListingValue = null;
     this.browserPathDraftValue = path ?? "";
@@ -432,12 +433,17 @@ export class DraftPlaceBrowser {
         }
         this.callbacks.requestUpdate();
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (requestId !== this.browserRequestToken) {
           return;
         }
         if (path) {
-          this.loadBrowser(undefined);
+          this.loadBrowser(
+            undefined,
+            !target.nodeId && readMissingScopeError(error)?.missingScope === "operator.admin"
+              ? t("newSession.browseRequiresAdmin")
+              : t("newSession.browserLoadFailed"),
+          );
           return;
         }
         this.browserErrorValue = t("newSession.browserLoadFailed");
