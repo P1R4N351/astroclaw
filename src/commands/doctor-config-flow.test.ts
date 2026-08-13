@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { migratePersistedImplicitMainRoster } from "../config/legacy.roster.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
@@ -1707,19 +1707,32 @@ describe("doctor config flow", () => {
   });
 
   it("removes a legacy list when Doctor persists keyed roster entries", async () => {
-    const result = await runDoctorConfigWithInput({
-      config: { agents: { entries: { ops: { workspace: "/srv/ops" } } } },
-      parsedConfig: {
-        agents: { list: [{ id: "ops", default: true, workspace: "/srv/ops" }] },
+    const rawConfig = {
+      agents: {
+        list: [
+          { id: "ops", default: true, workspace: "/srv/ops" },
+          { id: "research", model: "openai/research" },
+        ],
       },
+    };
+    const result = await runDoctorConfigWithInput({
+      config: migratePersistedImplicitMainRoster(rawConfig).config as OpenClawConfig,
+      parsedConfig: rawConfig,
       repair: true,
       run: loadAndMaybeMigrateDoctorConfig,
     });
 
     expect(result.shouldWriteConfig).toBe(true);
+    expect(result.explicitSetPaths).toEqual([
+      ["agents", "entries"],
+      ["agents", "ownership"],
+    ]);
     expect(result.cfg.agents?.entries).toEqual({
       ops: { workspace: "/srv/ops" },
+      research: { model: "openai/research" },
     });
+    expect(result.cfg.agents?.ownership).toBe("explicit");
+    expect(result.cfg.agents?.entries?.ops).not.toHaveProperty("default");
     expect(result.cfg.agents).not.toHaveProperty("list");
   });
 
