@@ -13,6 +13,7 @@ import {
   type PreparedAgentRunAdmission,
 } from "./admitted-run-context.js";
 import type { AgentHarness } from "./harness/types.js";
+import { createEmptyPluginMetadataSnapshot } from "./test-helpers/embedded-agent-runner-e2e-mocks.js";
 
 type IsolatedCliRunParams = {
   preparedRunAdmission: PreparedAgentRunAdmission;
@@ -101,7 +102,7 @@ vi.mock("../infra/private-temp-workspace.js", () => ({
     await run({ dir: "/tmp/isolated" }),
 }));
 vi.mock("../infra/tmp-astroclaw-dir.js", () => ({
-  resolvePreferredOpenClawTmpDir: () => "/tmp",
+  resolvePreferredAstroclawTmpDir: () => "/tmp",
 }));
 
 import { runIsolatedCompletion } from "./isolated-completion.js";
@@ -145,7 +146,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.acquireAgentRunPreparedModelRuntime.mockResolvedValue({
     snapshot: {
+      config: {},
+      metadataSnapshot: createEmptyPluginMetadataSnapshot("/tmp/workspace"),
       pluginRegistry: createEmptyPluginRegistry(),
+      workspaceDir: "/tmp/workspace",
       createStores: () => ({ modelRegistry: {} }),
     },
     release: vi.fn(),
