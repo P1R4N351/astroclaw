@@ -2,9 +2,9 @@
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
-import { defaultRuntime as cliRuntime } from "astroclaw/plugin-sdk/runtime";
-import { clearConfigCache } from "astroclaw/plugin-sdk/runtime-config-snapshot";
 import { Command } from "commander";
+import { defaultRuntime as cliRuntime } from "openclaw/plugin-sdk/runtime";
+import { clearConfigCache } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerPolicyCli } from "./cli.js";
 import { createPolicyAttestation, policyDocumentHash } from "./policy-state.js";
@@ -170,7 +170,7 @@ describe("policy commands", () => {
     vi.stubEnv("OPENCLAW_CONFIG_PATH", configPath);
     await writeFixture(configPath, {
       plugins: { entries: { policy: { enabled: true, config: { enabled: true } } } },
-      agents: { entries: { main: { default: true }, family: {} } },
+      agents: { entries: { main: {} } },
       channels: { imessage: { enabled: false } },
       bindings: [],
     });
