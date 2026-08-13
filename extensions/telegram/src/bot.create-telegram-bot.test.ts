@@ -3,24 +3,24 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { escapeRegExp, formatEnvelopeTimestamp } from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { TelegramGroupConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { escapeRegExp, formatEnvelopeTimestamp } from "openclaw/plugin-sdk/channel-test-helpers";
+import type { TelegramGroupConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   buildPluginBindingApprovalCustomId,
   resolvePluginConversationBindingApproval,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import {
   clearPluginInteractiveHandlers,
   registerPluginInteractiveHandler,
-} from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/plugin-runtime";
 import type {
   PluginStateKeyedStore,
   PluginStateSyncKeyedStore,
-} from "astroclaw/plugin-sdk/plugin-state-runtime";
-import type { GetReplyOptions, MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { withEnvAsync } from "astroclaw/plugin-sdk/test-env";
-import { createRequireRecord, sanitizeTerminalText } from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/plugin-state-runtime";
+import type { GetReplyOptions, MsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { withEnvAsync } from "openclaw/plugin-sdk/test-env";
+import { createRequireRecord, sanitizeTerminalText } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTelegramNativeCommandTestDeps,
@@ -38,12 +38,12 @@ import { buildTelegramOpaqueCallbackData } from "./native-command-callback-data.
 import type { TelegramPollRegistryEntry } from "./poll-registry.js";
 import type { TelegramRuntime } from "./runtime.types.js";
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", { spy: true });
+vi.mock("openclaw/plugin-sdk/conversation-runtime", { spy: true });
 
 const harness = await import("./bot.create-telegram-bot.test-harness.js");
-const pluginStateTestRuntime = await import("astroclaw/plugin-sdk/plugin-state-test-runtime");
-const configMutation = await import("astroclaw/plugin-sdk/config-mutation");
-const modelSessionRuntime = await import("astroclaw/plugin-sdk/model-session-runtime");
+const pluginStateTestRuntime = await import("openclaw/plugin-sdk/plugin-state-test-runtime");
+const configMutation = await import("openclaw/plugin-sdk/config-mutation");
+const modelSessionRuntime = await import("openclaw/plugin-sdk/model-session-runtime");
 const EYES_EMOJI = "\u{1F440}";
 const tempStateDirs: string[] = [];
 let previousStateDir: string | undefined;
@@ -2259,7 +2259,7 @@ describe("createTelegramBot", () => {
         defaults: {
           model: "openai/gpt-4.1",
         },
-        list: [{ id: "agent-a" }, { id: "agent-b" }],
+        list: [{ id: "agent-a", default: true }, { id: "agent-b" }],
       },
       channels: {
         telegram: { dmPolicy: "open", allowFrom: ["*"] },
@@ -3689,7 +3689,7 @@ describe("createTelegramBot", () => {
         },
       },
       agents: {
-        list: [{ id: "agent-a" }, { id: "agent-b" }],
+        list: [{ id: "agent-a", default: true }, { id: "agent-b" }],
       },
       bindings: [
         {
@@ -3763,8 +3763,9 @@ describe("createTelegramBot", () => {
         },
       },
       agents: {
-        list: [{ id: "topic-a" }, { id: "topic-b" }],
+        list: [{ id: "topic-a", default: true }, { id: "topic-b" }],
       },
+      bindings: [{ agentId: "topic-a", match: { channel: "telegram", accountId: "default" } }],
     });
     loadConfig.mockImplementation(configForTopicAgent);
 
@@ -5052,7 +5053,7 @@ describe("createTelegramBot", () => {
         },
       },
       agents: {
-        list: [{ id: "agent-a" }, { id: "agent-b" }],
+        list: [{ id: "agent-a", default: true }, { id: "agent-b" }],
       },
       bindings: [
         {
