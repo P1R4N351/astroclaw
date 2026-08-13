@@ -1,14 +1,15 @@
 // Telegram tests cover send plugin behavior.
 import fs from "node:fs";
-import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
-import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import type { Bot } from "grammy";
+import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { createRequireRecord, importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
-import type { Bot } from "grammy";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { createRequireRecord, importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { markdownToTelegramHtml, telegramHtmlToPlainTextFallback } from "./format.js";
 import {
@@ -69,10 +70,10 @@ const {
   probeVideoDimensions,
 } = getTelegramSendTestMocks();
 const telegramSendModule = await importTelegramSendModule();
-const { PlatformMessageNotDispatchedError } = await import("astroclaw/plugin-sdk/error-runtime");
+const { PlatformMessageNotDispatchedError } = await import("openclaw/plugin-sdk/error-runtime");
 const { TelegramRequestNotStartedError } = await import("./network-errors.js");
 const { getChildLogger, resetLogger, setLoggerOverride } =
-  await import("astroclaw/plugin-sdk/runtime-env");
+  await import("openclaw/plugin-sdk/runtime-env");
 const {
   buildInlineKeyboard,
   createForumTopicTelegram,
@@ -587,6 +588,38 @@ describe("sent-message-cache", () => {
       fs.rmSync(customStorePath, { force: true });
       fs.rmSync(`${customStorePath}.telegram-sent-messages.json`, { force: true });
     }
+  });
+
+  it("keeps sent-message ownership isolated across differently routed accounts", () => {
+    const multiAgentCfg = {
+      agents: {
+        ownership: "explicit",
+        entries: { main: {}, ops: {} },
+      },
+      channels: {
+        telegram: {
+          accounts: {
+            primary: { botToken: "123456:primary" },
+            alerts: { botToken: "123456:alerts" },
+          },
+        },
+      },
+      bindings: [
+        { agentId: "main", match: { channel: "telegram", accountId: "primary" } },
+        { agentId: "ops", match: { channel: "telegram", accountId: "alerts" } },
+      ],
+      session: {
+        store: "/tmp/openclaw-telegram-sent-owner/{agentId}/sessions.json",
+      },
+    } as OpenClawConfig;
+
+    recordSentMessage(123, 1, multiAgentCfg, { accountId: "primary" });
+
+    expect(wasSentByBot(123, 1, multiAgentCfg, { accountId: "primary" })).toBe(true);
+    expect(wasSentByBot(123, 1, multiAgentCfg, { accountId: "alerts" })).toBe(false);
+
+    recordSentMessage(123, 1, multiAgentCfg, { accountId: "alerts" });
+    expect(wasSentByBot(123, 1, multiAgentCfg, { accountId: "alerts" })).toBe(true);
   });
 
   it("shares sent-message state across distinct module instances", async () => {
