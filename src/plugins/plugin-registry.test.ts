@@ -3,9 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Covers plugin registry assembly, contribution lookup, and reset behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
+import { recordPluginCandidateInstallOwner } from "./candidate-install-owner.js";
 import type { PluginCandidate } from "./discovery.js";
 import {
   readPersistedInstalledPluginIndex,
@@ -77,7 +78,11 @@ function hashFile(filePath: string): string {
   return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
 }
 
-function createCandidate(rootDir: string, pluginId = "demo"): PluginCandidate {
+function createCandidate(
+  rootDir: string,
+  pluginId = "demo",
+  installOwner?: string,
+): PluginCandidate {
   fs.writeFileSync(
     path.join(rootDir, "index.ts"),
     "throw new Error('runtime entry should not load while reading plugin registry');\n",
@@ -124,12 +129,15 @@ function createCandidate(rootDir: string, pluginId = "demo"): PluginCandidate {
     }),
     "utf8",
   );
-  return {
-    idHint: pluginId,
-    source: path.join(rootDir, "index.ts"),
-    rootDir,
-    origin: "global",
-  };
+  return recordPluginCandidateInstallOwner(
+    {
+      idHint: pluginId,
+      source: path.join(rootDir, "index.ts"),
+      rootDir,
+      origin: "global",
+    },
+    installOwner,
+  );
 }
 
 function createIndex(
@@ -558,15 +566,19 @@ describe("plugin registry facade", () => {
     const tempDir = makeTempDir();
     const rootDir = makeTempDir();
     const filePath = path.join(tempDir, "custom-registry.sqlite");
-    const env = hermeticEnv();
+    const env = hermeticEnv({
+      OPENCLAW_DISABLE_BUNDLED_PLUGINS: "1",
+      OPENCLAW_STATE_DIR: tempDir,
+    });
+    const installRecords = {
+      demo: { source: "npm" as const, spec: "demo@1.0.0", installPath: rootDir },
+    };
     const persisted = loadPluginRegistrySnapshot({
-      candidates: [createCandidate(rootDir)],
+      candidates: [createCandidate(rootDir, "demo", "demo")],
+      installRecords,
       env,
       preferPersisted: false,
     });
-    persisted.installRecords = {
-      demo: { source: "npm", spec: "demo@1.0.0", installPath: rootDir },
-    };
     await writePersistedInstalledPluginIndex(persisted, { filePath });
 
     const result = loadPluginRegistrySnapshotWithMetadata({ filePath, env });
