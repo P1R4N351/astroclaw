@@ -1,8 +1,8 @@
 // Xai tests cover web search plugin behavior.
-import { createTestWizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { NON_ENV_SECRETREF_MARKER } from "openclaw/plugin-sdk/provider-auth-runtime";
-import { createNonExitingRuntime } from "openclaw/plugin-sdk/runtime-env";
-import { withEnv, withEnvAsync, withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
+import { createTestWizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { NON_ENV_SECRETREF_MARKER } from "astroclaw/plugin-sdk/provider-auth-runtime";
+import { createNonExitingRuntime } from "astroclaw/plugin-sdk/runtime-env";
+import { withEnv, withEnvAsync, withFetchPreconnect } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildXaiCatalogModels, resolveXaiCatalogEntry } from "./model-definitions.js";
 import { isModernXaiModel, resolveXaiForwardCompatModel } from "./provider-models.js";
@@ -21,8 +21,8 @@ const providerAuthMocks = vi.hoisted(() => ({
   listUsableProviderAuthProfileIds: vi.fn(() => ({ agentDir: "", profileIds: [] as string[] })),
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth", async (importOriginal) => {
-  const original = await importOriginal<typeof import("openclaw/plugin-sdk/provider-auth")>();
+vi.mock("astroclaw/plugin-sdk/provider-auth", async (importOriginal) => {
+  const original = await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth")>();
   return {
     ...original,
     ensureAuthProfileStore: providerAuthMocks.ensureAuthProfileStore,
@@ -30,17 +30,18 @@ vi.mock("openclaw/plugin-sdk/provider-auth", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/provider-auth-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", async (importOriginal) => {
   const original =
-    await importOriginal<typeof import("openclaw/plugin-sdk/provider-auth-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth-runtime")>();
   return {
     ...original,
     resolveApiKeyForProvider: providerAuthRuntimeMocks.resolveApiKeyForProvider,
   };
 });
 
-vi.mock("openclaw/plugin-sdk/provider-web-search", async (importOriginal) => {
-  const original = await importOriginal<typeof import("openclaw/plugin-sdk/provider-web-search")>();
+vi.mock("astroclaw/plugin-sdk/provider-web-search", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-web-search")>();
   return {
     ...original,
     postTrustedWebToolsJson: async (
@@ -924,12 +925,24 @@ describe("xai web search response parsing", () => {
 describe("xai provider models", () => {
   it("publishes only current selectable chat models newest first", () => {
     expect(buildXaiCatalogModels().map((model) => model.id)).toEqual([
+      "grok-4.6",
       "grok-4.5",
       "grok-build-0.1",
       "grok-4.3",
       "grok-4.20-0309-reasoning",
       "grok-4.20-0309-non-reasoning",
     ]);
+  });
+
+  it("publishes Grok 4.6 with its current metadata", () => {
+    expectCatalogEntry("grok-4.6", {
+      id: "grok-4.6",
+      reasoning: true,
+      input: ["text", "image"],
+      contextWindow: 500_000,
+      maxTokens: 64_000,
+      cost: { input: 2, output: 6, cacheRead: 0.5, cacheWrite: 0 },
+    });
   });
 
   it("publishes Grok 4.5 with its current metadata", () => {
@@ -939,7 +952,7 @@ describe("xai provider models", () => {
       input: ["text", "image"],
       contextWindow: 500_000,
       maxTokens: 64_000,
-      cost: { input: 2, output: 6, cacheRead: 0.5, cacheWrite: 0 },
+      cost: { input: 2, output: 6, cacheRead: 0.3, cacheWrite: 0 },
     });
   });
 
@@ -950,7 +963,7 @@ describe("xai provider models", () => {
       input: ["text", "image"],
       contextWindow: 500_000,
       maxTokens: 64_000,
-      cost: { input: 2, output: 6, cacheRead: 0.5, cacheWrite: 0 },
+      cost: { input: 2, output: 6, cacheRead: 0.3, cacheWrite: 0 },
     });
   });
 
