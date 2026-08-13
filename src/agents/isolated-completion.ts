@@ -11,9 +11,9 @@ import type { ThinkLevel } from "../auto-reply/thinking.js";
 import { getRuntimeConfig } from "../config/config.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { withTempWorkspace } from "../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import type { AssistantMessage } from "../llm/types.js";
-import { withPluginRuntimeRegistryScope } from "../plugins/runtime/gateway-request-scope.js";
+import { withPluginRuntimeGenerationScope } from "../plugins/runtime/generation-scope.js";
 import { prepareSystemAgentRunAdmission } from "./admitted-run-context.js";
 import { resolveAgentDir, resolveAgentWorkspaceDir, resolveDefaultAgentId } from "./agent-scope.js";
 import { resolveCliBackendConfig, resolveCliRuntimeCanonicalProvider } from "./cli-backends.js";
@@ -185,7 +185,7 @@ async function runCliIsolatedCompletion(params: {
   workspaceDir: string;
 }): Promise<{ model: string; text: string; usage?: UsageLike }> {
   return await withTempWorkspace(
-    { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "openclaw-isolated-completion-" },
+    { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "openclaw-isolated-completion-" },
     async ({ dir }) => {
       const { runCliAgent } = await import("./cli-runner.runtime.js");
       const sessionId = `isolated-completion-${randomUUID()}`;
@@ -682,7 +682,7 @@ export async function runIsolatedCompletion(
         usage: result.assistant.usage,
       };
     };
-    return await withPluginRuntimeRegistryScope(pluginRegistry, run);
+    return await withPluginRuntimeGenerationScope(lease.snapshot, run);
   } finally {
     lease.release();
   }
