@@ -2,6 +2,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
 
 function toPosixPath(value) {
   return String(value ?? "").replaceAll("\\", "/");
@@ -110,17 +111,17 @@ function listDistExtensionPackageDirs(rootDir, fsImpl) {
 }
 
 function readPackageStaticAssetEntries(packageJson) {
-  const entries = packageJson.openclaw?.build?.staticAssets;
+  const entries = pluginPackageMetadata(packageJson)?.build?.staticAssets;
   return Array.isArray(entries) ? entries : [];
 }
 
 function hasPackageAssetBuild(packageJson) {
-  const command = packageJson.openclaw?.assetScripts?.build;
+  const command = pluginPackageMetadata(packageJson)?.assetScripts?.build;
   return typeof command === "string" && command.trim().length > 0;
 }
 
 function readPackageGeneratedAssetOutputEntries(packageJson) {
-  const entries = packageJson.openclaw?.assetScripts?.buildOutputs;
+  const entries = pluginPackageMetadata(packageJson)?.assetScripts?.buildOutputs;
   return Array.isArray(entries) ? entries : [];
 }
 
@@ -128,7 +129,7 @@ function readPackageGeneratedAssetOutputEntries(packageJson) {
 // from core dist, so their static assets must not be discovered for core
 // runtime postbuild copies.
 function isExternalDistPackage(packageJson) {
-  return packageJson.openclaw?.build?.bundledDist === false;
+  return pluginPackageMetadata(packageJson)?.build?.bundledDist === false;
 }
 
 /**

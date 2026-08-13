@@ -37,10 +37,10 @@ describe("syncPluginVersions", () => {
       name: "@openclaw/imessage",
       version: "2026.3.30",
       devDependencies: {
-        openclaw: "workspace:*",
+        astroclaw: "workspace:*",
       },
       peerDependencies: {
-        openclaw: ">=2026.3.30",
+        astroclaw: ">=2026.3.30",
       },
       openclaw: {
         install: {
@@ -85,8 +85,8 @@ describe("syncPluginVersions", () => {
       JSON.parse(fs.readFileSync(path.join(rootDir, "packages/llm-core/package.json"), "utf8")),
     ).toMatchObject({ private: true, version: "0.0.0-private" });
     expect(updatedPackage.version).toBe("2026.4.1");
-    expect(updatedPackage.devDependencies?.openclaw).toBe("workspace:*");
-    expect(updatedPackage.peerDependencies?.openclaw).toBe(">=2026.4.1");
+    expect(updatedPackage.devDependencies?.astroclaw).toBe("workspace:*");
+    expect(updatedPackage.peerDependencies?.astroclaw).toBe(">=2026.4.1");
     expect(updatedPackage.openclaw?.install?.minHostVersion).toBe(">=2026.3.30");
     expect(updatedPackage.openclaw?.compat?.pluginApi).toBe(">=2026.4.1");
     expect(updatedPackage.openclaw?.build?.openclawVersion).toBe("2026.4.1");
@@ -103,7 +103,7 @@ describe("syncPluginVersions", () => {
       name: "@openclaw/discord",
       version: "2026.4.1",
       peerDependencies: {
-        openclaw: ">=2026.4.1",
+        astroclaw: ">=2026.4.1",
       },
       openclaw: {
         compat: {
@@ -127,7 +127,7 @@ describe("syncPluginVersions", () => {
 
     expect(summary.updated).toEqual(["@openclaw/discord"]);
     expect(unchangedPackage.version).toBe("2026.4.1");
-    expect(unchangedPackage.peerDependencies?.openclaw).toBe(">=2026.4.1");
+    expect(unchangedPackage.peerDependencies?.astroclaw).toBe(">=2026.4.1");
     expect(unchangedPackage.openclaw?.compat?.pluginApi).toBe(">=2026.4.1");
   });
 

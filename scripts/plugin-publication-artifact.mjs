@@ -17,6 +17,11 @@ import {
   validateActionsArtifactProducerJob,
 } from "./lib/actions-artifact-archive.mjs";
 import { resolveNpmPublishPlan } from "./lib/npm-publish-plan.mjs";
+import {
+  PLUGIN_MANIFEST_FILENAME,
+  PLUGIN_MANIFEST_FILENAMES,
+  pluginPackageMetadata,
+} from "./lib/plugin-manifest-filenames.mjs";
 
 export {
   downloadActionsArtifactArchive,
@@ -592,10 +597,10 @@ export function inspectPackageTarballBytes(inputBytes, options = {}) {
         );
       }
       packageManifestBytes = Buffer.from(content);
-    } else if (safePath === "package/openclaw.plugin.json") {
+    } else if (PLUGIN_MANIFEST_FILENAMES.some((name) => safePath === `package/${name}`)) {
       if (content.length === 0 || content.length > MAX_PLUGIN_MANIFEST_BYTES) {
         throw new Error(
-          `Packed openclaw.plugin.json size is outside the allowed range: ${content.length}.`,
+          `Packed ${basename(safePath)} size is outside the allowed range: ${content.length}.`,
         );
       }
       pluginManifestBytes = Buffer.from(content);
@@ -609,11 +614,11 @@ export function inspectPackageTarballBytes(inputBytes, options = {}) {
     throw new Error("Plugin tarball must contain exactly one package/package.json.");
   }
   if (!pluginManifestBytes) {
-    throw new Error("Plugin tarball must contain exactly one package/openclaw.plugin.json.");
+    throw new Error(`Plugin tarball must contain exactly one package/${PLUGIN_MANIFEST_FILENAME}.`);
   }
   inventory.sort((left, right) => compareCodeUnits(left.path, right.path));
   const packageManifest = parsePackedJson(packageManifestBytes, "Packed package.json");
-  const pluginManifest = parsePackedJson(pluginManifestBytes, "Packed openclaw.plugin.json");
+  const pluginManifest = parsePackedJson(pluginManifestBytes, "Packed plugin manifest");
   return {
     inventory,
     packageManifest,
@@ -637,7 +642,7 @@ export function validatePluginPackageManifest(params, packageManifest) {
       `${params.packageName}: packed package.json must not override the approved publication tag.`,
     );
   }
-  const release = packageManifest.openclaw?.release;
+  const release = pluginPackageMetadata(packageManifest)?.release;
   const referencesMetaIdentity =
     params.packageName === META_PACKAGE || params.packageDir === META_PACKAGE_DIR;
   if (

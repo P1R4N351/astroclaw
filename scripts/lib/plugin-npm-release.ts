@@ -116,7 +116,7 @@ type PublishablePluginPackageCandidate<TPackageJson extends PluginPackageJson = 
     readmeText?: string;
   };
 
-export const OPENCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/openclaw/openclaw";
+export const OPENCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/astroclaw/astroclaw";
 const PLUGIN_NPM_VIEW_TIMEOUT_MS = 60_000;
 
 export function collectRequiredLatestDependencies(packageJson: PluginPackageJson): {
@@ -369,9 +369,9 @@ export function collectPublishablePluginPackageErrors(
   const extensions = packageJson.openclaw?.extensions ?? [];
   const requiredLatestDependencies = collectRequiredLatestDependencies(packageJson);
 
-  if (!packageName.startsWith("@openclaw/")) {
+  if (!packageName.startsWith("@astroclaw/")) {
     errors.push(
-      `package name must start with "@openclaw/"; found "${packageName || "<missing>"}".`,
+      `package name must start with "@astroclaw/"; found "${packageName || "<missing>"}".`,
     );
   }
   if (packageJson.private === true) {

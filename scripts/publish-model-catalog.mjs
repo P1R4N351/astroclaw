@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { resolvePluginManifestPath } from "./lib/plugin-manifest-filenames.mjs";
 import { resolveRepoRoot } from "./lib/repo-root.mjs";
 
 const MODEL_CATALOG_MIN_VERSION = "2026.7.0";
@@ -58,7 +59,7 @@ export function readModelCatalogManifests(options = {}) {
     .filter((entry) => entry.isDirectory())
     .map((entry) => ({
       pluginId: entry.name,
-      manifestPath: path.join(extensionsDir, entry.name, "openclaw.plugin.json"),
+      manifestPath: resolvePluginManifestPath(path.join(extensionsDir, entry.name)),
     }))
     .filter((entry) => fs.existsSync(entry.manifestPath))
     .map((entry) => ({

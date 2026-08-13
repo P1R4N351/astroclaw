@@ -10,6 +10,7 @@ import { isMainThread, parentPort, Worker, workerData } from "node:worker_thread
 import pMap from "p-map";
 import { parse as parseYaml } from "yaml";
 import { listChangedPathsFromGit, listStagedChangedPaths } from "./changed-lanes.mjs";
+import { pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 import { resolveNpmRunner } from "./npm-runner.mjs";
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -1118,7 +1119,7 @@ function listManagedShrinkwrapPackageDirs() {
       }
       const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
       return (
-        packageJson.openclaw?.release?.publishToNpm === true ||
+        pluginPackageMetadata(packageJson)?.release?.publishToNpm === true ||
         existsSync(shrinkwrapPathForPackage(path.join(ROOT_DIR, packageDir)))
       );
     })

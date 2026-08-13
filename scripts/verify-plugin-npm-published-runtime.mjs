@@ -8,6 +8,11 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import * as tar from "tar";
+import {
+  PLUGIN_MANIFEST_FILENAME,
+  PLUGIN_MANIFEST_FILENAMES,
+  pluginPackageMetadata,
+} from "./lib/plugin-manifest-filenames.mjs";
 import { sleep } from "./lib/sleep.mjs";
 
 const DEFAULT_NPM_COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
@@ -103,22 +108,22 @@ export function collectPluginNpmPublishedRuntimeErrors(params) {
   const extensionsResult = readPackageStringList(
     packageLabel,
     "openclaw.extensions",
-    packageJson.openclaw?.extensions,
+    pluginPackageMetadata(packageJson)?.extensions,
   );
   const runtimeExtensionsResult = readPackageStringList(
     packageLabel,
     "openclaw.runtimeExtensions",
-    packageJson.openclaw?.runtimeExtensions,
+    pluginPackageMetadata(packageJson)?.runtimeExtensions,
   );
   const setupEntryResult = readOptionalPackageString(
     packageLabel,
     "openclaw.setupEntry",
-    packageJson.openclaw?.setupEntry,
+    pluginPackageMetadata(packageJson)?.setupEntry,
   );
   const runtimeSetupEntryResult = readOptionalPackageString(
     packageLabel,
     "openclaw.runtimeSetupEntry",
-    packageJson.openclaw?.runtimeSetupEntry,
+    pluginPackageMetadata(packageJson)?.runtimeSetupEntry,
   );
   errors.push(
     ...extensionsResult.errors,
@@ -129,8 +134,8 @@ export function collectPluginNpmPublishedRuntimeErrors(params) {
   if (errors.length > 0) {
     return errors;
   }
-  if (!hasPackedFile(packageFiles, "openclaw.plugin.json")) {
-    errors.push(`${packageLabel} plugin npm package must include openclaw.plugin.json`);
+  if (!PLUGIN_MANIFEST_FILENAMES.some((filename) => hasPackedFile(packageFiles, filename))) {
+    errors.push(`${packageLabel} plugin npm package must include ${PLUGIN_MANIFEST_FILENAME}`);
     return errors;
   }
   const extensions = extensionsResult.entries;

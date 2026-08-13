@@ -7,17 +7,24 @@ import fs from "node:fs";
 import path from "node:path";
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
-import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
+import { resolveAstroclawPackageRootSync } from "../infra/astroclaw-root.js";
 import { tryReadJsonSync } from "../infra/json-files.js";
 import { resolveBundledPluginsDir } from "../plugins/bundled-dir.js";
 import type { PluginPackageChannel } from "../plugins/manifest.js";
 import { BUNDLED_OFFICIAL_EXTERNAL_PLUGIN_CATALOG_ENTRIES } from "../plugins/official-external-plugin-bundled-catalogs.js";
 import { registerPluginMetadataProcessMemoLifecycleClear } from "../plugins/plugin-metadata-lifecycle.js";
 
+type ChannelCatalogMetadata = {
+  channel?: PluginPackageChannel;
+};
+
+// The 2026-05-17 rebrand moved the catalog metadata block from `openclaw` to
+// `astroclaw` (scripts/lib/official-external-channel-catalog.json already ships
+// the new key), so readers must accept both or external channel entries resolve
+// as absent.
 type ChannelCatalogEntryLike = {
-  openclaw?: {
-    channel?: PluginPackageChannel;
-  };
+  astroclaw?: ChannelCatalogMetadata;
+  openclaw?: ChannelCatalogMetadata;
 };
 
 type BundledChannelCatalogEntry = {
@@ -41,8 +48,8 @@ function listPackageRoots(): string[] {
   // once so channel metadata works in dev, linked packages, and published CLI layouts.
   return uniqueStrings(
     [
-      resolveOpenClawPackageRootSync({ cwd: process.cwd() }),
-      resolveOpenClawPackageRootSync({ moduleUrl: import.meta.url }),
+      resolveAstroclawPackageRootSync({ cwd: process.cwd() }),
+      resolveAstroclawPackageRootSync({ moduleUrl: import.meta.url }),
     ].filter((entry): entry is string => Boolean(entry)),
   );
 }
@@ -109,14 +116,14 @@ function readOfficialCatalogFileSync(): ChannelCatalogEntryLike[] {
 function isChannelCatalogEntryLike(
   entry: ChannelCatalogEntryLike | PluginPackageChannel,
 ): entry is ChannelCatalogEntryLike {
-  return "openclaw" in entry;
+  return "astroclaw" in entry || "openclaw" in entry;
 }
 
 function toBundledChannelEntry(
   entry: ChannelCatalogEntryLike | PluginPackageChannel,
 ): BundledChannelCatalogEntry | null {
   const channel: PluginPackageChannel | undefined = isChannelCatalogEntryLike(entry)
-    ? entry.openclaw?.channel
+    ? (entry.astroclaw ?? entry.openclaw)?.channel
     : entry;
   const id = normalizeOptionalLowercaseString(channel?.id);
   if (!id || !channel) {

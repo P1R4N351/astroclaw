@@ -3,6 +3,12 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import {
+  findPluginManifestPath,
+  isPluginManifestFilename,
+  PLUGIN_MANIFEST_FILENAMES,
+} from "./plugin-manifest-filenames.mjs";
+
 /** Read a UTF-8 file when it exists, returning null on missing/unreadable paths. */
 export function readIfExists(filePath) {
   try {
@@ -18,7 +24,7 @@ function collectTrackedBundledPluginSourceCandidates(repoRoot) {
     [
       "ls-files",
       "--",
-      ":(glob)extensions/*/openclaw.plugin.json",
+      ...PLUGIN_MANIFEST_FILENAMES.map((filename) => `:(glob)extensions/*/${filename}`),
       ":(glob)extensions/*/package.json",
     ],
     {
@@ -34,8 +40,12 @@ function collectTrackedBundledPluginSourceCandidates(repoRoot) {
   const candidatesByDir = new Map();
   for (const rawLine of result.stdout.split("\n")) {
     const line = rawLine.trim().replaceAll("\\", "/");
-    const match = /^extensions\/([^/]+)\/(openclaw\.plugin\.json|package\.json)$/u.exec(line);
+    const match = /^extensions\/([^/]+)\/([^/]+)$/u.exec(line);
     if (!match?.[1] || !match[2]) {
+      continue;
+    }
+    const basename = match[2];
+    if (basename !== "package.json" && !isPluginManifestFilename(basename)) {
       continue;
     }
     const current = candidatesByDir.get(match[1]) ?? {
@@ -44,10 +54,14 @@ function collectTrackedBundledPluginSourceCandidates(repoRoot) {
       packageJsonPath: null,
       pluginDir: path.join(repoRoot, "extensions", match[1]),
     };
-    if (match[2] === "openclaw.plugin.json") {
-      current.manifestPath = path.join(repoRoot, line);
-    } else {
+    if (basename === "package.json") {
       current.packageJsonPath = path.join(repoRoot, line);
+    } else if (
+      current.manifestPath === null ||
+      PLUGIN_MANIFEST_FILENAMES.indexOf(basename) <
+        PLUGIN_MANIFEST_FILENAMES.indexOf(path.basename(current.manifestPath))
+    ) {
+      current.manifestPath = path.join(repoRoot, line);
     }
     candidatesByDir.set(match[1], current);
   }
@@ -68,11 +82,11 @@ function collectBundledPluginSourceCandidatesFromDirectory(repoRoot) {
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => {
       const pluginDir = path.join(extensionsRoot, dirent.name);
-      const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
+      const manifestPath = findPluginManifestPath(pluginDir);
       const packageJsonPath = path.join(pluginDir, "package.json");
       return {
         dirName: dirent.name,
-        manifestPath: fs.existsSync(manifestPath) ? manifestPath : null,
+        manifestPath,
         packageJsonPath: fs.existsSync(packageJsonPath) ? packageJsonPath : null,
         pluginDir,
       };

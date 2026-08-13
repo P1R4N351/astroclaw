@@ -7,6 +7,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { runManagedCommand } from "./lib/managed-child-process.mjs";
 import { assertRealOutputRoot } from "./lib/output-root-guard.mjs";
+import { findPluginManifestPath } from "./lib/plugin-manifest-filenames.mjs";
 import { resolveRepoRoot } from "./lib/repo-root.mjs";
 import { listGeneratedExtensionAssetSources } from "./lib/static-extension-assets.mjs";
 const rootDir = resolveRepoRoot(import.meta.url);
@@ -44,8 +45,8 @@ function packagePluginAliases(packageName) {
 
 async function resolvePluginAliases(pluginDir, packageJson) {
   const aliases = new Set([path.basename(pluginDir), ...packagePluginAliases(packageJson.name)]);
-  const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
-  if (await pathExists(manifestPath)) {
+  const manifestPath = findPluginManifestPath(pluginDir);
+  if (manifestPath) {
     const manifest = await readJsonFile(manifestPath);
     if (typeof manifest.id === "string" && manifest.id) {
       aliases.add(manifest.id);
