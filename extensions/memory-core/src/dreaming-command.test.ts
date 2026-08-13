@@ -1,8 +1,8 @@
 // Memory Core tests cover dreaming command plugin behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { PluginCommandContext } from "astroclaw/plugin-sdk/core";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
-import { asNullableRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { PluginCommandContext } from "openclaw/plugin-sdk/core";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import { asNullableRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { handleDreamingCommand } from "./dreaming-command.js";
 
@@ -56,6 +56,7 @@ function createHarness(initialConfig: OpenClawConfig = {}) {
 
 function createCommandContext(
   args?: string,
+  config: OpenClawConfig = {},
   overrides?: Partial<Pick<PluginCommandContext, "gatewayClientScopes" | "senderIsOwner">>,
 ): PluginCommandContext {
   return {
@@ -63,7 +64,7 @@ function createCommandContext(
     isAuthorizedSender: true,
     commandBody: args ? `/dreaming ${args}` : "/dreaming",
     args,
-    config: {},
+    config,
     gatewayClientScopes: overrides?.gatewayClientScopes,
     senderIsOwner: overrides?.senderIsOwner,
     requestConversationBinding: async () => ({ status: "error", message: "unsupported" }),
@@ -77,7 +78,10 @@ async function runDreamingCommand(
   args?: string,
   overrides?: Partial<Pick<PluginCommandContext, "gatewayClientScopes" | "senderIsOwner">>,
 ) {
-  return await handleDreamingCommand(harness.api, createCommandContext(args, overrides));
+  return await handleDreamingCommand(
+    harness.api,
+    createCommandContext(args, harness.getRuntimeConfig(), overrides),
+  );
 }
 
 describe("memory-core /dreaming command", () => {
