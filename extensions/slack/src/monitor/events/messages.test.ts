@@ -42,7 +42,11 @@ vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
 });
 
 vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
-  enqueueSystemEvent: (...args: unknown[]) => messageQueueMock(...args),
+  enqueueRoutedSystemEvent: (
+    text: unknown,
+    route: { sessionKey: unknown },
+    options: Record<string, unknown>,
+  ) => messageQueueMock(text, { ...options, sessionKey: route.sessionKey }),
 }));
 vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
   const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-runtime")>();
