@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import {
@@ -1378,6 +1378,65 @@ describe("discoverOpenClawPlugins", () => {
           entry.message.includes("requires compiled runtime output"),
       ),
     ).toBe(true);
+  });
+
+  it("adds managed ownership to bundled candidates deduplicated in the shared scan", () => {
+    const stateDir = makeTempDir();
+    const bundledDir = path.join(stateDir, "bundled");
+    const plainDir = path.join(bundledDir, "plain");
+    const packageDir = path.join(bundledDir, "package");
+    mkdirSafe(plainDir);
+    mkdirSafe(packageDir);
+    writePluginManifest({ pluginDir: plainDir, id: "plain" });
+    writePluginEntry(path.join(plainDir, "index.js"));
+    writePluginPackageManifest({
+      packageDir,
+      packageName: "@openclaw/package",
+      extensions: ["./index.js"],
+    });
+    writePluginManifest({ pluginDir: packageDir, id: "package" });
+    writePluginEntry(path.join(packageDir, "index.js"));
+    const env = buildDiscoveryEnvWithOverrides(stateDir, {
+      OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+    });
+    const installRecords = {
+      "plain-owner": { source: "path", installPath: plainDir },
+      "package-owner": { source: "path", installPath: packageDir },
+    } satisfies Record<string, PluginInstallRecord>;
+
+    const result = discoverOpenClawPlugins({ env, installRecords });
+
+    expectCandidateSource(result.candidates, "plain", path.join(plainDir, "index.js"));
+    expectCandidateFields(requireCandidateById(result.candidates, "plain"), {
+      origin: "bundled",
+      packageName: undefined,
+      installOwner: "plain-owner",
+    });
+    expectCandidateSource(result.candidates, "package", path.join(packageDir, "index.js"));
+    expectCandidateFields(requireCandidateById(result.candidates, "package"), {
+      origin: "bundled",
+      packageName: "@openclaw/package",
+      installOwner: "package-owner",
+    });
+
+    const ambiguous = discoverOpenClawPlugins({
+      env,
+      installRecords: {
+        ...installRecords,
+        "other-owner": installRecords["plain-owner"],
+      },
+    });
+
+    expectCandidateFields(requireCandidateById(ambiguous.candidates, "plain"), {
+      origin: "bundled",
+      installOwner: undefined,
+      installOwnerAmbiguous: true,
+    });
+    expectDiagnostic({
+      diagnostics: ambiguous.diagnostics,
+      level: "error",
+      messageIncludes: "multiple plugin install records claim the same package path",
+    });
   });
 
   it("reuses one filesystem realpath lookup per package root within a discovery run", () => {
