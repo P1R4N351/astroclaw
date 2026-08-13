@@ -6,8 +6,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { createProcessor } from "@mdx-js/mdx";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
+import { createProcessor } from "@mdx-js/mdx";
 import MarkdownIt from "markdown-it";
 import type { Nodes } from "mdast";
 import { resolveClawHubRepoPath, syncClawHubDocsTree } from "./docs-sync-publish.mjs";
@@ -606,6 +606,16 @@ export function prepareAnchorAuditDocsDir(sourceDir = DOCS_DIR) {
         continue;
       }
       fs.rmSync(path.join(tempDir, entry.name), { recursive: true, force: true });
+    }
+
+    for (const filePath of walk(tempDir).filter((entry) => /\.mdx?$/iu.test(entry))) {
+      const raw = fs.readFileSync(filePath, "utf8");
+      const normalized = raw.replace(/<!--[\s\S]*?-->/gu, (comment) =>
+        comment.replace(/[^\r\n]/gu, ""),
+      );
+      if (normalized !== raw) {
+        fs.writeFileSync(filePath, normalized, "utf8");
+      }
     }
 
     const docsJsonPath = path.join(tempDir, "docs.json");
