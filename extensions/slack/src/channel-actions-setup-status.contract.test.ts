@@ -3,8 +3,8 @@ import {
   installChannelActionsContractSuite,
   installChannelSetupContractSuite,
   installChannelStatusContractSuite,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, describe, expect, vi } from "vitest";
 import { slackPlugin } from "../api.js";
 import { slackSetupPlugin } from "../setup-plugin-api.js";
@@ -105,6 +105,9 @@ describe("slack setup contract", () => {
           useEnv: true,
         },
         beforeTest: () => {
+          expect(
+            slackSetupPlugin.setupContract?.metadata.fields.find((field) => field.key === "useEnv"),
+          ).toMatchObject({ kind: "boolean", envVars: ["SLACK_BOT_TOKEN"] });
           vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
           vi.stubEnv("SLACK_APP_TOKEN", "");
         },
