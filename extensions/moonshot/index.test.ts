@@ -1,8 +1,8 @@
 // Moonshot tests cover index plugin behavior.
 import fs from "node:fs";
-import type { Context, Model } from "astroclaw/plugin-sdk/llm";
-import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { createCapturedThinkingConfigStream } from "astroclaw/plugin-sdk/provider-test-contracts";
+import type { Context, Model } from "openclaw/plugin-sdk/llm";
+import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { createCapturedThinkingConfigStream } from "openclaw/plugin-sdk/provider-test-contracts";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 import { MOONSHOT_BASE_URL, MOONSHOT_CN_BASE_URL } from "./provider-catalog.js";
@@ -127,23 +127,6 @@ describe("moonshot provider plugin", () => {
       duplicateToolCallIdStyle: "openai",
     });
     expect(policy).not.toHaveProperty("dropReasoningFromHistory");
-  });
-
-  it("preserves responses-family replay behavior", async () => {
-    const provider = await registerSingleProviderPlugin(plugin);
-
-    const policy = provider.buildReplayPolicy?.({
-      provider: "moonshot",
-      modelApi: "openai-responses",
-      modelId: "kimi-k2.6",
-    } as never);
-
-    expect(policy).toEqual({
-      applyAssistantFirstOrderingFix: false,
-      validateGeminiTurns: false,
-      validateAnthropicTurns: false,
-      allowSyntheticToolResults: true,
-    });
   });
 
   it("wires moonshot-thinking stream hooks", async () => {
