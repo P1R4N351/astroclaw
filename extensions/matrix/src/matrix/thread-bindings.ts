@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveSessionAgentId } from "astroclaw/plugin-sdk/agent-scope-runtime";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
 import { resolveAgentIdFromSessionKey } from "astroclaw/plugin-sdk/session-key-runtime";
@@ -586,8 +586,8 @@ export async function createMatrixThreadBindingManager(params: {
         targetKind: toMatrixBindingTargetKind(input.targetKind),
         targetSessionKey,
         agentId:
-          normalizeOptionalString(input.metadata?.agentId) ||
-          resolveAgentIdFromSessionKey(targetSessionKey, resolveDefaultAgentId(params.cfg)),
+          normalizeOptionalString(input.metadata?.agentId) ??
+          resolveSessionAgentId({ config: params.cfg, sessionKey: targetSessionKey }),
         label: normalizeOptionalString(input.metadata?.label) || undefined,
         boundBy: normalizeOptionalString(input.metadata?.boundBy) || "system",
         boundAt: now,
