@@ -1,14 +1,14 @@
-import type { Message } from "grammy/types";
 import {
   createOutboundPayloadPlan,
   deriveDurableFinalDeliveryRequirements,
   projectOutboundPayloadPlanForDelivery,
   resolveTranscriptBackedChannelFinalText,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
-import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import type { Message } from "grammy/types";
 import {
   flushDraftLane,
   prepareAnswerLaneForText,
@@ -119,6 +119,7 @@ async function recordPromptContextMessage(
     turn.telegramDeps.recordOutboundMessageForPromptContext ?? recordOutboundMessageForPromptContext
   )({
     cfg: turn.cfg,
+    ownerAgentId: turn.opts.ownerAgentId,
     account: {
       accountId: context.route.accountId,
       ...(turn.telegramCfg.name !== undefined ? { name: turn.telegramCfg.name } : {}),
@@ -167,6 +168,7 @@ function createDeliveryBaseOptions(turn: Turn) {
   const { context } = turn;
   return {
     cfg: turn.cfg,
+    ownerAgentId: turn.opts.ownerAgentId,
     chatId: String(context.chatId),
     accountId: context.route.accountId,
     sessionKeyForInternalHooks: context.ctxPayload.SessionKey,
