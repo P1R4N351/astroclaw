@@ -1,6 +1,7 @@
 import { gatewayOriginScope } from "@astroclaw/gateway-client/browser";
 import { safeParseJson } from "@astroclaw/normalization-core";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { normalizeUniqueTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import {
   DEFAULT_SIDEBAR_ENTRIES,
   normalizeSidebarEntries,
@@ -19,7 +20,6 @@ import {
 import { normalizeChatSplitLayout, type ChatSplitLayout } from "../pages/chat/split-layout.ts";
 import { resolveControlUiBasePath } from "./browser.ts";
 import { parseImportedCustomTheme, type ImportedCustomTheme } from "./custom-theme.ts";
-import { normalizePinnedAgentIds } from "./settings-normalizers.ts";
 import { parseThemeSelection, type ThemeMode, type ThemeName } from "./theme.ts";
 import { normalizeLocalUserIdentity, type LocalUserIdentity } from "./user-identity.ts";
 
@@ -546,7 +546,7 @@ export function loadSettings(): UiSettings {
         typeof parsed.showAdvancedSettings === "boolean"
           ? parsed.showAdvancedSettings
           : defaults.showAdvancedSettings,
-      pinnedAgentIds: normalizePinnedAgentIds(parsed.pinnedAgentIds),
+      pinnedAgentIds: normalizeUniqueTrimmedStringList(parsed.pinnedAgentIds),
       textScale:
         typeof parsed.textScale === "number" &&
         normalizeTextScale(parsed.textScale) !== UI_APPEARANCE_DEFAULTS.textScale
