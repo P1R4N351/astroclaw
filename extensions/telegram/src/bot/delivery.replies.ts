@@ -1,11 +1,8 @@
-// Telegram plugin module implements delivery.replies behavior.
-import type { Bot } from "grammy";
-import type { Message } from "grammy/types";
 import {
   createOutboundPayloadPlan,
   projectOutboundPayloadPlanForDelivery,
-} from "openclaw/plugin-sdk/channel-outbound";
-import type { MarkdownTableMode, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
 import {
   buildCanonicalSentMessageHookContext,
   createInternalHookEvent,
@@ -14,21 +11,24 @@ import {
   toPluginMessageContext,
   toPluginMessageSentEvent,
   triggerInternalHook,
-} from "openclaw/plugin-sdk/hook-runtime";
-import type { ReplyPayloadDelivery } from "openclaw/plugin-sdk/interactive-runtime";
-import { normalizeMessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import type { ReplyPayloadDelivery } from "astroclaw/plugin-sdk/interactive-runtime";
+import { normalizeMessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
 import {
   buildOutboundMediaLoadOptions,
   probeVideoDimensions,
-} from "openclaw/plugin-sdk/media-runtime";
-import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
-import type { ChunkMode } from "openclaw/plugin-sdk/reply-chunking";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
-import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
-import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
+} from "astroclaw/plugin-sdk/media-runtime";
+import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
+import type { ChunkMode } from "astroclaw/plugin-sdk/reply-chunking";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { loadWebMedia } from "astroclaw/plugin-sdk/web-media";
+// Telegram plugin module implements delivery.replies behavior.
+import type { Bot } from "grammy";
+import type { Message } from "grammy/types";
 import { resolveTelegramInlineButtons, type TelegramInlineButtons } from "../button-types.js";
 import {
   createTelegramChunkDeliveryTracker,
@@ -685,7 +685,8 @@ export function emitTelegramMessageSentHooks(params: EmitMessageSentHookParams):
 
 export async function deliverReplies(params: {
   replies: ReplyPayload[];
-  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  cfg?: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  ownerAgentId?: string;
   chatId: string;
   accountId?: string;
   sessionKeyForInternalHooks?: string;
@@ -737,8 +738,16 @@ export async function deliverReplies(params: {
     deliveredCount: 0,
     ...(params.promptContextSequence ? { promptContext: params.promptContextSequence } : {}),
   };
-  const recordMessageId = (messageId: number) =>
+  const recordMessageId = (messageId: number) => {
+    if (params.accountId || params.ownerAgentId) {
+      recordSentMessage(params.chatId, messageId, params.cfg, {
+        accountId: params.accountId,
+        agentId: params.ownerAgentId,
+      });
+      return;
+    }
     recordSentMessage(params.chatId, messageId, params.cfg);
+  };
   const mediaLoader = params.mediaLoader ?? loadWebMedia;
   const transcriptMirror = params.transcriptMirror;
   const deliveredContents: Array<{ text: string; mediaUrls: string[] }> = [];
