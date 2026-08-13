@@ -5,8 +5,8 @@ import path from "node:path";
 import type {
   OpenClawPluginCommandDefinition,
   PluginCommandContext,
-} from "astroclaw/plugin-sdk/core";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+} from "openclaw/plugin-sdk/core";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi } from "./api.js";
 
@@ -20,9 +20,7 @@ const pluginApiMocks = vi.hoisted(() => ({
   renderQrPngDataUrl: vi.fn(async () => "data:image/png;base64,ZmFrZXBuZw=="),
   resolveGatewayPort: vi.fn(() => 18789),
   resolveTailscaleServeGatewayUrlsWithRunner: vi.fn(async () => []),
-  resolvePreferredAstroclawTmpDir: vi.fn(() =>
-    path.join(os.tmpdir(), "openclaw-device-pair-tests"),
-  ),
+  resolvePreferredOpenClawTmpDir: vi.fn(() => path.join(os.tmpdir(), "openclaw-device-pair-tests")),
   writeQrPngTempFile: vi.fn(async (dataValue: string, opts: { tmpRoot: string }) => {
     const dirPath = await fs.mkdtemp(path.join(opts.tmpRoot, "device-pair-qr-"));
     const filePath = path.join(dirPath, "pair-qr.png");
@@ -43,7 +41,7 @@ vi.mock("./api.js", () => ({
   listDevicePairing: vi.fn(async () => ({ pending: [] })),
   renderQrPngDataUrl: pluginApiMocks.renderQrPngDataUrl,
   revokeDeviceBootstrapToken: pluginApiMocks.revokeDeviceBootstrapToken,
-  resolvePreferredAstroclawTmpDir: pluginApiMocks.resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir: pluginApiMocks.resolvePreferredOpenClawTmpDir,
   resolveAdvertisedLanHost: vi.fn(async () => null),
   resolveGatewayBindUrl: vi.fn(),
   resolveGatewayPort: pluginApiMocks.resolveGatewayPort,
@@ -298,17 +296,26 @@ beforeEach(async () => {
     token: "boot-token",
     expiresAtMs: Date.now() + 10 * 60_000,
   });
-  await fs.mkdir(pluginApiMocks.resolvePreferredAstroclawTmpDir(), { recursive: true });
+  await fs.mkdir(pluginApiMocks.resolvePreferredOpenClawTmpDir(), { recursive: true });
 });
 
 afterEach(async () => {
-  await fs.rm(pluginApiMocks.resolvePreferredAstroclawTmpDir(), { recursive: true, force: true });
+  await fs.rm(pluginApiMocks.resolvePreferredOpenClawTmpDir(), { recursive: true, force: true });
 });
 
 afterAll(() => {
   vi.doUnmock("./api.js");
   vi.doUnmock("./notify.js");
   vi.resetModules();
+});
+
+it("declares bare invocation client presentation without changing remote argument handling", () => {
+  const command = registerPairCommand();
+  expect(command.acceptsArgs).toBe(true);
+  expect(command.clientPresentation).toEqual({
+    when: "no-arguments",
+    action: { kind: "device-pairing" },
+  });
 });
 
 describe("device-pair /pair qr", () => {
