@@ -9,13 +9,13 @@ import { normalizeOptionalString } from "@astroclaw/normalization-core/string-co
 import {
   listAgentEntries,
   resolveAgentDir,
-  resolveDefaultAgentId,
+  tryResolveDefaultAgentId,
 } from "../agents/agent-scope-config.js";
 import { modelKey, normalizeModelRef, normalizeProviderId } from "../agents/model-selection.js";
 import type { NormalizedUsage } from "../agents/usage.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { ModelProviderConfig } from "../config/types.models.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelProviderConfig } from "../config/types.models.js";
 import { tryReadJsonSync } from "../infra/json-files.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import {
@@ -317,7 +317,8 @@ function resolveCostAgentDir(config?: OpenClawConfig, agentDir?: string): string
     return agentDir;
   }
   if (config && listAgentEntries(config).length > 0) {
-    return resolveAgentDir(config, resolveDefaultAgentId(config));
+    const defaultAgentId = tryResolveDefaultAgentId(config);
+    return defaultAgentId ? resolveAgentDir(config, defaultAgentId) : undefined;
   }
   // Config-less and pricing-only lookups are shipped APIs for the historical
   // main models.json. Full runtime configs resolve their roster default above.
