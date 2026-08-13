@@ -224,6 +224,10 @@ export const sharedVitestConfig = {
         replacement: path.join(repoRoot, "packages", "gateway-client", "src", "readiness.ts"),
       },
       {
+        find: "@astroclaw/gateway-client/scope-upgrade",
+        replacement: path.join(repoRoot, "packages", "gateway-client", "src", "scope-upgrade.ts"),
+      },
+      {
         find: "@astroclaw/gateway-client/timeouts",
         replacement: path.join(repoRoot, "packages", "gateway-client", "src", "timeouts.ts"),
       },
