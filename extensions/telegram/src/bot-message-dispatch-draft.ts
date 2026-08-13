@@ -1,7 +1,7 @@
-import { resolveChannelStreamingBlockEnabled } from "astroclaw/plugin-sdk/channel-outbound";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
-import type { BlockReplyContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { createSubsystemLogger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { resolveChannelStreamingBlockEnabled } from "openclaw/plugin-sdk/channel-outbound";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
+import type { BlockReplyContext } from "openclaw/plugin-sdk/reply-runtime";
+import { createSubsystemLogger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import type {
   TelegramDispatchTurn as Turn,
   TelegramDispatchTurnConfig as TurnConfig,
@@ -125,12 +125,16 @@ export function createDraftState(params: TurnConfig): TelegramDraftStateSlice {
               }
             : {}),
           onProviderMessage: async (message) => {
-            recordSentMessage(params.context.chatId, message.message_id, params.cfg);
+            recordSentMessage(params.context.chatId, message.message_id, params.cfg, {
+              accountId: params.context.route.accountId,
+              agentId: params.opts.ownerAgentId,
+            });
             await (
               params.telegramDeps.recordOutboundMessageForPromptContext ??
               recordOutboundMessageForPromptContext
             )({
               cfg: params.cfg,
+              ownerAgentId: params.opts.ownerAgentId,
               account: {
                 accountId: params.context.route.accountId,
                 ...(params.telegramCfg.name !== undefined ? { name: params.telegramCfg.name } : {}),
