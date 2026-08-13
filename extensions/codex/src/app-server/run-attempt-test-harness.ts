@@ -7,14 +7,15 @@ import {
   queueAgentHarnessMessage,
   resetAgentEventsForTest,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { clearRuntimeAuthProfileStoreSnapshots } from "openclaw/plugin-sdk/agent-runtime";
-import { resetDiagnosticEventsForTest } from "openclaw/plugin-sdk/diagnostic-runtime";
-import type { ExecApprovalsFile } from "openclaw/plugin-sdk/exec-approvals-runtime";
-import { clearInternalHooks, resetGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
-import { clearMemoryPluginState } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
-import { clearPluginCommands } from "openclaw/plugin-sdk/plugin-runtime";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { clearRuntimeAuthProfileStoreSnapshots } from "astroclaw/plugin-sdk/agent-runtime";
+import { resetDiagnosticEventsForTest } from "astroclaw/plugin-sdk/diagnostic-runtime";
+import type { ExecApprovalsFile } from "astroclaw/plugin-sdk/exec-approvals-runtime";
+import { clearInternalHooks, resetGlobalHookRunner } from "astroclaw/plugin-sdk/hook-runtime";
+import { clearMemoryPluginState } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+import { clearPluginCommands } from "astroclaw/plugin-sdk/plugin-runtime";
+import { createAgentHarnessHostCapabilitiesForTest } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { defaultCodexAppInventoryCache } from "./app-inventory-cache.js";
 import type { CodexAppServerClient } from "./client.js";
@@ -62,9 +63,9 @@ function createHarnessHostCapabilities(): EmbeddedRunAttemptParams["hostCapabili
   });
 }
 
-vi.mock("openclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/exec-approvals-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/exec-approvals-runtime")>();
   return {
     ...actual,
     loadExecApprovals: execApprovalsRuntimeMocks.loadExecApprovals,
@@ -82,6 +83,7 @@ const activeAppServerAttemptsForTest = new Set<{
   sessionId: string;
   sessionKey?: string;
 }>();
+const activeHarnessHostClosuresForTest = new Set<() => void>();
 
 type RunCodexAppServerAttemptOptions = Omit<
   NonNullable<Parameters<typeof runCodexAppServerAttemptImpl>[1]>,
@@ -268,6 +270,26 @@ export function createParams(
 
 export function createTestParams(): EmbeddedRunAttemptParams {
   return createParams(path.join(tempDir, "session.jsonl"), path.join(tempDir, "workspace"));
+}
+
+/** Replaces the lightweight default with the admitted host boundary used in production. */
+export async function bindProductionHarnessHostCapabilitiesForTest(
+  params: EmbeddedRunAttemptParams,
+): Promise<() => void> {
+  const { hostCapabilities: _hostCapabilities, ...attempt } = params;
+  const host = await createAgentHarnessHostCapabilitiesForTest({ attempt, pluginId: "codex" });
+  params.hostCapabilities = host.capabilities;
+  let active = true;
+  const close = () => {
+    if (!active) {
+      return;
+    }
+    active = false;
+    activeHarnessHostClosuresForTest.delete(close);
+    host.close();
+  };
+  activeHarnessHostClosuresForTest.add(close);
+  return close;
 }
 
 export function setCodexTestModelSupportsTools(
@@ -671,11 +693,14 @@ export function setupRunAttemptTestHooks(): void {
     vi.stubEnv("OPENCLAW_TRAJECTORY", "0");
     vi.stubEnv("CODEX_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
-    tempDir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-codex-run-"));
+    tempDir = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-codex-run-"));
   });
 
   afterEach(async () => {
     await drainActiveAppServerAttemptsForTest();
+    for (const close of activeHarnessHostClosuresForTest) {
+      close();
+    }
     await sandboxExecServerRegistry.closeAll();
     resetCodexAppServerClientFactoryForTest();
     clearRuntimeAuthProfileStoreSnapshots();
