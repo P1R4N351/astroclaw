@@ -1,21 +1,21 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { MAX_DATE_TIMESTAMP_MS } from "openclaw/plugin-sdk/number-runtime";
+import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { MAX_DATE_TIMESTAMP_MS } from "astroclaw/plugin-sdk/number-runtime";
 import {
   testing as sessionBindingTesting,
   registerSessionBindingAdapter,
-} from "openclaw/plugin-sdk/session-binding-runtime";
+} from "astroclaw/plugin-sdk/session-binding-runtime";
 import {
   deliveryContextFromSession,
   getSessionEntry,
   normalizeSessionDeliveryState,
   sessionDeliveryOrigin,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
 // Matrix tests cover handler plugin behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installMatrixMonitorTestRuntime } from "../../test-runtime.js";
 import { MATRIX_OPENCLAW_FINALIZED_PREVIEW_KEY } from "../send/types.js";
@@ -62,8 +62,8 @@ const resolveMatrixMentionsForBodyMock = vi.hoisted(() =>
 );
 const getGlobalHookRunnerMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
   return {
     ...actual,
     getGlobalHookRunner: getGlobalHookRunnerMock,
@@ -3618,11 +3618,11 @@ describe("matrix monitor handler draft streaming", () => {
 
   it.each([
     {
-      name: "redacts partial previews before normal final delivery for unchanged Matrix mentions",
+      name: "delivers the normal final before redacting unchanged Matrix mention previews",
       finalText: "hello @alice:example.org",
     },
     {
-      name: "redacts partial previews before normal final delivery for changed Matrix mentions",
+      name: "delivers the normal final before redacting changed Matrix mention previews",
       finalText: "hello @alice:example.org!",
     },
   ])("$name", async ({ finalText }) => {
