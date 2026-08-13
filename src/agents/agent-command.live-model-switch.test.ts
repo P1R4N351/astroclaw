@@ -1,7 +1,7 @@
 /** Tests live model switching behavior in active agent command sessions. */
 
 import { expectDefined, toStringifiedError } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setReplyPayloadMetadata } from "../auto-reply/reply-payload.js";
 import type { SessionEntry } from "../config/sessions.js";
@@ -2445,6 +2445,9 @@ describe("agentCommand – LiveSessionModelSwitchError retry", () => {
         entry: expect.objectContaining({ thinkingLevel: "max" }),
       }),
     );
+    expectRecordFields(mockCallArg(state.updateSessionStoreAfterAgentRunMock), {
+      preserveRuntimeModel: true,
+    });
   });
 
   it("recomputes a model-derived thinking default for each fallback candidate", async () => {
