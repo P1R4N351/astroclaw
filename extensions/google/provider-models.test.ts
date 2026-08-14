@@ -1,5 +1,5 @@
 // Google tests cover provider models plugin behavior.
-import type { ProviderRuntimeModel } from "astroclaw/plugin-sdk/plugin-entry";
+import type { ProviderRuntimeModel } from "openclaw/plugin-sdk/plugin-entry";
 import { describe, expect, it } from "vitest";
 import { createProviderDynamicModelContext as createContext } from "../test-support/provider-model-test-helpers.js";
 import {
@@ -536,7 +536,7 @@ describe("resolveGoogleGeminiForwardCompatModel", () => {
   });
 
   it.each([
-    ["gemini-3.6-flash", "gemini-3-flash-preview"],
+    ["gemini-3.7-flash", "gemini-3-flash-preview"],
     ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
   ])("resolves future Gemini 3 text family %s from %s metadata", (modelId, templateId) => {
     const model = resolveGoogleGeminiForwardCompatModel({
