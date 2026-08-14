@@ -1,6 +1,6 @@
 // @vitest-environment node
 // Control UI tests cover translate behavior.
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createStorageMock } from "../../test-helpers/storage.ts";
 import * as translate from "../lib/translate.ts";
@@ -109,6 +109,14 @@ describe("i18n", () => {
     expect(translate.t("connection.help.copyCommandAria", { command: "openclaw dashboard" })).toBe(
       "Copy command: openclaw dashboard",
     );
+  });
+
+  it("renders a provided empty-string param as empty, not the raw placeholder", () => {
+    expect(translate.t("connection.help.copyCommandAria", { command: "" })).toBe("Copy command: ");
+  });
+
+  it("keeps the visible placeholder when the param is missing", () => {
+    expect(translate.t("connection.help.copyCommandAria", {})).toBe("Copy command: {command}");
   });
 
   it("should fallback to English if key is missing in another locale", async () => {
