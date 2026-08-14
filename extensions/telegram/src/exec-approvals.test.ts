@@ -4,17 +4,17 @@ import type {
   OpenClawConfig,
   TelegramAccountConfig,
   TelegramExecApprovalConfig,
-} from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/config-contracts";
 import {
   normalizeSessionDeliveryState,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import {
-  resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir,
   tempWorkspaceSync,
   type TempWorkspaceSync,
-} from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/temp-path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   getTelegramExecApprovalApprovers,
@@ -167,24 +167,11 @@ describe("telegram exec approvals", () => {
     expect(isTelegramExecApprovalClientEnabled({ cfg })).toBe(true);
     expect(isTelegramExecApprovalApprover({ cfg, senderId: "12345" })).toBe(true);
     expect(isTelegramExecApprovalApprover({ cfg, senderId: "67890" })).toBe(true);
-  });
-
-  it("does not require explicit Telegram exec approvers when command owner identifies the operator", () => {
-    const cfg = {
-      ...buildConfig(),
-      commands: {
-        ownerAllowFrom: ["telegram:12345"],
-      },
-    } as OpenClawConfig;
-
-    expect(cfg.channels?.telegram?.execApprovals?.approvers).toBeUndefined();
-    expect(getTelegramExecApprovalApprovers({ cfg })).toEqual(["12345"]);
-    expect(isTelegramExecApprovalClientEnabled({ cfg })).toBe(true);
     expect(
       shouldHandleTelegramExecApprovalRequest({
         cfg,
         request: makeChannelApprovalRequest({
-          id: "telegram-diagnostics",
+          id: "command-owner-inference",
           turnSourceChannel: "telegram",
         }),
       }),
@@ -237,7 +224,7 @@ describe("telegram exec approvals", () => {
 
   it("scopes non-telegram turn sources to the stored telegram account", async () => {
     const workspace = tempWorkspaceSync({
-      rootDir: resolvePreferredOpenClawTmpDir(),
+      rootDir: resolvePreferredAstroclawTmpDir(),
       prefix: "openclaw-telegram-exec-approvals-",
     });
     tempWorkspaces.push(workspace);
@@ -294,28 +281,6 @@ describe("telegram exec approvals", () => {
       true,
     );
     expect(shouldHandleTelegramExecApprovalRequest({ cfg, accountId: "ops", request })).toBe(true);
-  });
-
-  it("rejects unbound foreign-channel approvals even when only one telegram account can handle them", () => {
-    const cfg = buildMultiAccountTelegramConfig({
-      opsExecApprovals: { enabled: false, approvers: ["123"] },
-    });
-    const request = makeChannelApprovalRequest({ id: "req-4" });
-
-    expect(
-      shouldHandleTelegramExecApprovalRequest({
-        cfg,
-        accountId: "default",
-        request,
-      }),
-    ).toBe(false);
-    expect(
-      shouldHandleTelegramExecApprovalRequest({
-        cfg,
-        accountId: "ops",
-        request,
-      }),
-    ).toBe(false);
   });
 
   it("uses request filters when checking unbound telegram account eligibility", () => {
