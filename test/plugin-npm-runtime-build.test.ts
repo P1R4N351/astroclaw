@@ -308,13 +308,24 @@ describe("plugin npm runtime build planning", () => {
     expect(listMissingPluginNpmRuntimeHostExports(plan)).toEqual([]);
   });
 
+  it("keeps published llama.cpp runtime imports resolvable from the host package", async () => {
+    const result = await buildPluginNpmRuntime({
+      repoRoot,
+      packageDir: "extensions/llama-cpp",
+      logLevel: "silent",
+    });
+    const plan = expectPluginNpmRuntimeBuildPlan(result);
+
+    expect(listMissingPluginNpmRuntimeHostExports(plan)).toEqual([]);
+  });
+
   it("detects unresolved side-effect host imports in built plugin runtimes", () => {
     const outDir = tempDirs.make("openclaw-plugin-runtime-host-import-");
     writeFileSync(
       path.join(outDir, "index.js"),
       [
-        'import "openclaw/plugin-sdk/not-exported";',
-        'const runtime = __require("openclaw/plugin-sdk/not-exported-from-require");',
+        'import "astroclaw/plugin-sdk/not-exported";',
+        'const runtime = __require("astroclaw/plugin-sdk/not-exported-from-require");',
         "void runtime;",
         "",
       ].join("\n"),
@@ -327,8 +338,8 @@ describe("plugin npm runtime build planning", () => {
     );
 
     expect(listMissingPluginNpmRuntimeHostExports({ ...plan, outDir })).toEqual([
-      "openclaw/plugin-sdk/not-exported",
-      "openclaw/plugin-sdk/not-exported-from-require",
+      "astroclaw/plugin-sdk/not-exported",
+      "astroclaw/plugin-sdk/not-exported-from-require",
     ]);
   });
 
