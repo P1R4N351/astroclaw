@@ -1,4 +1,4 @@
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import type { CodexCommandExecParams, CodexCommandExecResponse } from "./command-exec-protocol.js";
 import type {
   CodexAppInfo,
@@ -128,6 +128,11 @@ export type CodexUserInput =
     }
   | {
       type: "localImage";
+      path: string;
+    }
+  | {
+      type: "skill";
+      name: string;
       path: string;
     };
 
