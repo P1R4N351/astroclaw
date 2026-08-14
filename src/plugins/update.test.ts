@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { bundledPluginRootAt } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRootAt } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -3637,6 +3637,29 @@ describe("updateNpmInstalledPlugins", () => {
       message: "plugin channel fallback: openclaw-codex-app-server used @latest after @beta failed",
     });
   });
+
+  it.each(["security_scan_blocked", "security_scan_failed"] as const)(
+    "does not bypass %s with the beta npm fallback",
+    async (code) => {
+      installPluginFromNpmSpecMock.mockResolvedValueOnce({
+        ok: false,
+        code,
+        error: `install policy returned ${code}`,
+      });
+
+      const result = await updatePlugin(
+        createCodexAppServerInstallConfig({ spec: "openclaw-codex-app-server" }),
+        "openclaw-codex-app-server",
+        { updateChannel: "beta" },
+      );
+
+      expect(installPluginFromNpmSpecMock).toHaveBeenCalledTimes(1);
+      expect(result.outcomes[0]).toMatchObject({
+        status: "error",
+        message: `Failed to update openclaw-codex-app-server: install policy returned ${code}`,
+      });
+    },
+  );
 
   it.each([
     {
