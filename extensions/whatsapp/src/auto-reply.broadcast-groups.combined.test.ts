@@ -1,6 +1,6 @@
 // Whatsapp tests cover auto reply.broadcast groups.combined plugin behavior.
 import "./test-helpers.js";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it, vi } from "vitest";
 import {
   monitorWebChannelWithCapture,
@@ -47,6 +47,7 @@ describe("broadcast groups", () => {
         defaults: { maxConcurrent: 10 },
         list: [{ id: "alfred" }, { id: "baerbel" }],
       },
+      bindings: [{ agentId: "alfred", match: { channel: "whatsapp", accountId: "default" } }],
       broadcast: {
         strategy: "sequential",
         "+1000": ["alfred", "baerbel"],
@@ -68,6 +69,7 @@ describe("broadcast groups", () => {
         defaults: { maxConcurrent: 10 },
         list: [{ id: "alfred" }, { id: "baerbel" }],
       },
+      bindings: [{ agentId: "alfred", match: { channel: "whatsapp", accountId: "default" } }],
       broadcast: {
         strategy: "sequential",
         "123@g.us": ["alfred", "baerbel"],
@@ -157,6 +159,7 @@ describe("broadcast groups", () => {
         defaults: { maxConcurrent: 10 },
         list: [{ id: "alfred" }, { id: "baerbel" }],
       },
+      bindings: [{ agentId: "alfred", match: { channel: "whatsapp", accountId: "work" } }],
       broadcast: {
         strategy: "sequential",
         "123@g.us": ["alfred", "baerbel"],
@@ -199,6 +202,7 @@ describe("broadcast groups", () => {
         defaults: { maxConcurrent: 10 },
         list: [{ id: "alfred" }, { id: "baerbel" }],
       },
+      bindings: [{ agentId: "alfred", match: { channel: "whatsapp", accountId: "default" } }],
       broadcast: {
         strategy: "parallel",
         "+1000": ["alfred", "baerbel"],
