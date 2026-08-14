@@ -1,11 +1,15 @@
 import type { DatabaseSync } from "node:sqlite";
 import { safeParseJsonRecord } from "@astroclaw/normalization-core";
-import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
+import {
+  asFiniteNumber,
+  asSafeIntegerInRange,
+} from "@astroclaw/normalization-core/number-coercion";
 import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeAgentRunTerminalReplySnapshot } from "../agents/agent-run-terminal-reply.js";
 import { selectDeliverableSessionsReply } from "../agents/tools/sessions-send-tokens.js";
 import { buildApprovalResolutionRef } from "../infra/approval-resolution-ref.js";
 import { runSqliteImmediateTransactionSync } from "../infra/sqlite-transaction.js";
+import { compactLegacyDeliveryQueueFailures } from "./openclaw-state-db-delivery-queue-backfill.js";
 import * as operatorApprovalMigration from "./openclaw-state-db-operator-approval-migration.js";
 import { ensureColumn, tableExists, tableHasColumn } from "./openclaw-state-db-schema-helpers.js";
 
@@ -658,12 +662,12 @@ export function backfillDeliveryQueueEntriesFromEntryJson(db: DatabaseSync): voi
   ) {
     return;
   }
+  compactLegacyDeliveryQueueFailures(db);
   const rows = db
     .prepare(
       `SELECT queue_name, id, entry_json
          FROM delivery_queue_entries
-        WHERE status <> 'completed'
-          AND NOT (status = 'failed' AND recovery_state = 'failed_terminal_v1')
+        WHERE status = 'pending'
           AND (retry_count = 0
             OR last_attempt_at IS NULL
             OR last_error IS NULL
@@ -716,11 +720,11 @@ export function backfillDeliveryQueueEntriesFromEntryJson(db: DatabaseSync): voi
       metadataStringField(entry, "accountId") ??
         (route ? metadataStringField(route, "accountId") : null) ??
         (deliveryContext ? metadataStringField(deliveryContext, "accountId") : null),
-      numberField(entry, "retryCount") ?? 0,
-      numberField(entry, "lastAttemptAt"),
+      asSafeIntegerInRange(entry.retryCount, { min: 0 }) ?? 0,
+      asSafeIntegerInRange(entry.lastAttemptAt, { min: 0 }) ?? null,
       metadataStringField(entry, "lastError"),
       metadataStringField(entry, "recoveryState"),
-      numberField(entry, "platformSendStartedAt"),
+      asSafeIntegerInRange(entry.platformSendStartedAt, { min: 0 }) ?? null,
       row.queue_name,
       row.id,
     );
