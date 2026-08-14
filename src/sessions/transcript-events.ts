@@ -3,7 +3,7 @@ import { asPositiveSafeInteger } from "@astroclaw/normalization-core/number-coer
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { parseAgentSessionKey } from "../routing/session-key.js";
-import { resolveGlobalSet } from "../shared/global-singleton.js";
+import { resolveGlobalSet, resolveGlobalSingleton } from "../shared/global-singleton.js";
 
 /** Storage-neutral identity for the session transcript that changed. */
 type SessionTranscriptUpdateTarget = {
@@ -49,6 +49,16 @@ const INTERNAL_SESSION_TRANSCRIPT_LISTENERS = resolveGlobalSet<InternalSessionTr
   "close-and-restart",
 );
 
+const SESSION_TRANSCRIPT_UPDATE_STATE = resolveGlobalSingleton(
+  Symbol.for("openclaw.sessionTranscriptUpdateState"),
+  () => ({ version: 0 }),
+);
+
+/** Monotonic fence for projections that embed transcript-derived fields (previews, titles). */
+export function readSessionTranscriptUpdateVersion(): number {
+  return SESSION_TRANSCRIPT_UPDATE_STATE.version;
+}
+
 /** Registers a listener for normalized session transcript updates. */
 export function onSessionTranscriptUpdate(listener: SessionTranscriptListener): () => void {
   SESSION_TRANSCRIPT_LISTENERS.add(listener);
@@ -73,6 +83,9 @@ export function emitSessionTranscriptUpdate(update: InternalSessionTranscriptUpd
   if (!nextUpdate) {
     return;
   }
+  // Commit-then-broadcast: a subscriber's refetch races the sessions.list
+  // cache, so the fence must advance before any listener can observe the write.
+  SESSION_TRANSCRIPT_UPDATE_STATE.version += 1;
   const publicUpdate = projectPublicSessionTranscriptUpdate(nextUpdate);
   if (publicUpdate) {
     emitPublicSessionTranscriptUpdate(publicUpdate);
