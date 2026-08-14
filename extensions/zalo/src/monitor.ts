@@ -1,37 +1,41 @@
 // Zalo plugin module implements monitor behavior.
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
+import { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
 import {
   createChannelPartialDeliveryError,
   formatInboundMediaUnavailableText,
   resolveChannelInboundRouteEnvelope,
   type ChannelInboundMediaInput,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { resolveStableChannelMessageIngress } from "openclaw/plugin-sdk/channel-ingress-runtime";
-import { createMessageReceiptFromOutboundResults } from "openclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
-import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { channelReadyPatch } from "openclaw/plugin-sdk/gateway-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import {
+  resolveStableChannelMessageIngress,
+  type ChannelIngressContextBinding,
+  type ResolvedChannelMessageIngress,
+} from "astroclaw/plugin-sdk/channel-ingress-runtime";
+import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
+import type { MarkdownTableMode, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { channelReadyPatch } from "astroclaw/plugin-sdk/gateway-runtime";
 import {
   createLazyRuntimeModule,
   createLazyRuntimeNamedExport,
-} from "openclaw/plugin-sdk/lazy-runtime";
+} from "astroclaw/plugin-sdk/lazy-runtime";
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
   type OutboundReplyPayload,
-} from "openclaw/plugin-sdk/reply-payload";
-import { sleepWithAbort, waitForAbortSignal } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/reply-payload";
+import { sleepWithAbort, waitForAbortSignal } from "astroclaw/plugin-sdk/runtime-env";
 import {
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
-import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
+import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   canonicalizeWebhookRouteKey,
   registerPluginHttpRoute,
   resolveWebhookPath,
-} from "openclaw/plugin-sdk/webhook-ingress";
+} from "astroclaw/plugin-sdk/webhook-ingress";
 import type { ResolvedZaloAccount } from "./accounts.js";
 import {
   ZaloApiError,
@@ -209,6 +213,10 @@ type ZaloImageMessageParams = ZaloProcessingContext & {
   message: ZaloMessage;
 };
 type ZaloMessageAuthorizationResult = {
+  channelIngress: ResolvedChannelMessageIngress;
+  resolveChannelIngress: (
+    contextBinding: ChannelIngressContextBinding,
+  ) => Promise<ResolvedChannelMessageIngress>;
   chatId: string;
   commandAuthorized: boolean | undefined;
   isGroup: boolean;
@@ -472,30 +480,33 @@ async function authorizeZaloMessage(
     defaultGroupPolicy,
   });
   const shouldComputeAuth = core.channel.commands.shouldComputeCommandAuthorized(rawBody, config);
-  const access = await resolveStableChannelMessageIngress({
-    channelId: "zalo",
-    accountId: account.accountId,
-    identity: {
-      key: "zalo-user-id",
-      normalize: normalizeZaloAllowEntry,
-      sensitivity: "pii",
-      entryIdPrefix: "zalo-entry",
-    },
-    cfg: config,
-    readStoreAllowFrom: async () => await pairing.readAllowFromStore(),
-    subject: { stableId: senderId },
-    conversation: {
-      kind: isGroup ? "group" : "direct",
-      id: chatId,
-    },
-    providerMissingFallbackApplied,
-    dmPolicy,
-    groupPolicy,
-    policy: { groupAllowFromFallbackToAllowFrom: true },
-    allowFrom: normalizeStringEntries(account.config.allowFrom),
-    groupAllowFrom: normalizeStringEntries(account.config.groupAllowFrom),
-    command: shouldComputeAuth ? {} : undefined,
-  });
+  const resolveChannelIngress = async (contextBinding?: ChannelIngressContextBinding) =>
+    await resolveStableChannelMessageIngress({
+      channelId: "zalo",
+      accountId: account.accountId,
+      identity: {
+        key: "zalo-user-id",
+        normalize: normalizeZaloAllowEntry,
+        sensitivity: "pii",
+        entryIdPrefix: "zalo-entry",
+      },
+      cfg: config,
+      readStoreAllowFrom: async () => await pairing.readAllowFromStore(),
+      subject: { stableId: senderId },
+      conversation: {
+        kind: isGroup ? "group" : "direct",
+        id: chatId,
+      },
+      contextBinding,
+      providerMissingFallbackApplied,
+      dmPolicy,
+      groupPolicy,
+      policy: { groupAllowFromFallbackToAllowFrom: true },
+      allowFrom: normalizeStringEntries(account.config.allowFrom),
+      groupAllowFrom: normalizeStringEntries(account.config.groupAllowFrom),
+      command: shouldComputeAuth ? {} : undefined,
+    });
+  const access = await resolveChannelIngress();
   const senderAccess = access.senderAccess;
   if (isGroup) {
     warnMissingProviderGroupPolicyFallbackOnce({
@@ -563,6 +574,8 @@ async function authorizeZaloMessage(
   }
 
   return {
+    channelIngress: access,
+    resolveChannelIngress,
     chatId,
     commandAuthorized: access.commandAccess.requested ? access.commandAccess.authorized : undefined,
     isGroup,
@@ -599,7 +612,7 @@ async function processMessageWithPipeline(params: ZaloMessagePipelineParams): Pr
   if (!authorization) {
     return;
   }
-  const { isGroup, chatId, senderId, senderName, rawBody, commandAuthorized } = authorization;
+  const { isGroup, chatId, senderId, senderName, rawBody } = authorization;
   const agentBody = agentBodyOverride ?? rawBody;
 
   const { route, buildEnvelope } = resolveChannelInboundRouteEnvelope({
@@ -611,6 +624,19 @@ async function processMessageWithPipeline(params: ZaloMessagePipelineParams): Pr
       id: chatId,
     },
   });
+  const channelIngress = await authorization.resolveChannelIngress({
+    agentId: route.agentId,
+    sessionKey: route.sessionKey,
+    messageId: message_id,
+    inboundEventKind: "user_request",
+  });
+  if (!channelIngress.senderAccess.allowed) {
+    logVerbose(core, runtime, `zalo: authorization changed before dispatch for ${senderId}`);
+    return;
+  }
+  const commandAuthorized = channelIngress.commandAccess.requested
+    ? channelIngress.commandAccess.authorized
+    : undefined;
 
   if (
     isGroup &&
@@ -631,6 +657,7 @@ async function processMessageWithPipeline(params: ZaloMessagePipelineParams): Pr
   });
 
   const ctxPayload = core.channel.inbound.buildContext({
+    channelIngress,
     channel: "zalo",
     accountId: route.accountId,
     messageId: message_id,
