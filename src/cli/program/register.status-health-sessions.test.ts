@@ -1,6 +1,6 @@
-// Register status/health/session tests cover status-related command registration.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { Command } from "commander";
+// Register status/health/session tests cover status-related command registration.
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerStatusHealthSessionsCommands } from "./register.status-health-sessions.js";
 
@@ -166,6 +166,8 @@ describe("registerStatusHealthSessionsCommands", () => {
       "--all",
       "--deep",
       "--usage",
+      "--agent",
+      "beta",
       "--debug",
       "--timeout",
       "5000",
@@ -177,6 +179,7 @@ describe("registerStatusHealthSessionsCommands", () => {
       all: true,
       deep: true,
       usage: true,
+      agent: "beta",
       timeoutMs: 5000,
       verbose: true,
     });
