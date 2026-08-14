@@ -112,6 +112,7 @@ const requiredPathGroups = [
   "scripts/postinstall-bundled-plugins.mjs",
   "dist/agents/compaction-planning.worker.js",
   "dist/agents/model-provider-auth.worker.js",
+  "dist/agents/prepared-model-catalog.worker.js",
   "dist/audit/audit-event-writer.worker.js",
   "dist/config/sessions/session-accessor.sqlite-archive.worker.js",
   "dist/config/sessions/session-transcript-reconcile.worker.js",
@@ -175,11 +176,11 @@ const DEFAULT_RELEASE_CHECK_COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
 const DEFAULT_RELEASE_CHECK_COMMAND_MAX_BUFFER_BYTES = 100 * 1024 * 1024;
 export const MAX_CRITICAL_PLUGIN_SDK_ENTRYPOINT_BYTES = 2 * 1024 * 1024;
 const CRITICAL_PLUGIN_SDK_SIZE_CHECK_SPECIFIERS = [
-  "astroclaw/plugin-sdk/core",
-  "astroclaw/plugin-sdk/provider-entry",
-  "astroclaw/plugin-sdk/runtime",
+  "openclaw/plugin-sdk/core",
+  "openclaw/plugin-sdk/provider-entry",
+  "openclaw/plugin-sdk/runtime",
 ] as const;
-const CRITICAL_PLUGIN_SDK_IMPORT_SMOKE_SPECIFIERS = ["astroclaw/plugin-sdk/core"] as const;
+const CRITICAL_PLUGIN_SDK_IMPORT_SMOKE_SPECIFIERS = ["openclaw/plugin-sdk/core"] as const;
 export const PACKED_CLI_SMOKE_COMMANDS = [
   ["--help"],
   ["onboard", "--help"],
@@ -1327,7 +1328,7 @@ async function checkPluginSdkExports() {
 export function collectCriticalPluginSdkEntrypointSizeErrors(rootDir = process.cwd()): string[] {
   const errors: string[] = [];
   for (const specifier of CRITICAL_PLUGIN_SDK_SIZE_CHECK_SPECIFIERS) {
-    const subpath = specifier.slice("astroclaw/plugin-sdk/".length);
+    const subpath = specifier.slice("openclaw/plugin-sdk/".length);
     const relativePath = `dist/plugin-sdk/${subpath}.js`;
     const filePath = resolve(rootDir, relativePath);
     if (!existsSync(filePath)) {
