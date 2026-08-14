@@ -1,5 +1,5 @@
 // Zai tests cover detect plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { detectZaiEndpoint } from "./detect.js";
 
@@ -114,29 +114,14 @@ describe("detectZaiEndpoint", () => {
         responses: {
           "https://api.z.ai/api/paas/v4/chat/completions::glm-5.2": { status: 404 },
           "https://open.bigmodel.cn/api/paas/v4/chat/completions::glm-5.2": { status: 404 },
-          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.2": { status: 200 },
+          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.3": { status: 200 },
         },
-        expected: { endpoint: "coding-global", modelId: "glm-5.2" },
+        expected: { endpoint: "coding-global", modelId: "glm-5.3" },
       },
       {
         endpoint: "coding-global",
         responses: {
-          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.2": {
-            status: 404,
-            body: { error: { message: "glm-5.2 unavailable" } },
-          },
-          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.1": {
-            status: 404,
-            body: { error: { message: "glm-5.1 unavailable" } },
-          },
-          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-4.7": { status: 200 },
-        },
-        expected: { endpoint: "coding-global", modelId: "glm-4.7" },
-      },
-      {
-        endpoint: "coding-global",
-        responses: {
-          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.2": {
+          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.3": {
             status: 400,
             body: { code: 1311, msg: "model not included in the current plan" },
           },
@@ -151,7 +136,7 @@ describe("detectZaiEndpoint", () => {
       {
         endpoint: "coding-global",
         responses: {
-          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.2": {
+          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.3": {
             status: 429,
             body: { error: { message: "rate limited" } },
           },
@@ -161,16 +146,16 @@ describe("detectZaiEndpoint", () => {
       {
         endpoint: "coding-cn",
         responses: {
-          "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.2": {
+          "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.3": {
             status: 200,
           },
         },
-        expected: { endpoint: "coding-cn", modelId: "glm-5.2" },
+        expected: { endpoint: "coding-cn", modelId: "glm-5.3" },
       },
       {
         endpoint: "coding-cn",
         responses: {
-          "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.2": {
+          "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.3": {
             status: 404,
           },
           "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.1": {
@@ -182,9 +167,9 @@ describe("detectZaiEndpoint", () => {
       {
         endpoint: "coding-cn",
         responses: {
-          "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.2": {
+          "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.3": {
             status: 404,
-            body: { error: { message: "glm-5.2 unavailable" } },
+            body: { error: { message: "glm-5.3 unavailable" } },
           },
           "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.1": {
             status: 404,
@@ -200,10 +185,10 @@ describe("detectZaiEndpoint", () => {
         responses: {
           "https://api.z.ai/api/paas/v4/chat/completions::glm-5.2": { status: 401 },
           "https://open.bigmodel.cn/api/paas/v4/chat/completions::glm-5.2": { status: 401 },
-          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.2": { status: 401 },
+          "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.3": { status: 401 },
           "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-5.1": { status: 401 },
           "https://api.z.ai/api/coding/paas/v4/chat/completions::glm-4.7": { status: 401 },
-          "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.2": {
+          "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.3": {
             status: 401,
           },
           "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions::glm-5.1": {
@@ -261,7 +246,7 @@ describe("detectZaiEndpoint", () => {
       apiKey: "sk-test", // pragma: allowlist secret
       endpoint: "coding-global",
       fetchFn: makeRawBodyFetch({
-        [`${codingGlobal}::glm-5.2`]: {
+        [`${codingGlobal}::glm-5.3`]: {
           status: 400,
           raw: JSON.stringify({ error: { message: "model not found for this plan" } }),
         },
@@ -287,7 +272,7 @@ describe("detectZaiEndpoint", () => {
       apiKey: "sk-test", // pragma: allowlist secret
       endpoint: "coding-global",
       fetchFn: makeRawBodyFetch({
-        [`${codingGlobal}::glm-5.2`]: { status: 404, raw: "<html>gateway error</html>" },
+        [`${codingGlobal}::glm-5.3`]: { status: 404, raw: "<html>gateway error</html>" },
         [`${codingGlobal}::glm-5.1`]: { status: 404, raw: "" },
         [`${codingGlobal}::glm-4.7`]: { status: 200, raw: "{}" },
       }),
