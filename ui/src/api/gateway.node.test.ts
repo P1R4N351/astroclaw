@@ -6,7 +6,7 @@ import {
   MIN_CLIENT_PROTOCOL_VERSION,
   PROTOCOL_VERSION,
 } from "@astroclaw/gateway-client/browser";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../test/helpers/promise.js";
 import {
@@ -162,6 +162,7 @@ type ConnectFrame = {
   method?: string;
   params?: {
     auth?: { token?: string; bootstrapToken?: string; password?: string; deviceToken?: string };
+    client: { buildId?: string };
     maxProtocol?: number;
     minProtocol?: number;
     caps?: string[];
@@ -439,6 +440,7 @@ describe("GatewayBrowserClient", () => {
     const client = new GatewayBrowserClient({
       url: "ws://127.0.0.1:18789",
       token: "shared-auth-token",
+      clientBuildId: "build-a",
     });
 
     const { connectFrame } = await startConnect(client);
@@ -446,6 +448,7 @@ describe("GatewayBrowserClient", () => {
     expect(connectFrame.method).toBe("connect");
     expect(connectFrame.params?.minProtocol).toBe(MIN_CLIENT_PROTOCOL_VERSION);
     expect(connectFrame.params?.maxProtocol).toBe(PROTOCOL_VERSION);
+    expect(connectFrame.params?.client.buildId).toBe("build-a");
     expect(connectFrame.params?.caps).toEqual([
       GATEWAY_CLIENT_CAPS.AGENT_KIND,
       GATEWAY_CLIENT_CAPS.APPROVALS,
