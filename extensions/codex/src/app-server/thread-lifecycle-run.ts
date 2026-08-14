@@ -1,4 +1,4 @@
-import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
 import { isIncognitoSessionKey } from "../incognito-session.js";
 import { closeCodexStartupClientBestEffort } from "./attempt-client-cleanup.js";
 import { resolveCodexAppServerClientInstanceId } from "./client.js";
@@ -241,6 +241,13 @@ export async function startOrResumeThread(
       }
       binding = undefined;
     };
+    if (
+      binding?.threadId &&
+      !restrictedToolSurface &&
+      binding.nativeToolPolicyRestricted === true
+    ) {
+      await clearCurrentBinding("rotating a host-policy-restricted thread binding");
+    }
     if (
       binding?.threadId &&
       binding.nativeSkillIsolationFingerprint !== nativeSkillIsolationFingerprint
@@ -652,6 +659,7 @@ export async function startOrResumeThread(
           environmentSelectionFingerprint,
           hostSystemAgentActive,
           ringZeroActive,
+          restrictedToolSurface,
           restrictedToolSurfaceInheritedMcpServerNames,
           nativeSkillIsolation,
           lifecycleTiming,
@@ -687,6 +695,7 @@ export async function startOrResumeThread(
       environmentSelectionFingerprint,
       hostSystemAgentActive,
       ringZeroActive,
+      restrictedToolSurface,
       restrictedToolSurfaceInheritedMcpServerNames,
       nativeSkillIsolation,
       lifecycleTiming,
