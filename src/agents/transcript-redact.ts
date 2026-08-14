@@ -4,6 +4,7 @@
  * Applies logging redaction rules to persisted messages while preserving unchanged object identity.
  */
 import { findNormalizedProviderValue } from "@astroclaw/model-catalog-core/provider-id";
+import { OPENAI_RESPONSES_APIS } from "@openclaw/ai/internal/openai-responses-payload-policy";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { readLoggingConfig } from "../logging/config.js";
 import {
@@ -77,14 +78,6 @@ type TranscriptAssistantRoute = {
   provider?: string;
 };
 
-const OPENAI_RESPONSES_APIS = new Set([
-  "openai-responses",
-  "azure-openai-responses",
-  "openai-chatgpt-responses",
-  "openclaw-openai-responses-transport",
-  "openclaw-openai-chatgpt-responses-transport",
-  "openclaw-azure-openai-responses-transport",
-]);
 const GOOGLE_REASONING_APIS = new Set([
   "google-generative-ai",
   "google-vertex",
