@@ -1,13 +1,14 @@
-import { createTestInboundDebounceFlush } from "astroclaw/plugin-sdk/channel-test-helpers";
+import { buildChannelInboundEventContext } from "openclaw/plugin-sdk/channel-inbound";
+import { createTestInboundDebounceFlush } from "openclaw/plugin-sdk/channel-test-helpers";
 // Feishu tests cover bot plugin behavior.
 import type {
   ensureConfiguredBindingRouteReady,
   getSessionBindingService,
   resolveConfiguredBindingRoute,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { createRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { resolveGroupSessionKey } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { createRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import { resolveGroupSessionKey } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig, PluginRuntime } from "../runtime-api.js";
 import { parseMergeForwardContent } from "./bot-content.js";
@@ -184,6 +185,7 @@ function createFeishuBotRuntime(overrides: DeepPartial<PluginRuntime> = {}): Plu
         buildPairingReply: vi.fn(),
       },
       inbound: {
+        buildContext: buildChannelInboundEventContext,
         run: vi.fn(async (params) => {
           const input = await params.adapter.ingest(params.raw);
           if (!input) {
@@ -353,9 +355,9 @@ const {
 
 const finalizeInboundContextMock = mockBuildChannelInboundEventContext;
 
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-inbound")>(
-    "astroclaw/plugin-sdk/channel-inbound",
+vi.mock("openclaw/plugin-sdk/channel-inbound", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-inbound")>(
+    "openclaw/plugin-sdk/channel-inbound",
   );
   return {
     ...actual,
@@ -374,16 +376,16 @@ vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/reply-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/reply-runtime")>(
-    "astroclaw/plugin-sdk/reply-runtime",
+vi.mock("openclaw/plugin-sdk/reply-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/reply-runtime")>(
+    "openclaw/plugin-sdk/reply-runtime",
   );
   return { ...actual, dispatchInboundMessage: mockDispatchInboundMessage };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
-    "astroclaw/plugin-sdk/session-store-runtime",
+vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
+    "openclaw/plugin-sdk/session-store-runtime",
   );
   return { ...actual, resolveStorePath: mockResolveStorePath };
 });
@@ -422,9 +424,9 @@ vi.mock("./bot-name.js", () => ({
   resolveFeishuBotName: mockResolveFeishuBotName,
 }));
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
-    "astroclaw/plugin-sdk/conversation-runtime",
+vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
+    "openclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
@@ -471,7 +473,7 @@ afterAll(() => {
   vi.doUnmock("./audio-preflight.runtime.js");
   vi.doUnmock("./client.js");
   vi.doUnmock("./bot-name.js");
-  vi.doUnmock("astroclaw/plugin-sdk/conversation-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/conversation-runtime");
   vi.resetModules();
 });
 
