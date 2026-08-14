@@ -1,5 +1,5 @@
 // Cron model override forwarding tests cover passing overrides into agent runs.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDeferred } from "../../../test/helpers/promise.js";
 import { getAgentRunTaskRunId } from "../../infra/agent-run-registry.js";
@@ -184,6 +184,7 @@ describe("runCronIsolatedAgentTurn — cron model override forwarding (#58065)",
     expect(result.status).toBe("ok");
     expect(loadModelCatalogOwnerMock).toHaveBeenCalledWith({
       config: callerConfig,
+      readOnly: true,
       allowGatewaySubagentBinding: true,
     });
     expect(ensureAgentWorkspaceMock).toHaveBeenCalledWith(
