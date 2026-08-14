@@ -2,16 +2,16 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { resolveSessionTranscriptsDirForAgent as resolveTestSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+import { Command } from "commander";
+import { resolveSessionTranscriptsDirForAgent as resolveTestSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
 import {
   firstWrittenJsonArg,
   spyRuntimeErrors,
   spyRuntimeJson,
   spyRuntimeLogs,
-} from "astroclaw/plugin-sdk/test-fixtures";
-import { Command } from "commander";
+} from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { openMemoryCoreStateStore } from "./dreaming-state.js";
 import { readShortTermRecallEntries, recordShortTermRecalls } from "./short-term-promotion.js";
@@ -83,9 +83,9 @@ vi.mock("./cli.host.runtime.js", async () => {
     { resolveSessionTranscriptsDirForAgent, resolveStateDir },
     { listMemoryFiles, normalizeExtraMemoryPaths },
   ] = await Promise.all([
-    import("astroclaw/plugin-sdk/memory-core-host-runtime-cli"),
-    import("astroclaw/plugin-sdk/memory-core-host-runtime-core"),
-    import("astroclaw/plugin-sdk/memory-core-host-runtime-files"),
+    import("openclaw/plugin-sdk/memory-core-host-runtime-cli"),
+    import("openclaw/plugin-sdk/memory-core-host-runtime-core"),
+    import("openclaw/plugin-sdk/memory-core-host-runtime-files"),
   ]);
   return {
     defaultRuntime,
@@ -109,9 +109,9 @@ vi.mock("./cli.host.runtime.js", async () => {
 });
 
 let registerMemoryCli: typeof import("./cli.js").registerMemoryCli;
-let defaultRuntime: typeof import("astroclaw/plugin-sdk/memory-core-host-runtime-cli").defaultRuntime;
-let isVerbose: typeof import("astroclaw/plugin-sdk/memory-core-host-runtime-cli").isVerbose;
-let setVerbose: typeof import("astroclaw/plugin-sdk/memory-core-host-runtime-cli").setVerbose;
+let defaultRuntime: typeof import("openclaw/plugin-sdk/memory-core-host-runtime-cli").defaultRuntime;
+let isVerbose: typeof import("openclaw/plugin-sdk/memory-core-host-runtime-cli").isVerbose;
+let setVerbose: typeof import("openclaw/plugin-sdk/memory-core-host-runtime-cli").setVerbose;
 let fixtureRoot = "";
 let workspaceFixtureRoot = "";
 let workspaceCaseId = 0;
@@ -123,7 +123,7 @@ beforeAll(async () => {
     defaultRuntime: loadedDefaultRuntime,
     isVerbose: loadedIsVerbose,
     setVerbose: loadedSetVerbose,
-  } = await import("astroclaw/plugin-sdk/memory-core-host-runtime-cli");
+  } = await import("openclaw/plugin-sdk/memory-core-host-runtime-cli");
   defaultRuntime = loadedDefaultRuntime;
   isVerbose = loadedIsVerbose;
   setVerbose = loadedSetVerbose;
@@ -601,7 +601,7 @@ describe("memory cli", () => {
               engine: "llama.cpp",
               state: "ready",
               backend: "metal",
-              buildType: "prebuilt",
+              buildInfo: "b10357 (689e227db)",
             },
           },
         }),
@@ -850,22 +850,17 @@ describe("memory cli", () => {
               engine: "llama.cpp",
               state: "ready",
               backend: "metal",
-              buildType: "prebuilt",
-              deviceNames: ["Apple M4 Max"],
-              memory: {
-                totalBytes: 64 * 1024 ** 3,
-                usedBytes: 8 * 1024 ** 3,
-                freeBytes: 56 * 1024 ** 3,
-                unifiedBytes: 64 * 1024 ** 3,
-                observedAtMs: Date.parse("2026-07-10T12:00:00.000Z"),
+              buildInfo: "b10357 (689e227db)",
+              model: {
+                id: "embeddinggemma-300m-qat-q8_0",
+                path: "/models/embedding.gguf",
               },
-              offload: {
-                supported: true,
-                offloadedLayers: 20,
-                totalLayers: 24,
-              },
-              context: {
-                requestedSize: 4096,
+              capabilities: { vision: false, draft: false },
+              endpoints: {
+                health: "ready",
+                models: "ready",
+                props: "ready",
+                metrics: "ready",
               },
             },
           },
@@ -880,14 +875,11 @@ describe("memory cli", () => {
     expect(probeVectorAvailability).toHaveBeenCalled();
     expect(probeEmbeddingAvailability).toHaveBeenCalled();
     expectLogged(log, "Embeddings: ready");
-    expectLogged(log, "llama.cpp: metal (prebuilt)");
-    expectLogged(log, "Devices: Apple M4 Max");
-    expectLogged(
-      log,
-      "VRAM snapshot: 8.0 GB used · 56 GB free · 64 GB total · 64 GB unified (2026-07-10T12:00:00.000Z)",
-    );
-    expectLogged(log, "GPU offload: 20/24 layers");
-    expectLogged(log, "Requested context: 4096 tokens");
+    expectLogged(log, "llama.cpp server: metal (b10357 (689e227db))");
+    expectLogged(log, "Server model: embeddinggemma-300m-qat-q8_0");
+    expectLogged(log, "Model path: /models/embedding.gguf");
+    expectLogged(log, "Capabilities: text only");
+    expectLogged(log, "Endpoints: health=ready models=ready props=ready metrics=ready");
     expect(close).toHaveBeenCalled();
   });
 
