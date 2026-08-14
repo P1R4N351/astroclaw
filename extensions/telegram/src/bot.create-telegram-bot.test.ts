@@ -3,24 +3,24 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { escapeRegExp, formatEnvelopeTimestamp } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { TelegramGroupConfig } from "openclaw/plugin-sdk/config-contracts";
+import { escapeRegExp, formatEnvelopeTimestamp } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { TelegramGroupConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   buildPluginBindingApprovalCustomId,
   resolvePluginConversationBindingApproval,
-} from "openclaw/plugin-sdk/conversation-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import {
   clearPluginInteractiveHandlers,
   registerPluginInteractiveHandler,
-} from "openclaw/plugin-sdk/plugin-runtime";
+} from "astroclaw/plugin-sdk/plugin-runtime";
 import type {
   PluginStateKeyedStore,
   PluginStateSyncKeyedStore,
-} from "openclaw/plugin-sdk/plugin-state-runtime";
-import type { GetReplyOptions, MsgContext } from "openclaw/plugin-sdk/reply-runtime";
-import { withEnvAsync } from "openclaw/plugin-sdk/test-env";
-import { createRequireRecord, sanitizeTerminalText } from "openclaw/plugin-sdk/test-fixtures";
+} from "astroclaw/plugin-sdk/plugin-state-runtime";
+import type { GetReplyOptions, MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
+import { withEnvAsync } from "astroclaw/plugin-sdk/test-env";
+import { createRequireRecord, sanitizeTerminalText } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTelegramNativeCommandTestDeps,
@@ -38,12 +38,12 @@ import { buildTelegramOpaqueCallbackData } from "./native-command-callback-data.
 import type { TelegramPollRegistryEntry } from "./poll-registry.js";
 import type { TelegramRuntime } from "./runtime.types.js";
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", { spy: true });
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", { spy: true });
 
 const harness = await import("./bot.create-telegram-bot.test-harness.js");
-const pluginStateTestRuntime = await import("openclaw/plugin-sdk/plugin-state-test-runtime");
-const configMutation = await import("openclaw/plugin-sdk/config-mutation");
-const modelSessionRuntime = await import("openclaw/plugin-sdk/model-session-runtime");
+const pluginStateTestRuntime = await import("astroclaw/plugin-sdk/plugin-state-test-runtime");
+const configMutation = await import("astroclaw/plugin-sdk/config-mutation");
+const modelSessionRuntime = await import("astroclaw/plugin-sdk/model-session-runtime");
 const EYES_EMOJI = "\u{1F440}";
 const tempStateDirs: string[] = [];
 let previousStateDir: string | undefined;
@@ -3425,6 +3425,62 @@ describe("createTelegramBot", () => {
     await flushTelegramTestMicrotasks();
     expect(retried).toBe(true);
     expect(onUpdateId.mock.calls.map((call) => call[0])).toEqual([701]);
+  });
+
+  it("retries a deferred spooled update after its queued turn is abandoned", async () => {
+    configureOpenDm();
+    let queuedLifecycle: GetReplyOptions["turnAdoptionLifecycle"];
+    replySpy
+      .mockImplementationOnce(async (_ctx: MsgContext, opts?: GetReplyOptions) => {
+        queuedLifecycle = opts?.turnAdoptionLifecycle;
+        queuedLifecycle?.onDeferred?.();
+        return undefined;
+      })
+      .mockImplementationOnce(async (_ctx: MsgContext, opts?: GetReplyOptions) => {
+        await opts?.turnAdoptionLifecycle?.onAdopted?.();
+        return { text: "recovered" };
+      });
+    const { onUpdateId } = setupUpdateOffsetTracker({
+      lastUpdateId: 701,
+    });
+    const messageHandler = getMessageHandler();
+
+    const firstReplayPromise = dispatchSpooledPrivateText(messageHandler, {
+      updateId: 702,
+      messageId: 702,
+      text: "retry after queued turn abandonment",
+    });
+    await vi.waitFor(() => {
+      expect(queuedLifecycle?.onAbandoned).toEqual(expect.any(Function));
+    });
+    queuedLifecycle?.onAbandoned?.();
+    const firstReplay = await firstReplayPromise;
+    const firstDeferredWork = requireValue(firstReplay.deferredWork, "first deferred spooled work");
+    await expect(firstDeferredWork.task).resolves.toMatchObject({ kind: "failed-retryable" });
+    await flushTelegramTestMicrotasks();
+    expect(onUpdateId).not.toHaveBeenCalled();
+
+    const secondReplay = await dispatchSpooledPrivateText(messageHandler, {
+      updateId: 702,
+      messageId: 702,
+      text: "retry after queued turn abandonment",
+    });
+    const secondDeferredWork = requireValue(
+      secondReplay.deferredWork,
+      "second deferred spooled work",
+    );
+    await expect(secondDeferredWork.task).resolves.toEqual({ kind: "completed" });
+    await flushTelegramTestMicrotasks();
+    expect(replySpy).toHaveBeenCalledTimes(2);
+    expect(onUpdateId.mock.calls.map((call) => call[0])).toEqual([702]);
+
+    const duplicateReplay = await dispatchSpooledPrivateText(messageHandler, {
+      updateId: 702,
+      messageId: 702,
+      text: "retry after queued turn abandonment",
+    });
+    expect(duplicateReplay.deferredWork).toBeUndefined();
+    expect(replySpy).toHaveBeenCalledTimes(2);
   });
 
   it("skips replayed update ids even when the semantic update key differs", async () => {
