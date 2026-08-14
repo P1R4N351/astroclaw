@@ -6,6 +6,7 @@ type SynologyChatConfigFields = {
   enabled?: boolean;
   token?: string;
   incomingUrl?: string;
+  webhookUrl?: string;
   nasHost?: string;
   webhookPath?: string;
   dangerouslyAllowNameMatching?: boolean;
@@ -19,7 +20,7 @@ type SynologyChatConfigFields = {
 
 export type SynologyWebhookPathSource = "default" | "inherited-base" | "explicit";
 
-/** Raw channel config from astroclaw.json channels.synology-chat */
+/** Raw channel config from openclaw.json channels.synology-chat */
 export interface SynologyChatChannelConfig extends SynologyChatConfigFields {
   accounts?: Record<string, SynologyChatAccountRaw>;
 }
@@ -33,6 +34,7 @@ export interface ResolvedSynologyChatAccount {
   enabled: boolean;
   token: string;
   incomingUrl: string;
+  webhookUrl: string;
   nasHost: string;
   webhookPath: string;
   webhookPathSource: SynologyWebhookPathSource;
