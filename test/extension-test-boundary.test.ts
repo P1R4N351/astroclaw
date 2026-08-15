@@ -1,7 +1,7 @@
 // Extension test boundary tests enforce extension test layout rules.
 import fs from "node:fs";
 import path from "node:path";
-import { BUNDLED_PLUGIN_PATH_PREFIX } from "openclaw/plugin-sdk/test-fixtures";
+import { BUNDLED_PLUGIN_PATH_PREFIX } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { GUARDED_EXTENSION_PUBLIC_SURFACE_BASENAMES } from "../src/plugin-sdk/test-helpers/public-artifacts.js";
 import { expectNoReaddirSyncDuring } from "../src/test-utils/fs-scan-assertions.js";
@@ -98,7 +98,7 @@ function findExtensionImports(source: string): string[] {
 }
 
 function isAllowedExtensionPublicImport(specifier: string): boolean {
-  return /(?:^|\/)extensions\/[^/]+\/(?:api|index|runtime-api|setup-entry|login-qr-api)\.js$/u.test(
+  return /(?:^|\/)extensions\/[^/]+\/(?:api|index|runtime-api|setup-entry|login-qr-api|test-api)\.js$/u.test(
     specifier,
   );
 }
@@ -372,8 +372,8 @@ describe("non-extension test boundaries", () => {
     // plugins only; bundled code imports channel-config-schema, plus the
     // bundled facade strictly for retained bundled provider schemas.
     const bannedSpecifiers = [
-      "openclaw/plugin-sdk/channel-config-schema-legacy",
-      "openclaw/plugin-sdk/channel-config-primitives",
+      "astroclaw/plugin-sdk/channel-config-schema-legacy",
+      "astroclaw/plugin-sdk/channel-config-primitives",
     ];
     const bundledProviderSchemaNames = new Set([
       "GoogleChatConfigSchema",
