@@ -8,17 +8,18 @@ import {
   handleDiscordMessageAction,
   requestDiscord,
 } from "@openclaw/discord/api.js";
-import { DEFAULT_EMOJIS } from "astroclaw/plugin-sdk/channel-feedback";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { writeExternalFileWithinRoot } from "astroclaw/plugin-sdk/security-runtime";
-import { uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { escapeHtml } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { DEFAULT_EMOJIS } from "openclaw/plugin-sdk/channel-feedback";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { writeExternalFileWithinRoot } from "openclaw/plugin-sdk/security-runtime";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { escapeHtml } from "openclaw/plugin-sdk/text-utility-runtime";
 import { chromium } from "playwright-core";
 import { z } from "zod";
 import { startQaGatewayChild } from "../../gateway-child.js";
 import { isTruthyOptIn } from "../../mantis-options.runtime.js";
 import { assertLiveScenarioReply as assertDiscordScenarioReply } from "../shared/live-scenario-reply.js";
+import type { DiscordTranscriptsVoiceAuthorizationRun } from "./discord-transcripts-authorization.types.js";
 
 type DiscordQaRuntimeEnv = {
   guildId: string;
@@ -44,6 +45,7 @@ export type DiscordQaScenarioRun =
   | {
       kind: "voice-autojoin";
     }
+  | DiscordTranscriptsVoiceAuthorizationRun
   | {
       kind: "status-reactions-tool-only";
       expectedSequence: string[];
@@ -368,6 +370,10 @@ function buildDiscordQaConfig(
   },
   options: {
     statusReactionsToolOnly?: boolean;
+    voiceChannelAccess?: {
+      channelId: string;
+      users: string[];
+    };
     voiceAutoJoin?: {
       channelId: string;
       guildId: string;
@@ -400,16 +406,41 @@ function buildDiscordQaConfig(
           visibleReplies: "automatic" as const,
         },
       };
-  const voiceConfig = options.voiceAutoJoin
-    ? {
-        ...baseCfg.channels?.discord?.voice,
-        enabled: true,
-        mode: "stt-tts" as const,
-        autoJoin: [options.voiceAutoJoin],
-      }
-    : undefined;
+  const voiceConfig =
+    options.voiceAutoJoin || options.voiceChannelAccess
+      ? {
+          ...baseCfg.channels?.discord?.voice,
+          enabled: true,
+          mode: "stt-tts" as const,
+          ...(options.voiceAutoJoin ? { autoJoin: [options.voiceAutoJoin] } : { autoJoin: [] }),
+        }
+      : undefined;
   return {
     ...baseCfg,
+    ...(options.voiceChannelAccess
+      ? {
+          agents: {
+            ...baseCfg.agents,
+            entries: {
+              ...baseCfg.agents?.entries,
+              qa: {
+                ...baseCfg.agents?.entries?.qa,
+                tools: {
+                  ...baseCfg.agents?.entries?.qa?.tools,
+                  alsoAllow: uniqueStrings([
+                    ...(baseCfg.agents?.entries?.qa?.tools?.alsoAllow ?? []),
+                    "transcripts",
+                  ]),
+                },
+              },
+            },
+          },
+          tools: {
+            ...baseCfg.tools,
+            alsoAllow: uniqueStrings([...(baseCfg.tools?.alsoAllow ?? []), "transcripts"]),
+          },
+        }
+      : {}),
     plugins: {
       ...baseCfg.plugins,
       allow: pluginAllow,
@@ -438,6 +469,14 @@ function buildDiscordQaConfig(
                     requireMention: !options.statusReactionsToolOnly,
                     users: [params.driverBotId],
                   },
+                  ...(options.voiceChannelAccess
+                    ? {
+                        [options.voiceChannelAccess.channelId]: {
+                          enabled: true,
+                          users: options.voiceChannelAccess.users,
+                        },
+                      }
+                    : {}),
                 },
               },
             },
