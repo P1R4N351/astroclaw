@@ -4,23 +4,18 @@
  * Builds launch args, starts/stops managed Chrome, probes CDP readiness, and
  * resolves WebSocket endpoints for browser control.
  */
-import {
-  type ChildProcess,
-  type ChildProcessWithoutNullStreams,
-  execFileSync,
-  spawn,
-} from "node:child_process";
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { prepareOomScoreAdjustedSpawn } from "openclaw/plugin-sdk/process-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+import { prepareOomScoreAdjustedSpawn } from "astroclaw/plugin-sdk/process-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 import { ensurePortAvailable } from "../infra/ports.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { redactToolPayloadText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { CONFIG_DIR } from "../utils.js";
@@ -1074,21 +1069,19 @@ export async function launchOpenClawChrome(
       HOME: os.homedir(),
     };
     if (process.platform === "linux") {
-      const chromiumStateDir = path.join(resolvePreferredOpenClawTmpDir(), ".chromium");
+      const chromiumStateDir = path.join(resolvePreferredAstroclawTmpDir(), ".chromium");
       env.XDG_CONFIG_HOME ??= chromiumStateDir;
       env.XDG_CACHE_HOME ??= chromiumStateDir;
     }
     // stdio tuple: discard stdout to prevent buffer saturation in constrained
     // environments (e.g. Docker), while keeping stderr piped for diagnostics.
-    // Cast to ChildProcessWithoutNullStreams so callers can use .stderr safely;
-    // the tuple overload resolution varies across @types/node versions.
     const preparedSpawn = prepareOomScoreAdjustedSpawn(exe.path, args, {
       env,
     });
     const proc = spawn(preparedSpawn.command, preparedSpawn.args, {
       stdio: ["ignore", "ignore", "pipe"],
       env: preparedSpawn.env,
-    }) as unknown as ChildProcessWithoutNullStreams;
+    });
     const onAbort = () => {
       try {
         proc.kill("SIGKILL");
@@ -1218,7 +1211,7 @@ export async function launchOpenClawChrome(
     const onStderr = (chunk: Buffer | string) => {
       stderrDiagnostics.append(chunk);
     };
-    let proc: ChildProcessWithoutNullStreams | undefined;
+    let proc: ChildProcess | undefined;
     let releaseSpawnAbort: (() => void) | undefined;
 
     try {
