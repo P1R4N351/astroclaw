@@ -1,32 +1,29 @@
 // Codex tests cover run attempt plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
 import {
   embeddedAgentLog,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { replaceRuntimeAuthProfileStoreSnapshots } from "astroclaw/plugin-sdk/agent-runtime";
-import { openFileBackedSessionManagerForTest } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { replaceRuntimeAuthProfileStoreSnapshots } from "openclaw/plugin-sdk/agent-runtime";
+import { openFileBackedSessionManagerForTest } from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
-import {
-  initializeGlobalHookRunner,
-  registerInternalHook,
-} from "astroclaw/plugin-sdk/hook-runtime";
-import { registerMemoryCapability } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { MESSAGE_TOOL_DELIVERY_HINTS } from "astroclaw/plugin-sdk/message-tool-delivery-hints";
-import { registerPluginCommand } from "astroclaw/plugin-sdk/plugin-runtime";
-import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "astroclaw/plugin-sdk/provider-model-shared";
-import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
+import { initializeGlobalHookRunner, registerInternalHook } from "openclaw/plugin-sdk/hook-runtime";
+import { registerMemoryCapability } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { MESSAGE_TOOL_DELIVERY_HINTS } from "openclaw/plugin-sdk/message-tool-delivery-hints";
+import { registerPluginCommand } from "openclaw/plugin-sdk/plugin-runtime";
+import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "openclaw/plugin-sdk/provider-model-shared";
+import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   readSessionTranscriptEvents,
-} from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/session-transcript-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
 import { defaultCodexAppInventoryCache } from "./app-inventory-cache.js";
@@ -131,9 +128,8 @@ const agentHarnessRuntimeMocks = vi.hoisted(() => ({
   }>,
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     supportsModelTools: (...args: Parameters<typeof actual.supportsModelTools>) =>
@@ -2407,8 +2403,127 @@ describe("runCodexAppServerAttempt", () => {
       },
     });
 
+    await harness.notify(
+      itemNotification("item/started", { type: "contextCompaction", id: "compact-1" }),
+    );
+    await harness.notify(
+      itemNotification("item/completed", { type: "contextCompaction", id: "compact-1" }),
+    );
+    const planRestoreRequest = harness.requests.find(
+      (request) => request.method === "thread/inject_items",
+    );
+    expect(planRestoreRequest?.params).toMatchObject({
+      threadId: "thread-1",
+      items: [
+        {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: expect.stringContaining('"step":"Restore progress","status":"in_progress"'),
+            },
+          ],
+        },
+      ],
+    });
+
     await harness.completeTurn({ threadId: "thread-1", turnId: "turn-1" });
     await run;
+  });
+
+  it("does not inject plan state after compaction when the turn has no plan", async () => {
+    const params = createRunParams();
+    const harness = createStartedThreadHarness();
+    const run = runCodexAppServerAttempt(params);
+    await harness.waitForMethod("turn/start");
+
+    await harness.notify(
+      itemNotification("item/started", { type: "contextCompaction", id: "compact-1" }),
+    );
+    await harness.notify(
+      itemNotification("item/completed", { type: "contextCompaction", id: "compact-1" }),
+    );
+    expect(harness.requests.map((request) => request.method)).not.toContain("thread/inject_items");
+
+    await harness.completeTurn({ threadId: "thread-1", turnId: "turn-1" });
+    await run;
+  });
+
+  it("bounds restored plan state after compaction", async () => {
+    const params = createRunParams();
+    const harness = createStartedThreadHarness();
+    const run = runCodexAppServerAttempt(params);
+    await harness.waitForMethod("turn/start");
+    await harness.notify({
+      method: "turn/plan/updated",
+      params: {
+        threadId: "thread-1",
+        turnId: "turn-1",
+        explanation: "e".repeat(10_000),
+        plan: Array.from({ length: 100 }, (_, index) => ({
+          step: `${index}: ${"x".repeat(2_000)}`,
+          status: index === 0 ? "inProgress" : "pending",
+        })),
+      },
+    });
+    await harness.notify(
+      itemNotification("item/started", { type: "contextCompaction", id: "compact-1" }),
+    );
+    await harness.notify(
+      itemNotification("item/completed", { type: "contextCompaction", id: "compact-1" }),
+    );
+
+    const request = harness.requests.find((entry) => entry.method === "thread/inject_items");
+    const text = (
+      request?.params as { items?: Array<{ content?: Array<{ text?: string }> }> } | undefined
+    )?.items?.[0]?.content?.[0]?.text;
+    expect(text).toBeDefined();
+    const payloadText = text?.slice((text?.indexOf("\n") ?? -1) + 1) ?? "";
+    const payload = JSON.parse(payloadText) as {
+      explanation?: string;
+      plan: Array<{ step: string; status: string }>;
+    };
+    expect(Buffer.byteLength(payloadText, "utf8")).toBeLessThanOrEqual(32 * 1024);
+    expect(Buffer.byteLength(payload.explanation ?? "", "utf8")).toBeLessThanOrEqual(2 * 1024);
+    expect(payload.plan.length).toBeLessThanOrEqual(50);
+    expect(payload.plan.every((step) => Buffer.byteLength(step.step, "utf8") <= 512)).toBe(true);
+    expect(payload.plan[0]?.status).toBe("in_progress");
+
+    await harness.completeTurn({ threadId: "thread-1", turnId: "turn-1" });
+    await run;
+  });
+
+  it("continues the turn when restoring plan state after compaction fails", async () => {
+    const params = createRunParams();
+    const harness = createStartedThreadHarness(async (method) => {
+      if (method === "thread/inject_items") {
+        throw new Error("injected test failure");
+      }
+      return undefined;
+    });
+    const run = runCodexAppServerAttempt(params);
+    await harness.waitForMethod("turn/start");
+    await harness.notify({
+      method: "turn/plan/updated",
+      params: {
+        threadId: "thread-1",
+        turnId: "turn-1",
+        explanation: "Keep working",
+        plan: [{ step: "Finish safely", status: "inProgress" }],
+      },
+    });
+    await harness.notify(
+      itemNotification("item/started", { type: "contextCompaction", id: "compact-1" }),
+    );
+    await harness.notify(
+      itemNotification("item/completed", { type: "contextCompaction", id: "compact-1" }),
+    );
+    expect(harness.requests.map((request) => request.method)).toContain("thread/inject_items");
+
+    await harness.completeTurn({ threadId: "thread-1", turnId: "turn-1" });
+    const result = await run;
+    expect(readAttemptTerminal(result).promptError).toBeNull();
   });
 
   it("fails closed for Codex app defaults when restricted native tools have no plugin config", async () => {
