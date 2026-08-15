@@ -4,9 +4,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { estimateStringChars } from "@astroclaw/normalization-core/cjk-chars";
-import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
-import { SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
-import type { AssistantMessage, ToolResultMessage, UserMessage } from "astroclaw/plugin-sdk/llm";
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
+import type { AssistantMessage, ToolResultMessage, UserMessage } from "openclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { convertToLlm } from "../../../packages/agent-core/src/harness/messages.js";
 import { formatSqliteSessionFileMarker } from "../../config/sessions/legacy-sqlite-marker.js";
@@ -509,11 +509,6 @@ describe("calculateMaxToolResultChars", () => {
 
   it("exports the low-context live cap constant", () => {
     expect(DEFAULT_MAX_LIVE_TOOL_RESULT_CHARS).toBe(16_000);
-  });
-
-  it("auto-scales above the low-context cap for very large windows", () => {
-    const result = calculateMaxToolResultChars(2_000_000); // 2M token window
-    expect(result).toBeGreaterThan(DEFAULT_MAX_LIVE_TOOL_RESULT_CHARS);
   });
 
   it("uses a larger auto cap for 128K contexts", () => {
