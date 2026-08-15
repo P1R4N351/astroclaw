@@ -1,6 +1,6 @@
 // Telegram plugin module implements thread bindings behavior.
-import { readAcpSessionEntry } from "astroclaw/plugin-sdk/acp-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { readAcpSessionEntry } from "openclaw/plugin-sdk/acp-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   formatThreadBindingDurationLabel,
   registerSessionBindingAdapter,
@@ -11,12 +11,12 @@ import {
   type BindingTargetKind,
   type SessionBindingAdapter,
   type SessionBindingRecord,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
-import { normalizeAccountId, isAcpSessionKey } from "astroclaw/plugin-sdk/routing";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { normalizeAccountId, isAcpSessionKey } from "openclaw/plugin-sdk/routing";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { getTelegramRuntime } from "./runtime.js";
 import { loadTelegramSendModule } from "./send-runtime.js";
 import {
@@ -496,9 +496,16 @@ export function createTelegramThreadBindingManager(params: {
         accountId,
         adapter: sessionBindingAdapter,
       });
-      const existingManager = getThreadBindingsState().managersByAccountId.get(accountId);
+      const state = getThreadBindingsState();
+      const existingManager = state.managersByAccountId.get(accountId);
       if (existingManager === manager) {
-        getThreadBindingsState().managersByAccountId.delete(accountId);
+        state.managersByAccountId.delete(accountId);
+        // Live bindings belong to this manager generation; persisted rows reload on restart.
+        for (const binding of listBindingsForAccount(accountId)) {
+          state.bindingsByAccountConversation.delete(
+            resolveBindingKey({ accountId, conversationId: binding.conversationId }),
+          );
+        }
       }
     },
   };
@@ -781,15 +788,6 @@ export function setTelegramThreadBindingMaxAgeBySessionKey(params: {
       lastActivityAt: now,
     }),
   });
-}
-
-export function resetTelegramThreadBindingsForTests(): Promise<void> {
-  for (const manager of getThreadBindingsState().managersByAccountId.values()) {
-    manager.stop();
-  }
-  getThreadBindingsState().managersByAccountId.clear();
-  getThreadBindingsState().bindingsByAccountConversation.clear();
-  return Promise.resolve();
 }
 
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
