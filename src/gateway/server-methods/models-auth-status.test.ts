@@ -3,7 +3,7 @@
 
 import { expectDefined } from "@astroclaw/normalization-core";
 import { MAX_DATE_TIMESTAMP_MS } from "@astroclaw/normalization-core/number-coercion";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthHealthSummary } from "../../agents/auth-health.js";
 import type { AuthProfileStore } from "../../agents/auth-profiles.js";
@@ -1010,6 +1010,8 @@ describe("models.authStatus", () => {
   });
 
   it("routes claude-cli OAuth profiles to Anthropic usage with plan and billing", async () => {
+    const runtimeConfig = {};
+    mocks.getRuntimeConfig.mockReturnValue(runtimeConfig);
     const profile = {
       profileId: "claude-cli",
       provider: "claude-cli",
@@ -1044,6 +1046,7 @@ describe("models.authStatus", () => {
     expect(mocks.loadProviderUsageSummary).toHaveBeenCalledWith({
       providers: ["anthropic"],
       agentDir: "/tmp/agent",
+      config: runtimeConfig,
       timeoutMs: 3500,
     });
     let result: ModelAuthStatusResult | undefined;
@@ -1087,6 +1090,7 @@ describe("models.authStatus", () => {
     expect(mocks.loadProviderUsageSummary).toHaveBeenCalledWith({
       providers: ["deepseek"],
       agentDir: "/tmp/agent",
+      config: expect.any(Object),
       timeoutMs: 3500,
     });
     let result: ModelAuthStatusResult | undefined;
@@ -1225,6 +1229,7 @@ describe("models.authStatus", () => {
     expect(mocks.loadProviderUsageSummary).toHaveBeenLastCalledWith({
       providers: ["openai"],
       agentDir: "/tmp/rebound-agent",
+      config: expect.any(Object),
       timeoutMs: 3500,
     });
   });
