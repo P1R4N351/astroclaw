@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { AgentHarnessPreflightError } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { AgentHarnessPreflightError } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   ensureAuthProfileStore,
   findPersistedAuthProfileCredential,
@@ -20,9 +20,9 @@ import {
   type AuthProfileCredential,
   type AuthProfileStore,
   type OAuthCredential,
-} from "openclaw/plugin-sdk/agent-runtime";
-import { hasUsableOAuthCredential } from "openclaw/plugin-sdk/provider-auth";
-import { readSecretFile } from "openclaw/plugin-sdk/secret-file";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import { hasUsableOAuthCredential } from "astroclaw/plugin-sdk/provider-auth";
+import { readSecretFile } from "astroclaw/plugin-sdk/secret-file";
 import {
   resolveCodexAppServerHomeDir,
   resolveCodexAppServerLocalHomeDir,
@@ -323,6 +323,8 @@ export async function resolveCodexAppServerPreparedAuthHandoff(params: {
   agentDir?: string;
   /** Required: an omitted scope would silently reintroduce prepared logins on native homes. */
   homeScope: CodexAppServerHomeScope;
+  /** Remote execution must never rely on ambient or native-home credentials. */
+  requirePreparedAuth?: boolean;
   config?: AuthProfileOrderConfig;
   subscriptionProfileRequiredError: string;
   subscriptionProfileUnusableError: string;
@@ -332,6 +334,11 @@ export async function resolveCodexAppServerPreparedAuthHandoff(params: {
   // token logins, so a prepared OpenClaw handoff here would rewrite the account that
   // Codex CLI and Desktop share. Native homes are verified, never logged into.
   const usesNativeHome = params.homeScope === "user";
+  if (params.requirePreparedAuth && usesNativeHome) {
+    throw createCodexAppServerAuthError(
+      'Codex remote-exec cloud placement requires prepared OpenAI auth. Configure an OpenAI API-key, OAuth, or token profile and use appServer.homeScope="agent"; ambient credentials and native Codex auth are not allowed.',
+    );
+  }
   if (params.authRequirement === "api-key" && !usesNativeHome) {
     const apiKey = params.resolvedApiKey?.trim();
     if (!apiKey) {
@@ -350,11 +357,18 @@ export async function resolveCodexAppServerPreparedAuthHandoff(params: {
     agentDir: params.agentDir,
     config: params.config,
   });
-  if (usesNativeHome || params.authRequirement !== "subscription") {
+  if (
+    usesNativeHome ||
+    (params.authRequirement !== "subscription" && !params.requirePreparedAuth)
+  ) {
     return { authProfileId, nativeAuthProfile };
   }
-  if (!authProfileId || !nativeAuthProfile) {
-    throw createCodexAppServerAuthError(params.subscriptionProfileRequiredError);
+  if (!authProfileId || (params.authRequirement === "subscription" && !nativeAuthProfile)) {
+    throw createCodexAppServerAuthError(
+      params.requirePreparedAuth
+        ? "Codex remote-exec cloud placement requires prepared OpenAI auth. Configure an OpenAI API-key, OAuth, or token profile; ambient CODEX_API_KEY, OPENAI_API_KEY, and native Codex auth are not allowed."
+        : params.subscriptionProfileRequiredError,
+    );
   }
 
   const snapshot = await resolveCodexAppServerPreparedAuthProfileSnapshot({
@@ -364,7 +378,11 @@ export async function resolveCodexAppServerPreparedAuthHandoff(params: {
     config: params.config,
   });
   if (!snapshot) {
-    throw createCodexAppServerAuthError(params.subscriptionProfileUnusableError);
+    throw createCodexAppServerAuthError(
+      params.requirePreparedAuth
+        ? "Codex remote-exec cloud placement could not prepare the selected OpenAI auth profile. Repair or replace the profile, then retry."
+        : params.subscriptionProfileUnusableError,
+    );
   }
   return {
     authProfileId,
