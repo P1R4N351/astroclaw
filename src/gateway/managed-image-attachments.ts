@@ -1206,7 +1206,7 @@ async function resolveManagedOutgoingMediaArtifactDownloadForRecord(
     artifactId: buildManagedOutgoingArtifactId(record.attachmentId, kind),
     sessionKey: record.sessionKey,
     type: kind,
-    title: record.alt,
+    title: kind === "image" ? record.alt : (record.original.filename ?? record.alt),
     ...(record.original.contentType ? { mimeType: record.original.contentType } : {}),
     ...(record.original.sizeBytes != null ? { sizeBytes: record.original.sizeBytes } : {}),
     url: `${canonicalUrl}?${params.toString()}`,
@@ -1508,7 +1508,6 @@ export async function createManagedOutgoingMediaBlocks(params: {
               : attachmentMetadata?.name?.trim() || label,
         },
       };
-      insertManagedImageRecord(record, stateDir);
       let playback: "native" | "transcode" | undefined;
       if (mediaKind === "audio" || mediaKind === "video") {
         const opened = await openLocalFileSafely({ filePath: savedOriginal.path });
@@ -1526,6 +1525,7 @@ export async function createManagedOutgoingMediaBlocks(params: {
         }
       }
       const block = buildManagedMediaBlock(record, playback);
+      insertManagedImageRecord(record, stateDir);
       const durationMs = asNonNegativeFiniteNumber(attachmentMetadata?.durationMs);
       const width = asNonNegativeFiniteNumber(attachmentMetadata?.width);
       const height = asNonNegativeFiniteNumber(attachmentMetadata?.height);
