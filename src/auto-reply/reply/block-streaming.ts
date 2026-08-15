@@ -1,8 +1,8 @@
 // Owns block-streaming policy and buffered delivery state for reply runs.
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { resolveChannelStreamingBlockCoalesce } from "../../channels/streaming.js";
-import type { BlockStreamingCoalesceConfig } from "../../config/types.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { BlockStreamingCoalesceConfig } from "../../config/types.js";
 import { resolveAccountEntry } from "../../routing/account-lookup.js";
 import { normalizeAccountId } from "../../routing/session-key.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
@@ -51,8 +51,7 @@ function resolveProviderBlockStreamingCoalesce(params: {
     return undefined;
   }
   const channelsConfig = cfg.channels as Record<string, unknown> | undefined;
-  const providerCfg =
-    channelsConfig?.[providerKey] ?? (cfg as Record<string, unknown>)[providerKey];
+  const providerCfg = channelsConfig?.[providerKey];
   if (!providerCfg || typeof providerCfg !== "object") {
     return undefined;
   }
