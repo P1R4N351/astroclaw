@@ -5,7 +5,7 @@ import { setTimeout as sleep } from "node:timers/promises";
  * Dispatches normalized actions to either Playwright-backed OpenClaw browser
  * control or Chrome MCP existing-session operations with navigation guards.
  */
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
 import { formatErrorMessage, toErrorObject } from "../../infra/errors.js";
 import {
   ChromeMcpDocumentUnavailableError,
@@ -734,7 +734,7 @@ export function registerBrowserAgentActRoutes(
                 ...(result.aborted ? { aborted: result.aborted } : {}),
                 ...(downloads ? { downloads } : {}),
               },
-              { resolveCurrentTarget: true },
+              { resolveCurrentTarget: result.aborted?.reason !== "closed" },
             );
           case "evaluate":
             return await jsonOk(
@@ -747,6 +747,7 @@ export function registerBrowserAgentActRoutes(
               resolveCurrentTarget: true,
             });
           case "resize":
+          case "close":
             return await jsonOk(downloads ? { downloads } : undefined);
           default:
             return await jsonOk(downloads ? { downloads } : undefined, {
