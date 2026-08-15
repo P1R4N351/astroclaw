@@ -3,29 +3,28 @@ import {
   buildLegacyDmAccountAllowlistAdapter,
   createAccountScopedAllowlistNameResolver,
   createNestedAllowlistOverrideResolver,
-} from "astroclaw/plugin-sdk/allowlist-config-edit";
+} from "openclaw/plugin-sdk/allowlist-config-edit";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageToolDiscovery,
-} from "astroclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
+} from "openclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "astroclaw/plugin-sdk/directory-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/directory-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolveTargetsWithOptionalToken } from "astroclaw/plugin-sdk/target-resolver-runtime";
+} from "openclaw/plugin-sdk/status-helpers";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolveTargetsWithOptionalToken } from "openclaw/plugin-sdk/target-resolver-runtime";
 import {
-  listEnabledDiscordAccounts,
-  resolveDefaultDiscordAccountId,
+  listDiscordStartupAccountIds,
   resolveDiscordAccount,
   resolveDiscordAccountAllowFrom,
   type ResolvedDiscordAccount,
@@ -231,28 +230,8 @@ const discordMessageActions = {
   },
 };
 
-function resolveDiscordStartupAccountIds(cfg: OpenClawConfig): string[] {
-  const startupAccountIds = listEnabledDiscordAccounts(cfg)
-    .filter(
-      (candidate) =>
-        resolveConfiguredFromCredentialStatuses(candidate) ??
-        Boolean(normalizeOptionalString(candidate.token)),
-    )
-    .map((candidate) => candidate.accountId);
-  const defaultAccountId = resolveDefaultDiscordAccountId(cfg);
-  // Promote only a gateway-eligible account; otherwise a disabled or unconfigured
-  // default would waste the immediate startup slot while a real bot waits.
-  if (!startupAccountIds.includes(defaultAccountId)) {
-    return startupAccountIds;
-  }
-  return [
-    defaultAccountId,
-    ...startupAccountIds.filter((candidateId) => candidateId !== defaultAccountId),
-  ];
-}
-
 function resolveDiscordStartupDelayMs(cfg: OpenClawConfig, accountId: string): number {
-  const startupAccountIds = resolveDiscordStartupAccountIds(cfg);
+  const startupAccountIds = listDiscordStartupAccountIds(cfg);
   const startupIndex = startupAccountIds.findIndex((candidateId) => candidateId === accountId);
   return startupIndex <= 0 ? 0 : startupIndex * DISCORD_ACCOUNT_STARTUP_STAGGER_MS;
 }
