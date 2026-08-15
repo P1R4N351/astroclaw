@@ -3,22 +3,22 @@ import {
   listAgentIds,
   resolveAgentDir,
   resolveSessionAgentIds,
-} from "openclaw/plugin-sdk/agent-runtime";
-import { pruneMapToMaxSize } from "openclaw/plugin-sdk/collection-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import { pruneMapToMaxSize } from "astroclaw/plugin-sdk/collection-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import type {
   OpenClawPluginApi,
   OpenClawPluginNodeHostCommand,
   OpenClawPluginNodeInvokePolicy,
-} from "openclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
 import {
   listSessionCatalogEntries,
   type SessionCatalogEntrySnapshot,
   type SessionCatalogHost,
   type SessionCatalogProvider,
-} from "openclaw/plugin-sdk/session-catalog";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/session-catalog";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { CODEX_CONTROL_METHODS } from "./app-server/capabilities.js";
 import { resolveCodexAppServerClientInstanceId } from "./app-server/client.js";
 import {
