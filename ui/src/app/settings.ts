@@ -1,5 +1,6 @@
 import { gatewayOriginScope } from "@astroclaw/gateway-client/browser";
 import { safeParseJson } from "@astroclaw/normalization-core";
+import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeUniqueTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import {
@@ -468,7 +469,7 @@ export function loadSettings(): UiSettings {
       (parsed as { theme?: unknown }).theme,
       (parsed as { themeMode?: unknown }).themeMode,
     );
-    const parsedRecord = parsed as unknown as Record<string, unknown>;
+    const parsedRecord = asOptionalRecord(parsed) ?? {};
     const hasSidebarEntries = Object.hasOwn(parsedRecord, "sidebarEntries");
     // One-time read of the retired route-only shape; all writes use sidebarEntries.
     const migratedSidebarEntries = hasSidebarEntries
