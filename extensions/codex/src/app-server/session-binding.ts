@@ -4,18 +4,18 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   AgentHarnessSessionSupersededError,
   embeddedAgentLog,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   ensureAuthProfileStore,
   resolveDefaultAgentDir,
   resolveProviderIdForAuth,
   resolveSessionAgentIds,
   type AuthProfileStore,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
-import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 import { CODEX_PLUGIN_MARKETPLACE_NAME_PATTERN, normalizeCodexServiceTier } from "./config.js";
 import type { PluginAppPolicyContext } from "./plugin-thread-config.js";
@@ -448,9 +448,12 @@ function normalizeLegacyBindingFingerprint(value: unknown): unknown {
   return hashCodexAppServerBindingFingerprint(value);
 }
 
-function normalizeLegacyBindingFingerprints(
-  record: Record<string, unknown>,
-): Record<string, unknown> {
+function normalizeLegacyBindingFingerprints<
+  T extends {
+    dynamicToolsFingerprint?: unknown;
+    userMcpServersFingerprint?: unknown;
+  },
+>(record: T): T {
   // Shipped sidecars can contain unbounded canonical JSON fingerprints. Bound
   // them at the legacy encoder so plugin-state registration cannot reject the row.
   let normalized = record;
@@ -463,7 +466,7 @@ function normalizeLegacyBindingFingerprints(
     if (normalized === record) {
       normalized = { ...record };
     }
-    normalized[key] = next;
+    Object.assign(normalized, { [key]: next });
   }
   return normalized;
 }
@@ -475,9 +478,7 @@ export function normalizeStoredCodexAppServerBindingFingerprints(
   if (!stored || stored.state !== "active") {
     return stored;
   }
-  const binding = normalizeLegacyBindingFingerprints(
-    stored.binding as unknown as Record<string, unknown>,
-  );
+  const binding = normalizeLegacyBindingFingerprints(stored.binding);
   return binding === stored.binding
     ? stored
     : readStoredCodexAppServerBinding({ ...stored, binding });
