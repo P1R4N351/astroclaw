@@ -230,13 +230,13 @@ export default definePluginEntry({
             try {
               recall = await runWithTimeout({
                 timeoutMs: DEFAULT_TOOL_RECALL_TIMEOUT_MS,
-                task: async () => {
+                task: async (deadlineAtMs) => {
                   let vector: number[];
                   try {
                     vector = await embeddings.embed(
                       agentId,
                       normalizeRecallQuery(query, currentCfg.recallMaxChars),
-                      { timeoutMs: DEFAULT_TOOL_RECALL_TIMEOUT_MS },
+                      { timeoutMs: Math.max(1, deadlineAtMs - Date.now()) },
                     );
                   } catch (error) {
                     throw new MemoryRecallEmbeddingError(error);
@@ -247,6 +247,7 @@ export default definePluginEntry({
                     vector,
                     limit + DEFAULT_TOOL_RECALL_OVERFETCH_EXTRA,
                     0.1,
+                    { timeoutMs: Math.max(0, deadlineAtMs - Date.now()) },
                   );
                 },
               });
@@ -538,11 +539,11 @@ export default definePluginEntry({
         let recallPhase: "embedding" | "search" = "embedding";
         const recall = await runWithTimeout({
           timeoutMs: DEFAULT_AUTO_RECALL_TIMEOUT_MS,
-          task: async () => {
+          task: async (deadlineAtMs) => {
             let vector: number[];
             try {
               vector = await embeddings.embed(agentId, recallQuery, {
-                timeoutMs: DEFAULT_AUTO_RECALL_TIMEOUT_MS,
+                timeoutMs: Math.max(1, deadlineAtMs - Date.now()),
               });
             } catch (error) {
               throw new MemoryRecallEmbeddingError(error);
@@ -552,7 +553,9 @@ export default definePluginEntry({
             recallPhase = "search";
             // Overfetch to compensate for sludge filtering: if contaminated
             // entries occupy the top slots we still surface enough clean ones.
-            return await db.search(agentId, vector, DEFAULT_AUTO_RECALL_OVERFETCH_LIMIT, 0.3);
+            return await db.search(agentId, vector, DEFAULT_AUTO_RECALL_OVERFETCH_LIMIT, 0.3, {
+              timeoutMs: Math.max(0, deadlineAtMs - Date.now()),
+            });
           },
         });
         if (recall.status === "timeout") {
