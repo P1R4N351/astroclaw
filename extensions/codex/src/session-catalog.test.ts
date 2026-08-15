@@ -9,17 +9,17 @@ import {
   resolveAgentDir,
   resolveDefaultAgentDir,
   resolveSessionAgentIds,
-} from "openclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   validateJsonSchemaValue,
   type JsonSchemaObject,
-} from "openclaw/plugin-sdk/json-schema-runtime";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
-import type { SessionCatalogProvider as RegisteredSessionCatalogProvider } from "openclaw/plugin-sdk/session-catalog";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { withEnvAsync } from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/json-schema-runtime";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+import type { SessionCatalogProvider as RegisteredSessionCatalogProvider } from "astroclaw/plugin-sdk/session-catalog";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { withEnvAsync } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   resolveCodexAppServerHomeDir,
@@ -210,8 +210,8 @@ vi.mock("./app-server/shared-client.js", () => ({
 vi.mock("./app-server/transcript-mirror.js", () => ({
   importCodexThreadHistoryToTranscript: transcriptMirrorMocks.importCodexThreadHistoryToTranscript,
 }));
-vi.mock("openclaw/plugin-sdk/node-host", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/node-host")>();
+vi.mock("astroclaw/plugin-sdk/node-host", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/node-host")>();
   return {
     ...actual,
     runNodePtyCommand: nodeHostMocks.runNodePtyCommand,
