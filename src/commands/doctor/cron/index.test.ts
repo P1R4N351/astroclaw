@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 // Doctor cron index tests cover cron doctor checks and repair entrypoints.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../../config/config.js";
 import {
@@ -399,6 +399,56 @@ describe("maybeRepairLegacyCronStore", () => {
     )?.[0];
     expect(advisory).toContain("Research legacy cap");
     expect(advisory).not.toContain("Support legacy cap");
+  });
+
+  it("uses the system agent for agent-less legacy-cap diagnostics", async () => {
+    const storePath = await makeTempStorePath();
+    const mainWorkspace = path.join(path.dirname(storePath), "main-workspace");
+    await writeCurrentCronStore(storePath, [
+      createCurrentCronJob({
+        id: "ambient-job",
+        name: "Ambient legacy cap",
+        payload: {
+          kind: "agentTurn",
+          message: "ambient",
+          toolsAllow: ["read"],
+          toolsAllowIsDefault: true,
+        },
+      }),
+    ]);
+    const cfg = {
+      cron: { store: storePath },
+      agents: {
+        ownership: "explicit",
+        defaults: { systemAgent: { agentId: "main" } },
+        entries: {
+          main: { workspace: mainWorkspace },
+          helper: {},
+          third: {},
+        },
+      },
+      mcp: {
+        servers: {
+          notes: {
+            transport: "stdio",
+            command: "notes-mcp",
+            codex: { agents: ["main"] },
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    await expect(
+      maybeRepairLegacyCronStore({ cfg, options: {}, prompter: makePrompter(true) }),
+    ).resolves.toBeUndefined();
+
+    const advisory = noteMock.mock.calls.find(
+      ([message, title]) =>
+        title === "Cron" &&
+        typeof message === "string" &&
+        message.includes("inherited default tool cap"),
+    )?.[0];
+    expect(advisory).toContain("Ambient legacy cap");
   });
 
   it("reports quarantined cron rows even when the active store is already sanitized", async () => {
