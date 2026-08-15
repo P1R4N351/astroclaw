@@ -166,10 +166,10 @@ const configMocks = vi.hoisted(() => ({
     }
   >(() => ({ browser: {} })),
 }));
-vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
+vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/runtime-config-snapshot")
-  >("openclaw/plugin-sdk/runtime-config-snapshot");
+    typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")
+  >("astroclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
     getRuntimeConfig: configMocks.loadConfig,
@@ -2796,6 +2796,24 @@ describe("browser tool url alias support", () => {
     });
   });
 
+  it("untracks the selected tab when close omits targetId", async () => {
+    browserActionsMocks.browserAct.mockResolvedValueOnce({
+      ok: true,
+      targetId: "selected-tab",
+      url: "https://example.com",
+    });
+    const tool = createBrowserTool({ agentSessionKey: "agent:main:main" });
+
+    await tool.execute?.("call-1", { action: "close" });
+
+    expect(sessionTabRegistryMocks.untrackSessionBrowserTab).toHaveBeenCalledWith({
+      sessionKey: "agent:main:main",
+      targetId: "selected-tab",
+      baseUrl: undefined,
+      profile: "openclaw",
+    });
+  });
+
   it("never creates tracking records from tab listing or focus", async () => {
     browserClientMocks.browserTabs.mockResolvedValueOnce([
       {
@@ -2816,6 +2834,41 @@ describe("browser tool url alias support", () => {
 
 describe("browser tool act compatibility", () => {
   registerBrowserToolAfterEachReset();
+
+  it.each([
+    {
+      name: "close",
+      request: { kind: "close", targetId: "closed-tab" },
+      result: { ok: true, targetId: "closed-tab", url: "https://example.com" },
+    },
+    {
+      name: "batch close",
+      request: {
+        kind: "batch",
+        targetId: "closed-tab",
+        actions: [{ kind: "close" }],
+      },
+      result: {
+        ok: true,
+        targetId: "closed-tab",
+        results: [{ ok: true }],
+        aborted: { reason: "closed", afterAction: 1, url: "https://example.com", skipped: 0 },
+      },
+    },
+  ])("retires session ownership after act:$name", async ({ request, result }) => {
+    browserActionsMocks.browserAct.mockResolvedValueOnce(result);
+    const tool = createBrowserTool({ agentSessionKey: "agent:main:main" });
+
+    await tool.execute?.("call-1", { action: "act", request });
+
+    expect(sessionTabRegistryMocks.untrackSessionBrowserTab).toHaveBeenCalledWith({
+      sessionKey: "agent:main:main",
+      targetId: "closed-tab",
+      baseUrl: undefined,
+      profile: "openclaw",
+    });
+    expect(sessionTabRegistryMocks.touchSessionBrowserTab).not.toHaveBeenCalled();
+  });
 
   it("adds a clear note when a batch aborts after navigation", async () => {
     browserActionsMocks.browserAct.mockResolvedValueOnce({
@@ -3123,11 +3176,11 @@ describe("browser tool snapshot labels", () => {
   it("keeps private labeled snapshots visible to the model but out of channel delivery", async () => {
     const [{ imageResultFromFile }, { extractToolResultMediaArtifact, filterToolResultMediaUrls }] =
       await Promise.all([
-        vi.importActual<typeof import("openclaw/plugin-sdk/channel-actions")>(
-          "openclaw/plugin-sdk/channel-actions",
+        vi.importActual<typeof import("astroclaw/plugin-sdk/channel-actions")>(
+          "astroclaw/plugin-sdk/channel-actions",
         ),
-        vi.importActual<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>(
-          "openclaw/plugin-sdk/agent-harness-runtime",
+        vi.importActual<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>(
+          "astroclaw/plugin-sdk/agent-harness-runtime",
         ),
       ]);
     const imagePath = fileURLToPath(
