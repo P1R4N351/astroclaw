@@ -29,7 +29,7 @@ import type {
   SimpleStreamOptions,
   TextContent,
   ToolResultMessage,
-} from "openclaw/plugin-sdk/llm";
+} from "astroclaw/plugin-sdk/llm";
 import type { Static, TSchema } from "typebox";
 import type { Theme } from "../../modes/interactive/theme/theme.js";
 import type {
@@ -282,7 +282,7 @@ export interface ExtensionUIContext {
    *
    * @example
    * ```ts
-   * import { CustomEditor } from "openclaw/plugin-sdk/agent-sessions";
+   * import { CustomEditor } from "astroclaw/plugin-sdk/agent-sessions";
    *
    * class VimEditor extends CustomEditor {
    *   private mode: "normal" | "insert" = "insert";
@@ -1086,8 +1086,6 @@ export interface ContextEventResult {
   messages?: AgentMessage[];
 }
 
-type BeforeProviderRequestEventResult = unknown;
-
 export interface ToolCallEventResult {
   /** Block tool execution. To modify arguments, mutate `event.input` in place instead. */
   block?: boolean;
@@ -1225,7 +1223,7 @@ export interface ExtensionAPI {
   on(event: "context", handler: ExtensionHandler<ContextEvent, ContextEventResult>): void;
   on(
     event: "before_provider_request",
-    handler: ExtensionHandler<BeforeProviderRequestEvent, BeforeProviderRequestEventResult>,
+    handler: ExtensionHandler<BeforeProviderRequestEvent, unknown>,
   ): void;
   on(event: "after_provider_response", handler: ExtensionHandler<AfterProviderResponseEvent>): void;
   on(
