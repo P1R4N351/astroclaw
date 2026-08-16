@@ -1,16 +1,17 @@
 // Resolves event-triggered work to the correct session key and target.
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
-import type { SessionScope } from "../config/types.base.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { SessionScope } from "../config/types.base.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import {
   buildAgentMainSessionKey,
   normalizeAgentId,
   parseAgentSessionKey,
   parseThreadSessionSuffix,
+  resolveEventSessionKey,
+  scopedHeartbeatWakeOptions,
 } from "../routing/session-key.js";
-import { resolveEventSessionKey, scopedHeartbeatWakeOptions } from "../routing/session-key.js";
 import { resolvePinnedMainDmOwnerFromAllowlist } from "../security/dm-policy-shared.js";
 import { deriveSessionChatTypeFromKey } from "../sessions/session-chat-type-shared.js";
 
