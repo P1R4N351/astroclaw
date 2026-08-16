@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
 import { isJavaScriptModulePath } from "../../plugins/native-module-require.js";
@@ -34,6 +34,23 @@ describe("channel plugin module loader helpers", () => {
     fs.writeFileSync(expectedPath, "export const ok = true;\n", "utf8");
 
     expect(resolveExistingPluginModulePath(rootDir, "./src/checker")).toBe(expectedPath);
+  });
+
+  it("preserves explicit JavaScript plugin module specifiers", () => {
+    const rootDir = tempDirs.make("openclaw-channel-module-loader-");
+    const expectedPath = path.join(rootDir, "checker.js");
+    fs.writeFileSync(expectedPath, "export const ok = true;\n", "utf8");
+
+    expect(resolveExistingPluginModulePath(rootDir, "./checker.js")).toBe(expectedPath);
+  });
+
+  it("resolves plugin module directories through their index", () => {
+    const rootDir = tempDirs.make("openclaw-channel-module-loader-");
+    const expectedPath = path.join(rootDir, "checker", "index.js");
+    fs.mkdirSync(path.dirname(expectedPath), { recursive: true });
+    fs.writeFileSync(expectedPath, "export const ok = true;\n", "utf8");
+
+    expect(resolveExistingPluginModulePath(rootDir, "./checker")).toBe(expectedPath);
   });
 
   it("detects JavaScript module paths case-insensitively", () => {
