@@ -12,8 +12,7 @@ import type {
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { createMockServerResponse } from "astroclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../api.js";
-import type { OpenClawPluginApi, OpenClawPluginToolContext } from "../api.js";
+import type { OpenClawConfig, OpenClawPluginApi, OpenClawPluginToolContext } from "../api.js";
 import { registerDiffsPlugin } from "./plugin.js";
 import { createTempDiffRoot } from "./test-helpers.js";
 
