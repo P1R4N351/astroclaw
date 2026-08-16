@@ -1,7 +1,7 @@
 // Line tests cover bot handlers plugin behavior.
 import type { webhook } from "@line/bot-sdk";
-import { MediaFetchError } from "astroclaw/plugin-sdk/media-runtime";
-import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import { MediaFetchError } from "openclaw/plugin-sdk/media-runtime";
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LineAccountConfig } from "./types.js";
 
@@ -19,7 +19,7 @@ const pairingDeliveryMocks = vi.hoisted(() => ({
 
 // Avoid pulling in globals/pairing/media dependencies; this suite only asserts
 // allowlist/groupPolicy gating and message-context wiring.
-vi.mock("astroclaw/plugin-sdk/channel-inbound", () => ({
+vi.mock("openclaw/plugin-sdk/channel-inbound", () => ({
   buildMentionRegexes: () => [],
   isChannelPartialDeliveryError: (error: unknown) =>
     Boolean(
@@ -29,7 +29,7 @@ vi.mock("astroclaw/plugin-sdk/channel-inbound", () => ({
     ),
   matchesMentionPatterns: () => false,
 }));
-vi.mock("astroclaw/plugin-sdk/channel-pairing", () => ({
+vi.mock("openclaw/plugin-sdk/channel-pairing", () => ({
   createChannelPairingChallengeIssuer:
     ({ upsertPairingRequest }: { upsertPairingRequest: (args: unknown) => Promise<unknown> }) =>
     async ({
@@ -48,7 +48,7 @@ vi.mock("astroclaw/plugin-sdk/channel-pairing", () => ({
       }
     },
 }));
-vi.mock("astroclaw/plugin-sdk/command-auth-native", () => ({
+vi.mock("openclaw/plugin-sdk/command-auth-native", () => ({
   hasControlCommand: (text: string) => {
     const body = text.trim().toLowerCase();
     return body === "/status" || body.startsWith("/status ");
@@ -64,7 +64,7 @@ vi.mock("astroclaw/plugin-sdk/command-auth-native", () => ({
       hasControlCommand && authorizers.some((entry) => entry.allowed || !entry.configured),
   }),
 }));
-vi.mock("astroclaw/plugin-sdk/runtime-group-policy", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-group-policy", () => ({
   resolveAllowlistProviderRuntimeGroupPolicy: ({
     groupPolicy,
     defaultGroupPolicy,
@@ -79,11 +79,11 @@ vi.mock("astroclaw/plugin-sdk/runtime-group-policy", () => ({
     cfg.channels?.line?.groupPolicy ?? "open",
   warnMissingProviderGroupPolicyFallbackOnce: () => {},
 }));
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   danger: (text: string) => text,
   logVerbose: () => {},
 }));
-vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
+vi.mock("openclaw/plugin-sdk/reply-history", () => ({
   DEFAULT_GROUP_HISTORY_LIMIT: 20,
   createChannelHistoryWindow: ({ historyMap }: { historyMap: Map<string, HistoryEntry[]> }) => ({
     record: ({
@@ -146,7 +146,7 @@ vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
     historyMap.set(historyKey, [...existing, entry].slice(-limit));
   },
 }));
-vi.mock("astroclaw/plugin-sdk/routing", () => ({
+vi.mock("openclaw/plugin-sdk/routing", () => ({
   resolveAgentRoute: () => ({ agentId: "default" }),
 }));
 
@@ -156,7 +156,7 @@ const { readAllowFromStoreMock, upsertPairingRequestMock } = vi.hoisted(() => ({
 }));
 const downloadLineMediaMock = vi.hoisted(() => vi.fn());
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/conversation-runtime", () => ({
   resolvePairingIdLabel: () => "lineUserId",
   readChannelAllowFromStore: readAllowFromStoreMock,
   upsertChannelPairingRequest: upsertPairingRequestMock,
@@ -315,14 +315,14 @@ describe("handleLineWebhookEvents", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("astroclaw/plugin-sdk/channel-inbound");
-    vi.doUnmock("astroclaw/plugin-sdk/channel-pairing");
-    vi.doUnmock("astroclaw/plugin-sdk/command-auth-native");
-    vi.doUnmock("astroclaw/plugin-sdk/runtime-group-policy");
-    vi.doUnmock("astroclaw/plugin-sdk/runtime-env");
-    vi.doUnmock("astroclaw/plugin-sdk/reply-history");
-    vi.doUnmock("astroclaw/plugin-sdk/routing");
-    vi.doUnmock("astroclaw/plugin-sdk/conversation-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/channel-inbound");
+    vi.doUnmock("openclaw/plugin-sdk/channel-pairing");
+    vi.doUnmock("openclaw/plugin-sdk/command-auth-native");
+    vi.doUnmock("openclaw/plugin-sdk/runtime-group-policy");
+    vi.doUnmock("openclaw/plugin-sdk/runtime-env");
+    vi.doUnmock("openclaw/plugin-sdk/reply-history");
+    vi.doUnmock("openclaw/plugin-sdk/routing");
+    vi.doUnmock("openclaw/plugin-sdk/conversation-runtime");
     vi.doUnmock("./download.js");
     vi.doUnmock("./send.js");
     vi.doUnmock("./bot-message-context.js");
@@ -1358,6 +1358,49 @@ describe("handleLineWebhookEvents", () => {
         createLineWebhookTestContext({ processMessage, dmPolicy: "open" }),
       ),
     ).rejects.toBeInstanceOf(MediaFetchError);
+
+    expect(buildLineMessageContextMock).not.toHaveBeenCalled();
+    expect(processMessage).not.toHaveBeenCalled();
+  });
+
+  it("does not materialize or dispatch media after ingress cancellation", async () => {
+    const cancellation = new Error("LINE webhook spool stopped");
+    const abort = new AbortController();
+    const processMessage = vi.fn();
+    downloadLineMediaMock.mockImplementationOnce(
+      async (
+        _messageId: string,
+        _token: string,
+        _maxBytes: number,
+        options?: { signal?: AbortSignal },
+      ) => {
+        options?.signal?.throwIfAborted();
+        throw new Error("download did not receive ingress cancellation");
+      },
+    );
+    const event = createTestMessageEvent({
+      message: {
+        id: "image-cancelled-1",
+        type: "image",
+        contentProvider: { type: "line" },
+        quoteToken: "q-image-cancelled",
+      },
+      source: { type: "user", userId: "user-image-cancelled" },
+      webhookEventId: "evt-image-cancelled",
+    });
+    const context = {
+      ...createLineWebhookTestContext({ processMessage, dmPolicy: "open" }),
+      turnAdoptionLifecycle: {
+        admission: "exclusive" as const,
+        abortSignal: abort.signal,
+        onAdopted: vi.fn(),
+        onDeferred: vi.fn(),
+        onAbandoned: vi.fn(),
+      },
+    };
+    abort.abort(cancellation);
+
+    await expect(handleLineWebhookEvents([event], context)).rejects.toBe(cancellation);
 
     expect(buildLineMessageContextMock).not.toHaveBeenCalled();
     expect(processMessage).not.toHaveBeenCalled();
