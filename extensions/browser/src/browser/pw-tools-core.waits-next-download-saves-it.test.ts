@@ -11,7 +11,7 @@ import {
 } from "./pw-tools-core.test-harness.js";
 
 const tmpDirMocks = vi.hoisted(() => ({
-  resolvePreferredOpenClawTmpDir: vi.fn(() => "/tmp/openclaw"),
+  resolvePreferredAstroclawTmpDir: vi.fn(() => "/tmp/openclaw"),
 }));
 const chromeMocks = vi.hoisted(() => ({
   getChromeWebSocketEndpoint: vi.fn(async () => ({
@@ -40,8 +40,8 @@ describe("pw-tools-core", () => {
     vi.doMock("./pw-session.js", () => sessionMocks);
     vi.doMock("./chrome.js", () => chromeMocks);
     tmpDirModule = await import("../infra/tmp-astroclaw-dir.js");
-    vi.spyOn(tmpDirModule, "resolvePreferredOpenClawTmpDir").mockImplementation(
-      tmpDirMocks.resolvePreferredOpenClawTmpDir,
+    vi.spyOn(tmpDirModule, "resolvePreferredAstroclawTmpDir").mockImplementation(
+      tmpDirMocks.resolvePreferredAstroclawTmpDir,
     );
     const [downloads, responses] = await Promise.all([
       import("./pw-tools-core.downloads.js"),
@@ -64,7 +64,7 @@ describe("pw-tools-core", () => {
     for (const fn of Object.values(clientFetchMocks)) {
       fn.mockClear();
     }
-    tmpDirMocks.resolvePreferredOpenClawTmpDir.mockReturnValue("/tmp/openclaw");
+    tmpDirMocks.resolvePreferredAstroclawTmpDir.mockReturnValue("/tmp/openclaw");
   });
 
   async function withTempDir<T>(run: (tempDir: string) => Promise<T>): Promise<T> {
@@ -318,6 +318,43 @@ describe("pw-tools-core", () => {
     expect(harness.activeHandlerCount()).toBe(0);
   });
 
+  it("releases a cancelled waiter before the next download", async () => {
+    const harness = createDownloadEventHarness();
+    const state = sessionMocks.ensurePageState();
+    const controller = new AbortController();
+    const cancelled = mod.waitForDownloadViaPlaywright({
+      cdpUrl: "http://127.0.0.1:18792",
+      targetId: "T1",
+      timeoutMs: 1000,
+      signal: controller.signal,
+    });
+
+    await Promise.resolve();
+    expect(state.downloadWaiterDepth).toBe(1);
+    controller.abort(new Error("request aborted"));
+    await expect(cancelled).rejects.toThrow("request aborted");
+    expect(state.downloadWaiterDepth).toBe(0);
+    expect(harness.activeHandlerCount()).toBe(0);
+
+    const successor = mod.waitForDownloadViaPlaywright({
+      cdpUrl: "http://127.0.0.1:18792",
+      targetId: "T1",
+      timeoutMs: 1000,
+    });
+    const saveAs = vi.fn(async (outPath: string) => {
+      await fs.writeFile(outPath, "successor-content", "utf8");
+    });
+    await Promise.resolve();
+    harness.trigger({
+      url: () => "https://example.com/successor.bin",
+      suggestedFilename: () => "successor.bin",
+      saveAs,
+    });
+
+    await expect(successor).resolves.toMatchObject({ suggestedFilename: "successor.bin" });
+    expect(saveAs).toHaveBeenCalledOnce();
+  });
+
   it("lets only the latest overlapping explicit waiter save the download", async () => {
     const harness = createDownloadEventHarness();
     const state = sessionMocks.ensurePageState();
@@ -440,7 +477,7 @@ describe("pw-tools-core", () => {
   );
 
   it("uses preferred tmp dir when waiting for download without explicit path", async () => {
-    tmpDirMocks.resolvePreferredOpenClawTmpDir.mockReturnValue("/tmp/openclaw-preferred");
+    tmpDirMocks.resolvePreferredAstroclawTmpDir.mockReturnValue("/tmp/openclaw-preferred");
     const { res, outPath } = await waitForImplicitDownloadOutput({
       downloadUrl: "https://example.com/file.bin",
       suggestedFilename: "file.bin",
@@ -457,11 +494,11 @@ describe("pw-tools-core", () => {
     await expectPathMissing(outPath);
     await expect(fs.readFile(res.path, "utf8")).resolves.toBe("download-content");
     expect(path.normalize(res.path)).toContain(path.normalize(expectedDownloadsTail));
-    expect(tmpDirMocks.resolvePreferredOpenClawTmpDir).toHaveBeenCalled();
+    expect(tmpDirMocks.resolvePreferredAstroclawTmpDir).toHaveBeenCalled();
   });
 
   it("sanitizes suggested download filenames to prevent traversal escapes", async () => {
-    tmpDirMocks.resolvePreferredOpenClawTmpDir.mockReturnValue("/tmp/openclaw-preferred");
+    tmpDirMocks.resolvePreferredAstroclawTmpDir.mockReturnValue("/tmp/openclaw-preferred");
     const { res, outPath } = await waitForImplicitDownloadOutput({
       downloadUrl: "https://example.com/evil",
       suggestedFilename: "../../../../etc/passwd",
@@ -489,7 +526,7 @@ describe("pw-tools-core", () => {
         const outsideDir = path.join(tempDir, "outside");
         await fs.mkdir(outsideDir, { recursive: true });
         await fs.symlink(outsideDir, path.join(tempDir, "downloads"));
-        tmpDirMocks.resolvePreferredOpenClawTmpDir.mockReturnValue(tempDir);
+        tmpDirMocks.resolvePreferredAstroclawTmpDir.mockReturnValue(tempDir);
 
         const harness = createDownloadEventHarness();
         const saveAs = vi.fn(async (outPath: string) => {
