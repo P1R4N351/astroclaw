@@ -1,6 +1,5 @@
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { DiscordActionConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig, DiscordActionConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Discord tests cover runtime plugin behavior.
 import { ChannelType, PermissionFlagsBits } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it, vi } from "vitest";
