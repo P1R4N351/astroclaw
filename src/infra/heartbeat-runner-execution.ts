@@ -1,5 +1,5 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import { hasOutboundReplyContent } from "astroclaw/plugin-sdk/reply-payload";
+import { hasOutboundReplyContent } from "openclaw/plugin-sdk/reply-payload";
 import { appendCronStyleCurrentTimeLine } from "../agents/current-time.js";
 import { resolveEmbeddedSessionLane } from "../agents/embedded-agent-runner/lanes.js";
 import { listActiveEmbeddedRunSessionKeys } from "../agents/embedded-agent-runner/run-state.js";
@@ -184,6 +184,14 @@ export async function resolveHeartbeatWakeStage(opts: HeartbeatRunOptions) {
     wakeSource !== "cron" &&
     !isWithinActiveHours(cfg, heartbeat, startedAt)
   ) {
+    // Documented observable skip (`system heartbeat last` / troubleshooting
+    // docs promise reason=quiet-hours); every sibling skip past this point
+    // emits, so a silent return here hides the window from operators.
+    emitHeartbeatEvent({
+      status: "skipped",
+      reason: "quiet-hours",
+      durationMs: Date.now() - startedAt,
+    });
     return { kind: "skipped", reason: "quiet-hours" } as const;
   }
 
