@@ -6,8 +6,8 @@ import * as commandRegistryModule from "astroclaw/plugin-sdk/command-auth-native
 import type {
   ChatCommandDefinition,
   CommandArgsParsing,
+  ModelsProviderData,
 } from "astroclaw/plugin-sdk/command-auth-native";
-import type { ModelsProviderData } from "astroclaw/plugin-sdk/command-auth-native";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
 import * as runtimeConfigSnapshotModule from "astroclaw/plugin-sdk/runtime-config-snapshot";
