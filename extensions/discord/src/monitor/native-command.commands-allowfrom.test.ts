@@ -1,7 +1,6 @@
 import type { dispatchChannelInboundTurn } from "astroclaw/plugin-sdk/channel-inbound";
 import type { NativeCommandSpec } from "astroclaw/plugin-sdk/command-auth-native";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { DiscordAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig, DiscordAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { matchPluginCommand } from "astroclaw/plugin-sdk/plugin-runtime";
 import * as dispatcherModule from "astroclaw/plugin-sdk/reply-dispatch-runtime";
 // Discord tests cover native command.commands allowfrom plugin behavior.
