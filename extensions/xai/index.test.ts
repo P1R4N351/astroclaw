@@ -1,22 +1,22 @@
 // Xai tests cover index plugin behavior.
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
-import { createCapturedPluginRegistration } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import {
+  createCapturedPluginRegistration,
   registerProviderPlugin,
   registerSingleProviderPlugin,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import {
   clearLiveCatalogCacheForTests,
   type LiveModelCatalogFetchGuard,
-} from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+} from "openclaw/plugin-sdk/provider-catalog-live-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const providerAuthRuntimeMocks = vi.hoisted(() => ({
   resolveApiKeyForProvider: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => providerAuthRuntimeMocks);
+vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => providerAuthRuntimeMocks);
 
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import plugin from "./index.js";
