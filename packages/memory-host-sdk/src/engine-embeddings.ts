@@ -2,7 +2,6 @@
 
 export {
   getMemoryEmbeddingProvider,
-  listRegisteredMemoryEmbeddingProviders,
   listMemoryEmbeddingProviders,
   listRegisteredMemoryEmbeddingProviderAdapters,
 } from "./host/astroclaw-runtime-memory.js";
