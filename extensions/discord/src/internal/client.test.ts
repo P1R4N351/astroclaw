@@ -4,7 +4,7 @@ import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { ApplicationCommandType, ComponentType, Routes } from "discord-api-types/v10";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Client } from "./client.js";
-import { BaseCommand } from "./commands.js";
+import { Command, type CommandOptions, type DiscordCommand } from "./commands.js";
 import { ComponentRegistry } from "./component-registry.js";
 import { Button, StringSelectMenu, parseCustomId } from "./components.js";
 import { DiscordError } from "./rest.js";
@@ -20,16 +20,14 @@ afterEach(() => {
 function createTestCommand(params: {
   name: string;
   guildIds?: string[];
-  options?: unknown[];
-}): BaseCommand {
-  return new (class extends BaseCommand {
+  options?: CommandOptions;
+}): DiscordCommand {
+  return new (class extends Command {
     name = params.name;
     override description = `${params.name} command`;
-    type = ApplicationCommandType.ChatInput;
     override guildIds = params.guildIds;
-    serializeOptions() {
-      return params.options;
-    }
+    override options = params.options;
+    run() {}
   })();
 }
 
