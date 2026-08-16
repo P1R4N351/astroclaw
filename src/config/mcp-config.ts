@@ -1,6 +1,5 @@
-import { expectDefined } from "@astroclaw/normalization-core";
 // Normalizes MCP server config for runtime launch and validation.
-import { stableStringify } from "@astroclaw/normalization-core";
+import { expectDefined, stableStringify } from "@astroclaw/normalization-core";
 import { markClawMcpServerIndependentlyOwned } from "../state/claw-mcp-adoption.js";
 import { isRecord } from "../utils.js";
 import { readSourceConfigSnapshot } from "./io.js";
@@ -13,6 +12,7 @@ import { redactSensitiveArgv } from "./redact-argv.js";
 import { REDACTED_SENTINEL, restoreRedactedValues } from "./redact-snapshot.js";
 import { buildConfigSchemaCore } from "./schema.js";
 import type { OpenClawConfig } from "./types.astroclaw.js";
+import type { McpServerToolFilterConfig } from "./types.mcp.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
 
 type ConfigMcpServers = ReturnType<typeof normalizeConfiguredMcpServers>;
@@ -39,12 +39,6 @@ type McpConfigMutation = {
   next?: Record<string, unknown>;
 };
 type McpConfigMutationHook = (mutation: McpConfigMutation) => Promise<void>;
-
-/** Include/exclude tool selection stored for a configured MCP server. */
-type McpServerToolSelection = {
-  include?: string[];
-  exclude?: string[];
-};
 
 function normalizeToolSelectionList(value: readonly string[] | undefined): string[] | undefined {
   if (!value) {
@@ -206,7 +200,7 @@ async function updateConfiguredMcpServerConfig(params: {
 async function updateConfiguredMcpServerTools(
   params: {
     name: string;
-    tools: McpServerToolSelection | null;
+    tools: McpServerToolFilterConfig | null;
     recordIndependentOwner?: boolean;
   },
   onCommitted?: McpConfigMutationHook,
