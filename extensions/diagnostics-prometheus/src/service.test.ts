@@ -1,11 +1,14 @@
 import { createServer } from "node:http";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Diagnostics Prometheus tests cover service plugin behavior.
-import type { DiagnosticEventPrivateData } from "astroclaw/plugin-sdk/diagnostic-runtime";
+import type { DiagnosticEventPrivateData } from "openclaw/plugin-sdk/diagnostic-runtime";
 // Diagnostics Prometheus tests cover service plugin behavior.
 import { describe, expect, it, vi } from "vitest";
-import type { DiagnosticEventMetadata, DiagnosticEventPayload } from "../api.js";
-import type { OpenClawPluginServiceContext } from "../api.js";
+import type {
+  DiagnosticEventMetadata,
+  DiagnosticEventPayload,
+  OpenClawPluginServiceContext,
+} from "../api.js";
 import { createDiagnosticsPrometheusExporter } from "./service.js";
 
 const trusted: DiagnosticEventMetadata = Object.freeze({ trusted: true });
