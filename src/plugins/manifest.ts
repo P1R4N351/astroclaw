@@ -25,14 +25,8 @@ export {
 } from "./manifest-setup-normalizers.js";
 
 /** Canonical plugin manifest filename inside plugin roots. */
-export const PLUGIN_MANIFEST_FILENAME = "astroclaw.plugin.json";
-/** Pre-rebrand manifest filename; still accepted when reading existing plugin roots. */
-export const LEGACY_PLUGIN_MANIFEST_FILENAME = "openclaw.plugin.json";
-/** Accepted manifest filenames, most-canonical first. */
-export const PLUGIN_MANIFEST_FILENAMES = [
-  PLUGIN_MANIFEST_FILENAME,
-  LEGACY_PLUGIN_MANIFEST_FILENAME,
-] as const;
+export const PLUGIN_MANIFEST_FILENAME = "openclaw.plugin.json";
+const PLUGIN_MANIFEST_FILENAMES = [PLUGIN_MANIFEST_FILENAME] as const;
 const MAX_PLUGIN_MANIFEST_BYTES = 256 * 1024;
 const MAX_PLUGIN_MANIFEST_LOAD_CACHE_ENTRIES = 512;
 const CORE_RESERVED_PLUGIN_IDS = new Set(["node-mcp"]);
@@ -267,6 +261,7 @@ export function loadPluginManifest(
     syntheticAuthRefs: normalizeTrimmedStringList(raw.syntheticAuthRefs),
     nonSecretAuthMarkers: normalizeTrimmedStringList(raw.nonSecretAuthMarkers),
     commandAliases: normalizeManifestCommandAliases(raw.commandAliases),
+    cliCommands: setupNormalizers.normalizeManifestCliCommands(raw.cliCommands),
     providerUsageAuthEnvVars: capabilityNormalizers.normalizeStringListRecord(
       raw.providerUsageAuthEnvVars,
     ),
