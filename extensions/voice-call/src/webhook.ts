@@ -1,28 +1,29 @@
 // Voice Call plugin module implements webhook behavior.
 import http from "node:http";
 import { URL } from "node:url";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 import {
   asDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "astroclaw/plugin-sdk/number-runtime";
-import { resolveConfiguredCapabilityProvider } from "astroclaw/plugin-sdk/provider-selection-runtime";
-import type { TalkEvent } from "astroclaw/plugin-sdk/realtime-voice";
+} from "openclaw/plugin-sdk/number-runtime";
+import { resolveConfiguredCapabilityProvider } from "openclaw/plugin-sdk/provider-selection-runtime";
+import type { TalkEvent } from "openclaw/plugin-sdk/realtime-voice";
 import {
   normalizeOptionalString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   createWebhookInFlightLimiter,
   normalizeWebhookPath,
   WEBHOOK_BODY_READ_DEFAULTS,
-} from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/webhook-ingress";
 import {
   isRequestBodyLimitError,
   readRequestBodyWithLimit,
   requestBodyErrorToText,
 } from "../api.js";
+import type { OpenClawPluginApi } from "../api.js";
 import { isAllowlistedCaller, normalizePhoneNumber } from "./allowlist.js";
 import {
   normalizeVoiceCallConfig,
@@ -30,7 +31,6 @@ import {
   resolveVoiceCallNumberRouteKeyForCall,
   type VoiceCallConfig,
 } from "./config.js";
-import type { CoreAgentDeps, CoreConfig } from "./core-bridge.js";
 import { getHeader } from "./http-headers.js";
 import type { CallManager } from "./manager.js";
 import type { MediaStreamConfig } from "./media-stream.js";
@@ -183,9 +183,9 @@ export class VoiceCallWebhookServer {
   private config: VoiceCallConfig;
   private manager: CallManager;
   private provider: VoiceCallProvider;
-  private coreConfig: CoreConfig | null;
+  private coreConfig: OpenClawConfig | null;
   private fullConfig: OpenClawConfig | null;
-  private agentRuntime: CoreAgentDeps | null;
+  private agentRuntime: OpenClawPluginApi["runtime"]["agent"] | null;
   private logger: Logger;
   private stopStaleCallReaper: (() => void) | null = null;
   private readonly webhookInFlightLimiter = createWebhookInFlightLimiter();
@@ -203,9 +203,9 @@ export class VoiceCallWebhookServer {
     config: VoiceCallConfig,
     manager: CallManager,
     provider: VoiceCallProvider,
-    coreConfig?: CoreConfig,
+    coreConfig?: OpenClawConfig,
     fullConfig?: OpenClawConfig,
-    agentRuntime?: CoreAgentDeps,
+    agentRuntime?: OpenClawPluginApi["runtime"]["agent"],
     logger?: Logger,
   ) {
     this.config = normalizeVoiceCallConfig(config);
