@@ -5,15 +5,15 @@ import { createServer, request, type IncomingMessage } from "node:http";
 import os from "node:os";
 import nodePath from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { DEFAULT_INGRESS_ADOPTION_STALL_MS } from "astroclaw/plugin-sdk/channel-outbound";
+import type { Update } from "grammy/types";
+import { DEFAULT_INGRESS_ADOPTION_STALL_MS } from "openclaw/plugin-sdk/channel-outbound";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 // Telegram tests cover webhook plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
-import { WEBHOOK_RATE_LIMIT_DEFAULTS } from "astroclaw/plugin-sdk/webhook-ingress";
-import type { Update } from "grammy/types";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { WEBHOOK_RATE_LIMIT_DEFAULTS } from "openclaw/plugin-sdk/webhook-ingress";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildTelegramApprovalCallbackData } from "./approval-callback-data.js";
 import {
@@ -26,8 +26,8 @@ import { setTelegramRuntime } from "./runtime.js";
 import { clearTelegramRuntimeForTest as clearTelegramRuntime } from "./runtime.test-support.js";
 import type { TelegramRuntime } from "./runtime.types.js";
 import { openTelegramIngressQueue } from "./telegram-ingress-spool.js";
-import { writeTelegramSpooledUpdate } from "./telegram-ingress-spool.test-support.js";
 import {
+  writeTelegramSpooledUpdate,
   listTelegramSpooledUpdateClaims,
   listTelegramSpooledUpdates,
 } from "./telegram-ingress-spool.test-support.js";
