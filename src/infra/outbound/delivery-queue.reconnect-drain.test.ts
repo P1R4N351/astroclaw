@@ -1,6 +1,6 @@
 // Covers reconnect-triggered queue drain selection, active claims, backoff
 // bypass, and concurrent drain suppression.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { controlNextRecoverySleep } from "../../../test/helpers/infra/delivery-recovery.js";
 import type { OpenClawConfig } from "../../config/config.js";
@@ -18,8 +18,9 @@ import {
   markDeliveryPlatformOutcomeUnknown,
   markDeliveryPlatformSendAttemptStarted,
   reserveDeliveryAttempt,
+  enqueueDelivery,
+  failDelivery,
 } from "./delivery-queue-storage.js";
-import { enqueueDelivery, failDelivery } from "./delivery-queue-storage.js";
 import {
   createRecoveryLog,
   installDeliveryQueueTmpDirHooks,
