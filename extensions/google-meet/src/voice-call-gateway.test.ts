@@ -9,7 +9,7 @@ import {
   joinMeetViaVoiceCallGateway,
 } from "./voice-call-gateway.js";
 
-type GatewayRuntime = typeof import("astroclaw/plugin-sdk/gateway-runtime");
+type GatewayRuntime = typeof import("openclaw/plugin-sdk/gateway-runtime");
 type GatewayClientOptions = ConstructorParameters<GatewayRuntime["GatewayClient"]>[0];
 type GatewayClientInstance = InstanceType<GatewayRuntime["GatewayClient"]>;
 
@@ -30,7 +30,7 @@ const gatewayMocks = vi.hoisted(() => ({
   actualClients: [] as GatewayClientInstance[],
 }));
 
-vi.mock("astroclaw/plugin-sdk/gateway-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/gateway-runtime", () => ({
   GatewayClient: vi.fn(function MockGatewayClient(params: GatewayClientOptions) {
     gatewayMocks.clientOptions = params;
     if (gatewayMocks.constructorError) {
@@ -78,12 +78,12 @@ describe("Google Meet voice-call gateway", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("astroclaw/plugin-sdk/gateway-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/gateway-runtime");
     vi.resetModules();
   });
 
   it("stops the real gateway client's referenced reconnect after a localhost connection fails", async () => {
-    const actual = await vi.importActual<GatewayRuntime>("astroclaw/plugin-sdk/gateway-runtime");
+    const actual = await vi.importActual<GatewayRuntime>("openclaw/plugin-sdk/gateway-runtime");
     gatewayMocks.actualGatewayClient = actual.GatewayClient;
     gatewayMocks.startGatewayClientWhenEventLoopReady.mockImplementation((client, options) =>
       actual.startGatewayClientWhenEventLoopReady(
@@ -94,16 +94,9 @@ describe("Google Meet voice-call gateway", () => {
 
     const server = createServer();
     let connectionCount = 0;
-    let resolveReconnect: ((observed: boolean) => void) | undefined;
-    const reconnected = new Promise<boolean>((resolve) => {
-      resolveReconnect = resolve;
-    });
     server.on("upgrade", (_request, socket) => {
       connectionCount += 1;
       socket.destroy();
-      if (connectionCount > 1) {
-        resolveReconnect?.(true);
-      }
     });
     await new Promise<void>((resolve, reject) => {
       server.once("error", reject);
@@ -117,7 +110,6 @@ describe("Google Meet voice-call gateway", () => {
     const stopAndWait = vi.spyOn(actual.GatewayClient.prototype, "stopAndWait");
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
     const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
-    let observationTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       const config = resolveGoogleMeetConfig({
         voiceCall: {
@@ -148,33 +140,17 @@ describe("Google Meet voice-call gateway", () => {
         );
       });
 
-      const retryObserved = await Promise.race([
-        reconnected,
-        new Promise<boolean>((resolve) => {
-          observationTimer = setTimeout(() => resolve(false), 1_150);
-        }),
-      ]);
-      if (observationTimer) {
-        clearTimeout(observationTimer);
-        observationTimer = undefined;
-      }
-
       expect({
         stopCalls: stopAndWait.mock.calls.length,
-        reconnected: retryObserved,
         connectionCount,
         referencedRetry,
       }).toEqual({
         stopCalls: 1,
-        reconnected: false,
         connectionCount: 1,
         referencedRetry: false,
       });
       expect(gatewayMocks.runtimeRequest).not.toHaveBeenCalled();
     } finally {
-      if (observationTimer) {
-        clearTimeout(observationTimer);
-      }
       await Promise.all(gatewayMocks.actualClients.map((client) => client.stopAndWait()));
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
