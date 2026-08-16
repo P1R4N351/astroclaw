@@ -2,7 +2,7 @@
 
 import { reduceSessionProjection } from "@astroclaw/gateway-client/browser";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
 import { GatewayRequestError } from "../../api/gateway.ts";
@@ -9301,6 +9301,38 @@ describe("handleSendChat", () => {
     expect(host.chatQueue).toStrictEqual([original]);
     expect(host.lastError).toBe("Steer failed before it reached the run; try again.");
     expect(host.applySettings).not.toHaveBeenCalled();
+  });
+
+  it("surfaces an unconfirmed steer failure globally when the pane is no longer visible", async () => {
+    const toastHost = document.createElement("openclaw-toast-host");
+    document.body.append(toastHost);
+    const original = { id: "queued-1", text: "tighten the plan", createdAt: 1 };
+    const host = makeChatHost({
+      requestHandlers: {
+        "chat.send": () => {
+          // The operator navigates away before transport fails, so the stale
+          // visibility gate used to swallow the terminal outcome entirely.
+          host.sessionKey = "agent:main:second";
+          throw new Error("network dropped");
+        },
+      },
+      chatRunId: "run-1",
+      chatDisplayedLeafEntryId: "leaf-active",
+      chatQueue: [original],
+      sessionKey: "agent:main:main",
+    });
+    expect(admitQueuedMessageForSession(host, host.sessionKey, original)).toBe(true);
+
+    await steerQueuedChatMessage(host, "queued-1");
+
+    // Pre-fix: the failure was parked on the queue row with no visible outcome.
+    expect(host.lastError).toBeNull();
+    await waitForFast(() =>
+      expect(document.body.textContent).toContain(
+        "Steer delivery could not be confirmed. Check the active run before retrying.",
+      ),
+    );
+    document.body.replaceChildren();
   });
 
   it("removes pending steer indicators when the run finishes", () => {
