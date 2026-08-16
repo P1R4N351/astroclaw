@@ -171,7 +171,7 @@ vi.mock("./embeddings.js", () => ({
   }),
 }));
 
-import { clearMemoryEmbeddingProviders as clearRegistry } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { clearEmbeddingProviders as clearRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { closeAllMemorySearchManagers, getMemorySearchManager } from "./index.js";
 import type { MemoryIndexManager } from "./manager.js";
 import { isolateMemoryManagerTestConfig } from "./test-config-helpers.js";
