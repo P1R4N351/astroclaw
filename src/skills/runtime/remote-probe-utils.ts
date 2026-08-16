@@ -1,6 +1,8 @@
 // Pure platform and payload helpers for remote skill binary probes.
-import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
-import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import type { SkillEntry } from "../types.js";
 
