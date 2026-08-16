@@ -8,7 +8,6 @@ import {
   collectTopLevelPublicSurfaceEntries,
 } from "./bundled-plugin-build-entries.mjs";
 import { assertRealOutputRoot } from "./output-root-guard.mjs";
-import { PLUGIN_MANIFEST_FILENAMES, pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
 import {
   listMissingPackageStaticAssetSources,
   runPackageAssetBuild,
@@ -21,34 +20,22 @@ const env = {
 
 type JsonRecord = Record<string, unknown>;
 
-// The 2026-05-17 rebrand moved this block from the `openclaw` key to `astroclaw`;
-// readers must accept both or every build/release opt-out evaluates as absent.
-export type PluginPackageMetadataBlock = {
-  assetScripts?: { build?: unknown };
-  build?: { openclawVersion?: unknown; runtimeFormat?: unknown };
-  compat?: { pluginApi?: unknown };
-  extensions?: unknown;
-  release?: {
-    bundleRuntimeDependencies?: unknown;
-    publishToClawHub?: unknown;
-    publishToNpm?: unknown;
-  };
-  setupEntry?: unknown;
-  [key: string]: unknown;
-};
-
 export type PluginPackageJson = JsonRecord & {
-  astroclaw?: PluginPackageMetadataBlock;
   dependencies?: JsonRecord;
-  openclaw?: PluginPackageMetadataBlock;
+  openclaw?: {
+    assetScripts?: { build?: unknown };
+    build?: { bundledDist?: unknown; openclawVersion?: unknown; runtimeFormat?: unknown };
+    compat?: { pluginApi?: unknown };
+    release?: {
+      bundleRuntimeDependencies?: unknown;
+      publishToClawHub?: unknown;
+      publishToNpm?: unknown;
+    };
+    [key: string]: unknown;
+  };
   optionalDependencies?: JsonRecord;
   peerDependencies?: JsonRecord;
 };
-
-/** Plugin build/release metadata, canonical `astroclaw` key first, legacy `openclaw` accepted. */
-function packageMetadata(packageJson: PluginPackageJson | undefined) {
-  return pluginPackageMetadata<PluginPackageMetadataBlock>(packageJson);
-}
 
 type RuntimeBuildFormat = "esm" | "cjs";
 type PluginNpmRuntimeBuildParams = {
@@ -64,8 +51,8 @@ function readJsonFile(filePath: string) {
 /** Return whether a plugin package publishes through an artifact release workflow. */
 function isPublishablePluginPackage(packageJson: PluginPackageJson) {
   return (
-    packageMetadata(packageJson)?.release?.publishToNpm === true ||
-    packageMetadata(packageJson)?.release?.publishToClawHub === true
+    packageJson.openclaw?.release?.publishToNpm === true ||
+    packageJson.openclaw?.release?.publishToClawHub === true
   );
 }
 
@@ -78,7 +65,7 @@ function isTypeScriptEntry(entry: string) {
 }
 
 function resolveRuntimeBuildFormat(packageJson: PluginPackageJson): RuntimeBuildFormat {
-  return packageMetadata(packageJson)?.build?.runtimeFormat === "cjs" ? "cjs" : "esm";
+  return packageJson.openclaw?.build?.runtimeFormat === "cjs" ? "cjs" : "esm";
 }
 
 function runtimeBuildExtension(runtimeFormat: RuntimeBuildFormat) {
@@ -260,10 +247,8 @@ function resolvePluginNpmRuntimePackageFiles(plan: {
       : [],
   );
   merged.add("dist/**");
-  for (const manifestFilename of PLUGIN_MANIFEST_FILENAMES) {
-    if (packageRelativePathExists(plan.packageDir, manifestFilename)) {
-      merged.add(manifestFilename);
-    }
+  if (packageRelativePathExists(plan.packageDir, "openclaw.plugin.json")) {
+    merged.add("openclaw.plugin.json");
   }
   if (packageRelativePathExists(plan.packageDir, "README.md")) {
     merged.add("README.md");
@@ -292,9 +277,9 @@ function resolveOpenClawPeerRange(
   rootPackageJson: PluginPackageJson | undefined,
 ) {
   return (
-    normalizeOpenClawPeerRange(packageMetadata(packageJson)?.compat?.pluginApi) ||
-    normalizeOpenClawPeerRange(packageJson.peerDependencies?.astroclaw) ||
-    normalizeOpenClawPeerRange(packageMetadata(packageJson)?.build?.openclawVersion) ||
+    normalizeOpenClawPeerRange(packageJson.openclaw?.compat?.pluginApi) ||
+    normalizeOpenClawPeerRange(packageJson.peerDependencies?.openclaw) ||
+    normalizeOpenClawPeerRange(packageJson.openclaw?.build?.openclawVersion) ||
     normalizeOpenClawPeerRange(rootPackageJson?.version) ||
     normalizeOpenClawPeerRange(packageJson.version)
   );
@@ -309,20 +294,20 @@ function resolvePluginNpmRuntimePackagePeerMetadata(plan: {
   const openclawPeerRange = resolveOpenClawPeerRange(plan.packageJson, plan.rootPackageJson);
   if (!openclawPeerRange) {
     throw new Error(
-      `cannot infer astroclaw peerDependency range for ${plan.pluginDir}; set astroclaw.compat.pluginApi or package version`,
+      `cannot infer openclaw peerDependency range for ${plan.pluginDir}; set openclaw.compat.pluginApi or package version`,
     );
   }
   const existingPeerDependencies = getStringRecord(plan.packageJson.peerDependencies);
   const existingPeerDependenciesMeta = getRecord(plan.packageJson.peerDependenciesMeta);
-  const existingOpenClawMeta = getRecord(existingPeerDependenciesMeta.astroclaw);
+  const existingOpenClawMeta = getRecord(existingPeerDependenciesMeta.openclaw);
   return {
     peerDependencies: {
       ...existingPeerDependencies,
-      astroclaw: openclawPeerRange,
+      openclaw: openclawPeerRange,
     },
     peerDependenciesMeta: {
       ...existingPeerDependenciesMeta,
-      astroclaw: {
+      openclaw: {
         ...existingOpenClawMeta,
         optional: true,
       },
@@ -367,7 +352,7 @@ export function resolvePluginNpmRuntimeBuildPlan(params: PluginNpmRuntimeBuildPa
       path.join(packageDir, sourceEntry.replace(/^\.\//u, "")),
     ]),
   );
-  const setupEntry = normalizePackageEntry(packageMetadata(packageJson)?.setupEntry);
+  const setupEntry = normalizePackageEntry(packageJson.openclaw?.setupEntry);
 
   const plan = {
     repoRoot,
@@ -379,8 +364,8 @@ export function resolvePluginNpmRuntimeBuildPlan(params: PluginNpmRuntimeBuildPa
     entry,
     outDir: path.join(packageDir, "dist"),
     runtimeFormat,
-    runtimeExtensions: (Array.isArray(packageMetadata(packageJson)?.extensions)
-      ? (packageMetadata(packageJson)?.extensions as unknown[])
+    runtimeExtensions: (Array.isArray(packageJson.openclaw?.extensions)
+      ? packageJson.openclaw.extensions
       : []
     )
       .map(normalizePackageEntry)
