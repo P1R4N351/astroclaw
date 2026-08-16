@@ -1,26 +1,9 @@
 // Plugin compatibility registry tests cover compatibility metadata loading and validation.
 import fs from "node:fs";
-import { beforeAll, describe, expect, it } from "vitest";
-import { listGitTrackedFiles } from "../../test-utils/repo-files.js";
+import { describe, expect, it } from "vitest";
 import { listPluginCompatRecords, type PluginCompatCode } from "./registry.js";
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/u;
-const sourceRootsForDeprecatedCallGuard = [
-  "src",
-  "extensions",
-  "packages",
-  "test",
-  "scripts",
-] as const;
-const deprecatedTargetParserCallPattern =
-  /\.parseExplicitTarget\?\.\s*\(|parseExplicitTargetFor(?:Channel|LoadedChannel)\s*\(|resolveRouteTargetFor(?:Channel|LoadedChannel)\s*\(/u;
-const deprecatedTargetParserCompatFiles = new Set([
-  "src/auto-reply/reply/group-id.ts",
-  "src/channels/plugins/target-parsing-loaded.ts",
-  "src/infra/outbound/outbound-session.ts",
-  "src/infra/outbound/outbound-session.test-helpers.ts",
-  "src/plugins/compat/registry.test.ts",
-]);
 const removalDatePendingCompatCodes = new Set<PluginCompatCode>([
   "plugin-sdk-tool-plugin-public-demotion",
   "agent-harness-sdk-alias",
@@ -66,23 +49,7 @@ function expectNonEmptyStringList(values: readonly string[], label: string) {
   }
 }
 
-function listTrackedSourceFiles(): string[] {
-  const files = listGitTrackedFiles({ pathspecs: sourceRootsForDeprecatedCallGuard });
-  if (!files) {
-    throw new Error("unable to list tracked source files for the deprecated-call guard");
-  }
-  return files.filter((file) => /\.(?:ts|tsx|mts|cts)$/u.test(file));
-}
-
 describe("plugin compatibility registry", () => {
-  let deprecatedTargetParserOffenders: string[] = [];
-
-  beforeAll(() => {
-    deprecatedTargetParserOffenders = listTrackedSourceFiles()
-      .filter((file) => !deprecatedTargetParserCompatFiles.has(file))
-      .filter((file) => deprecatedTargetParserCallPattern.test(fs.readFileSync(file, "utf8")));
-  });
-
   it("keeps every record actionable", () => {
     for (const record of listPluginCompatRecords()) {
       expect(record.introduced, record.code).toMatch(datePattern);
@@ -142,8 +109,8 @@ describe("plugin compatibility registry", () => {
       removeAfter: undefined,
     });
     expect(records.get("agent-harness-sdk-alias")?.surfaces).toEqual([
-      "astroclaw/plugin-sdk/agent-harness",
-      "astroclaw/plugin-sdk/agent-harness-runtime",
+      "openclaw/plugin-sdk/agent-harness",
+      "openclaw/plugin-sdk/agent-harness-runtime",
     ]);
   });
 
@@ -176,18 +143,18 @@ describe("plugin compatibility registry", () => {
     }
     expect(records.get("plugin-sdk-broad-runtime-barrels")?.surfaces).toEqual(
       expect.arrayContaining([
-        "astroclaw/plugin-sdk/agent-runtime",
-        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.useCache",
-        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.cacheOnly",
-        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.metadataSnapshot",
-        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog",
-        "astroclaw/plugin-sdk/cli-runtime",
-        "astroclaw/plugin-sdk/conversation-runtime",
-        "astroclaw/plugin-sdk/hook-runtime",
-        "astroclaw/plugin-sdk/media-runtime",
-        "astroclaw/plugin-sdk/media-runtime buildAgentMediaPayload",
-        "astroclaw/plugin-sdk/plugin-runtime",
-        "astroclaw/plugin-sdk/security-runtime",
+        "openclaw/plugin-sdk/agent-runtime",
+        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.useCache",
+        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.cacheOnly",
+        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.metadataSnapshot",
+        "openclaw/plugin-sdk/agent-runtime loadModelCatalog",
+        "openclaw/plugin-sdk/cli-runtime",
+        "openclaw/plugin-sdk/conversation-runtime",
+        "openclaw/plugin-sdk/hook-runtime",
+        "openclaw/plugin-sdk/media-runtime",
+        "openclaw/plugin-sdk/media-runtime buildAgentMediaPayload",
+        "openclaw/plugin-sdk/plugin-runtime",
+        "openclaw/plugin-sdk/security-runtime",
       ]),
     );
     expect(records.get("deprecated-session-store-beta5-api")?.surfaces).toEqual(
@@ -223,7 +190,83 @@ describe("plugin compatibility registry", () => {
     expect(record?.removeAfter).toBeUndefined();
   });
 
-  it("keeps deprecated explicit target parser calls inside compatibility shims", () => {
-    expect(deprecatedTargetParserOffenders).toEqual([]);
+  it("keeps the removed subagent spawning hook as a migration tombstone", () => {
+    const record = listPluginCompatRecords().find(
+      (candidate) => candidate.code === "legacy-subagent-spawning-hook",
+    );
+
+    expect(record).toMatchObject({
+      status: "removed",
+      replacement:
+        "`subagent_spawned` for post-launch observation; core session-binding adapters for thread routing",
+    });
+    expect(record?.removeAfter).toBeUndefined();
+  });
+
+  it("keeps the removed embedded Pi aliases as a migration tombstone", () => {
+    const record = listPluginCompatRecords().find(
+      (candidate) => candidate.code === "embedded-pi-agent-sdk-aliases",
+    );
+
+    expect(record).toMatchObject({
+      status: "removed",
+      replacement: "`runEmbeddedAgent` and `EmbeddedAgent*` SDK/runtime names",
+    });
+    expect(record?.removeAfter).toBeUndefined();
+  });
+
+  it("keeps removed shipped channel setup exports as a migration tombstone", () => {
+    const record = listPluginCompatRecords().find(
+      (candidate) => candidate.code === "plugin-sdk-shipped-channel-setup-exports",
+    );
+
+    expect(record).toMatchObject({
+      status: "removed",
+      replacement:
+        "plugin-owned config schemas plus generic `openclaw/plugin-sdk/channel-config-schema` and `openclaw/plugin-sdk/setup-runtime` primitives",
+    });
+    expect(record?.removeAfter).toBeUndefined();
+  });
+
+  it("keeps the removed memory embedding registrar as a migration tombstone", () => {
+    const record = listPluginCompatRecords().find(
+      (candidate) => candidate.code === "deprecated-memory-embedding-provider-api",
+    );
+
+    expect(record).toMatchObject({
+      status: "removed",
+      replacement: "`api.registerEmbeddingProvider(...)` and `contracts.embeddingProviders`",
+    });
+    expect(record?.removeAfter).toBeUndefined();
+  });
+
+  it("keeps removed WhatsApp inbound aliases as migration tombstones", () => {
+    const records = new Map(listPluginCompatRecords().map((record) => [record.code, record]));
+
+    for (const code of [
+      "whatsapp-web-inbound-flat-message-aliases",
+      "whatsapp-web-inbound-admission-top-level-fields",
+    ] as const) {
+      expect(records.get(code)).toMatchObject({
+        status: "removed",
+        releaseNote: expect.stringMatching(/\S/u),
+      });
+      expect(records.get(code)?.removeAfter).toBeUndefined();
+    }
+  });
+
+  it("keeps removed channel target compatibility as migration tombstones", () => {
+    const records = new Map(listPluginCompatRecords().map((record) => [record.code, record]));
+
+    for (const code of [
+      "channel-explicit-target-parser",
+      "channel-messaging-targets-subpath",
+    ] as const) {
+      expect(records.get(code)).toMatchObject({
+        status: "removed",
+        releaseNote: expect.stringMatching(/\S/u),
+      });
+      expect(records.get(code)?.removeAfter).toBeUndefined();
+    }
   });
 });
