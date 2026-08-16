@@ -2,16 +2,15 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
-import { captureEnv } from "openclaw/plugin-sdk/test-env";
-import { mockPinnedHostnameResolution } from "openclaw/plugin-sdk/test-env";
+import { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import { captureEnv, mockPinnedHostnameResolution } from "astroclaw/plugin-sdk/test-env";
 import {
   createGrayscaleAlphaPngBuffer,
   createSolidPngBuffer,
-} from "openclaw/plugin-sdk/test-fixtures";
-import { withMockedWindowsPlatform, withRestoredMocks } from "openclaw/plugin-sdk/test-node-mocks";
-import { optimizeImageToPng } from "openclaw/plugin-sdk/web-media";
+} from "astroclaw/plugin-sdk/test-fixtures";
+import { withMockedWindowsPlatform, withRestoredMocks } from "astroclaw/plugin-sdk/test-node-mocks";
+import { optimizeImageToPng } from "astroclaw/plugin-sdk/web-media";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   LocalMediaAccessError,
