@@ -1,6 +1,7 @@
 // Github Copilot plugin entrypoint registers its OpenClaw integration.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { adaptMemoryEmbeddingProviderAdapter } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type ProviderAuthContext,
@@ -8,7 +9,7 @@ import {
   type ProviderAuthMethodNonInteractiveContext,
   type UnifiedModelCatalogEntry,
   type UnifiedModelCatalogProviderContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   coerceSecretRef,
@@ -17,7 +18,7 @@ import {
   normalizeOptionalSecretInput,
   resolveDefaultSecretProviderAlias,
   upsertAuthProfileWithLock,
-} from "astroclaw/plugin-sdk/provider-auth";
+} from "openclaw/plugin-sdk/provider-auth";
 import { resolveFirstGithubToken } from "./auth.js";
 import {
   normalizeGithubCopilotDomain,
@@ -640,7 +641,9 @@ export default definePluginEntry({
       return await runGitHubCopilotDeviceAuth(ctx, domain);
     }
 
-    api.registerMemoryEmbeddingProvider(githubCopilotMemoryEmbeddingProviderAdapter);
+    api.registerEmbeddingProvider(
+      adaptMemoryEmbeddingProviderAdapter(githubCopilotMemoryEmbeddingProviderAdapter),
+    );
 
     api.registerProvider({
       id: PROVIDER_ID,
