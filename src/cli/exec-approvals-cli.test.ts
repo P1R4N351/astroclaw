@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
-// Exec approvals CLI tests cover approval command registration and output handling.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { Command } from "commander";
+// Exec approvals CLI tests cover approval command registration and output handling.
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { SESSION_EXEC_OVERRIDES_NOTE } from "../infra/exec-approvals-effective.js";
@@ -945,7 +945,8 @@ describe("exec approvals CLI", () => {
 
     await expect(runNativeApprovalsFileCommand(filePath)).rejects.toThrow("__exit__:1");
 
-    expect(runtimeErrors[0]).toContain("File exceeds 1048576 bytes");
+    expect(writtenJson().error).toContain("File exceeds 1048576 bytes");
+    expect(runtimeErrors).toHaveLength(0);
     expect(callGatewayFromCli).toHaveBeenCalledTimes(1);
   });
 
@@ -954,7 +955,8 @@ describe("exec approvals CLI", () => {
 
     await expect(runNativeApprovalsFileCommand(dir)).rejects.toThrow("__exit__:1");
 
-    expect(runtimeErrors[0]).toMatch(/EISDIR|directory/i);
+    expect(writtenJson().error).toMatch(/EISDIR|directory/i);
+    expect(runtimeErrors).toHaveLength(0);
     expect(callGatewayFromCli).toHaveBeenCalledTimes(1);
   });
 
@@ -990,7 +992,8 @@ describe("exec approvals CLI", () => {
       openSpy.mockRestore();
     }
 
-    expect(runtimeErrors[0]).toContain("File exceeds 1048576 bytes");
+    expect(writtenJson().error).toContain("File exceeds 1048576 bytes");
+    expect(runtimeErrors).toHaveLength(0);
     expect(callGatewayFromCli).toHaveBeenCalledTimes(1);
   });
 });
