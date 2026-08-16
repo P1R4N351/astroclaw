@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Browser tests cover server.agent contract form layout act commands plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import "../test-support/browser-security.mock.js";
 import { DEFAULT_DOWNLOAD_DIR, DEFAULT_TRACE_DIR, DEFAULT_UPLOAD_DIR } from "./paths.js";
@@ -841,7 +841,40 @@ describe("browser control server", () => {
     expectRecordFields(waitCall, "wait download call", {
       targetId: "abcd1234",
     });
+    expect(waitCall.signal).toBeInstanceOf(AbortSignal);
     expect(String(waitCall.path)).toContain("safe-wait.pdf");
+  });
+
+  it("cancels wait/download when its HTTP caller disconnects", async () => {
+    const base = await startServerAndBase();
+    let operationSignal: AbortSignal | undefined;
+    requirePwMock("waitForDownloadViaPlaywright").mockImplementationOnce(async (value) => {
+      const options = value as { signal?: AbortSignal };
+      operationSignal = options.signal;
+      await new Promise<void>((_resolve, reject) => {
+        options.signal?.addEventListener(
+          "abort",
+          () => {
+            const reason = options.signal?.reason;
+            reject(reason instanceof Error ? reason : new Error("request aborted"));
+          },
+          { once: true },
+        );
+      });
+      throw new Error("unreachable");
+    });
+    const controller = new AbortController();
+    const response = realFetch(`${base}/wait/download`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "cancelled-wait.pdf" }),
+      signal: controller.signal,
+    });
+
+    await vi.waitFor(() => expect(operationSignal).toBeInstanceOf(AbortSignal));
+    controller.abort(new Error("caller disconnected"));
+    await expect(response).rejects.toThrow();
+    await vi.waitFor(() => expect(operationSignal?.aborted).toBe(true));
   });
 
   it("download accepts in-root relative output path", async () => {
@@ -857,6 +890,7 @@ describe("browser control server", () => {
       targetId: "abcd1234",
       ref: "e12",
     });
+    expect(downloadCall.signal).toBeInstanceOf(AbortSignal);
     expect(String(downloadCall.path)).toContain("safe-download.pdf");
   });
 });
