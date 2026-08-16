@@ -1,9 +1,9 @@
 // Telegram plugin module implements fetch behavior.
 import { randomUUID } from "node:crypto";
 import * as dns from "node:dns";
-import type { TelegramNetworkConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import type { TelegramNetworkConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
 import {
   createHttp1EnvHttpProxyAgent,
   createHttp1ProxyAgent,
@@ -13,18 +13,18 @@ import {
   resolveEnvHttpProxyAgentOptions,
   resolveFetch,
   type PinnedDispatcherPolicy,
-} from "openclaw/plugin-sdk/fetch-runtime";
+} from "astroclaw/plugin-sdk/fetch-runtime";
 import {
   isFutureDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/number-runtime";
 import {
   captureHttpExchange,
   resolveEffectiveDebugProxyUrl,
-} from "openclaw/plugin-sdk/proxy-capture";
-import { resolveRequestUrl } from "openclaw/plugin-sdk/request-url";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/proxy-capture";
+import { resolveRequestUrl } from "astroclaw/plugin-sdk/request-url";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { Agent, fetch as undiciFetch } from "undici";
 import { normalizeTelegramApiRoot } from "./api-root.js";
 import {
@@ -728,6 +728,7 @@ export function resolveTelegramTransport(
   };
 
   const resolvedFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
     const callerProvidedDispatcher = Boolean(
       (init as RequestInitWithDispatcher | undefined)?.dispatcher,
     );
@@ -753,6 +754,7 @@ export function resolveTelegramTransport(
     if (callerProvidedDispatcher) {
       try {
         const response = await sourceFetch(input, init);
+        signal?.throwIfAborted();
         captureHttpExchange({
           url: resolveRequestUrl(input),
           method: init?.method ?? "GET",
@@ -764,10 +766,13 @@ export function resolveTelegramTransport(
         });
         return response;
       } catch (caught) {
+        signal?.throwIfAborted();
         if (!shouldUseTelegramTransportFallback(caught)) {
           throw caught;
         }
-        return sourceFetch(input, init ?? {});
+        const response = await sourceFetch(input, init ?? {});
+        signal?.throwIfAborted();
+        return response;
       }
     }
 
@@ -793,6 +798,7 @@ export function resolveTelegramTransport(
           input,
           withDispatcherIfMissing(init, attempt.createDispatcher()),
         );
+        signal?.throwIfAborted();
         captureHttpExchange({
           url: resolveRequestUrl(input),
           method: init?.method ?? "GET",
@@ -808,6 +814,7 @@ export function resolveTelegramTransport(
         recordSuccessfulAttempt(attemptIndex);
         return response;
       } catch (caught) {
+        signal?.throwIfAborted();
         err = caught;
         if (!shouldUseTelegramTransportFallback(err)) {
           throw err;
