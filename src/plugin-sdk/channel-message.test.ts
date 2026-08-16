@@ -2,7 +2,7 @@
  * Tests channel message helper behavior and mocked runtime interactions.
  */
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { defineChannelMessageAdapter as defineCoreChannelMessageAdapter } from "../channels/message/index.js";
+import { defineChannelMessageAdapter as defineCoreChannelMessageAdapter } from "../channels/message/adapter.js";
 import {
   defineChannelMessageAdapter,
   type ChannelMessageDurableFinalAdapter,
@@ -11,9 +11,9 @@ import {
 describe("defineChannelMessageAdapter", () => {
   const loadPluginSdkSubpaths = async () =>
     await Promise.all([
-      import("openclaw/plugin-sdk/channel-outbound"),
-      import("openclaw/plugin-sdk/channel-message"),
-      import("openclaw/plugin-sdk/channel-reply-pipeline"),
+      import("astroclaw/plugin-sdk/channel-outbound"),
+      import("astroclaw/plugin-sdk/channel-message"),
+      import("astroclaw/plugin-sdk/channel-reply-pipeline"),
     ] as const);
   let pluginSdkSubpaths: Awaited<ReturnType<typeof loadPluginSdkSubpaths>>;
 
