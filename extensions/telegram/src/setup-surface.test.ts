@@ -1,9 +1,12 @@
 // Telegram tests cover setup surface plugin behavior.
-import { installChannelDmPolicyContractSuite } from "openclaw/plugin-sdk/channel-test-helpers";
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/setup";
+import { installChannelDmPolicyContractSuite } from "astroclaw/plugin-sdk/channel-test-helpers";
+import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/setup";
 import { describe, expect, it, vi } from "vitest";
-import { promptTelegramAllowFromForAccount, telegramSetupAdapter } from "./setup-core.js";
-import { telegramSetupContract } from "./setup-core.js";
+import {
+  promptTelegramAllowFromForAccount,
+  telegramSetupAdapter,
+  telegramSetupContract,
+} from "./setup-core.js";
 import {
   buildTelegramDmAccessWarningLines,
   ensureTelegramDefaultGroupMentionGate,
