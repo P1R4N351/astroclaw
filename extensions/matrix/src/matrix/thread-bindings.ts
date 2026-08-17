@@ -2,17 +2,17 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveSessionAgentId } from "astroclaw/plugin-sdk/agent-scope-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
-import { resolveAgentIdFromSessionKey } from "astroclaw/plugin-sdk/session-key-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolveSessionAgentId } from "openclaw/plugin-sdk/agent-scope-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { readJsonFileWithFallback } from "openclaw/plugin-sdk/json-store";
+import { resolveAgentIdFromSessionKey } from "openclaw/plugin-sdk/session-key-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   registerSessionBindingAdapter,
   resolveThreadBindingFarewellText,
   type SessionBindingAdapter,
   unregisterSessionBindingAdapter,
-} from "astroclaw/plugin-sdk/thread-bindings-session-runtime";
+} from "openclaw/plugin-sdk/thread-bindings-session-runtime";
 import { getMatrixRuntime } from "../runtime.js";
 import { claimCurrentTokenStorageState, resolveMatrixStateFilePath } from "./client/storage.js";
 import type { MatrixAuth } from "./client/types.js";
@@ -316,7 +316,7 @@ export async function createMatrixThreadBindingManager(params: {
     if (existingEntry.storageKey === storageKey) {
       return existingEntry.manager;
     }
-    existingEntry.manager.stop();
+    await existingEntry.manager.stop();
   }
   const pluginLoaded = await loadBindingsFromPluginState({
     accountId: params.accountId,
@@ -482,15 +482,18 @@ export async function createMatrixThreadBindingManager(params: {
         }),
       });
     },
-    stop: () => {
+    stop: async () => {
       if (sweepTimer) {
         clearInterval(sweepTimer);
       }
+      let finalPersist = persistQueue;
       if (persistTimer) {
         clearTimeout(persistTimer);
         persistTimer = null;
-        persistSafely("shutdown-flush");
+        finalPersist = enqueuePersist();
       }
+      // Retire the live generation now, but settle its captured persistence before
+      // shutdown can close the shared Matrix state store.
       unregisterSessionBindingAdapter({
         channel: "matrix",
         accountId: params.accountId,
@@ -503,6 +506,7 @@ export async function createMatrixThreadBindingManager(params: {
           removeBindingRecord(record);
         }
       }
+      await finalPersist;
     },
   };
 
