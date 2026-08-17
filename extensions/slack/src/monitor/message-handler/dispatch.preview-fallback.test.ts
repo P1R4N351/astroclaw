@@ -2612,13 +2612,13 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
       planUpdate("tool one"),
       taskUpdate(contentTaskId("item"), "tool one", "in_progress"),
     ]);
+    // Rows already on the stream are not resent: Slack appends task text per
+    // update, so each append carries only the changed rows.
     expectNativeProgressAppend(0, [
       planUpdate("tool two"),
-      taskUpdate(contentTaskId("item"), "tool one", "in_progress"),
       taskUpdate(contentTaskId("item"), "tool two", "in_progress"),
     ]);
     expectNativeProgressAppend(2, [
-      planUpdate("tool three"),
       taskUpdate(contentTaskId("item"), "tool one", "complete"),
       taskUpdate(contentTaskId("item"), "tool two", "complete"),
       taskUpdate(contentTaskId("item"), "tool three", "complete"),
@@ -2639,10 +2639,7 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
       planUpdate("slow tool"),
       taskUpdate(contentTaskId("item"), "slow tool", "in_progress"),
     ]);
-    expectNativeProgressAppend(0, [
-      planUpdate("slow tool"),
-      taskUpdate(contentTaskId("item"), "slow tool", "complete"),
-    ]);
+    expectNativeProgressAppend(0, [taskUpdate(contentTaskId("item"), "slow tool", "complete")]);
     expect(startSlackStreamMock.mock.invocationCallOrder[0]).toBeLessThan(
       appendSlackStreamMock.mock.invocationCallOrder[0] ?? 0,
     );
@@ -3342,7 +3339,7 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
 
     expect(createSlackDraftStreamMock).not.toHaveBeenCalled();
     expectNativeProgressStart([planUpdate("bash"), taskUpdate(taskId, "bash", "in_progress")]);
-    expectNativeProgressAppend(0, [planUpdate("bash"), taskUpdate(taskId, "bash", "complete")]);
+    expectNativeProgressAppend(0, [taskUpdate(taskId, "bash", "complete")]);
     expect(startSlackStreamMock.mock.invocationCallOrder[0]).toBeLessThan(
       appendSlackStreamMock.mock.invocationCallOrder[0] ?? 0,
     );
@@ -3403,9 +3400,7 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
       expect.stringMatching(/^command_call_1_[a-f0-9]{8}$/),
     ]);
     expect(taskUpdates.at(0)?.id).toEqual(expect.stringMatching(/^command_call_1_[a-f0-9]{8}$/));
-    expect(taskUpdates).toContainEqual(
-      taskUpdate(taskUpdates.at(0)?.id, "bash", "complete", { details: "completed" }),
-    );
+    expect(taskUpdates).toContainEqual(taskUpdate(taskUpdates.at(0)?.id, "bash", "complete"));
     expect(deliverRepliesMock).not.toHaveBeenCalled();
     expectNativeStreamText(`\n${FINAL_REPLY_TEXT}`);
   });
@@ -3682,10 +3677,7 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
       planUpdate("failing tool"),
       taskUpdate(contentTaskId("item"), "failing tool", "in_progress"),
     ]);
-    expectNativeProgressAppend(0, [
-      planUpdate("failing tool"),
-      taskUpdate(contentTaskId("item"), "failing tool", "error"),
-    ]);
+    expectNativeProgressAppend(0, [taskUpdate(contentTaskId("item"), "failing tool", "error")]);
     expect(deliverRepliesMock).toHaveBeenCalledTimes(1);
     expect(finalizeSlackPreviewEditMock).not.toHaveBeenCalled();
     const deliverParams = requireRecord(
@@ -3711,7 +3703,6 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
     expect(deliverRepliesMock).not.toHaveBeenCalled();
     expectMockCallArgFields(stopSlackStreamMock, 0, "native progress stream stop", {
       chunks: [
-        planUpdate("tool three"),
         taskUpdate(contentTaskId("item"), "tool one", "complete"),
         taskUpdate(contentTaskId("item"), "tool two", "complete"),
         taskUpdate(contentTaskId("item"), "tool three", "complete"),
@@ -3736,7 +3727,6 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
       taskUpdate(contentTaskId("item"), "tool one", "in_progress"),
     ]);
     expectNativeProgressAppend(2, [
-      planUpdate("Shelling"),
       taskUpdate(contentTaskId("item"), "tool one", "complete"),
       taskUpdate(contentTaskId("item"), "tool two", "complete"),
       taskUpdate(contentTaskId("item"), "tool three", "complete"),
@@ -3767,10 +3757,8 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
       planUpdate("Shelling"),
       taskUpdate(taskId, "bash", "in_progress", { details: "12345…uvwxyz" }),
     ]);
-    expectNativeProgressAppend(0, [
-      planUpdate("Shelling"),
-      taskUpdate(taskId, "bash", "complete", { details: "12345…uvwxyz" }),
-    ]);
+    // Slack appends `details` per task_update; the unchanged command is not resent.
+    expectNativeProgressAppend(0, [taskUpdate(taskId, "bash", "complete")]);
   });
 
   it("preserves patch item identity in native Slack progress task updates", async () => {
@@ -3794,10 +3782,7 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
       planUpdate("updated Slack progress tests"),
       taskUpdate(taskId, "updated Slack progress tests", "in_progress"),
     ]);
-    expectNativeProgressAppend(0, [
-      planUpdate("updated Slack progress tests"),
-      taskUpdate(taskId, "updated Slack progress tests", "complete"),
-    ]);
+    expectNativeProgressAppend(0, [taskUpdate(taskId, "updated Slack progress tests", "complete")]);
   });
 
   it("preserves text Slack progress lines after a draft boundary status update", async () => {
