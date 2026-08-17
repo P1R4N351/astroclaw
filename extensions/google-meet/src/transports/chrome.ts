@@ -1,5 +1,5 @@
 // Google Meet plugin module implements chrome behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   createMeetingRealtimeEngineBindings,
   createLocalMeetingRealtimeAudioTransport,
@@ -14,11 +14,10 @@ import {
   startMeetingRealtimeEngine,
   type MeetingBrowserRequestCaller,
   type MeetingRealtimeAudioEngineHandle,
-} from "astroclaw/plugin-sdk/meeting-runtime";
-import { addTimerTimeoutGraceMs } from "astroclaw/plugin-sdk/number-runtime";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
-import type { RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
-import { resolveTranscriptsConfig } from "astroclaw/plugin-sdk/transcripts";
+} from "openclaw/plugin-sdk/meeting-runtime";
+import { addTimerTimeoutGraceMs } from "openclaw/plugin-sdk/number-runtime";
+import type { PluginRuntime, RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";
+import { resolveTranscriptsConfig } from "openclaw/plugin-sdk/transcripts";
 import type { GoogleMeetConfig, GoogleMeetMode } from "../config.js";
 import {
   callBrowserProxyOnNode,
