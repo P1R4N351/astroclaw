@@ -1,8 +1,8 @@
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   createChannelPartialDeliveryError,
   type ChannelInboundTurnPlan,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 // Msteams plugin module implements reply dispatcher behavior.
 import {
   buildChannelProgressDraftLine,
@@ -12,11 +12,11 @@ import {
   resolveChannelStreamingBlockEnabled,
   resolveChannelStreamingPreviewToolProgress,
   resolveChannelStreamingSuppressDefaultToolProgressMessages,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   createChannelMessageReplyPipeline,
   logTypingFailure,
@@ -31,6 +31,7 @@ import { resolveMSTeamsSdkCloudOptions } from "./cloud.js";
 import type { StoredConversationReference } from "./conversation-store.js";
 import {
   classifyMSTeamsSendError,
+  formatMSTeamsDeliveryFailureGuidance,
   formatMSTeamsSendErrorHint,
   formatUnknownError,
 } from "./errors.js";
@@ -265,17 +266,22 @@ export function createMSTeamsReplyDispatcher(params: {
     const classification = classifyMSTeamsSendError(failure.error);
     const errorText = formatUnknownError(failure.error);
     const failedAll = failure.failed >= failure.total;
-    const summary = failedAll
-      ? "the previous reply was not delivered"
-      : `${failure.failed} of ${failure.total} message blocks were not delivered`;
+    const ambiguous = classification.kind === "ambiguous";
+    const summary = ambiguous
+      ? failedAll
+        ? "the delivery outcome is unknown for the previous reply"
+        : `the delivery outcome is unknown for ${failure.failed} of ${failure.total} message blocks`
+      : failedAll
+        ? "the previous reply was not delivered"
+        : `${failure.failed} of ${failure.total} message blocks were not delivered`;
     const sentences = [
       `Microsoft Teams delivery failed: ${summary}.`,
-      `The user may not have received ${failedAll ? "that reply" : "the full reply"}.`,
+      ambiguous
+        ? undefined
+        : `The user may not have received ${failedAll ? "that reply" : "the full reply"}.`,
       `Error: ${errorText}.`,
       classification.statusCode != null ? `Status: ${classification.statusCode}.` : undefined,
-      classification.kind === "transient" || classification.kind === "throttled"
-        ? "Retrying later may succeed."
-        : undefined,
+      formatMSTeamsDeliveryFailureGuidance(classification),
     ].filter(Boolean);
     core.system.enqueueSystemEvent(sentences.join(" "), {
       sessionKey: params.sessionKey,
