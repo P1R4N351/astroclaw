@@ -123,6 +123,10 @@ vi.mock("astroclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) =>
   };
 });
 vi.mock("astroclaw/plugin-sdk/agent-runtime", () => agentRuntimeMocks);
+vi.mock("astroclaw/plugin-sdk/agent-scope-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/agent-scope-runtime")>()),
+  resolveSessionAgentIds: agentRuntimeMocks.resolveSessionAgentIds,
+}));
 
 import {
   consumeCodexAppServerLiveThread,
@@ -1936,12 +1940,59 @@ describe("codex conversation binding", () => {
         config: {
           tools: { exec: { host: "gateway" } },
           agents: {
-            list: [
-              {
-                id: "bot-a",
-                tools: { exec: { host: "node", node: "worker-1" } },
-              },
-            ],
+            entries: {
+              "bot-a": { tools: { exec: { host: "node", node: "worker-1" } } },
+            },
+          },
+        } as never,
+      },
+    );
+
+    expect(result?.handled).toBe(true);
+    expect(result?.reply?.text).toContain("OpenClaw exec host=node is active");
+    expect(sharedClientMocks.getSharedCodexAppServerClient).not.toHaveBeenCalled();
+  });
+
+  it("does not infer an unscoped session owner from an explicit multi-agent roster", async () => {
+    const sessionFile = path.join(tempDir, "session.jsonl");
+    await writeTestConversationBinding(sessionFile, { threadId: "thread-1", cwd: tempDir });
+
+    const result = await handleCodexConversationInboundClaim(
+      {
+        content: "continue the task",
+        channel: "discord",
+        isGroup: true,
+        commandAuthorized: true,
+        sessionKey: "node-session",
+      },
+      {
+        channelId: "discord",
+        sessionKey: "node-session",
+        pluginBinding: {
+          bindingId: "binding-1",
+          pluginId: "codex",
+          pluginRoot: tempDir,
+          channel: "discord",
+          accountId: "default",
+          conversationId: "channel-1",
+          boundAt: Date.now(),
+          data: {
+            kind: "codex-app-server-session",
+            version: 1,
+            sessionFile,
+            workspaceDir: tempDir,
+            agentId: "alpha",
+          },
+        },
+      },
+      {
+        config: {
+          tools: { exec: { host: "gateway" } },
+          agents: {
+            entries: {
+              alpha: { tools: { exec: { host: "node", node: "worker-1" } } },
+              beta: {},
+            },
           },
         } as never,
       },
