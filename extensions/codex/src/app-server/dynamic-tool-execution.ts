@@ -7,16 +7,16 @@ import {
   formatToolExecutionErrorMessage,
   resolveToolExecutionErrorKind,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   hasPendingInternalDiagnosticEvent,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   addTimerTimeoutGraceMs,
   parseStrictNonNegativeInteger,
-} from "astroclaw/plugin-sdk/number-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/number-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   createFailedDynamicToolResponse,
   type CodexDynamicToolRuntimeResponse,
@@ -579,7 +579,7 @@ function readConfiguredDynamicToolTimeoutMs(
     );
   }
 
-  if (toolName === "image") {
+  if (toolName === "view_image") {
     const candidates = (config?.tools?.media?.models ?? []).filter(
       (entry) => !entry.capabilities || entry.capabilities.includes("image"),
     );
