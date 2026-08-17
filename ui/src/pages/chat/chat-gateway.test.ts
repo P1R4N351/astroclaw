@@ -1,7 +1,7 @@
 import { reduceSessionProjection } from "@astroclaw/gateway-client/browser";
 // @vitest-environment node
 // Control UI tests cover chat behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
 import { GatewayRequestError } from "../../api/gateway.ts";
@@ -19,6 +19,7 @@ import {
 function createState(overrides: Partial<ChatState> = {}): ChatState {
   return {
     chatAttachments: [],
+    chatHistoryPagination: { hasMore: false },
     chatLoading: false,
     chatMessage: "",
     chatMessages: [],
@@ -939,8 +940,9 @@ describe("handleChatGatewayEvent", () => {
           text: "Use the deployment plan",
           createdAt: 3,
           kind: "steered",
-          pendingRunId: "active-run",
+          pendingRunId: "steer-request-run",
           sendRunId: "steer-request-run",
+          steerTargetRunId: "active-run",
           sessionKey: "main",
         },
       ],
