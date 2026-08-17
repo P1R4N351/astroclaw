@@ -4,8 +4,8 @@ import {
   readPositiveIntegerParam,
   readStringParam,
   withNormalizedTimestamp,
-} from "openclaw/plugin-sdk/channel-actions";
-import { adaptScopedAccountAccessor } from "openclaw/plugin-sdk/channel-config-helpers";
+} from "astroclaw/plugin-sdk/channel-actions";
+import { adaptScopedAccountAccessor } from "astroclaw/plugin-sdk/channel-config-helpers";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionName,
@@ -13,35 +13,35 @@ import type {
   ChannelThreadingContext,
   ChannelThreadingToolContext,
   ChannelToolSend,
-} from "openclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
-import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-outbound";
-import { createLoggedPairingApprovalNotifier } from "openclaw/plugin-sdk/channel-pairing";
-import { createRestrictSendersChannelSecurity } from "openclaw/plugin-sdk/channel-policy";
+} from "astroclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
+import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-outbound";
+import { createLoggedPairingApprovalNotifier } from "astroclaw/plugin-sdk/channel-pairing";
+import { createRestrictSendersChannelSecurity } from "astroclaw/plugin-sdk/channel-policy";
 import {
   attachChannelToResult,
   createAttachedChannelResultAdapter,
   type ChannelOutboundAdapter,
-} from "openclaw/plugin-sdk/channel-send-result";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createChannelDirectoryAdapter } from "openclaw/plugin-sdk/directory-runtime";
-import { buildPassiveProbedChannelStatusSummary } from "openclaw/plugin-sdk/extension-shared";
+} from "astroclaw/plugin-sdk/channel-send-result";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createChannelDirectoryAdapter } from "astroclaw/plugin-sdk/directory-runtime";
+import { buildPassiveProbedChannelStatusSummary } from "astroclaw/plugin-sdk/extension-shared";
 import {
   type MessagePresentation,
   normalizeMessagePresentation,
   renderMessagePresentationFallbackText,
   resolveMessagePresentationButtonAction,
   resolveMessagePresentationControlValue,
-} from "openclaw/plugin-sdk/interactive-runtime";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { resolvePayloadMediaUrls, sendTextMediaPayload } from "openclaw/plugin-sdk/reply-payload";
-import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/interactive-runtime";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { resolvePayloadMediaUrls, sendTextMediaPayload } from "astroclaw/plugin-sdk/reply-payload";
+import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "openclaw/plugin-sdk/status-helpers";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/status-helpers";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
 import { mattermostApprovalAuth } from "./approval-auth.js";
 import {
   chunkTextForOutbound,
@@ -388,6 +388,7 @@ async function listMattermostDirectoryPeers(params: MattermostDirectoryListParam
 }
 
 const mattermostMessageActions: ChannelMessageActionAdapter = {
+  providerOwnedReadGates: ["read"],
   describeMessageTool: describeMattermostMessageTool,
   extractToolSend: ({ args }) => extractMattermostToolSend(args),
   extractToolSendResult: ({ result, send }) => extractMattermostToolSendResult(result, send),
@@ -764,12 +765,19 @@ function resolveMattermostSendAttachmentMedia(params: Record<string, unknown>): 
 
 type MattermostOutboundContext = Parameters<NonNullable<ChannelOutboundAdapter["sendText"]>>[0];
 
+function toMattermostOutboundResult(result: MattermostSendResult) {
+  const { channelId, ...delivery } = result;
+  return { ...delivery, target: { kind: "channel" as const, id: channelId } };
+}
+
 function createMattermostDeliveryProgressReporter(
   onDeliveryResult: MattermostOutboundContext["onDeliveryResult"],
 ) {
   return onDeliveryResult
     ? async (result: MattermostSendResult) => {
-        await onDeliveryResult(attachChannelToResult("mattermost", result));
+        await onDeliveryResult(
+          attachChannelToResult("mattermost", toMattermostOutboundResult(result)),
+        );
       }
     : undefined;
 }
@@ -842,7 +850,7 @@ const mattermostOutbound: ChannelOutboundAdapter = {
         attachmentText,
         onDeliveryResult: createMattermostDeliveryProgressReporter(ctx.onDeliveryResult),
       });
-      return attachChannelToResult("mattermost", result);
+      return attachChannelToResult("mattermost", toMattermostOutboundResult(result));
     }
     return await sendTextMediaPayload({ channel: "mattermost", ctx, adapter: mattermostOutbound });
   },
@@ -861,14 +869,16 @@ const mattermostOutbound: ChannelOutboundAdapter = {
   ...createAttachedChannelResultAdapter({
     channel: "mattermost",
     sendText: async ({ cfg, to, text, accountId, replyToId, threadId, onDeliveryResult }) =>
-      await (
-        await loadMattermostChannelRuntime()
-      ).sendMessageMattermost(to, text, {
-        cfg,
-        accountId: accountId ?? undefined,
-        replyToId: replyToId ?? (threadId != null ? String(threadId) : undefined),
-        onDeliveryResult: createMattermostDeliveryProgressReporter(onDeliveryResult),
-      }),
+      toMattermostOutboundResult(
+        await (
+          await loadMattermostChannelRuntime()
+        ).sendMessageMattermost(to, text, {
+          cfg,
+          accountId: accountId ?? undefined,
+          replyToId: replyToId ?? (threadId != null ? String(threadId) : undefined),
+          onDeliveryResult: createMattermostDeliveryProgressReporter(onDeliveryResult),
+        }),
+      ),
     sendMedia: async ({
       cfg,
       to,
@@ -882,19 +892,21 @@ const mattermostOutbound: ChannelOutboundAdapter = {
       threadId,
       onDeliveryResult,
     }) =>
-      await (
-        await loadMattermostChannelRuntime()
-      ).sendMessageMattermost(to, text, {
-        cfg,
-        accountId: accountId ?? undefined,
-        mediaUrl,
-        mediaLocalRoots: mediaLocalRoots ?? mediaAccess?.localRoots,
-        mediaReadFile: mediaReadFile ?? mediaAccess?.readFile,
-        ...(mediaAccess?.workspaceDir ? { workspaceDir: mediaAccess.workspaceDir } : {}),
-        requireMediaUpload: requiresMattermostMediaUpload(mediaUrl) ? true : undefined,
-        replyToId: replyToId ?? (threadId != null ? String(threadId) : undefined),
-        onDeliveryResult: createMattermostDeliveryProgressReporter(onDeliveryResult),
-      }),
+      toMattermostOutboundResult(
+        await (
+          await loadMattermostChannelRuntime()
+        ).sendMessageMattermost(to, text, {
+          cfg,
+          accountId: accountId ?? undefined,
+          mediaUrl,
+          mediaLocalRoots: mediaLocalRoots ?? mediaAccess?.localRoots,
+          mediaReadFile: mediaReadFile ?? mediaAccess?.readFile,
+          ...(mediaAccess?.workspaceDir ? { workspaceDir: mediaAccess.workspaceDir } : {}),
+          requireMediaUpload: requiresMattermostMediaUpload(mediaUrl) ? true : undefined,
+          replyToId: replyToId ?? (threadId != null ? String(threadId) : undefined),
+          onDeliveryResult: createMattermostDeliveryProgressReporter(onDeliveryResult),
+        }),
+      ),
   }),
 };
 
