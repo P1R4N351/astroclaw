@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { generateKeyPairSync } from "node:crypto";
 // Gateway client tests cover WebSocket protocol negotiation, auth persistence,
 // proxy bypass setup, command dispatch, reconnect, and error handling.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GATEWAY_CLIENT_MODES,
@@ -2311,6 +2311,31 @@ describe("GatewayClient connect auth payload", () => {
     const logged = String(logErrorMock.mock.calls.at(-1)?.[0] ?? "");
     expect(logged).toContain("Authorization: Bearer");
     expect(logged).not.toContain("sk-disabledredaction1234567890abcd");
+    client.stop();
+  });
+
+  it("never logs a registered Cloudflare Access credential from connection errors", async () => {
+    const clientSecret = ["cf", "redaction", "secret"].join("-");
+    const client = new GatewayClient({
+      url: "wss://gateway.example",
+      cloudflareAccess: { clientId: "cf-redaction-id", clientSecret },
+      deviceIdentity: null,
+    });
+
+    const { ws, connect } = startClientAndConnect({ client });
+    emitConnectFailure(
+      ws,
+      connect.id,
+      { code: "AUTH_UNAUTHORIZED" },
+      `edge rejected service token ${clientSecret}`,
+    );
+
+    await waitForFast(() => {
+      expect(logErrorMock).toHaveBeenCalledWith(expect.stringContaining("gateway connect failed:"));
+    });
+    const logged = String(logErrorMock.mock.calls.at(-1)?.[0] ?? "");
+    expect(logged).toContain("edge rejected service token");
+    expect(logged).not.toContain(clientSecret);
     client.stop();
   });
 
