@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { promisify } from "node:util";
-import { GatewayClient } from "astroclaw/plugin-sdk/gateway-runtime";
+import { GatewayClient } from "openclaw/plugin-sdk/gateway-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   NODE_WORKER_BUNDLE_INSTALL_COMMAND,
