@@ -4,24 +4,27 @@ import {
   formatErrorMessage,
   resolveActiveEmbeddedRunSessionId,
   resolveSandboxContext,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { resolveSessionAgentIds } from "openclaw/plugin-sdk/agent-runtime";
-import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-binding-runtime";
-import { loadExecApprovals } from "openclaw/plugin-sdk/exec-approvals-runtime";
-import { KeyedAsyncQueue } from "openclaw/plugin-sdk/keyed-async-queue";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import {
+  resolveSessionAgentIds,
+  tryResolveDefaultAgentId,
+} from "astroclaw/plugin-sdk/agent-scope-runtime";
+import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-binding-runtime";
+import { loadExecApprovals } from "astroclaw/plugin-sdk/exec-approvals-runtime";
+import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/keyed-async-queue";
 import type {
   PluginConversationBindingResolvedEvent,
   PluginHookInboundClaimContext,
   PluginHookInboundClaimEvent,
-} from "openclaw/plugin-sdk/plugin-entry";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
-import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
 import {
   getSessionEntry,
   resolveStorePath,
   resolveTranscriptSessionKeyBySessionId,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { readVisibleSessionTranscriptMessageEntries } from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { readVisibleSessionTranscriptMessageEntries } from "astroclaw/plugin-sdk/session-transcript-runtime";
 import { resolveCodexAppServerForModelProvider } from "./app-server/app-server-policy.js";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
@@ -1463,19 +1466,7 @@ function isDefaultAgentSessionKeyForAgent(params: {
   config: ResolvedCodexConversationConfig;
   agentId: string;
 }): boolean {
-  return normalizeAgentId(params.agentId) === resolveDefaultPolicyAgentId(params.config);
-}
-
-function resolveDefaultPolicyAgentId(config: ResolvedCodexConversationConfig): string {
-  const agents = (config.agents?.list ?? []).filter(
-    (
-      entry,
-    ): entry is NonNullable<
-      NonNullable<ResolvedCodexConversationConfig["agents"]>["list"]
-    >[number] => entry !== null && typeof entry === "object",
-  );
-  const defaultEntry = agents.find((entry) => entry?.default) ?? agents[0];
-  return normalizeAgentId(defaultEntry?.id);
+  return normalizeAgentId(params.agentId) === tryResolveDefaultAgentId(params.config);
 }
 
 function normalizeAgentIdOrDefault(value?: string | null): string | undefined {
