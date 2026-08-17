@@ -17,10 +17,10 @@ import {
   supportsModelTools,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
   type RuntimeToolSchemaDiagnostic,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { resolveAgentDir } from "openclaw/plugin-sdk/agent-runtime";
-import { runWithCronCreatorAuthorityCapabilityResolver } from "openclaw/plugin-sdk/codex-mcp-projection";
-import { isToolAllowed } from "openclaw/plugin-sdk/sandbox";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { resolveAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
+import { runWithCronCreatorAuthorityCapabilityResolver } from "astroclaw/plugin-sdk/codex-mcp-projection";
+import { isToolAllowed } from "astroclaw/plugin-sdk/sandbox";
 import {
   isCodexRemoteExecPlacementSandbox,
   readCodexPluginConfig,
@@ -49,16 +49,16 @@ import {
   createNodeProcessDynamicTool,
   isCodexDynamicToolExcluded,
 } from "./shell-dynamic-tools.js";
-import { filterToolsForVisionInputs } from "./vision-tools.js";
+import { filterCodexVisionTools } from "./vision-tools.js";
 import { resolveCodexWebSearchPlan, type CodexNativeWebSearchSupport } from "./web-search.js";
 
 type OpenClawCodingToolsOptions = NonNullable<
-  Parameters<(typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]>[0]
+  Parameters<(typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]>[0]
 >;
 
 /** Factory seam for constructing OpenClaw runtime tools without eagerly loading agent-harness. */
 type OpenClawCodingToolsFactory =
-  (typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
+  (typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
 type OpenClawDynamicTool = ReturnType<OpenClawCodingToolsFactory>[number];
 type OpenClawSandboxContext = Awaited<ReturnType<typeof resolveSandboxContext>>;
 type CodexDynamicToolBuildEvent = Parameters<
@@ -238,9 +238,9 @@ export async function buildDynamicTools(input: DynamicToolBuildParams) {
   const modelHasVision = params.model.input?.includes("image") ?? false;
   const agentDir = params.agentDir ?? resolveAgentDir(params.config ?? {}, input.sessionAgentId);
   const injectedOpenClawCodingToolsFactory = dynamicToolBuildState.openClawCodingToolsFactory;
-  let agentHarnessModule: typeof import("openclaw/plugin-sdk/agent-harness") | undefined;
+  let agentHarnessModule: typeof import("astroclaw/plugin-sdk/agent-harness") | undefined;
   const loadAgentHarnessModule = async () =>
-    (agentHarnessModule ??= await import("openclaw/plugin-sdk/agent-harness"));
+    (agentHarnessModule ??= await import("astroclaw/plugin-sdk/agent-harness"));
   const createOpenClawCodingTools =
     injectedOpenClawCodingToolsFactory ??
     (await loadAgentHarnessModule()).createOpenClawCodingTools;
@@ -289,6 +289,7 @@ export async function buildDynamicTools(input: DynamicToolBuildParams) {
         runId: params.runId,
         approvalReviewerDeviceId: params.approvalReviewerDeviceId,
         agentDir,
+        preparedModelRuntime: params.preparedModelRuntime,
         cwd: input.effectiveCwd ?? input.effectiveWorkspace,
         workspaceDir: input.effectiveWorkspace,
         spawnWorkspaceDir:
@@ -402,9 +403,9 @@ export async function buildDynamicTools(input: DynamicToolBuildParams) {
     nativeExecutionPolicy,
   );
   toolBuildStages.mark("codex-filtering");
-  const visionFilteredTools = filterToolsForVisionInputs(codexFilteredTools, {
+  const visionFilteredTools = filterCodexVisionTools(codexFilteredTools, {
     modelHasVision,
-    hasInboundImages: (params.images?.length ?? 0) > 0,
+    nativeImageInspectionEnabled: input.nativeToolSurfaceEnabled === true,
   });
   toolBuildStages.mark("vision-filtering");
   const webSearchPresent = visionFilteredTools.some((tool) => tool.name === "web_search");
@@ -552,6 +553,15 @@ export function shouldEnableCodexAppServerNativeToolSurface(
     return false;
   }
   if (params.disableTools) {
+    return false;
+  }
+  if (
+    isCodexNativeExecutionBlockedByNodeExecHost(params, {
+      agentId: options.agentId,
+      runtimeSessionKey: options.runtimeSessionKey,
+      sandbox,
+    })
+  ) {
     return false;
   }
   const toolsAllow = includeForcedCodexDynamicToolAllow(params.toolsAllow, params);
@@ -751,7 +761,7 @@ function addSandboxShellDynamicToolsIfAvailable(
     ...processTool,
     name: "sandbox_process",
     description:
-      "Manage sandbox_exec sessions that were started through OpenClaw's configured sandbox backend for this session: list, poll, log, write, send-keys, submit, paste, kill, clear, or remove. Use only for sandbox_exec follow-up; use Codex's native shell session handling only when no OpenClaw sandbox is active and native Code Mode is available.",
+      "Manage background shell sessions through OpenClaw's configured sandbox backend for this session: list, poll, log, write, send-keys, submit, paste, kill, clear, or remove. Use only for sandbox follow-up; use Codex's native shell session handling only when no OpenClaw sandbox is active and native Code Mode is available.",
   };
   return [...filteredTools, sandboxExecTool, sandboxProcessTool];
 }
