@@ -1,5 +1,5 @@
 // Command startup policy tests cover which CLI commands require startup side effects.
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cliCommandCatalog } from "./command-catalog.js";
 import { resolveCliExecutionStartupContext } from "./command-execution-startup.js";
@@ -32,6 +32,8 @@ describe("command-startup-policy", () => {
       ["config", "validate"],
       ["config", "schema"],
       ["docs"],
+      ["reset"],
+      ["uninstall"],
       ["agent", "exec"],
       ["status"],
       ["agents", "bindings"],
