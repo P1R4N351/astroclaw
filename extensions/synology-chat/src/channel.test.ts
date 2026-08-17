@@ -1,6 +1,6 @@
 // Synology Chat tests cover channel plugin behavior.
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-outbound";
-import { createPluginSetupWizardStatus } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
+import { createPluginSetupWizardStatus } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedSynologyChatAccount } from "./types.js";
 
@@ -650,7 +650,7 @@ describe("createSynologyChatPlugin", () => {
         to: "user1",
       });
       expect(result.channel).toBe("synology-chat");
-      expect(result.chatId).toBe("user1");
+      expect(result.target).toEqual({ kind: "chat", id: "user1" });
       expect(result.messageId).toBe("");
       expect(result.receipt.primaryPlatformMessageId).toBeUndefined();
       expect(result.receipt.platformMessageIds).toHaveLength(0);
@@ -683,7 +683,7 @@ describe("createSynologyChatPlugin", () => {
       });
 
       expect(result.channel).toBe("synology-chat");
-      expect(result.chatId).toBe("user1");
+      expect(result.target).toEqual({ kind: "chat", id: "user1" });
       expect(result.messageId).toBe("");
       expect(result.receipt.primaryPlatformMessageId).toBeUndefined();
       expect(result.receipt.platformMessageIds).toHaveLength(0);
