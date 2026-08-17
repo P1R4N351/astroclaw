@@ -1,3 +1,4 @@
+import { clampTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { isPromiseLike } from "@astroclaw/normalization-core/promise-like";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 /**
@@ -187,9 +188,17 @@ export function wrapStreamFnWithDiagnosticModelCallEvents(
   ctx: ModelCallDiagnosticContext,
 ): StreamFn {
   return ((model, streamContext, options) => {
+    const configuredRequestTimeoutMs = isRecord(model) ? model.requestTimeoutMs : undefined;
+    const requestTimeoutMs =
+      typeof configuredRequestTimeoutMs === "number" &&
+      Number.isFinite(configuredRequestTimeoutMs) &&
+      configuredRequestTimeoutMs > 0
+        ? clampTimerTimeoutMs(configuredRequestTimeoutMs)
+        : undefined;
     const lifecycle = createModelLifecycle({
       ctx,
       options,
+      requestTimeoutMs,
       createObserver: (capturePromptStats) =>
         createModelObserver({
           streamContext,
