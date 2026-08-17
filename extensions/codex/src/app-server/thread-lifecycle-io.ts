@@ -1,5 +1,5 @@
 import path from "node:path";
-import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
   closeCodexStartupClientBestEffort,
@@ -197,6 +197,8 @@ export async function resumeExistingCodexThread(
         webSearchAllowed: params.webSearchAllowed,
         hostSystemAgentActive,
         restrictedToolSurfaceInheritedMcpServerNames,
+        shellEnvironment: params.shellEnvironment,
+        disableLoginShell: params.disableLoginShell,
       }),
     );
     const requestModelProvider =
@@ -478,6 +480,8 @@ export async function startFreshCodexThread(
       modelProvider: startModelProvider,
       hostSystemAgentActive,
       restrictedToolSurfaceInheritedMcpServerNames,
+      shellEnvironment: params.shellEnvironment,
+      disableLoginShell: params.disableLoginShell,
     }),
   );
   const requestModelProvider =
