@@ -6,11 +6,11 @@ import fs from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
-import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   createQaBundledPluginsDir,
   resolveQaOwnerPluginIdsForProviderIds,
@@ -252,7 +252,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
   const keepTemp = process.env.OPENCLAW_QA_KEEP_TEMP === "1";
   const gatewayLogStreams: Array<["stdout" | "stderr", WriteStream]> = [];
   let child: ReturnType<typeof spawn> | null = null;
@@ -741,7 +741,7 @@ export async function startQaGatewayChild(params: {
     const runningEnv = env;
     const throwActiveChildFailure = () => throwQaGatewayChildFailure(activeGetChildFailure, logs);
 
-    const spawnReplacementGatewayChild = async () => {
+    const spawnReplacementGatewayChildOnce = async () => {
       const spawnedReplacement = await spawnGatewayProcess(runningEnv);
       const nextChild = spawnedReplacement.child;
       const nextIdentity = spawnedReplacement.identity;
@@ -820,6 +820,32 @@ export async function startQaGatewayChild(params: {
           },
         });
         throw error;
+      }
+    };
+
+    const spawnReplacementGatewayChild = async () => {
+      const replacementLogMark = output.mark();
+      try {
+        return await spawnReplacementGatewayChildOnce();
+      } catch (error) {
+        const details = [
+          redactQaGatewayDebugText(output.readSince(replacementLogMark)),
+          formatErrorMessage(error),
+        ].join("\n");
+        const retry = resolveQaGatewayStartupRetry({
+          attempt: 1,
+          details,
+          migrationConvergenceRestartUsed: false,
+        });
+        if (retry?.kind !== "migration-convergence-restart") {
+          throw error;
+        }
+        const retryBuffer = Buffer.from(
+          "[qa-lab] replacement gateway completed plugin migration convergence; restarting once with the same state, config, and port\n",
+        );
+        output.push("internal", retryBuffer);
+        stdoutLog.write(retryBuffer);
+        return await spawnReplacementGatewayChildOnce();
       }
     };
 
