@@ -4,8 +4,8 @@ import type {
   Context,
   EventStream,
   ToolResultMessage,
+  EventStream as SourceEventStream,
 } from "@astroclaw/llm-core";
-import type { EventStream as SourceEventStream } from "@astroclaw/llm-core";
 import { coerceErrorMessage } from "@astroclaw/normalization-core/error-coercion";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 // Keep the runtime class on the public package specifier so OpenClaw and
@@ -34,8 +34,8 @@ import {
   isTurnHandoffAbort,
   normalizeCoreContextMessages,
 } from "./turn-interruption.js";
-import type { ToolResultContentSource } from "./types.js";
 import type {
+  ToolResultContentSource,
   AgentContext,
   AgentEvent,
   AgentLoopConfig,
