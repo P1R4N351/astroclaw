@@ -1,11 +1,11 @@
 import { expectDefined } from "@astroclaw/normalization-core";
+// Telegram tests cover bot message dispatch plugin behavior.
+import type { Bot } from "grammy";
 import {
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-// Telegram tests cover bot message dispatch plugin behavior.
-import type { Bot } from "grammy";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, vi } from "vitest";
 import { resolveAutoTopicLabelConfig as resolveAutoTopicLabelConfigRuntime } from "./auto-topic-label-config.js";
 import type { TelegramBotDeps } from "./bot-deps.js";
@@ -160,24 +160,24 @@ vi.mock("./draft-stream.js", () => ({
   createTelegramDraftStream: createTelegramDraftStreamHoisted,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
+vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     deliverInboundReplyWithMessageSendContext: deliverInboundReplyWithMessageSendContextHoisted,
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
   return {
     ...actual,
     getGlobalHookRunner: getGlobalHookRunnerHoisted,
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
+vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
   type RunParams = Parameters<typeof actual.runChannelInboundEvent>[0];
   type TestTurn = {
     storePath: string;
@@ -206,7 +206,7 @@ vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
         throw new Error("expected assembled Telegram channel turn plan");
       }
       const delivery =
-        resolved.delivery as unknown as import("astroclaw/plugin-sdk/channel-inbound").ChannelInboundTurnPlan<"provider_message_sending">["delivery"];
+        resolved.delivery as unknown as import("openclaw/plugin-sdk/channel-inbound").ChannelInboundTurnPlan<"provider_message_sending">["delivery"];
       const testTurn = (params.raw as { turn: TestTurn }).turn;
       const result = await actual.runPreparedInboundReply({
         channel: resolved.channel,
@@ -246,9 +246,9 @@ vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-runtime")>();
   return {
     ...actual,
     appendAssistantMirrorMessageByIdentity: appendAssistantMirrorMessageByIdentityHoisted,
@@ -554,18 +554,6 @@ export function allDeliveredReplyTexts(): string[] {
 
 export function expectDispatchParams(expected: Record<string, unknown>) {
   return expectRecordFields(mockCallArg(dispatchReplyWithBufferedBlockDispatcher), expected);
-}
-
-// The collapse bar edits the live window message in place (finalizeToPreview)
-// instead of deleting it and reposting the bar as a new message.
-export function expectWindowCollapsedTo(
-  stream: { finalizeToPreview: { mock: { calls: unknown[][] } } },
-  barText: string,
-) {
-  const calls = stream.finalizeToPreview.mock.calls;
-  expect(calls.length).toBeGreaterThan(0);
-  const preview = calls.at(-1)?.[0] as { text?: string } | undefined;
-  expect(preview?.text).toBe(barText);
 }
 
 export function createContext(overrides?: Partial<TelegramMessageContext>): TelegramMessageContext {
