@@ -4,8 +4,8 @@
  * Defines receipts, live-message state, send contexts, and adapter capability contracts.
  */
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
-import type { ReplyToMode } from "../../config/types.js";
 import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { ReplyToMode } from "../../config/types.js";
 import type { OutboundSendDeps } from "../../infra/outbound/send-deps.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import type { PollInput } from "../../polls.js";
@@ -50,6 +50,10 @@ type DurableFinalDeliveryPayloadShape = {
 export type MessageReceiptSourceResult = {
   channel?: string;
   messageId?: string;
+  target?: {
+    kind: "chat" | "channel" | "room" | "conversation";
+    id: string;
+  };
   chatId?: string;
   channelId?: string;
   roomId?: string;
@@ -232,6 +236,7 @@ export type ChannelMessageSendPollContext<TConfig = OpenClawConfig> = Omit<
 export type ChannelMessageSendResult = {
   receipt: MessageReceipt;
   messageId?: string;
+  target?: MessageReceiptSourceResult["target"];
 };
 
 /** Discriminator for lifecycle hooks around a concrete adapter send attempt. */
