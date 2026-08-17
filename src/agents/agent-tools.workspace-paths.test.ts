@@ -5,7 +5,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createReadTool } from "openclaw/plugin-sdk/agent-sessions";
+import { createReadTool } from "astroclaw/plugin-sdk/agent-sessions";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "./test-helpers/fast-coding-tools.js";
 import "./test-helpers/fast-astroclaw-tools.js";
@@ -812,9 +812,10 @@ describe("tools.fs.workspaceOnly", () => {
   });
 });
 
-vi.mock("openclaw/plugin-sdk/llm", async () => {
-  const original =
-    await vi.importActual<typeof import("openclaw/plugin-sdk/llm")>("openclaw/plugin-sdk/llm");
+vi.mock("astroclaw/plugin-sdk/llm", async () => {
+  const original = await vi.importActual<typeof import("astroclaw/plugin-sdk/llm")>(
+    "astroclaw/plugin-sdk/llm",
+  );
   return {
     ...original,
   };
@@ -1062,10 +1063,7 @@ describe("FS tools with workspaceOnly=false", () => {
     expect(hasToolError(result)).toBe(false);
     expect(result).toStrictEqual({
       content: [{ type: "text", text: "Appended content to memory/2026-03-07.md." }],
-      details: {
-        path: "memory/2026-03-07.md",
-        appendOnly: true,
-      },
+      details: { changed: true },
     });
     await expect(fs.readFile(allowedAbsolutePath, "utf-8")).resolves.toBe("seed\nnew note");
   });
@@ -1090,10 +1088,7 @@ describe("FS tools with workspaceOnly=false", () => {
     expect(hasToolError(result)).toBe(false);
     expect(result).toStrictEqual({
       content: [{ type: "text", text: "Appended content to memory/2026-03-08.md." }],
-      details: {
-        path: "memory/2026-03-08.md",
-        appendOnly: true,
-      },
+      details: { changed: true },
     });
     await expect(fs.readFile(allowedAbsolutePath, "utf-8")).resolves.toBe("new note");
   });
