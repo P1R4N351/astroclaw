@@ -1,7 +1,9 @@
 // Control UI module implements app tool stream behavior.
 import { asNullableObjectRecord as readRecord } from "@astroclaw/normalization-core/record-coerce";
-import { normalizeNullableString as toTrimmedString } from "@astroclaw/normalization-core/string-coerce";
-import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import {
+  normalizeNullableString as toTrimmedString,
+  normalizeLowercaseStringOrEmpty,
+} from "@astroclaw/normalization-core/string-coerce";
 import { stripInlineDirectiveTagsForDelivery } from "../../../../src/utils/directive-tags.js";
 import type { ExecApprovalRequest } from "../../app/exec-approval.ts";
 import type { ChatQueueItem, ChatStreamSegment } from "../../lib/chat/chat-types.ts";
