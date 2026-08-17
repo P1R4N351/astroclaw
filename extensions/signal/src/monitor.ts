@@ -1,48 +1,48 @@
 // Signal plugin module implements monitor behavior.
-import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-adapter-runtime";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/channel-core";
-import { resolveChannelStreamingBlockEnabled } from "astroclaw/plugin-sdk/channel-outbound";
-import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-adapter-runtime";
+import type { PluginRuntime } from "openclaw/plugin-sdk/channel-core";
+import { resolveChannelStreamingBlockEnabled } from "openclaw/plugin-sdk/channel-outbound";
+import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
 import type {
+  OpenClawConfig,
   ReplyToMode,
   SignalReactionNotificationMode,
-} from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/config-contracts";
 import {
   canonicalizeBase64,
   detectMime,
   estimateBase64DecodedBytes,
   saveMediaBuffer,
-} from "astroclaw/plugin-sdk/media-runtime";
-import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+} from "openclaw/plugin-sdk/media-runtime";
+import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import {
   chunkTextWithMode,
   createReplyReferencePlanner,
   resolveChunkMode,
   resolveTextChunkLimit,
-} from "astroclaw/plugin-sdk/reply-runtime";
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+} from "openclaw/plugin-sdk/reply-runtime";
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import {
   createNonExitingRuntime,
   type BackoffPolicy,
   type RuntimeEnv,
-} from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/runtime-env";
 import {
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "astroclaw/plugin-sdk/runtime-group-policy";
+} from "openclaw/plugin-sdk/runtime-group-policy";
 import {
   normalizeOptionalString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { normalizeE164 } from "astroclaw/plugin-sdk/text-utility-runtime";
-import { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
+import { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
 import { resolveSignalAccount, resolveSignalReplyToMode } from "./accounts.js";
 import { isSignalNativeApprovalHandlerConfigured } from "./approval-native.js";
 import { addSignalApprovalReactionHintToStructuredPayload } from "./approval-reactions.js";
