@@ -3,7 +3,7 @@
 
 import { expectDefined } from "@astroclaw/normalization-core";
 import { MAX_DATE_TIMESTAMP_MS } from "@astroclaw/normalization-core/number-coercion";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthHealthSummary } from "../../agents/auth-health.js";
 import type { AuthProfileStore } from "../../agents/auth-profiles.js";
@@ -389,7 +389,12 @@ describe("models.authStatus", () => {
   ])(
     "resolves an $name agentId against the configured roster",
     async ({ params, expectedAgentId }) => {
-      const cfg = { agents: { list: [{ id: "main", default: true }, { id: "writer" }] } };
+      const cfg = {
+        agents: {
+          defaults: { systemAgent: { agentId: "main" } },
+          list: [{ id: "main" }, { id: "writer" }],
+        },
+      };
       mocks.getRuntimeConfig.mockReturnValue(cfg);
       mocks.listAgentIds.mockReturnValue(["main", "writer"]);
 
