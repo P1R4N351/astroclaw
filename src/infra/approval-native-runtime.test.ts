@@ -1,5 +1,5 @@
 // Covers native approval runtime delivery and resolution.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChannelApprovalNativeAdapter } from "../channels/plugins/types.adapters.js";
 import {
@@ -288,11 +288,12 @@ describe("createChannelNativeApprovalRuntime", () => {
       createdAtMs: 0,
       expiresAtMs: 60_000,
     } as const;
+    const normalizedRequest = { ...request, approvalKind: "plugin" as const };
     await runtime.handleRequested(request);
 
-    expect(resolveApprovalKind).toHaveBeenCalledWith(request);
+    expect(resolveApprovalKind).toHaveBeenCalledWith(normalizedRequest);
     expect(buildPendingContent).toHaveBeenCalledWith(
-      expect.objectContaining({ request, approvalKind: "exec" }),
+      expect.objectContaining({ request: normalizedRequest, approvalKind: "exec" }),
     );
   });
 
