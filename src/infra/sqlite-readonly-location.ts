@@ -11,7 +11,7 @@ import {
   createPrivateSqliteTempDirectory,
   createPrivateSqliteTempDirectorySync,
 } from "./sqlite-private-directory.js";
-import { resolvePreferredOpenClawTmpDir } from "./tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
 
 const MAX_SNAPSHOT_ATTEMPTS = 10;
 const COPY_BUFFER_BYTES = 1024 * 1024;
@@ -34,7 +34,7 @@ type SourceSidecars = {
   wal: boolean;
 };
 
-type SourceJournalMode = "rollback" | "unknown" | "wal";
+type SourceJournalMode = "empty" | "rollback" | "unknown" | "wal";
 
 type PreparedSqliteReadOnlyLocation = {
   cleanup: () => boolean;
@@ -103,6 +103,9 @@ function readSourceJournalMode(pathname: string): SourceJournalMode {
       0,
     );
     assertPinnedIdentityUnchanged(source);
+    if (bytesRead === 0 && confirmedBytesRead === 0) {
+      return "empty";
+    }
     if (
       bytesRead !== header.length ||
       confirmedBytesRead !== confirmedHeader.length ||
@@ -377,7 +380,7 @@ async function createStableReadOnlyCopy(
   journalMode: Exclude<SourceJournalMode, "unknown">,
 ): Promise<PreparedSqliteReadOnlyLocation> {
   const tempDir = await createPrivateSqliteTempDirectory(
-    resolvePreferredOpenClawTmpDir(),
+    resolvePreferredAstroclawTmpDir(),
     `openclaw-sqlite-readonly-${process.pid}-`,
   );
   return createStableReadOnlyCopyInTempDirectory(pathname, journalMode, tempDir);
@@ -388,7 +391,7 @@ function createStableReadOnlyCopySync(
   journalMode: Exclude<SourceJournalMode, "unknown">,
 ): PreparedSqliteReadOnlyLocation {
   const tempDir = createPrivateSqliteTempDirectorySync(
-    resolvePreferredOpenClawTmpDir(),
+    resolvePreferredAstroclawTmpDir(),
     `openclaw-sqlite-readonly-${process.pid}-`,
   );
   return createStableReadOnlyCopyInTempDirectory(pathname, journalMode, tempDir);
@@ -398,7 +401,7 @@ async function createOnlineReadOnlyBackup(
   pathname: string,
 ): Promise<PreparedSqliteReadOnlyLocation> {
   const tempDir = await createPrivateSqliteTempDirectory(
-    resolvePreferredOpenClawTmpDir(),
+    resolvePreferredAstroclawTmpDir(),
     `openclaw-sqlite-readonly-${process.pid}-`,
   );
   const snapshotPath = path.join(tempDir, "database.sqlite");
@@ -472,6 +475,17 @@ export async function prepareSqliteReadOnlyLocation(
       }
       lastChange = error;
       continue;
+    }
+    if (journalMode === "empty") {
+      try {
+        return await createStableReadOnlyCopy(canonicalPath, journalMode);
+      } catch (error) {
+        if (!(error instanceof SqliteSourceChangedError)) {
+          throw error;
+        }
+        lastChange = error;
+        continue;
+      }
     }
     const sidecars = readSourceSidecars(canonicalPath);
     if (journalMode !== "wal" || (sidecars.wal && sidecars.shm)) {
