@@ -2,8 +2,8 @@
 // Merges auth overrides, resolves secret refs, validates weak secrets, and generates fallbacks.
 import crypto from "node:crypto";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { GatewayAuthConfig, GatewayTailscaleConfig } from "../config/types.gateway.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { GatewayAuthConfig, GatewayTailscaleConfig } from "../config/types.gateway.js";
 import {
   hasConfiguredGatewayAuthSecretInput,
   resolveGatewayPasswordSecretRefValue,
@@ -58,12 +58,6 @@ export function mergeGatewayTailscaleConfig(
   }
   if (override.mode !== undefined) {
     merged.mode = override.mode;
-  }
-  if (override.resetOnExit !== undefined) {
-    merged.resetOnExit = override.resetOnExit;
-  }
-  if (override.serviceName !== undefined) {
-    merged.serviceName = override.serviceName;
   }
   if (override.preserveFunnel !== undefined) {
     merged.preserveFunnel = override.preserveFunnel;
