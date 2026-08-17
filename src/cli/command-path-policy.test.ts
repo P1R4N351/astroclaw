@@ -125,6 +125,16 @@ describe("command-path-policy", () => {
     }
   });
 
+  it("keeps gateway control RPCs on core-only config validation", () => {
+    for (const subcommand of ["call", "restart", "suspend", "resume"]) {
+      expectResolvedPolicy(["gateway", subcommand], {
+        configGuard: "validate",
+        loadPlugins: "never",
+        networkProxy: "bypass",
+      });
+    }
+  });
+
   it("applies exact overrides after broader channel plugin rules", () => {
     expectResolvedPolicy(["channels", "send"], {
       loadPlugins: "always",
