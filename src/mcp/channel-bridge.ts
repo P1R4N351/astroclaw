@@ -1,19 +1,19 @@
 // Channel MCP bridge translates MCP tool calls into channel runtime operations.
 import { randomUUID } from "node:crypto";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { resolveIntegerOption } from "@astroclaw/normalization-core/number-coercion";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
 } from "@astroclaw/normalization-core/string-coerce";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { EventFrame } from "../../packages/gateway-protocol/src/index.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayClient } from "../gateway/client.js";
+import type { ChannelApprovalKind } from "../infra/approval-types.js";
 import { extractFirstTextBlock } from "../shared/chat-message-content.js";
 import { VERSION } from "../version.js";
 import type {
   ApprovalDecision,
-  ApprovalKind,
   ChatHistoryResult,
   ClaudeChannelMode,
   ConversationDescriptor,
@@ -301,7 +301,7 @@ export class OpenClawChannelBridge {
 
   /** Forward an MCP approval decision to the matching Gateway approval resolver. */
   async respondToApproval(params: {
-    kind: ApprovalKind;
+    kind: ChannelApprovalKind;
     id: string;
     decision: ApprovalDecision;
   }): Promise<Record<string, unknown>> {
@@ -457,7 +457,7 @@ export class OpenClawChannelBridge {
     }
   }
 
-  private trackApproval(kind: ApprovalKind, payload: Record<string, unknown>): void {
+  private trackApproval(kind: ChannelApprovalKind, payload: Record<string, unknown>): void {
     if (this.closed) {
       return;
     }
