@@ -166,10 +166,10 @@ const configMocks = vi.hoisted(() => ({
     }
   >(() => ({ browser: {} })),
 }));
-vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
+vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")
-  >("astroclaw/plugin-sdk/runtime-config-snapshot");
+    typeof import("openclaw/plugin-sdk/runtime-config-snapshot")
+  >("openclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
     getRuntimeConfig: configMocks.loadConfig,
@@ -3330,11 +3330,11 @@ describe("browser tool snapshot labels", () => {
   it("keeps private labeled snapshots visible to the model but out of channel delivery", async () => {
     const [{ imageResultFromFile }, { extractToolResultMediaArtifact, filterToolResultMediaUrls }] =
       await Promise.all([
-        vi.importActual<typeof import("astroclaw/plugin-sdk/channel-actions")>(
-          "astroclaw/plugin-sdk/channel-actions",
+        vi.importActual<typeof import("openclaw/plugin-sdk/channel-actions")>(
+          "openclaw/plugin-sdk/channel-actions",
         ),
-        vi.importActual<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>(
-          "astroclaw/plugin-sdk/agent-harness-runtime",
+        vi.importActual<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>(
+          "openclaw/plugin-sdk/agent-harness-runtime",
         ),
       ]);
     const imagePath = fileURLToPath(
