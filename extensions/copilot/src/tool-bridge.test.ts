@@ -4,25 +4,25 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { Tool as SdkTool, ToolInvocation, ToolResultObject } from "@github/copilot-sdk";
-import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
 import {
   type AnyAgentTool,
   type SandboxContext,
   wrapToolWithBeforeToolCallHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
   createOwnerBackedContractTool,
   textToolResult,
-} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import {
   clearMemoryPluginState,
   type MemoryFlushPlan,
   registerMemoryCapability,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { withTempDir } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { withTempDir } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCopilotTestHostCapabilities } from "./host-capability.test-support.js";
 import { createCopilotToolBridge as createCopilotToolBridgeImpl } from "./tool-bridge.js";
@@ -1136,15 +1136,15 @@ describe("createCopilotToolBridge", () => {
         sessionRef,
       });
 
-      const onYield = getOpts().onYield as (msg?: string) => void;
+      const onYield = getOpts().onYield as (message?: string, acknowledgment?: string) => void;
       // No session bound yet: onYield must no-op the abort path
       // without throwing, but the onYieldDetected notification fires
       // regardless so a yield before session-bind is still surfaced
       // to the final attempt result.
-      expect(() => onYield("early yield")).not.toThrow();
+      expect(() => onYield("early yield", "Starting research.")).not.toThrow();
       expect(abort).toHaveBeenCalledTimes(0);
       expect(onYieldDetected).toHaveBeenCalledTimes(1);
-      expect(onYieldDetected).toHaveBeenCalledWith("early yield");
+      expect(onYieldDetected).toHaveBeenCalledWith("early yield", "Starting research.");
 
       // Bind the session after the fact (attempt.ts does this after
       // createSession/resumeSession resolves) and verify subsequent
@@ -1153,7 +1153,7 @@ describe("createCopilotToolBridge", () => {
       onYield("now yield");
       expect(abort).toHaveBeenCalledTimes(1);
       expect(onYieldDetected).toHaveBeenCalledTimes(2);
-      expect(onYieldDetected).toHaveBeenLastCalledWith("now yield");
+      expect(onYieldDetected).toHaveBeenLastCalledWith("now yield", undefined);
     });
 
     it("onYield still aborts the live session when onYieldDetected throws (defense in depth)", async () => {
@@ -1176,7 +1176,7 @@ describe("createCopilotToolBridge", () => {
         sessionRef,
       });
 
-      const onYield = getOpts().onYield as (msg?: string) => void;
+      const onYield = getOpts().onYield as (message?: string, acknowledgment?: string) => void;
       expect(() => onYield("handler-fails-but-abort-must-fire")).not.toThrow();
       expect(abort).toHaveBeenCalledTimes(1);
       warn.mockRestore();
