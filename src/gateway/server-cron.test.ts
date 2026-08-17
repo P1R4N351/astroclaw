@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 // Gateway cron tests cover isolated agent turns, heartbeat wakeups, completion
 // delivery, lifecycle cleanup, hook emission, and SSRF-guarded webhooks.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../test/helpers/promise.js";
 import { AgentDeletionCommitUncertainError } from "../agents/agent-lifecycle-registry.js";
@@ -341,6 +341,69 @@ describe("buildGatewayCronService", () => {
       runCronChanged: runCronChangedMock,
     });
   });
+
+  it.each(["update", "updateWithPrecondition"] as const)(
+    "forwards authority options through the %s lifecycle wrapper",
+    async (method) => {
+      const cfg = createCronConfig(`server-cron-update-authority-${method}`);
+      loadConfigMock.mockReturnValue(cfg);
+      const state = buildGatewayCronService({
+        cfg,
+        deps: {} as CliDeps,
+        broadcast: () => {},
+      });
+      const owner = {
+        agentId: "main",
+        sessionKey: "agent:main:discord:group:ops",
+        accountId: "work",
+      };
+      const scheduledToolPolicy = {
+        version: 1 as const,
+        mode: "account" as const,
+        ownerSessionKey: owner.sessionKey,
+        ownerAccountId: owner.accountId,
+      };
+      let restarted: ReturnType<typeof buildGatewayCronService> | undefined;
+
+      try {
+        const job = await state.cron.add({
+          name: `authority ${method}`,
+          enabled: true,
+          owner,
+          schedule: { kind: "every", everyMs: 60_000 },
+          sessionTarget: "main",
+          wakeMode: "now",
+          payload: { kind: "systemEvent", text: "run" },
+        });
+        const commitGuard = vi.fn();
+        const patch = {
+          sessionTarget: "isolated" as const,
+          payload: { kind: "agentTurn" as const, message: "updated", toolsAllow: ["write"] },
+        };
+        const options = { scheduledToolPolicy, commitGuard };
+
+        if (method === "update") {
+          await state.cron.update(job.id, patch, options);
+        } else {
+          await state.cron.updateWithPrecondition(job.id, patch, () => undefined, options);
+        }
+
+        expect.soft(commitGuard).toHaveBeenCalledOnce();
+        state.cron.stop();
+        restarted = buildGatewayCronService({
+          cfg,
+          deps: {} as CliDeps,
+          broadcast: () => {},
+        });
+        expect((await restarted.cron.readJob(job.id))?.scheduledToolPolicy).toEqual(
+          scheduledToolPolicy,
+        );
+      } finally {
+        state.cron.stop();
+        restarted?.cron.stop();
+      }
+    },
+  );
 
   it("keeps sole-agent ownerless jobs dynamic across a restart and roster rename", async () => {
     const tmpDir = path.join(os.tmpdir(), `server-cron-sole-owner-${Date.now()}`);
