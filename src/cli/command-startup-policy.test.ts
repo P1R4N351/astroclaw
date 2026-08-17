@@ -1,5 +1,5 @@
 // Command startup policy tests cover which CLI commands require startup side effects.
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cliCommandCatalog } from "./command-catalog.js";
 import { resolveCliExecutionStartupContext } from "./command-execution-startup.js";
@@ -72,6 +72,20 @@ describe("command-startup-policy", () => {
           commandPath: ["memory", "status"],
         }).skipConfigGuard,
       ).toBe(false);
+    }
+  });
+
+  it("keeps gateway-owned mutations on non-observing config validation", () => {
+    for (const commandPath of [
+      ["nodes", "approve"],
+      ["nodes", "remove"],
+      ["devices", "approve"],
+      ["devices", "remove"],
+    ]) {
+      expect(resolvePolicy({ commandPath })).toMatchObject({
+        skipConfigGuard: false,
+        validateConfigOnly: true,
+      });
     }
   });
 
