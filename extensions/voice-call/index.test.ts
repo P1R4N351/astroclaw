@@ -2,8 +2,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { Command } from "commander";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi } from "./api.js";
 import type { VoiceCallRuntime } from "./runtime-entry.js";
@@ -16,8 +16,8 @@ vi.mock("./runtime-entry.js", () => ({
   createVoiceCallRuntime: vi.fn(async () => runtimeStub),
 }));
 
-vi.mock("astroclaw/plugin-sdk/gateway-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/gateway-runtime")>()),
+vi.mock("openclaw/plugin-sdk/gateway-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/gateway-runtime")>()),
   callGatewayFromCli: callGatewayFromCliMock,
 }));
 
@@ -1227,7 +1227,7 @@ describe("voice-call plugin", () => {
     }
   });
 
-  it("CLI status lists active calls without a call id", async () => {
+  it("CLI status stays read-only when the gateway is unavailable", async () => {
     const program = new Command();
     const stdout = captureStdout();
     await registerVoiceCallCli(program);
@@ -1237,8 +1237,8 @@ describe("voice-call plugin", () => {
       const parsed = JSON.parse(stdout.output()) as {
         calls?: Array<{ callId?: string }>;
       };
-      expect(parsed.calls).toHaveLength(1);
-      expect(parsed.calls?.[0]?.callId).toBe("call-1");
+      expect(parsed.calls).toEqual([]);
+      expect(createVoiceCallRuntime).not.toHaveBeenCalled();
     } finally {
       stdout.restore();
     }
