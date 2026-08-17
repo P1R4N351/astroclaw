@@ -1,5 +1,5 @@
 // Codex tests cover media understanding provider plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildCodexMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import type { CodexAppServerClient } from "./src/app-server/client.js";
@@ -326,6 +326,7 @@ describe("codex media understanding provider", () => {
         "features.multi_agent_v2": false,
         "features.plugins": false,
         "features.standalone_web_search": false,
+        "tools.update_plan.enabled": false,
         web_search: "disabled",
       },
       environments: [],
@@ -663,6 +664,7 @@ describe("codex media understanding provider", () => {
         "features.multi_agent_v2": false,
         "features.plugins": false,
         "features.standalone_web_search": false,
+        "tools.update_plan.enabled": false,
         web_search: "disabled",
       },
       environments: [],
