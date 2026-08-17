@@ -175,11 +175,16 @@ export function renderRecentSession(params: {
   const pullRequestState = session.worktreeId
     ? host.sessionPullRequestIndicatorState(session.key, session.worktreeId)
     : "none";
-  const ownerAttribution = host.sessionsStatusFilter === "archived" ? "archived" : "created";
+  const ownerAttribution =
+    host.sessionsStatusFilter === "archived"
+      ? "archived"
+      : session.owner?.assignedAt !== undefined
+        ? "owned"
+        : "created";
   const ownerActor = host.sessionOwnershipVisible
     ? host.sessionsStatusFilter === "archived"
       ? session.archivedBy
-      : session.createdActor
+      : (session.owner?.actor ?? session.createdActor)
     : undefined;
   const ownerId = ownerActor?.id?.trim();
   const ownerViewing = ownerId
@@ -196,6 +201,8 @@ export function renderRecentSession(params: {
       ownerActor,
       ownerAttribution,
       ownerViewing,
+      session.participants,
+      session.participantCount,
     );
   const trailingDescription = session.isChild
     ? ""
@@ -304,6 +311,13 @@ export function renderRecentSession(params: {
                   aria-label=${t("sessionsView.archived")}
                   title=${t("sessionsView.archived")}
                   >${icons.archive}</span
+                >`
+              : nothing}${session.forkSource
+              ? html`<span
+                  class="sidebar-session-fork-indicator"
+                  role="img"
+                  aria-label=${t("sessionsView.forkedSession")}
+                  >${icons.gitFork}</span
                 >`
               : nothing}${label}</span
           >
