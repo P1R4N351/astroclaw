@@ -1,19 +1,22 @@
 import {
   resolveAgentConfig,
   resolveDefaultAgentId as resolveConfiguredDefaultAgentId,
-} from "openclaw/plugin-sdk/agent-runtime";
+} from "astroclaw/plugin-sdk/agent-runtime";
 import {
   optionalFiniteNumberSchema,
   optionalPositiveIntegerSchema,
-} from "openclaw/plugin-sdk/channel-actions";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { readFiniteNumberParam, readPositiveIntegerParam } from "openclaw/plugin-sdk/param-readers";
-import { resolveLivePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
-import { isIncognitoSessionKey, normalizeAgentId } from "openclaw/plugin-sdk/routing";
-import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/channel-actions";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import {
+  readFiniteNumberParam,
+  readPositiveIntegerParam,
+} from "astroclaw/plugin-sdk/param-readers";
+import { resolveLivePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import { isIncognitoSessionKey, normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { Type } from "typebox";
 import { definePluginEntry, type OpenClawPluginApi } from "./api.js";
 import {
@@ -49,7 +52,7 @@ import {
 } from "./memory-policy.js";
 
 const loadMemoryHostCoreModule = createLazyRuntimeModule(
-  () => import("openclaw/plugin-sdk/memory-host-core"),
+  () => import("astroclaw/plugin-sdk/memory-host-core"),
 );
 
 const DEFAULT_AUTO_RECALL_TIMEOUT_MS = 15_000;
@@ -136,6 +139,20 @@ export default definePluginEntry({
       const enabled = overrides?.enabled ?? runtimeConfig.memory?.search?.enabled ?? true;
       return enabled ? agentId : undefined;
     };
+    const assertRetainedToolEnabled = (
+      agentId: string,
+      getRuntimeConfig: (() => OpenClawConfig | undefined) | undefined,
+    ): void => {
+      if (!getRuntimeConfig) {
+        return;
+      }
+      const runtimeConfig = getRuntimeConfig();
+      if (!runtimeConfig || !resolveEnabledAgentId(agentId, runtimeConfig)) {
+        throw new Error(
+          "Memory is disabled for this agent. Enable memory search for this agent, then retry.",
+        );
+      }
+    };
     const resolveCliAgentId = (rawAgentId: unknown): string => {
       if (typeof rawAgentId === "string" && rawAgentId.trim()) {
         return normalizeAgentId(rawAgentId);
@@ -221,6 +238,8 @@ export default definePluginEntry({
             limit: optionalPositiveIntegerSchema({ description: "Max results (default: 5)" }),
           }),
           async execute(_toolCallId, params) {
+            // Tool definitions outlive hot config reloads; revalidate before memory I/O.
+            assertRetainedToolEnabled(agentId, ctx.getRuntimeConfig);
             const rawParams = params as Record<string, unknown>;
             const query = rawParams.query as string;
             const limit = readPositiveIntegerParam(rawParams, "limit") ?? 5;
@@ -343,6 +362,7 @@ export default definePluginEntry({
             category: Type.Optional(Type.Enum(MEMORY_CATEGORIES, { type: "string" })),
           }),
           async execute(_toolCallId, params) {
+            assertRetainedToolEnabled(agentId, ctx.getRuntimeConfig);
             if (isIncognitoSessionKey(ctx.sessionKey)) {
               return {
                 content: [
@@ -438,6 +458,7 @@ export default definePluginEntry({
             memoryId: Type.Optional(Type.String({ description: "Specific memory ID" })),
           }),
           async execute(_toolCallId, params) {
+            assertRetainedToolEnabled(agentId, ctx.getRuntimeConfig);
             const { query, memoryId } = params as { query?: string; memoryId?: string };
 
             if (memoryId) {
