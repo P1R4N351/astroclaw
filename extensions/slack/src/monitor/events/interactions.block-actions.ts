@@ -1,21 +1,22 @@
 // Slack plugin module implements interactions.block actions behavior.
 import type { AllMiddlewareArgs, SlackActionMiddlewareArgs } from "@slack/bolt";
 import type { Block, KnownBlock } from "@slack/web-api";
-import { resolveApprovalOverGateway } from "openclaw/plugin-sdk/approval-gateway-runtime";
-import { parseExecApprovalCommandText } from "openclaw/plugin-sdk/approval-reply-runtime";
-import { resolveCommandAuthorization } from "openclaw/plugin-sdk/command-auth-native";
-import { isApprovalNotFoundError } from "openclaw/plugin-sdk/error-runtime";
-import { requestHeartbeat } from "openclaw/plugin-sdk/heartbeat-runtime";
+import { resolveApprovalOverGateway } from "astroclaw/plugin-sdk/approval-gateway-runtime";
+import type { ChannelApprovalKind } from "astroclaw/plugin-sdk/approval-handler-runtime";
+import { parseExecApprovalCommandText } from "astroclaw/plugin-sdk/approval-reply-runtime";
+import { resolveCommandAuthorization } from "astroclaw/plugin-sdk/command-auth-native";
+import { isApprovalNotFoundError } from "astroclaw/plugin-sdk/error-runtime";
+import { requestHeartbeat } from "astroclaw/plugin-sdk/heartbeat-runtime";
 import {
   parseStrictFiniteNumber,
   timestampMsToIsoString,
-} from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/number-runtime";
 import {
   asOptionalRecord,
   normalizeOptionalString,
   normalizeUniqueTrimmedStringList,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { enqueueRoutedSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { enqueueRoutedSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
 import {
   decodeSlackApprovalAction,
   SLACK_APPROVAL_HEADER_BLOCK_ID,
@@ -731,7 +732,7 @@ async function handleSlackLegacyApprovalInteraction(params: {
     accountId: params.ctx.accountId,
     senderId: params.parsed.userId,
   });
-  const resolveMethods: Array<"exec" | "plugin"> = [];
+  const resolveMethods: ChannelApprovalKind[] = [];
   if (execAuthorized) {
     resolveMethods.push("exec");
   }
