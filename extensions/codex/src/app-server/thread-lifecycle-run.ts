@@ -1,4 +1,4 @@
-import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { isIncognitoSessionKey } from "../incognito-session.js";
 import { closeCodexStartupClientBestEffort } from "./attempt-client-cleanup.js";
 import { resolveCodexAppServerClientInstanceId } from "./client.js";
@@ -187,6 +187,8 @@ export async function startOrResumeThread(
         hostSystemAgentActive,
         restrictedToolSurface,
         restrictedToolSurfaceInheritedMcpServerNames,
+        shellEnvironment: params.shellEnvironment,
+        disableLoginShell: params.disableLoginShell,
         environmentSelection: params.environmentSelection,
         provisionalAppIds: pluginThreadConfig?.provisionalAppIds,
         signal: params.signal,
