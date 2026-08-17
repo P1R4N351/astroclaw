@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
+import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
 // Setup wizard tests cover end-to-end onboarding prompt flows.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
 import {
@@ -81,7 +81,6 @@ const configureGatewayForSetup = vi.hoisted(() =>
       authMode: "token",
       gatewayToken: "test-token",
       tailscaleMode: "off",
-      tailscaleResetOnExit: false,
     },
   })),
 );
@@ -651,7 +650,6 @@ describe("runSetupWizard", () => {
         authMode: "token",
         gatewayToken: "test-token",
         tailscaleMode: "off",
-        tailscaleResetOnExit: false,
       },
     }));
     let authoredConfig: OpenClawConfig | undefined;
@@ -2752,7 +2750,6 @@ describe("runSetupWizard", () => {
         gatewayToken: "manual-gateway-token-placeholder",
         gatewayPassword: "manual-gateway-password-placeholder",
         tailscale: "off" as const,
-        tailscaleResetOnExit: false,
       },
       expectedPort: 19511,
       expectedProbeAuth: {
@@ -2808,7 +2805,6 @@ describe("runSetupWizard", () => {
           token: "manual-gateway-token-placeholder",
           password: "manual-gateway-password-placeholder",
           tailscaleMode: "off",
-          tailscaleResetOnExit: false,
         });
       }
     },
@@ -2858,7 +2854,7 @@ describe("runSetupWizard", () => {
           port: 19111,
           bind: "loopback",
           auth: { mode: "token", token: "stored-token" },
-          tailscale: { mode: "off", resetOnExit: false },
+          tailscale: { mode: "off" },
         },
       }),
     );
@@ -2878,7 +2874,6 @@ describe("runSetupWizard", () => {
           tailscale: {
             ...args.nextConfig.gateway?.tailscale,
             mode: args.quickstartGateway.tailscaleMode,
-            resetOnExit: args.quickstartGateway.tailscaleResetOnExit,
           },
         },
       },
@@ -2888,7 +2883,6 @@ describe("runSetupWizard", () => {
         authMode: args.quickstartGateway.authMode,
         gatewayToken: undefined,
         tailscaleMode: args.quickstartGateway.tailscaleMode,
-        tailscaleResetOnExit: args.quickstartGateway.tailscaleResetOnExit,
       },
     }));
 
