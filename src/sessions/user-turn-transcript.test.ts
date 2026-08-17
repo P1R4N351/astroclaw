@@ -1,7 +1,7 @@
 // User turn transcript tests cover transcript extraction for user turns.
 import fs from "node:fs";
 import path from "node:path";
-import { castAgentMessage } from "astroclaw/plugin-sdk/test-fixtures";
+import { castAgentMessage } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { formatSqliteSessionFileMarker } from "../config/sessions/legacy-sqlite-marker.js";
@@ -542,6 +542,41 @@ describe("user turn transcript persistence", () => {
         logicalTurnId: expect.any(String),
         role: "user",
       });
+    });
+
+    it("adds confirmed steering provenance after runtime persistence", async () => {
+      const dir = tempDirs.make("openclaw-user-turn-recorder-confirm-steer-");
+      const target = createSqliteTranscriptTarget({ dir });
+      const input = {
+        text: "tighten the answer",
+        idempotencyKey: "confirm-steer:user",
+        sender: { id: "operator-1", name: "Operator" },
+      };
+      const recorder = createUserTurnTranscriptRecorder({ input, target });
+      const persisted = await persistUserTurnTranscript({ ...target, input });
+      expect(persisted).toBeDefined();
+      recorder.markRuntimePersisted(persisted?.message, persisted?.admission);
+      const initialGeneration = recorder.getAdmissionReceipt()?.generation;
+
+      await recorder.confirmSteerTargetRunIdForPersistence?.("active-run");
+
+      expect(recorder.getAdmissionReceipt()?.generation).not.toBe(initialGeneration);
+      expect(recorder.getPersistedMessage?.()).toMatchObject({
+        __openclaw: {
+          senderId: "operator-1",
+          senderName: "Operator",
+          steerTargetRunId: "active-run",
+        },
+      });
+      await expect(readTranscriptMessages(target)).resolves.toEqual([
+        expect.objectContaining({
+          __openclaw: {
+            senderId: "operator-1",
+            senderName: "Operator",
+            steerTargetRunId: "active-run",
+          },
+        }),
+      ]);
     });
 
     it("waits for a deferred projection rebuild before returning admission identity", async () => {
