@@ -2,13 +2,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { normalizeAccountId } from "openclaw/plugin-sdk/account-id";
-import { loadJsonFile } from "openclaw/plugin-sdk/json-store";
+import { normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
+import { loadJsonFile } from "astroclaw/plugin-sdk/json-store";
 import type {
   PluginStateKeyedStore,
   PluginStateSyncKeyedStore,
-} from "openclaw/plugin-sdk/plugin-state-runtime";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { getMatrixRuntime } from "../../runtime.js";
 import { resolveMatrixAccountStorageRoot } from "../../storage-paths.js";
 import {
@@ -20,8 +20,7 @@ import {
   scoreMatrixCryptoStateInStore,
 } from "../crypto-state-store.js";
 import { resolveMatrixSqliteStateEnv } from "../sqlite-state.js";
-import type { MatrixAuth } from "./types.js";
-import type { MatrixStoragePaths } from "./types.js";
+import type { MatrixAuth, MatrixStoragePaths } from "./types.js";
 
 const DEFAULT_ACCOUNT_KEY = "default";
 const STORAGE_META_FILENAME = "storage-meta.json";
