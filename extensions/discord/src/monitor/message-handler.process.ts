@@ -1,31 +1,31 @@
-import { resolveAgentConfig, resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+// Discord plugin module implements message handler.process behavior.
+import type { APIAllowedMentions } from "discord-api-types/v10";
+import { resolveAgentConfig, resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   dispatchChannelInboundTurn,
   hasFinalInboundReplyDispatch,
   readAgentRunTerminalOutcome,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 import {
   bindIngressLifecycleToReplyOptions,
   defineFinalizableLivePreviewAdapter,
   deliverWithFinalizableLivePreviewAdapter,
   resolveChannelMessageSourceReplyDeliveryMode,
   resolveTranscriptBackedChannelFinalText,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
 import {
   getReplyPayloadTtsSupplement,
   isReplyPayloadNonTerminalToolErrorWarning,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyDispatchKind, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyDispatchKind, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import {
   danger,
   logVerbose,
   shouldLogVerbose,
   sleepWithAbort,
-} from "astroclaw/plugin-sdk/runtime-env";
-// Discord plugin module implements message handler.process behavior.
-import type { APIAllowedMentions } from "discord-api-types/v10";
+} from "openclaw/plugin-sdk/runtime-env";
 import { chunkDiscordTextWithMode } from "../chunk.js";
 import { discordTextHasBroadcastMention } from "../mentions.js";
 import { editMessageDiscord } from "../send.messages.js";
@@ -565,11 +565,11 @@ async function processDiscordMessageInner(
       ),
     );
   };
-  let dispatchResult: {
-    queuedFinal: boolean;
-    counts: Record<ReplyDispatchKind, number>;
-    failedCounts?: Partial<Record<ReplyDispatchKind, number>>;
-  } | null = null;
+  type DispatchResult = Extract<
+    Awaited<ReturnType<typeof dispatchChannelInboundTurn>>,
+    { dispatched: true }
+  >["dispatchResult"];
+  let dispatchResult: DispatchResult | null = null;
   let dispatchError = false;
   let dispatchAborted = false;
   const deliverPendingToolWarningFinalIfNeeded = async () => {
@@ -693,7 +693,9 @@ async function processDiscordMessageInner(
     endDeliveryCorrelation();
     await draftPreview.cleanup();
     dispatchError ||= readAgentRunTerminalOutcome(dispatchResult) === "failed";
-    const finalDeliveryFailed = (dispatchResult?.failedCounts?.final ?? 0) > 0;
+    const finalReceipt = dispatchResult?.settledReceipt?.counts.final;
+    const finalDeliveryFailed =
+      (finalReceipt?.failedBeforeSend ?? 0) + (finalReceipt?.failedAfterSend ?? 0) > 0;
     await reactions.finish({ dispatchAborted, dispatchError, finalDeliveryFailed });
   }
   if (dispatchAborted) {
@@ -705,7 +707,7 @@ async function processDiscordMessageInner(
     return;
   }
   if (shouldLogVerbose()) {
-    const finalCount = finalDispatchResult.counts.final;
+    const finalCount = finalDispatchResult.settledReceipt?.counts.final.delivered ?? 0;
     logVerbose(
       `discord: delivered ${finalCount} reply${finalCount === 1 ? "" : "ies"} to ${replyTarget}`,
     );
