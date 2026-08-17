@@ -101,7 +101,11 @@ export type ChatProps = ChatTaskSuggestionTrayProps &
     ) => void | Promise<void>;
     onGatewayQuestionSkip?: (id: string) => void | Promise<void>;
     messages: unknown[];
-    historyPagination?: { loading: boolean };
+    historyPagination?: {
+      hasMore: boolean;
+      loading: boolean;
+      onShowEarlier: () => void;
+    };
     toolMessages: unknown[];
     streamSegments: ChatStreamSegment[];
     stream: string | null;
@@ -287,7 +291,7 @@ export function renderChat(props: ChatProps) {
       sessionKey: props.sessionKey,
       announceTranscript: props.announceTranscript,
       loading: props.loading,
-      historyPagination: props.historyPagination,
+      historyLoading: props.historyPagination?.loading,
       messages: props.messages,
       toolMessages: props.toolMessages,
       streamSegments: props.streamSegments,
@@ -452,6 +456,27 @@ export function renderChat(props: ChatProps) {
           </div>
         `
       : nothing;
+  const earlierHistoryButton = props.historyPagination?.hasMore
+    ? html`
+        <button
+          class="btn btn--sm chat-history-available"
+          type="button"
+          aria-busy=${props.historyPagination.loading ? "true" : "false"}
+          aria-label=${t("chat.thread.showEarlier")}
+          @click=${props.historyPagination.onShowEarlier}
+        >
+          ${props.historyPagination.loading
+            ? html`<span class="session-run-spinner" aria-hidden="true"></span>`
+            : nothing}
+          <span role="status">
+            ${props.historyPagination.loading
+              ? t("chat.thread.loadingEarlier")
+              : t("chat.thread.earlierHistoryAvailable")}
+          </span>
+          <strong>${t("chat.thread.showEarlier")}</strong>
+        </button>
+      `
+    : nothing;
 
   return html`
     <section
@@ -506,7 +531,7 @@ export function renderChat(props: ChatProps) {
                 ${props.header ?? nothing} ${renderChatViewNotices(props)}
                 ${renderTranscriptSearch(props.paneId, requestUpdate)}
                 <div class="chat-main__conversation">
-                  ${thread} ${scrollToBottomButton}
+                  ${thread} ${earlierHistoryButton} ${scrollToBottomButton}
                   ${props.inlineApproval && props.onApprovalDecision
                     ? html`<div class="chat-inline-approval">
                         ${renderExecApprovalCard({
