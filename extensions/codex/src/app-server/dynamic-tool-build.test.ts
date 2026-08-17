@@ -3,18 +3,18 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import {
   embeddedAgentLog,
   isToolWrappedWithBeforeToolCallHook,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
   wrapToolWithBeforeToolCallHook,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   clearMemoryPluginState,
   type MemoryFlushPlan,
   registerMemoryCapability,
-} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dynamicToolBuildState } from "./dynamic-tool-build-state.js";
 import {
@@ -42,8 +42,8 @@ const hoisted = vi.hoisted(() => ({
   resolveWebSearchToolPolicy: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness")>();
 
   return {
     ...actual,
@@ -56,8 +56,9 @@ vi.mock("openclaw/plugin-sdk/agent-harness", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     normalizeAgentRuntimeTools: (...args: Parameters<typeof actual.normalizeAgentRuntimeTools>) => {
@@ -250,7 +251,7 @@ describe("Codex app-server dynamic tool build", () => {
       "apply_patch",
       "exec",
       "process",
-      "update_plan",
+      "progress_card",
       "get_goal",
       "create_goal",
       "update_goal",
@@ -268,7 +269,7 @@ describe("Codex app-server dynamic tool build", () => {
       "apply_patch",
       "exec",
       "process",
-      "update_plan",
+      "progress_card",
       "get_goal",
       "create_goal",
       "update_goal",
@@ -280,7 +281,15 @@ describe("Codex app-server dynamic tool build", () => {
         { codexDynamicToolsExclude: ["write", "apply_patch"] },
         { preserveShell: false },
       ).map((tool) => tool.name),
-    ).toEqual(["read", "edit", "update_plan", "get_goal", "create_goal", "update_goal", "message"]);
+    ).toEqual([
+      "read",
+      "edit",
+      "progress_card",
+      "get_goal",
+      "create_goal",
+      "update_goal",
+      "message",
+    ]);
   });
 
   it("filters disabled-native replacements with the canonical conversation profile", async () => {
@@ -425,6 +434,7 @@ describe("Codex app-server dynamic tool build", () => {
       "exec",
       "process",
       "update_plan",
+      "progress_card",
       "get_goal",
       "create_goal",
       "update_goal",
@@ -439,6 +449,7 @@ describe("Codex app-server dynamic tool build", () => {
     ].map((name) => ({ name }));
 
     expect(filterCodexDynamicTools(tools, {}).map((tool) => tool.name)).toEqual([
+      "progress_card",
       "web_search",
       "message",
       "heartbeat_respond",
