@@ -1,14 +1,14 @@
-import { buildChannelInboundEventContext } from "openclaw/plugin-sdk/channel-inbound";
-import { createTestInboundDebounceFlush } from "openclaw/plugin-sdk/channel-test-helpers";
+import { buildChannelInboundEventContext } from "astroclaw/plugin-sdk/channel-inbound";
+import { createTestInboundDebounceFlush } from "astroclaw/plugin-sdk/channel-test-helpers";
 // Feishu tests cover bot plugin behavior.
 import type {
   ensureConfiguredBindingRouteReady,
   getSessionBindingService,
   resolveConfiguredBindingRoute,
-} from "openclaw/plugin-sdk/conversation-runtime";
-import { createRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
-import { resolveGroupSessionKey } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+import { createRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
+import { resolveGroupSessionKey } from "astroclaw/plugin-sdk/session-store-runtime";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig, PluginRuntime } from "../runtime-api.js";
 import { parseMergeForwardContent } from "./bot-content.js";
@@ -23,6 +23,33 @@ import { resolveFeishuMessageDedupeKey } from "./dedupe-key.js";
 import { createFeishuMessageReceiveHandler } from "./monitor.message-handler.js";
 import { setFeishuRuntime } from "./runtime.js";
 import { setFeishuSyntheticDirectPreDispatchTarget } from "./synthetic-event-target.js";
+
+const failedFinalReceipt = {
+  counts: {
+    tool: {
+      delivered: 0,
+      deliveredNotVisible: 0,
+      cancelled: 0,
+      failedBeforeSend: 0,
+      failedAfterSend: 0,
+    },
+    block: {
+      delivered: 0,
+      deliveredNotVisible: 0,
+      cancelled: 0,
+      failedBeforeSend: 0,
+      failedAfterSend: 0,
+    },
+    final: {
+      delivered: 0,
+      deliveredNotVisible: 0,
+      cancelled: 0,
+      failedBeforeSend: 1,
+      failedAfterSend: 0,
+    },
+  },
+  anyVisibleDelivered: false,
+} as const;
 
 type ConfiguredBindingRoute = ReturnType<typeof resolveConfiguredBindingRoute>;
 type BoundConversation = ReturnType<
@@ -355,9 +382,9 @@ const {
 
 const finalizeInboundContextMock = mockBuildChannelInboundEventContext;
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-inbound")>(
-    "openclaw/plugin-sdk/channel-inbound",
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-inbound")>(
+    "astroclaw/plugin-sdk/channel-inbound",
   );
   return {
     ...actual,
@@ -376,16 +403,16 @@ vi.mock("openclaw/plugin-sdk/channel-inbound", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/reply-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/reply-runtime")>(
-    "openclaw/plugin-sdk/reply-runtime",
+vi.mock("astroclaw/plugin-sdk/reply-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/reply-runtime")>(
+    "astroclaw/plugin-sdk/reply-runtime",
   );
   return { ...actual, dispatchInboundMessage: mockDispatchInboundMessage };
 });
 
-vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
-    "openclaw/plugin-sdk/session-store-runtime",
+vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
+    "astroclaw/plugin-sdk/session-store-runtime",
   );
   return { ...actual, resolveStorePath: mockResolveStorePath };
 });
@@ -424,9 +451,9 @@ vi.mock("./bot-name.js", () => ({
   resolveFeishuBotName: mockResolveFeishuBotName,
 }));
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
-    "openclaw/plugin-sdk/conversation-runtime",
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
+    "astroclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
@@ -473,7 +500,7 @@ afterAll(() => {
   vi.doUnmock("./audio-preflight.runtime.js");
   vi.doUnmock("./client.js");
   vi.doUnmock("./bot-name.js");
-  vi.doUnmock("openclaw/plugin-sdk/conversation-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/conversation-runtime");
   vi.resetModules();
 });
 
@@ -1179,7 +1206,7 @@ describe("handleFeishuMessage command authorization", () => {
     mockDispatchReplyFromConfig.mockResolvedValueOnce({
       queuedFinal: true,
       counts: { tool: 0, block: 0, final: 1 },
-      failedCounts: { tool: 0, block: 0, final: 1 },
+      settledReceipt: failedFinalReceipt,
     });
     const ensureNoVisibleReplyFallback = vi.fn();
     mockCreateFeishuReplyDispatcher.mockReturnValueOnce({
