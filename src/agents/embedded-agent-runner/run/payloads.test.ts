@@ -1,6 +1,6 @@
 // Payload tests cover successful embedded run replies, final-answer selection,
 // message-tool source replies, media directives, and tool-error warning policy.
-import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
+import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { resolveHeartbeatReplyPayload } from "../../../auto-reply/heartbeat-reply-payload.js";
 import { resolveHeartbeatToolResponseFromReplyResult } from "../../../auto-reply/heartbeat-tool-response.js";
@@ -683,6 +683,28 @@ describe("buildEmbeddedRunPayloads tool-error warnings", () => {
         toolName: "message",
       });
     }
+  });
+
+  it("keeps a quiet heartbeat response with a recovered mutation receipt", () => {
+    const payloads = buildPayloads({
+      heartbeatToolResponse: {
+        outcome: "no_change",
+        notify: false,
+        summary: "Nothing needs attention.",
+      },
+      isHeartbeatTrigger: true,
+      lastToolRecovery: { toolName: "write" },
+    });
+
+    expect(payloads.map((payload) => payload.text)).toStrictEqual([
+      "HEARTBEAT_OK",
+      "✅ ✍️ Write succeeded after retry.",
+    ]);
+    expect(resolveHeartbeatToolResponseFromReplyResult(payloads)).toEqual({
+      outcome: "no_change",
+      notify: false,
+      summary: "Nothing needs attention.",
+    });
   });
 
   it("marks plain-text heartbeat replies with unresolved mutating failures", () => {
