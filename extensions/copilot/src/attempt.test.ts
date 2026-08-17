@@ -13,15 +13,15 @@ import {
   type AgentHarnessV2,
   type AgentMessage,
   type SandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+} from "openclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runCopilotAttempt } from "./attempt.js";
 import { createCopilotTestHostCapabilities } from "./host-capability.test-support.js";
@@ -52,7 +52,7 @@ const gatewayQuestionMock = vi.hoisted(() => ({
   claimPendingAgentQuestionAnswer: undefined as
     | ((
         ...args: Parameters<
-          typeof import("astroclaw/plugin-sdk/agent-harness-runtime").claimPendingAgentQuestionAnswer
+          typeof import("openclaw/plugin-sdk/agent-harness-runtime").claimPendingAgentQuestionAnswer
         >
       ) => Promise<boolean>)
     | undefined,
@@ -61,9 +61,8 @@ const gatewayQuestionMock = vi.hoisted(() => ({
   setActiveEmbeddedRun: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     embeddedAgentLog: { ...actual.embeddedAgentLog, warn: gatewayQuestionMock.warn },
@@ -146,9 +145,9 @@ const transcriptRuntimeMock = vi.hoisted(() => ({
   }),
   readVisible: vi.fn(async () => []),
 }));
-vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-runtime")>();
   return {
     ...actual,
     appendSessionTranscriptMessageByIdentity: transcriptRuntimeMock.append,
@@ -1863,15 +1862,17 @@ describe("runCopilotAttempt", () => {
   it("F7: result.yieldDetected is true when the tool bridge fires onYieldDetected during the attempt", async () => {
     const sdk = makeFakeSdk();
     const pool = makeFakePool(sdk);
-    const createToolBridge = vi.fn(async (input: { onYieldDetected?: (msg?: string) => void }) => {
-      // Simulate a wrapped tool invoking sessions_yield before the
-      // attempt settles. The bridge is responsible for notifying the
-      // caller via onYieldDetected so the final result can carry the
-      // flag (parent runner uses it to mark liveness paused /
-      // stop_reason end_turn). Mirrors PI/codex parity.
-      input.onYieldDetected?.("paused by tool");
-      return { sdkTools: [], sourceTools: [] };
-    });
+    const createToolBridge = vi.fn(
+      async (input: { onYieldDetected?: (message?: string, acknowledgment?: string) => void }) => {
+        // Simulate a wrapped tool invoking sessions_yield before the
+        // attempt settles. The bridge is responsible for notifying the
+        // caller via onYieldDetected so the final result can carry the
+        // flag (parent runner uses it to mark liveness paused /
+        // stop_reason end_turn). Mirrors PI/codex parity.
+        input.onYieldDetected?.("private continuation", "Research started; results will follow.");
+        return { sdkTools: [], sourceTools: [] };
+      },
+    );
 
     const result = await runCopilotAttempt(makeParams(), {
       createToolBridge,
@@ -1879,6 +1880,7 @@ describe("runCopilotAttempt", () => {
     });
 
     expect(result.yieldDetected).toBe(true);
+    expect(result.yieldAcknowledgment).toBe("Research started; results will follow.");
   });
 
   it("F7: result.yieldDetected is false on a clean attempt (no sessions_yield fired)", async () => {
