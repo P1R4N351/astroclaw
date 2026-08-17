@@ -5,7 +5,9 @@ import type {
   SessionCreatedActor,
   SessionClassification,
   SessionPeerKind,
+  SessionOwner,
   SessionPlacement,
+  SessionPlacementMove,
   SessionRow,
   SessionRunStatus,
   SessionSharingRole,
@@ -84,6 +86,9 @@ export type GatewaySessionRow = {
   subagentControlScope?: SessionEntry["subagentControlScope"];
   createdVia?: SessionEntry["createdVia"];
   createdActor?: SessionCreatedActor;
+  owner?: SessionOwner;
+  participants?: SessionCreatedActor[];
+  participantCount?: number;
   createdAt?: SessionEntry["createdAt"];
   forkSource?: SessionEntry["forkSource"];
   previousSessionId?: SessionEntry["previousSessionId"];
@@ -121,6 +126,7 @@ export type GatewaySessionRow = {
   lastActivityAt?: number;
   sessionId?: string;
   placement?: SessionPlacement;
+  placementMove?: SessionPlacementMove;
   systemSent?: boolean;
   abortedLastRun?: boolean;
   restartRecoveryStatus?: "tombstoned";
