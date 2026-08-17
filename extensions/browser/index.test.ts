@@ -1,7 +1,7 @@
 // Browser tests cover index plugin behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   browserPluginNodeHostCommands,
@@ -466,6 +466,12 @@ describe("browser plugin", () => {
     expect(probe({ config: { tools: { alsoAllow: ["browser"] } }, env: {} })).toBe(
       "browser tool referenced",
     );
+    expect(
+      probe({
+        config: { agents: { entries: { reviewer: { tools: { allow: ["browser"] } } } } },
+        env: {},
+      }),
+    ).toBe("browser tool referenced");
     expect(
       probe({ config: { browser: { defaultProfile: "openclaw", enabled: false } }, env: {} }),
     ).toBeNull();
