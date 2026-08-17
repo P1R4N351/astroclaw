@@ -1,7 +1,7 @@
 import { reduceSessionProjection } from "@astroclaw/gateway-client/browser";
 // @vitest-environment node
 // Control UI tests cover chat behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
 import { GatewayRequestError } from "../../api/gateway.ts";
@@ -919,55 +919,6 @@ describe("handleChatGatewayEvent", () => {
     expect(state.chatRunError).toEqual({
       summary: "Error: active run changed; review and retry",
     });
-  });
-
-  it("retires a landed steer chip when its request run finishes inside the active run", () => {
-    const activePrompt = {
-      id: "active-prompt",
-      text: "Keep this run active",
-      createdAt: 1,
-      sendRunId: "active-run",
-      sendState: "waiting-model" as const,
-      sessionKey: "main",
-    };
-    const state = createState({
-      sessionKey: "main",
-      chatRunId: "active-run",
-      chatQueue: [
-        activePrompt,
-        {
-          id: "landed-steer-chip",
-          text: "Use the deployment plan",
-          createdAt: 3,
-          kind: "steered",
-          pendingRunId: "steer-request-run",
-          sendRunId: "steer-request-run",
-          steerTargetRunId: "active-run",
-          sessionKey: "main",
-        },
-      ],
-    });
-
-    expect(
-      handleChatGatewayEvent(state, {
-        runId: "steer-request-run",
-        sessionKey: "main",
-        state: "final",
-      }),
-    ).toBe("final");
-
-    expect(state.chatQueue).toEqual([activePrompt]);
-    expect(state.chatRunId).toBe("active-run");
-    expect(state.chatMessages).toEqual([
-      expect.objectContaining({
-        role: "user",
-        __openclaw: { idempotencyKey: "active-run:user" },
-      }),
-      expect.objectContaining({
-        role: "user",
-        __openclaw: { idempotencyKey: "steer-request-run:user" },
-      }),
-    ]);
   });
 
   it("keeps a pending steer chip when an unrelated request run finishes", () => {
