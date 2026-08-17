@@ -332,7 +332,11 @@ export async function attachAuthenticatedGatewayConnect(
     });
     sendHandshakeErrorResponse(ErrorCodes.UNAVAILABLE, message, {
       retryable: false,
-      details: { code: ConnectErrorDetailCodes.PROTOCOL_MISMATCH },
+      details: {
+        code: ConnectErrorDetailCodes.PROTOCOL_MISMATCH,
+        gatewayBuildId: controlUiBuildMismatch.gatewayBuildId,
+        reloadRequired: true,
+      },
     });
     logWsControl.warn(
       `control ui build rejected conn=${connId} clientBuild=${formatForLog(controlUiBuildMismatch.clientBuildId ?? "legacy")} gatewayBuild=${formatForLog(controlUiBuildMismatch.gatewayBuildId)}; reload required`,
@@ -373,17 +377,10 @@ export async function attachAuthenticatedGatewayConnect(
   clearHandshakeTimer();
   const nextClient: GatewayWsClient = {
     socket,
-    connect: state.controlUiDeviceAuthMigrationPending
-      ? { ...connectParams, scopes }
-      : connectParams,
+    connect: connectParams,
     connId,
     connectionKind: "gateway",
     isDeviceTokenAuth: authMethod === "device-token",
-    isControlUiDeviceAuthMigrationSession: state.controlUiDeviceAuthMigrationPending,
-    // Only identity-bearing migration sessions may use bounded self-pairing.
-    // Device-less sessions remain pairing-scoped until reopened securely.
-    isControlUiDeviceAuthMigration:
-      state.controlUiDeviceAuthMigrationPending && Boolean(connectParams.device),
     pairedClientId: isBrowserCopilotClient(connectParams.client)
       ? connectParams.client.id
       : undefined,
@@ -465,31 +462,6 @@ export async function attachAuthenticatedGatewayConnect(
       close(1008, truncateCloseReason(message));
       return;
     }
-  }
-
-  if (
-    state.controlUiDeviceAuthMigrationPending &&
-    context.handler.isControlUiDeviceAuthMigrationPending?.() !== true
-  ) {
-    const hasDeviceIdentity = Boolean(device);
-    const message = "device auth migration completed during connect; reconnect";
-    markHandshakeFailure("control-ui-device-auth-migration-completed", {
-      device: hasDeviceIdentity ? "yes" : "no",
-    });
-    sendHandshakeErrorResponse(
-      hasDeviceIdentity ? ErrorCodes.NOT_PAIRED : ErrorCodes.INVALID_REQUEST,
-      message,
-      {
-        details: {
-          code: hasDeviceIdentity
-            ? ConnectErrorDetailCodes.PAIRING_REQUIRED
-            : ConnectErrorDetailCodes.CONTROL_UI_DEVICE_IDENTITY_REQUIRED,
-        },
-      },
-    );
-    await releasePendingNodePairingCleanup();
-    close(1008, truncateCloseReason(message));
-    return;
   }
 
   if (!setClient(nextClient)) {
