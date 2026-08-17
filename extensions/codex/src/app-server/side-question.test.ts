@@ -2,17 +2,17 @@
 import {
   nativeHookRelayTesting,
   type NativeHookRelayRegistrationHandle,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   onInternalDiagnosticEvent,
   resetDiagnosticEventsForTest,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   codexTestTurnIds,
@@ -96,7 +96,7 @@ vi.mock("./provider-capabilities.js", () => ({
     resolveCodexProviderWebSearchSupportForClientMock(...args),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness", () => ({
+vi.mock("openclaw/plugin-sdk/agent-harness", () => ({
   createOpenClawCodingTools: (...args: unknown[]) => createOpenClawCodingToolsMock(...args),
 }));
 
@@ -2279,7 +2279,12 @@ describe("runCodexAppServerSideQuestion", () => {
             {
               name: "wiki_status",
               description: "Check wiki status",
-              parameters: { type: "object", properties: {} },
+              parameters: {
+                type: "object",
+                properties: { topic: { type: "string" } },
+                required: ["topic"],
+                additionalProperties: false,
+              },
               execute: toolExecuteMock,
             },
           ]
