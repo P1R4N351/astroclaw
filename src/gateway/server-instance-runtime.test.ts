@@ -8,7 +8,7 @@ import {
   restoreActivePluginRegistrySnapshot,
   stageActivePluginRegistry,
 } from "../plugins/runtime.js";
-import { waitForActiveGatewayRootWork } from "../process/gateway-work-admission.js";
+import { getActiveGatewayRootWorkCount } from "../process/gateway-work-admission.js";
 import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import { captureAgentTurnPrincipal } from "./agent-turn/principal.js";
@@ -325,7 +325,7 @@ describe("createGatewayInstanceRuntime", () => {
         expect((caught as Error).message).toContain("gateway request timeout for send");
       } finally {
         finishHandler();
-        await waitForActiveGatewayRootWork();
+        await vi.waitFor(() => expect(getActiveGatewayRootWorkCount()).toBe(0));
         runtime.close();
       }
     } finally {
