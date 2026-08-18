@@ -1,17 +1,17 @@
 // Matrix tests cover exec approvals plugin behavior.
 import path from "node:path";
-import type { ExecApprovalRequest } from "astroclaw/plugin-sdk/approval-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { ExecApprovalRequest } from "openclaw/plugin-sdk/approval-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   normalizeSessionDeliveryState,
   upsertSessionEntry,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+} from "openclaw/plugin-sdk/session-store-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import {
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   tempWorkspaceSync,
   type TempWorkspaceSync,
-} from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/temp-path";
 import { afterEach, describe, expect, it } from "vitest";
 import { normalizeMatrixApproverId } from "./approval-ids.js";
 import {
@@ -183,6 +183,15 @@ describe("matrix exec approvals", () => {
     );
   });
 
+  it("requires an exact Matrix id for exec approval authorization", () => {
+    const cfg = buildConfig({ enabled: true, approvers: ["user:@\u212A:example.org"] });
+
+    expect(isMatrixExecApprovalAuthorizedSender({ cfg, senderId: "@\u212A:example.org" })).toBe(
+      true,
+    );
+    expect(isMatrixExecApprovalAuthorizedSender({ cfg, senderId: "@k:example.org" })).toBe(false);
+  });
+
   it("ignores wildcard allowlist entries when inferring exec approvers", () => {
     const cfg = buildConfig({ enabled: true }, { dm: { allowFrom: ["*"] } });
 
@@ -225,6 +234,30 @@ describe("matrix exec approvals", () => {
     expect(isMatrixExecApprovalAuthorizedSender({ cfg, senderId: "@other:example.org" })).toBe(
       false,
     );
+  });
+
+  it("requires an exact Matrix id for approval target recipients", () => {
+    const cfg = {
+      channels: {
+        matrix: {
+          homeserver: "https://matrix.example.org",
+          userId: "@bot:example.org",
+          accessToken: "tok",
+        },
+      },
+      approvals: {
+        exec: {
+          enabled: true,
+          mode: "targets",
+          targets: [{ channel: "matrix", to: "user:@\u212A:example.org" }],
+        },
+      },
+    } as OpenClawConfig;
+
+    expect(isMatrixExecApprovalAuthorizedSender({ cfg, senderId: "@\u212A:example.org" })).toBe(
+      true,
+    );
+    expect(isMatrixExecApprovalAuthorizedSender({ cfg, senderId: "@k:example.org" })).toBe(false);
   });
 
   it("suppresses local prompts only when the native client is enabled", () => {
@@ -374,7 +407,7 @@ describe("matrix exec approvals", () => {
 
   it("scopes non-matrix turn sources to the stored matrix account", async () => {
     const workspace = tempWorkspaceSync({
-      rootDir: resolvePreferredAstroclawTmpDir(),
+      rootDir: resolvePreferredOpenClawTmpDir(),
       prefix: "openclaw-matrix-exec-approvals-",
     });
     tempWorkspaces.push(workspace);
