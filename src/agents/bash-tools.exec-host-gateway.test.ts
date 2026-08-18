@@ -7,6 +7,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { setImmediate } from "node:timers/promises";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { onAgentEvent } from "../infra/agent-events.js";
 import {
@@ -44,8 +45,6 @@ import type {
   ExecApprovalFollowupOutcome,
 } from "./bash-tools.exec-types.js";
 
-type StrictInlineEvalBoundary =
-  typeof import("./bash-tools.exec-host-shared.js").enforceStrictInlineEvalApprovalBoundary;
 type SendExecApprovalFollowupResult =
   typeof import("./bash-tools.exec-host-shared.js").sendExecApprovalFollowupResult;
 type BuildExecApprovalFollowupTarget =
@@ -159,7 +158,13 @@ const defaultExecAutoReviewerMock = vi.hoisted(() =>
 );
 const commitExecAuthorizationMock = vi.hoisted(() => vi.fn(async () => undefined));
 const resolveApprovalDecisionOrUndefinedMock = vi.hoisted(() =>
-  vi.fn(async (): Promise<string | null | undefined> => undefined),
+  vi.fn(
+    async (_params?: {
+      approvalId: string;
+      preResolvedDecision: string | null | undefined;
+      onFailure: () => void;
+    }): Promise<string | null | undefined> => undefined,
+  ),
 );
 const runAbortedApprovalError = vi.hoisted(() => new Error("run aborted"));
 const resolveExecHostApprovalContextMock = vi.hoisted(() =>
@@ -181,10 +186,104 @@ const shouldResolveExecApprovalUnavailableInlineMock = vi.hoisted(() =>
   vi.fn<ShouldResolveExecApprovalUnavailableInline>(() => false),
 );
 const enforceStrictInlineEvalApprovalBoundaryMock = vi.hoisted(() =>
-  vi.fn<StrictInlineEvalBoundary>((value) => ({
-    approvedByAsk: value.approvedByAsk,
-    deniedReason: value.deniedReason,
-  })),
+  vi.fn(
+    (value: {
+      baseDecision: { timedOut: boolean };
+      approvedByAsk: boolean;
+      deniedReason: string | null;
+      requiresInlineEvalApproval: boolean;
+      requiresAutoReviewHumanApproval?: boolean;
+    }) => ({
+      approvedByAsk: value.approvedByAsk,
+      deniedReason: value.deniedReason,
+    }),
+  ),
+);
+const resolveExecApprovalDecisionStateMock = vi.hoisted(() =>
+  vi.fn(
+    async (params: {
+      decision: string | null;
+      askFallback: ExecSecurity;
+      resolveTimedOut?: (state: {
+        baseDecision: { timedOut: boolean };
+        approvedByAsk: boolean;
+        deniedReason: string | null;
+      }) =>
+        | Promise<{ approvedByAsk: boolean; deniedReason: string | null; context?: unknown }>
+        | { approvedByAsk: boolean; deniedReason: string | null; context?: unknown };
+      requiresExplicitApproval: boolean | ((context: unknown) => boolean);
+      requiresAutoReviewHumanApproval?: boolean;
+    }) => {
+      const initial = createExecApprovalDecisionStateMock();
+      let approvedByAsk = initial.approvedByAsk;
+      let deniedReason = initial.deniedReason;
+      let timeoutContext: unknown;
+      if (initial.baseDecision.timedOut && params.resolveTimedOut) {
+        const timedOut = await params.resolveTimedOut(initial);
+        approvedByAsk = timedOut.approvedByAsk;
+        deniedReason = timedOut.deniedReason;
+        timeoutContext = timedOut.context;
+      } else if (params.decision === "allow-once" || params.decision === "allow-always") {
+        approvedByAsk = true;
+      }
+      const requiresExplicitApproval =
+        typeof params.requiresExplicitApproval === "function"
+          ? params.requiresExplicitApproval(timeoutContext)
+          : params.requiresExplicitApproval;
+      const strict = enforceStrictInlineEvalApprovalBoundaryMock({
+        baseDecision: initial.baseDecision,
+        approvedByAsk,
+        deniedReason,
+        requiresInlineEvalApproval: requiresExplicitApproval,
+        ...(params.requiresAutoReviewHumanApproval !== undefined
+          ? { requiresAutoReviewHumanApproval: params.requiresAutoReviewHumanApproval }
+          : {}),
+      });
+      return { ...initial, ...strict, timeoutContext };
+    },
+  ),
+);
+const resolveExecApprovalWaitOutcomeMock = vi.hoisted(() =>
+  vi.fn(
+    async (params: {
+      approvalId: string;
+      preResolvedDecision: string | null | undefined;
+      signal?: AbortSignal;
+      askFallback: ExecSecurity;
+      resolveTimedOut?: (state: {
+        baseDecision: { timedOut: boolean };
+        approvedByAsk: boolean;
+        deniedReason: string | null;
+      }) =>
+        | Promise<{ approvedByAsk: boolean; deniedReason: string | null; context?: unknown }>
+        | { approvedByAsk: boolean; deniedReason: string | null; context?: unknown };
+      requiresExplicitApproval: boolean | ((context: unknown) => boolean);
+      requiresAutoReviewHumanApproval?: boolean;
+    }) => {
+      let decision: string | null | undefined;
+      try {
+        decision = await resolveApprovalDecisionOrUndefinedMock({
+          approvalId: params.approvalId,
+          preResolvedDecision: params.preResolvedDecision,
+          onFailure: () => {},
+        });
+      } catch (error) {
+        return error === runAbortedApprovalError
+          ? { kind: "run-aborted" as const }
+          : { kind: "request-failed" as const };
+      }
+      if (decision === undefined) {
+        return { kind: "request-failed" as const };
+      }
+      if (params.signal?.aborted) {
+        return { kind: "run-aborted" as const };
+      }
+      const state = await resolveExecApprovalDecisionStateMock({ ...params, decision });
+      return params.signal?.aborted
+        ? { kind: "run-aborted" as const }
+        : { kind: "resolved" as const, decision, state };
+    },
+  ),
 );
 const detectInterpreterInlineEvalArgvMock = vi.hoisted(() =>
   vi.fn(
@@ -233,6 +332,8 @@ vi.mock("./bash-tools.exec-host-shared.js", () => ({
   createAndRegisterDefaultExecApprovalRequest: createAndRegisterDefaultExecApprovalRequestMock,
   enforceStrictInlineEvalApprovalBoundary: enforceStrictInlineEvalApprovalBoundaryMock,
   resolveApprovalDecisionOrUndefined: resolveApprovalDecisionOrUndefinedMock,
+  resolveExecApprovalDecisionState: resolveExecApprovalDecisionStateMock,
+  resolveExecApprovalWaitOutcome: resolveExecApprovalWaitOutcomeMock,
   sendExecApprovalFollowupResult: sendExecApprovalFollowupResultMock,
   shouldResolveExecApprovalUnavailableInline: shouldResolveExecApprovalUnavailableInlineMock,
 }));
@@ -293,6 +394,19 @@ function requireApprovalFollowupInput(
     throw new Error(`expected approval followup call ${callIndex}`);
   }
   return call[0];
+}
+
+function captureProcessUnhandledRejections() {
+  const reasons: unknown[] = [];
+  const originalProcessEmit = process.emit.bind(process);
+  const processEmit = vi.spyOn(process, "emit").mockImplementation((event, ...args) => {
+    if (event === "unhandledRejection") {
+      reasons.push(args[0]);
+      return true;
+    }
+    return originalProcessEmit(event, ...args);
+  });
+  return { reasons, restore: () => processEmit.mockRestore() };
 }
 
 function captureSecurityEvents(): {
@@ -422,11 +536,15 @@ describe("processGatewayAllowlist", () => {
     outcome: ExecApprovalFollowupOutcome;
     sessionId?: string;
   }) {
-    resolveApprovalDecisionOrUndefinedMock.mockResolvedValue("allow-once");
-    createExecApprovalDecisionStateMock.mockReturnValue({
-      baseDecision: { timedOut: false },
-      approvedByAsk: true,
-      deniedReason: null,
+    resolveExecApprovalWaitOutcomeMock.mockResolvedValueOnce({
+      kind: "resolved",
+      decision: "allow-once",
+      state: {
+        baseDecision: { timedOut: false },
+        approvedByAsk: true,
+        deniedReason: null,
+        timeoutContext: undefined,
+      },
     });
     runExecProcessMock.mockResolvedValue({
       session: { id: params.sessionId ?? "sess-1" },
@@ -2101,6 +2219,94 @@ EOF`,
     expect(requireSentFollowupText(0)).toContain("done");
   });
 
+  it("keeps a completed detached outcome terminal when agent follow-up registration fails", async () => {
+    const unhandledRejections = captureProcessUnhandledRejections();
+    const completedOutcome = {
+      status: "completed" as const,
+      exitCode: 0,
+      timedOut: false,
+      aggregated: "completed output",
+    };
+    const approvalFollowup = vi.fn<ExecApprovalFollowupFactory>(() => undefined);
+    mockApprovedDetachedExec({ outcome: completedOutcome });
+    sendExecApprovalFollowupResultMock.mockRejectedValueOnce(
+      new Error("synchronous runtime-handoff registration failure"),
+    );
+
+    try {
+      const result = await runGatewayAllowlist({
+        command: "side-effecting-command",
+        approvalFollowupMode: "agent",
+        approvalFollowup,
+        turnSourceChannel: "webchat",
+      });
+
+      expect(result.pendingResult?.details.status).toBe("approval-pending");
+      await vi.waitFor(() => expect(approvalFollowup).toHaveBeenCalledOnce());
+      await setImmediate();
+
+      expect(requireApprovalFollowupInput(approvalFollowup, 0).outcome).toEqual(completedOutcome);
+      expect(unhandledRejections.reasons).toEqual([]);
+      expect(sendExecApprovalFollowupResultMock).toHaveBeenCalledOnce();
+      expect(requireSentFollowupText(0)).toContain("completed output");
+      expect(requireSentFollowupText(0)).not.toContain("Exec denied");
+    } finally {
+      unhandledRejections.restore();
+    }
+  });
+
+  it.each([
+    {
+      name: "request failure",
+      outcome: { kind: "request-failed" as const },
+      firstFollowupReason: "approval-request-failed",
+    },
+    {
+      name: "denial",
+      outcome: {
+        kind: "resolved" as const,
+        decision: "deny",
+        state: {
+          baseDecision: { timedOut: false },
+          approvedByAsk: false,
+          deniedReason: "user-denied",
+          timeoutContext: undefined,
+        },
+      },
+      firstFollowupReason: "user-denied",
+    },
+  ])("consumes rejected detached pre-dispatch $name and fallback follow-ups", async (scenario) => {
+    const unhandledRejections = captureProcessUnhandledRejections();
+    resolveExecApprovalWaitOutcomeMock.mockResolvedValueOnce(scenario.outcome);
+    buildExecApprovalFollowupTargetMock.mockImplementation((value) => value);
+    sendExecApprovalFollowupResultMock.mockRejectedValue(
+      new Error("pre-dispatch denial follow-up failed"),
+    );
+
+    try {
+      const result = await runGatewayAllowlist({
+        command: "side-effecting-command",
+        approvalFollowupMode: "agent",
+        turnSourceChannel: "webchat",
+      });
+
+      expect(result.pendingResult?.details.status).toBe("approval-pending");
+      await vi.waitFor(() => expect(sendExecApprovalFollowupResultMock).toHaveBeenCalledTimes(2));
+      await setImmediate();
+
+      expect(unhandledRejections.reasons).toEqual([]);
+      expect(requireSentFollowupText(0)).toBe(
+        `Exec denied (gateway id=req-1, ${scenario.firstFollowupReason}): side-effecting-command`,
+      );
+      expect(requireSentFollowupText(1)).toBe(
+        "Exec denied (gateway id=req-1, approval-request-failed): side-effecting-command",
+      );
+      expect(runExecProcessMock).not.toHaveBeenCalled();
+    } finally {
+      unhandledRejections.restore();
+    }
+  });
+
   it("keeps multiline gateway approval follow-up output intact", async () => {
     resolveExecHostApprovalContextMock.mockReturnValue({
       approvals: { allowlist: [], file: { version: 1, agents: {} } },
@@ -2625,9 +2831,9 @@ EOF`,
 
     abortController.abort();
     resolveApproval("allow-once");
-    await vi.waitFor(() => {
-      expect(createExecApprovalDecisionStateMock).toHaveBeenCalledOnce();
-    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(createExecApprovalDecisionStateMock).not.toHaveBeenCalled();
     expect(commitExecAuthorizationMock).not.toHaveBeenCalled();
     expect(runExecProcessMock).not.toHaveBeenCalled();
     expect(sendExecApprovalFollowupResultMock).not.toHaveBeenCalled();
