@@ -3,13 +3,13 @@ import {
   callGatewayTool,
   embeddedAgentLog,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { codexTestTurnIds } from "./codex-app-server.test-fixtures.js";
 import { handleCodexAppServerElicitationRequest } from "./elicitation-bridge.js";
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>()),
+vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>()),
   callGatewayTool: vi.fn(),
 }));
 
@@ -354,6 +354,28 @@ describe("Codex app-server elicitation bridge", () => {
       "plugin.approval.request",
       "plugin.approval.waitDecision",
     ]);
+  });
+
+  it("declines timed-out MCP approvals with explanatory metadata", async () => {
+    mockCallGatewayTool
+      .mockResolvedValueOnce({ id: "plugin:approval-timeout", status: "accepted" })
+      .mockResolvedValueOnce({
+        id: "plugin:approval-timeout",
+        decision: "deny",
+        terminalReason: "timeout",
+      });
+
+    const result = await handleCodexAppServerElicitationRequest({
+      requestParams: buildApprovalElicitation(),
+      paramsForRun: createParams(),
+      ...codexTestTurnIds(),
+    });
+
+    expect(result).toEqual({
+      action: "decline",
+      content: null,
+      _meta: { message: "Approval timed out before an operator responded." },
+    });
   });
 
   it("does not treat inherited request-time MCP decisions as final", async () => {
