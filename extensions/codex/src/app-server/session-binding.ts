@@ -4,18 +4,18 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   AgentHarnessSessionSupersededError,
   embeddedAgentLog,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   ensureAuthProfileStore,
   resolveDefaultAgentDir,
   resolveProviderIdForAuth,
   resolveSessionAgentIds,
   type AuthProfileStore,
-} from "openclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
-import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 import { CODEX_PLUGIN_MARKETPLACE_NAME_PATTERN, normalizeCodexServiceTier } from "./config.js";
 import type { PluginAppPolicyContext } from "./plugin-thread-config.js";
@@ -264,6 +264,17 @@ const threadBindingSchema = z
     conversationStartId: optionalStringSchema,
     conversationSourceTransferComplete: z.literal(true).optional().catch(undefined),
     historyCoveredThrough: optionalTimestampSchema,
+    // Observed density of the last completed turn on this thread: prompt chars
+    // actually sent vs provider-reported input tokens. Read by the no-engine
+    // continuity cap so the next projection is sized from this session's real
+    // content density instead of a fixed chars-per-token guess.
+    continuityCalibration: z
+      .object({
+        promptChars: z.number().int().positive(),
+        inputTokens: z.number().int().positive(),
+      })
+      .optional()
+      .catch(undefined),
   })
   .superRefine((binding, context) => {
     if (binding.connectionScope === "supervision") {
