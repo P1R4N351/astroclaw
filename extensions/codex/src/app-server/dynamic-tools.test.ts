@@ -2,39 +2,39 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
-import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-harness";
+import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
+import type { AnyAgentTool } from "astroclaw/plugin-sdk/agent-harness";
 import {
   HEARTBEAT_RESPONSE_TOOL_NAME,
   embeddedAgentLog,
   getPluginToolMeta,
   wrapToolWithBeforeToolCallHook,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
   createOwnerBackedContractTool,
   createTerminalPresentationContractTool,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
-} from "openclaw/plugin-sdk/diagnostic-runtime";
+} from "astroclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "openclaw/plugin-sdk/hook-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
 import {
   createEmptyPluginRegistry,
   createMockPluginRegistry,
   createTestRegistry,
   setActivePluginRegistry,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 // Codex tests cover dynamic tools plugin behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
-import { estimateToolResultTextChars } from "openclaw/plugin-sdk/text-utility-runtime";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { estimateToolResultTextChars } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   handleDynamicToolCallWithTimeout,
@@ -2416,6 +2416,12 @@ describe("createCodexDynamicToolBridge", () => {
     const bridge = createBridgeWithToolResult(
       "message",
       textToolResult("Sent.", {
+        messageDelivery: {
+          status: "settled",
+          primaryPlatformMessageId: "imessage-6264",
+          partialDelivery: false,
+          createdThreadIds: [],
+        },
         receipt: {
           primaryPlatformMessageId: "imessage-6264",
           platformMessageIds: ["imessage-6264"],
