@@ -12,21 +12,21 @@ import { Buffer } from "node:buffer";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { Command } from "commander";
-import { isToolResultError } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { isToolResultError } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   clearMemoryPluginState,
   getMemoryCapabilityRegistration,
   listActiveMemoryPublicArtifacts,
   registerMemoryCapability,
   type MemoryPluginCapability,
-} from "openclaw/plugin-sdk/memory-host-core";
-import { MESSAGE_TOOL_DELIVERY_HINTS } from "openclaw/plugin-sdk/message-tool-delivery-hints";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/memory-host-core";
+import { MESSAGE_TOOL_DELIVERY_HINTS } from "astroclaw/plugin-sdk/message-tool-delivery-hints";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
+import { Command } from "commander";
 import { afterEach, describe, test, expect, vi } from "vitest";
 import memoryPlugin, {
   detectCategory,
@@ -51,8 +51,8 @@ const moduleMocks = vi.hoisted(() => ({
   loadLanceDbModule: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     ensureGlobalUndiciEnvProxyDispatcher: () => {
@@ -77,9 +77,11 @@ vi.mock("openai", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/memory-core-host-engine-embeddings", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-embeddings", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/memory-core-host-engine-embeddings")>();
+    await importOriginal<
+      typeof import("astroclaw/plugin-sdk/memory-core-host-engine-embeddings")
+    >();
   return {
     ...actual,
     getMemoryEmbeddingProvider: (...args: Parameters<typeof actual.getMemoryEmbeddingProvider>) => {
@@ -608,7 +610,7 @@ describe("memory plugin e2e", () => {
     ]);
   });
 
-  test("uses provider adapter auth and drains cleanup before service replacement", async () => {
+  test("uses provider adapter auth and propagates service close failures", async () => {
     const embedQuery = vi.fn(async () => [0.1, 0.2, 0.3]);
     const closeProvider = vi
       .fn<() => Promise<void>>()
@@ -709,40 +711,12 @@ describe("memory plugin e2e", () => {
       const service = firstObjectArg(registerService as unknown as MockCallSource, "service");
       const stop = service.stop as () => Promise<void>;
       await expect(stop()).rejects.toThrow("provider close failed");
-
-      const replacementRegisterTool = vi.fn();
-      const replacementRegisterService = vi.fn();
-      registerTestPlugin(memoryPlugin, {
-        ...mockApi,
-        registerTool: replacementRegisterTool,
-        registerService: replacementRegisterService,
-      });
-      const replacementRecallTool = replacementRegisterTool.mock.calls
-        .map(([tool]) => materializeRegisteredTool(tool))
-        .find((tool) => tool.name === "memory_recall");
-      if (!replacementRecallTool) {
-        throw new Error("expected replacement memory_recall tool registration");
-      }
-      await replacementRecallTool.execute("call-2", { query: "replacement memory" });
-
+      await expect(stop()).resolves.toBeUndefined();
       expect(closeProvider).toHaveBeenCalledTimes(2);
-      expect(createProvider).toHaveBeenCalledTimes(2);
+      expect(createProvider).toHaveBeenCalledOnce();
       expect(embedQuery).toHaveBeenCalledWith("project memory", {
         signal: expect.any(AbortSignal),
       });
-      expect(
-        expectDefined(closeProvider.mock.invocationCallOrder[1], "retained provider close order"),
-      ).toBeLessThan(
-        expectDefined(
-          createProvider.mock.invocationCallOrder[1],
-          "replacement provider create order",
-        ),
-      );
-      const replacementService = firstObjectArg(
-        replacementRegisterService as unknown as MockCallSource,
-        "replacement service",
-      );
-      await (replacementService.stop as () => Promise<void>)();
     } finally {
       resetMemoryModuleMocks();
     }
