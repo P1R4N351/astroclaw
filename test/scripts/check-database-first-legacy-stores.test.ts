@@ -62,7 +62,7 @@ const promisesImport = 'import fs from "node:fs/promises";';
 const writeFileImport = 'import { writeFile } from "node:fs/promises";';
 const requireImport = 'import { createRequire } from "node:module";';
 const privateStoreImport =
-  'import { privateFileStore } from "openclaw/plugin-sdk/security-runtime";';
+  'import { privateFileStore } from "astroclaw/plugin-sdk/security-runtime";';
 const jsonImport = 'import { writeJson } from "../infra/json-files.js";';
 
 const fsCase = importedSourceCase(filesystemImport);
@@ -131,7 +131,7 @@ describe("check-database-first-legacy-stores", () => {
     }
   });
 
-  it("skips generated extension asset and dist bundles", async () => {
+  it("skips generated extension asset, renderer, and dist bundles", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-db-first-guard-"));
     try {
       await fs.mkdir(path.join(root, "extensions", "diffs", "assets"), { recursive: true });
@@ -139,6 +139,9 @@ describe("check-database-first-legacy-stores", () => {
         recursive: true,
       });
       await fs.mkdir(path.join(root, "extensions", "diffs", "src"), { recursive: true });
+      await fs.mkdir(path.join(root, "extensions", "canvas", "src", "host", "a2ui"), {
+        recursive: true,
+      });
       await fs.mkdir(path.join(root, "packages", "plugin-sdk", "dist"), { recursive: true });
       await fs.mkdir(path.join(root, "packages", "plugin-sdk", "src"), { recursive: true });
       await fs.writeFile(
@@ -151,6 +154,14 @@ describe("check-database-first-legacy-stores", () => {
       );
       await fs.writeFile(
         path.join(root, "extensions", "diffs", "src", "runtime.js"),
+        "export const runtime = true;\n",
+      );
+      await fs.writeFile(
+        path.join(root, "extensions", "canvas", "src", "host", "a2ui", "a2ui.bundle.js"),
+        "export const bundled = true;\n",
+      );
+      await fs.writeFile(
+        path.join(root, "extensions", "canvas", "src", "host", "a2ui", "bootstrap.js"),
         "export const runtime = true;\n",
       );
       await fs.writeFile(
@@ -171,6 +182,7 @@ describe("check-database-first-legacy-stores", () => {
         .toSorted();
 
       expect(relativeFiles).toEqual([
+        "extensions/canvas/src/host/a2ui/bootstrap.js",
         "extensions/diffs/src/runtime.js",
         "packages/plugin-sdk/src/index.js",
       ]);
@@ -316,7 +328,7 @@ describe("check-database-first-legacy-stores", () => {
         await fs.writeFile(path.join(root, id, "file-meta.json"), metadata);
       `("extensions/diffs/src/legacy-store.ts", filesystemWriteViolations(4, 5, 6)),
       "flags retired QMD file-lock sidecars": sourceCase`
-        import { withFileLock } from "openclaw/plugin-sdk/file-lock";
+        import { withFileLock } from "astroclaw/plugin-sdk/file-lock";
         import path from "node:path";
         await withFileLock(path.join(stateDir, "qmd", "embed.lock"), options, task);
         await withFileLock(path.join(agentDir, "qmd-write.lock"), options, task);
@@ -468,7 +480,7 @@ describe("check-database-first-legacy-stores", () => {
         await privateFileStore(stateDir).writeJson("thread-bindings.json", {});
       `("private-file-store-write.ts", filesystemWriteViolations(3)),
       "flags fs-safe factory aliases writing legacy paths": privateStoreCase`
-        import * as fsSafe from "openclaw/plugin-sdk/security-runtime";
+        import * as fsSafe from "astroclaw/plugin-sdk/security-runtime";
         const makePrivateStore = privateFileStore;
         const makeRoot = fsSafe.root;
         const { privateFileStore: makeFromNamespace } = fsSafe;
@@ -477,7 +489,7 @@ describe("check-database-first-legacy-stores", () => {
         await makeFromNamespace(stateDir).writeJson("gateway-restart-intent.json", {});
       `("fs-safe-factory-alias-write.ts", filesystemWriteViolations(7, 8, 9)),
       "flags fs-safe root writes to legacy paths": sourceCase`
-        import { root } from "openclaw/plugin-sdk/security-runtime";
+        import { root } from "astroclaw/plugin-sdk/security-runtime";
         const state = await root(stateDir);
         await state.writeJson("plugin-binding-approvals.json", {});
         await (await root(stateDir)).writeJson("thread-bindings.json", {});
@@ -488,7 +500,7 @@ describe("check-database-first-legacy-stores", () => {
         await state.writeJson("thread-bindings.json", {});
       `("bare-fs-safe-root-write.ts", filesystemWriteViolations(4)),
       "flags file access runtime root writes to legacy paths": sourceCase`
-        import { root } from "openclaw/plugin-sdk/file-access-runtime";
+        import { root } from "astroclaw/plugin-sdk/file-access-runtime";
         const state = await root(stateDir);
         await state.writeJson("thread-bindings.json", {});
       `("extensions/example/src/runtime/file-access-root-write.ts", filesystemWriteViolations(4)),
@@ -610,7 +622,7 @@ describe("check-database-first-legacy-stores", () => {
         await store.writeJson("thread-bindings.json", {});
       `("exhaustive-fs-safe-store-partial-reassignment.ts", filesystemWriteViolations(9)),
       "clears fs-safe namespace factory aliases after shadowing": sourceCase`
-        import * as fsSafe from "openclaw/plugin-sdk/security-runtime";
+        import * as fsSafe from "astroclaw/plugin-sdk/security-runtime";
         async function save(fsSafe: { root(dir: string): Promise<{ writeJson(path: string): void }> }) {
           await (await fsSafe.root(stateDir)).writeJson("thread-bindings.json");
         }
@@ -655,7 +667,7 @@ describe("check-database-first-legacy-stores", () => {
       `("fs-remove-legacy-store.ts", filesystemWriteViolations(4, 5)),
       "flags legacy paths destructured from for-of tuple entries": sourceCase`
         import path from "node:path";
-        import { root as fsRoot } from "openclaw/plugin-sdk/security-runtime";
+        import { root as fsRoot } from "astroclaw/plugin-sdk/security-runtime";
         const CLAIMS_DIGEST_PATH = ".openclaw-wiki/cache/claims.jsonl";
         const claimsDigestPath = path.join(rootDir, CLAIMS_DIGEST_PATH);
         for (const [filePath, content] of [[claimsDigestPath, claimsDigest]]) {
@@ -975,14 +987,14 @@ describe("check-database-first-legacy-stores", () => {
         }
       `("local-fs-module-alias-scope.ts", []),
       "flags legacy paths written through regular-file helpers": sourceCase`
-        import { appendRegularFile as appendSafe } from "openclaw/plugin-sdk/security-runtime";
+        import { appendRegularFile as appendSafe } from "astroclaw/plugin-sdk/security-runtime";
         const filePath = "session.trajectory.jsonl";
         await appendSafe({ filePath, content: "{}\\n" });
       `("regular-file-helper.ts", filesystemWriteViolations(4)),
       "flags legacy paths written through JSON and atomic helpers": sourceCase`
         import { writeJson, writeTextAtomic } from "../infra/json-files.js";
         import { replaceFileAtomicSync } from "../infra/replace-file.js";
-        import { saveJsonFile, writeJsonFileAtomically } from "openclaw/plugin-sdk/json-store";
+        import { saveJsonFile, writeJsonFileAtomically } from "astroclaw/plugin-sdk/json-store";
         await writeJson("restart-sentinel.json", {});
         await writeTextAtomic("gateway-restart-intent.json", "{}\\n");
         replaceFileAtomicSync({ filePath: "plugin-state/state.sqlite", content: "" });
