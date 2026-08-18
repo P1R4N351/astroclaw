@@ -2,39 +2,39 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
-import type { AnyAgentTool } from "astroclaw/plugin-sdk/agent-harness";
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-harness";
 import {
   HEARTBEAT_RESPONSE_TOOL_NAME,
   embeddedAgentLog,
   getPluginToolMeta,
   wrapToolWithBeforeToolCallHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
   createOwnerBackedContractTool,
   createTerminalPresentationContractTool,
-} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
 import {
   createEmptyPluginRegistry,
   createMockPluginRegistry,
   createTestRegistry,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 // Codex tests cover dynamic tools plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
-import { estimateToolResultTextChars } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import { estimateToolResultTextChars } from "openclaw/plugin-sdk/text-utility-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   handleDynamicToolCallWithTimeout,
@@ -51,6 +51,7 @@ import {
   type JsonValue,
 } from "./protocol.js";
 import type { CodexRemoteWorkspaceFileReader } from "./remote-workspace-media.js";
+import { codexDynamicToolsFingerprint } from "./thread-fingerprints.js";
 
 const CODEX_OPENCLAW_DYNAMIC_TOOL_NAMESPACE = "openclaw";
 const MEMORY_STORE_ARGS: JsonValue = { text: "Tuesday 09:00 release window" };
@@ -1325,6 +1326,177 @@ describe("createCodexDynamicToolBridge", () => {
     expect(result.executionStarted).toBe(false);
     expect(result.executedArguments).toEqual({});
     expect(badExecute).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      label: "punctuation in direct mode",
+      name: "bad.name",
+      placement: "direct" as const,
+      source: "both" as const,
+      diagnosticTool: "bad.name",
+    },
+    {
+      label: "leading whitespace in searchable mode",
+      name: " bad",
+      placement: "searchable" as const,
+      source: "available" as const,
+      diagnosticTool: " bad",
+    },
+    {
+      label: "trailing whitespace in a direct-only tool",
+      name: "bad ",
+      placement: "direct-only" as const,
+      source: "registered" as const,
+      diagnosticTool: "bad ",
+    },
+    {
+      label: "whitespace-only name",
+      name: "   ",
+      placement: "direct" as const,
+      source: "both" as const,
+      diagnosticTool: "   ",
+    },
+    {
+      label: "Unicode in searchable mode",
+      name: "mémoire",
+      placement: "searchable" as const,
+      source: "available" as const,
+      diagnosticTool: "mémoire",
+    },
+    {
+      label: "129 characters in a direct-only tool",
+      name: "a".repeat(129),
+      placement: "direct-only" as const,
+      source: "registered" as const,
+      diagnosticTool: "a".repeat(129),
+    },
+    {
+      label: "reserved mcp name",
+      name: "mcp",
+      placement: "direct" as const,
+      source: "both" as const,
+      diagnosticTool: "mcp",
+    },
+    {
+      label: "reserved mcp namespace prefix",
+      name: "mcp__read",
+      placement: "searchable" as const,
+      source: "both" as const,
+      diagnosticTool: "mcp__read",
+    },
+  ])("quarantines Codex-invalid dynamic tool names: $label", async (testCase) => {
+    const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
+    const execute = vi.fn(async () => textToolResult("healthy sibling executed"));
+    const placement =
+      testCase.placement === "direct-only" ? { catalogMode: "direct-only" as const } : {};
+    const invalidTool = createTool({ name: testCase.name, ...placement });
+    const sibling = createTool({ name: "valid_sibling", execute, ...placement });
+    const registeredOnly = createTool({ name: "registered_sibling", ...placement });
+    const tools = [sibling, ...(testCase.source === "registered" ? [] : [invalidTool])];
+    const registeredTools = [
+      sibling,
+      registeredOnly,
+      ...(testCase.source === "available" ? [] : [invalidTool]),
+    ];
+    const bridgeOptions = {
+      tools,
+      registeredTools,
+      signal: new AbortController().signal,
+      ...(testCase.placement === "direct" ? { loading: "direct" as const } : {}),
+    };
+    const bridge = createCodexDynamicToolBridge(bridgeOptions);
+    const healthyBridge = createCodexDynamicToolBridge({
+      ...bridgeOptions,
+      tools: [sibling],
+      registeredTools: [sibling, registeredOnly],
+    });
+
+    expect(bridge.availableTools.map((tool) => tool.name)).toEqual(["valid_sibling"]);
+    expect(bridge.availableSpecs).toEqual(healthyBridge.availableSpecs);
+    expect(bridge.specs).toEqual(healthyBridge.specs);
+    expect(codexDynamicToolsFingerprint(bridge.specs)).toBe(
+      codexDynamicToolsFingerprint(healthyBridge.specs),
+    );
+    expect(specNames(bridge.availableSpecs)).toEqual(["valid_sibling"]);
+    expect(specNames(bridge.specs).toSorted()).toEqual(["registered_sibling", "valid_sibling"]);
+    const siblingSpec = flattenSpecsWithNamespace(bridge.availableSpecs)[0];
+    if (testCase.placement === "searchable") {
+      expect(siblingSpec).toMatchObject({
+        name: "valid_sibling",
+        namespace: CODEX_OPENCLAW_DYNAMIC_TOOL_NAMESPACE,
+        deferLoading: true,
+      });
+    } else if (testCase.placement === "direct-only") {
+      expect(siblingSpec).toMatchObject({
+        name: "valid_sibling",
+        namespace: CODEX_OPENCLAW_DIRECT_DYNAMIC_TOOL_NAMESPACE,
+      });
+      expect(siblingSpec).not.toHaveProperty("deferLoading");
+    } else {
+      expectDynamicSpec(siblingSpec, { name: "valid_sibling" });
+      expectNoNamespace(siblingSpec);
+    }
+    expect(bridge.telemetry.quarantinedTools).toEqual([
+      expect.objectContaining({ tool: testCase.diagnosticTool }),
+    ]);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("retained 1 available and 2 registered tools"),
+      expect.objectContaining({
+        availableToolCount: 1,
+        registeredToolCount: 2,
+      }),
+    );
+
+    const validResult = await bridge.handleToolCall({
+      threadId: "thread-1",
+      turnId: "turn-1",
+      callId: "call-valid",
+      namespace: null,
+      tool: "valid_sibling",
+      arguments: {},
+    });
+    expect(validResult.success).toBe(true);
+    expect(execute).toHaveBeenCalledOnce();
+
+    const invalidResult = await bridge.handleToolCall({
+      threadId: "thread-1",
+      turnId: "turn-1",
+      callId: "call-invalid",
+      namespace: null,
+      tool: testCase.name,
+      arguments: {},
+    });
+    expect(invalidResult).toMatchObject({
+      success: false,
+      executionStarted: false,
+    });
+    expect(invalidResult.contentItems).toEqual([
+      {
+        type: "inputText",
+        text: `Unknown OpenClaw tool: ${testCase.name}`,
+      },
+    ]);
+  });
+
+  it("reports an empty final surface when all dynamic tool names are invalid", () => {
+    const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
+    const bridge = createCodexDynamicToolBridge({
+      tools: [createTool({ name: "bad.name" }), createTool({ name: "mcp" })],
+      signal: new AbortController().signal,
+    });
+
+    expect(bridge.availableTools).toEqual([]);
+    expect(bridge.availableSpecs).toEqual([]);
+    expect(bridge.specs).toEqual([]);
+    expect(bridge.telemetry.quarantinedTools.map((tool) => tool.tool)).toEqual(["bad.name", "mcp"]);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("retained 0 available and 0 registered tools"),
+      expect.objectContaining({
+        availableToolCount: 0,
+        registeredToolCount: 0,
+      }),
+    );
   });
 
   it("uses the bridge's executable projection for authority snapshots", () => {
