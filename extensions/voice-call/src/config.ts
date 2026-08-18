@@ -1,23 +1,24 @@
 // Voice Call helper module supports config behavior.
-import { mergeDeep } from "openclaw/plugin-sdk/plugin-config-runtime";
-import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "openclaw/plugin-sdk/realtime-voice";
-import { normalizeAgentId, parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
+import { mergeDeep } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "astroclaw/plugin-sdk/realtime-voice";
+import { normalizeAgentId, parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
 import {
   buildSecretInputSchema,
   hasConfiguredSecretInput,
   normalizeResolvedSecretInputString,
   type SecretInput,
-} from "openclaw/plugin-sdk/secret-input";
+} from "astroclaw/plugin-sdk/secret-input";
 import {
   canonicalizeMainSessionAlias,
   type SessionScope,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { resolveSpeechProviderApiKey } from "openclaw/plugin-sdk/speech-core";
-import { normalizeWebhookPath } from "openclaw/plugin-sdk/webhook-ingress";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { resolveSpeechProviderApiKey } from "astroclaw/plugin-sdk/speech-core";
+import { normalizeWebhookPath } from "astroclaw/plugin-sdk/webhook-ingress";
 import { z } from "zod";
 import { TtsConfigSchema } from "../api.js";
 import { TWILIO_REGIONS } from "./providers/twilio-region.js";
 import { DEFAULT_VOICE_CALL_REALTIME_INSTRUCTIONS } from "./realtime-defaults.js";
+import { isTailscalePortAllowed, VoiceCallTailscaleConfigSchema } from "./tailscale-config.js";
 
 // -----------------------------------------------------------------------------
 // Phone Number Validation
@@ -118,21 +119,6 @@ const VoiceCallServeConfigSchema = z
   })
   .strict()
   .default({ port: 3334, bind: "127.0.0.1", path: "/voice/webhook" });
-
-const VoiceCallTailscaleConfigSchema = z
-  .object({
-    /**
-     * Tailscale exposure mode:
-     * - "off": No Tailscale exposure
-     * - "serve": Tailscale serve (private to tailnet)
-     * - "funnel": Tailscale funnel (public HTTPS)
-     */
-    mode: z.enum(["off", "serve", "funnel"]).default("off"),
-    /** Path for Tailscale serve/funnel (should usually match serve.path) */
-    path: z.string().min(1).default("/voice/webhook"),
-  })
-  .strict()
-  .default({ mode: "off", path: "/voice/webhook" });
 
 // -----------------------------------------------------------------------------
 // Tunnel Configuration (unified ngrok/tailscale)
@@ -501,7 +487,11 @@ export const VoiceCallConfigSchema = z
     /** Timeout for response generation in ms (default 30s) */
     responseTimeoutMs: z.number().int().positive().default(30000),
   })
-  .strict();
+  .strict()
+  .refine(isTailscalePortAllowed, {
+    path: ["tailscale", "port"],
+    message: "Tailscale Funnel HTTPS port must be one of 443, 8443, 10000",
+  });
 
 export type VoiceCallConfig = z.infer<typeof VoiceCallConfigSchema>;
 type VoiceCallEffectiveConfigResult = {
