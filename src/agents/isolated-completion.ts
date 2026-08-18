@@ -11,7 +11,7 @@ import type { ThinkLevel } from "../auto-reply/thinking.js";
 import { getRuntimeConfig } from "../config/config.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { withTempWorkspace } from "../infra/private-temp-workspace.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import type { AssistantMessage } from "../llm/types.js";
 import { withPluginRuntimeGenerationScope } from "../plugins/runtime/generation-scope.js";
 import { prepareSystemAgentRunAdmission } from "./admitted-run-context.js";
@@ -33,7 +33,10 @@ import {
   isCliRuntimeAliasForProvider,
   resolveCliRuntimeExecutionProvider,
 } from "./model-runtime-aliases.js";
-import { acquireAgentRunPreparedModelRuntime } from "./prepared-model-runtime.js";
+import {
+  acquireAgentRunPreparedModelRuntime,
+  type PreparedModelRuntimeSnapshot,
+} from "./prepared-model-runtime.js";
 import {
   unwrapModelHeaderSentinelsForProviderEgress,
   unwrapSecretSentinelsForProviderEgress,
@@ -185,7 +188,7 @@ async function runCliIsolatedCompletion(params: {
   workspaceDir: string;
 }): Promise<{ model: string; text: string; usage?: UsageLike }> {
   return await withTempWorkspace(
-    { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "openclaw-isolated-completion-" },
+    { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "openclaw-isolated-completion-" },
     async ({ dir }) => {
       const { runCliAgent } = await import("./cli-runner.runtime.js");
       const sessionId = `isolated-completion-${randomUUID()}`;
@@ -396,6 +399,8 @@ async function prepareHostAuthorization(params: {
   provider: string;
   modelId: string;
   authProfileId?: string;
+  workspaceDir: string;
+  preparedModelRuntime: PreparedModelRuntimeSnapshot;
 }): Promise<Extract<AgentHarnessIsolatedCompletionAuthorization, { owner: "host" }>> {
   const prepared = await prepareSimpleCompletionModel({
     cfg: params.config,
@@ -408,6 +413,8 @@ async function prepareHostAuthorization(params: {
     allowBundledStaticCatalogFallback: true,
     skipAgentDiscovery: true,
     bindAuthOwner: true,
+    workspaceDir: params.workspaceDir,
+    preparedModelRuntime: params.preparedModelRuntime,
   });
   if ("error" in prepared) {
     throw new Error(`Isolated completion preparation failed: ${prepared.error}`);
@@ -609,6 +616,8 @@ export async function runIsolatedCompletion(
                 modelId: request.model,
                 authProfileId:
                   attempt?.kind === "profile" ? attempt.profileId : request.authProfileId,
+                workspaceDir,
+                preparedModelRuntime: lease.snapshot,
               });
               modelMaxTokens = authorization.model.maxTokens;
             }
@@ -654,6 +663,8 @@ export async function runIsolatedCompletion(
           provider,
           modelId: request.model,
           authProfileId: request.authProfileId,
+          workspaceDir,
+          preparedModelRuntime: lease.snapshot,
         });
         const harnessParams: AgentHarnessIsolatedCompletionParams = {
           ...commonParams,
