@@ -1,19 +1,19 @@
 // Voice Call helper module supports config behavior.
-import { mergeDeep } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "astroclaw/plugin-sdk/realtime-voice";
-import { normalizeAgentId, parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
+import { mergeDeep } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "openclaw/plugin-sdk/realtime-voice";
+import { normalizeAgentId, parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
 import {
   buildSecretInputSchema,
   hasConfiguredSecretInput,
   normalizeResolvedSecretInputString,
   type SecretInput,
-} from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/secret-input";
 import {
   canonicalizeMainSessionAlias,
   type SessionScope,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-import { resolveSpeechProviderApiKey } from "astroclaw/plugin-sdk/speech-core";
-import { normalizeWebhookPath } from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/session-store-runtime";
+import { resolveSpeechProviderApiKey } from "openclaw/plugin-sdk/speech-core";
+import { normalizeWebhookPath } from "openclaw/plugin-sdk/webhook-ingress";
 import { z } from "zod";
 import { TtsConfigSchema } from "../api.js";
 import { TWILIO_REGIONS } from "./providers/twilio-region.js";
@@ -537,6 +537,48 @@ function defaultRealtimeStreamPathForServePath(servePath: string): string {
     return "/voice/stream/realtime";
   }
   return `${normalized}/stream/realtime`;
+}
+
+export type VoiceCallStreamExposurePath = {
+  publicPath: string;
+  localPath: string;
+};
+
+export function resolveVoiceCallPublicPathPrefix(
+  publicWebhookPath: string,
+  localWebhookPath: string,
+): string {
+  const publicPath = normalizeWebhookPath(publicWebhookPath);
+  const localPathIndex = publicPath.indexOf(normalizeWebhookPath(localWebhookPath));
+  return localPathIndex > 0 ? publicPath.slice(0, localPathIndex) : "";
+}
+
+export function resolveVoiceCallStreamExposurePaths(
+  config: VoiceCallConfig,
+  webhookPaths: { publicWebhookPath?: string; localWebhookPath?: string } = {},
+): VoiceCallStreamExposurePath[] {
+  const exposurePaths: VoiceCallStreamExposurePath[] = [];
+  const localWebhookPath = webhookPaths.localWebhookPath ?? config.serve.path;
+  const publicWebhookPath = webhookPaths.publicWebhookPath ?? config.tailscale.path;
+  const publicPathPrefix = resolveVoiceCallPublicPathPrefix(publicWebhookPath, localWebhookPath);
+  if (config.realtime.enabled) {
+    const localPath = normalizeWebhookPath(
+      config.realtime.streamPath ?? defaultRealtimeStreamPathForServePath(config.serve.path),
+    );
+    exposurePaths.push({
+      localPath,
+      publicPath: `${publicPathPrefix}${localPath}`,
+    });
+  }
+  if (config.streaming.enabled) {
+    const localPath = normalizeWebhookPath(config.streaming.streamPath);
+    if (
+      !exposurePaths.some((path) => path.localPath === localPath && path.publicPath === localPath)
+    ) {
+      exposurePaths.push({ localPath, publicPath: localPath });
+    }
+  }
+  return exposurePaths;
 }
 
 function normalizeVoiceCallTtsConfig(
