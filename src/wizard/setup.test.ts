@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
+import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
 // Setup wizard tests cover end-to-end onboarding prompt flows.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
 import {
@@ -1067,7 +1067,10 @@ describe("runSetupWizard", () => {
         }),
       }),
       expect.any(Object),
-      { secretInputMode: undefined },
+      {
+        secretInputMode: undefined,
+        edgeAuthOriginUrl: "wss://stored.example.com:18789",
+      },
     );
     expect(runtime.log).not.toHaveBeenCalledWith(expect.stringContaining(remoteToken));
   });
@@ -1096,6 +1099,33 @@ describe("runSetupWizard", () => {
       url: "wss://gateway.example.test",
       token: undefined,
       password: remotePassword,
+    });
+  });
+
+  it("passes configured remote edge auth to the setup reachability probe", async () => {
+    const config: OpenClawConfig = {
+      gateway: {
+        mode: "remote",
+        remote: {
+          url: "wss://gateway.example.test",
+          edgeAuth: { "X-Edge-Auth": "test-secret" },
+        },
+      },
+    };
+    readConfigFileSnapshot.mockResolvedValueOnce(configSnapshot(config));
+
+    await runSetupWizard(
+      { acceptRisk: true, flow: "advanced", mode: "remote" },
+      createRuntime(),
+      buildWizardPrompter({}),
+    );
+
+    expect(probeGatewayReachable).toHaveBeenCalledWith({
+      url: "wss://gateway.example.test",
+      config: expect.objectContaining({
+        gateway: config.gateway,
+      }),
+      token: undefined,
     });
   });
 
@@ -1180,6 +1210,7 @@ describe("runSetupWizard", () => {
             url: "wss://stored.example.com:18789",
             token: { source: "env", provider: "default", id: "STORED_GATEWAY_TOKEN" },
             password: { source: "env", provider: "default", id: "STORED_GATEWAY_PASSWORD" },
+            edgeAuth: { "X-Edge-Auth": "test-secret" },
           },
         },
       },
@@ -1206,6 +1237,14 @@ describe("runSetupWizard", () => {
 
     expect(probeGatewayReachable).toHaveBeenCalledWith({
       url: "wss://flag.example.com:18789",
+      config: expect.objectContaining({
+        gateway: expect.objectContaining({
+          remote: expect.objectContaining({
+            url: "wss://stored.example.com:18789",
+            edgeAuth: { "X-Edge-Auth": "test-secret" },
+          }),
+        }),
+      }),
       token: undefined,
     });
     expect(promptRemoteGatewayConfig).toHaveBeenCalledWith(
@@ -1215,11 +1254,15 @@ describe("runSetupWizard", () => {
             url: "wss://flag.example.com:18789",
             token: undefined,
             password: undefined,
+            edgeAuth: { "X-Edge-Auth": "test-secret" },
           },
         }),
       }),
       expect.any(Object),
-      { secretInputMode: undefined },
+      {
+        secretInputMode: undefined,
+        edgeAuthOriginUrl: "wss://stored.example.com:18789",
+      },
     );
   });
 
