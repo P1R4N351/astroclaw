@@ -4,18 +4,18 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   AgentHarnessSessionSupersededError,
   embeddedAgentLog,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   ensureAuthProfileStore,
   resolveDefaultAgentDir,
   resolveProviderIdForAuth,
   resolveSessionAgentIds,
   type AuthProfileStore,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { PluginStateSyncKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
-import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { PluginStateSyncKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 import { CODEX_PLUGIN_MARKETPLACE_NAME_PATTERN, normalizeCodexServiceTier } from "./config.js";
 import type { PluginAppPolicyContext } from "./plugin-thread-config.js";
@@ -209,6 +209,9 @@ const threadBindingSchema = z
     connectionScope: z.literal("supervision").optional(),
     supervisionSourceThreadId: z.string().trim().min(1).optional(),
     authProfileId: optionalStringSchema,
+    // Freeze external-cwd AGENTS.md at thread creation; bootstrap refreshes must
+    // not mutate the inherited policy of a resumed native session.
+    agentWorkspaceDeveloperInstructions: optionalNonBlankStringSchema,
     model: optionalStringSchema,
     // Codex App Server owns selection for supervised and adopted threads. Keep
     // this marker across resumes so OpenClaw never substitutes a default or fallback.
