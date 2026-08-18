@@ -2,20 +2,20 @@
 import {
   nativeHookRelayTesting,
   type NativeHookRelayRegistrationHandle,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   onInternalDiagnosticEvent,
   resetDiagnosticEventsForTest,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
 import {
   createMockPluginRegistry,
   loadWebFetchToolFactoryForTest,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   codexTestTurnIds,
@@ -99,7 +99,7 @@ vi.mock("./provider-capabilities.js", () => ({
     resolveCodexProviderWebSearchSupportForClientMock(...args),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness", () => ({
+vi.mock("openclaw/plugin-sdk/agent-harness", () => ({
   createOpenClawCodingTools: (...args: unknown[]) => createOpenClawCodingToolsMock(...args),
 }));
 
@@ -663,6 +663,7 @@ describe("runCodexAppServerSideQuestion", () => {
     expect(forkParams?.approvalsReviewer).toBe("user");
     expect(forkParams?.cwd).toBe("/tmp/workspace");
     expect(forkParams?.config).toEqual({
+      project_doc_max_bytes: 131_072,
       "features.goals": false,
       "tools.update_plan.enabled": false,
       "features.code_mode": true,
@@ -1290,7 +1291,7 @@ describe("runCodexAppServerSideQuestion", () => {
     createOpenClawCodingToolsMock.mockImplementation((options) => {
       const toolOptions = options as NonNullable<
         Parameters<
-          (typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]
+          (typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]
         >[0]
       >;
       const webFetchTool = createWebFetchTool({
