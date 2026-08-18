@@ -4,27 +4,27 @@ import {
   formatErrorMessage,
   resolveActiveEmbeddedRunSessionId,
   resolveSandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   resolveSessionAgentIds,
   tryResolveDefaultAgentId,
-} from "astroclaw/plugin-sdk/agent-scope-runtime";
-import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-binding-runtime";
-import { loadExecApprovals } from "astroclaw/plugin-sdk/exec-approvals-runtime";
-import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/keyed-async-queue";
+} from "openclaw/plugin-sdk/agent-scope-runtime";
+import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-binding-runtime";
+import { loadExecApprovals } from "openclaw/plugin-sdk/exec-approvals-runtime";
+import { KeyedAsyncQueue } from "openclaw/plugin-sdk/keyed-async-queue";
 import type {
   PluginConversationBindingResolvedEvent,
   PluginHookInboundClaimContext,
   PluginHookInboundClaimEvent,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
-import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/plugin-entry";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
+import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
 import {
   getSessionEntry,
   resolveStorePath,
   resolveTranscriptSessionKeyBySessionId,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-import { readVisibleSessionTranscriptMessageEntries } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/session-store-runtime";
+import { readVisibleSessionTranscriptMessageEntries } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { resolveCodexAppServerForModelProvider } from "./app-server/app-server-policy.js";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
@@ -59,6 +59,7 @@ import {
   buildDisabledAppsConfigPatch,
   mergeCodexThreadConfigs,
 } from "./app-server/plugin-thread-config.js";
+import { buildCodexProjectDocThreadConfig } from "./app-server/project-doc-thread-config.js";
 import { assertCodexThreadStartResponse } from "./app-server/protocol-validators.js";
 import type {
   CodexServiceTier,
@@ -591,12 +592,10 @@ function codexConversationSandboxOrPermissions(
   const disabledApps = mergeCodexThreadConfigs(buildDisabledAppsConfigPatch(), {
     "features.apps": false,
   })!;
-  if (networkProxy) {
-    return {
-      config: mergeCodexThreadConfigs(networkProxy.configPatch, disabledApps),
-    };
-  }
-  return { sandbox, config: disabledApps };
+  const config = buildCodexProjectDocThreadConfig(
+    mergeCodexThreadConfigs(networkProxy?.configPatch, disabledApps),
+  );
+  return networkProxy ? { config } : { sandbox, config };
 }
 
 async function requestNewConversationBindingThread(
