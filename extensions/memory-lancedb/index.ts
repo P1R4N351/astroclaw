@@ -1,22 +1,19 @@
 import {
   resolveAgentConfig,
   resolveDefaultAgentId as resolveConfiguredDefaultAgentId,
-} from "astroclaw/plugin-sdk/agent-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
 import {
   optionalFiniteNumberSchema,
   optionalPositiveIntegerSchema,
-} from "astroclaw/plugin-sdk/channel-actions";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import {
-  readFiniteNumberParam,
-  readPositiveIntegerParam,
-} from "astroclaw/plugin-sdk/param-readers";
-import { resolveLivePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { isIncognitoSessionKey, normalizeAgentId } from "astroclaw/plugin-sdk/routing";
-import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/channel-actions";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { readFiniteNumberParam, readPositiveIntegerParam } from "openclaw/plugin-sdk/param-readers";
+import { resolveLivePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { isIncognitoSessionKey, normalizeAgentId } from "openclaw/plugin-sdk/routing";
+import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { Type } from "typebox";
 import { definePluginEntry, type OpenClawPluginApi } from "./api.js";
 import {
@@ -39,10 +36,10 @@ import {
   type AutoCaptureCursor,
   cleanMemorySearchResults,
   detectCategory,
-  escapeMemoryForPrompt,
   extractLatestUserText,
   extractUserTextContent,
   findCleanDuplicateMemory,
+  formatRecalledMemoryForModel,
   formatRelevantMemoriesContext,
   looksLikePromptInjection,
   messageFingerprint,
@@ -52,7 +49,7 @@ import {
 } from "./memory-policy.js";
 
 const loadMemoryHostCoreModule = createLazyRuntimeModule(
-  () => import("astroclaw/plugin-sdk/memory-host-core"),
+  () => import("openclaw/plugin-sdk/memory-host-core"),
 );
 
 const DEFAULT_AUTO_RECALL_TIMEOUT_MS = 15_000;
@@ -93,6 +90,14 @@ function memoryDeleteFailureResult(id: string) {
   };
 }
 
+function memoryStoreTooLongResult(maxChars: number) {
+  const text = `Memory was not stored because it exceeds the configured ${maxChars}-character limit. Shorten it and retry.`;
+  return {
+    content: [{ type: "text" as const, text }],
+    details: { action: "rejected", maxChars, reason: "text_too_long", status: "blocked" },
+  };
+}
+
 export default definePluginEntry({
   id: "memory-lancedb",
   name: "Memory (LanceDB)",
@@ -121,7 +126,6 @@ export default definePluginEntry({
 
     const vectorDim = dimensions ?? vectorDimsForModel(model);
     const db = new MemoryDB(resolvedDbPath, vectorDim, cfg.storageOptions);
-    const embeddings = createEmbeddings(api, cfg);
     const autoCaptureCursors = new Map<string, AutoCaptureCursor>();
     const memoryRecallCooldowns = new Map<string, { until: number; error: string }>();
     const resolveRuntimeConfig = (): OpenClawConfig =>
@@ -170,7 +174,7 @@ export default definePluginEntry({
       if (!runtimePluginConfig) {
         return disabledHookCfg;
       }
-      return memoryConfigSchema.parse({
+      const currentCfg = memoryConfigSchema.parse({
         embedding: {
           provider: cfg.embedding.provider,
           apiKey: cfg.embedding.apiKey,
@@ -190,7 +194,12 @@ export default definePluginEntry({
         ...(cfg.storageOptions ? { storageOptions: cfg.storageOptions } : {}),
         ...asOptionalRecord(runtimePluginConfig),
       });
+      const { apiKey, baseUrl } = currentCfg.embedding;
+      // LanceDB's fixed-size persisted vectors keep semantic identity startup-stable;
+      // changing provider/model/dimensions without re-embedding corrupts search compatibility.
+      return { ...currentCfg, embedding: { ...cfg.embedding, apiKey, baseUrl } };
     };
+    const embeddings = createEmbeddings(api);
     const readMemoryRecallCooldown = (agentId: string): { error: string } | undefined => {
       const memoryRecallCooldown = memoryRecallCooldowns.get(agentId);
       if (!memoryRecallCooldown) {
@@ -245,6 +254,7 @@ export default definePluginEntry({
             const limit = readPositiveIntegerParam(rawParams, "limit") ?? 5;
 
             const currentCfg = resolveCurrentHookConfig();
+            const recallMaxChars = currentCfg.recallMaxChars;
             const cooldown = readMemoryRecallCooldown(agentId);
             if (cooldown) {
               return buildMemoryRecallUnavailableResult(cooldown.error);
@@ -259,8 +269,9 @@ export default definePluginEntry({
                   try {
                     vector = await embeddings.embed(
                       agentId,
-                      normalizeRecallQuery(query, currentCfg.recallMaxChars),
-                      { timeoutMs: Math.max(1, deadlineAtMs - Date.now()) },
+                      normalizeRecallQuery(query, recallMaxChars),
+                      currentCfg.embedding,
+                      Math.max(1, deadlineAtMs - Date.now()),
                     );
                   } catch (error) {
                     throw new MemoryRecallEmbeddingError(error);
@@ -309,8 +320,8 @@ export default definePluginEntry({
 
             const text = results
               .map(({ result, text: memoryText }, i) => {
-                const escapedText = escapeMemoryForPrompt(memoryText);
-                return `${i + 1}. [${result.entry.category}] ${escapedText} (${(result.score * 100).toFixed(0)}%)`;
+                const visibleText = formatRecalledMemoryForModel(memoryText, recallMaxChars);
+                return `${i + 1}. [${result.entry.category}] ${visibleText} (${(result.score * 100).toFixed(0)}%)`;
               })
               .join("\n");
 
@@ -351,7 +362,7 @@ export default definePluginEntry({
           name: "memory_store",
           label: "Memory Store",
           description:
-            "Save important information in long-term memory. Success means the exact text already exists or the database commit completed; it does not guarantee semantic recall.",
+            "Save important information in long-term memory. Text over the configured capture limit is rejected. Success means the exact text already exists or the database commit completed; it does not guarantee semantic recall.",
           parameters: Type.Object({
             text: Type.String({ description: "Information to remember" }),
             importance: optionalFiniteNumberSchema({
@@ -363,6 +374,7 @@ export default definePluginEntry({
           }),
           async execute(_toolCallId, params) {
             assertRetainedToolEnabled(agentId, ctx.getRuntimeConfig);
+            const currentCfg = resolveCurrentHookConfig();
             if (isIncognitoSessionKey(ctx.sessionKey)) {
               return {
                 content: [
@@ -388,6 +400,11 @@ export default definePluginEntry({
                 max: 1,
               }) ?? 0.7;
 
+            const captureMaxChars = currentCfg.captureMaxChars;
+            if (text.length > captureMaxChars) {
+              return memoryStoreTooLongResult(captureMaxChars);
+            }
+
             if (looksLikePromptInjection(text)) {
               return {
                 content: [
@@ -404,7 +421,7 @@ export default definePluginEntry({
               };
             }
 
-            const vector = await embeddings.embed(agentId, text);
+            const vector = await embeddings.embed(agentId, text, currentCfg.embedding);
 
             const existing = await findCleanDuplicateMemory(db, agentId, vector, text);
             if (existing) {
@@ -474,9 +491,11 @@ export default definePluginEntry({
 
             if (query) {
               const currentCfg = resolveCurrentHookConfig();
+              const recallMaxChars = currentCfg.recallMaxChars;
               const vector = await embeddings.embed(
                 agentId,
-                normalizeRecallQuery(query, currentCfg.recallMaxChars),
+                normalizeRecallQuery(query, recallMaxChars),
+                currentCfg.embedding,
               );
               const results = await db.search(agentId, vector, 5, 0.7);
 
@@ -493,8 +512,9 @@ export default definePluginEntry({
                 if (!deleted) {
                   return memoryDeleteFailureResult(singleResult.entry.id);
                 }
+                const text = formatRecalledMemoryForModel(singleResult.entry.text, recallMaxChars);
                 return {
-                  content: [{ type: "text", text: `Forgotten: "${singleResult.entry.text}"` }],
+                  content: [{ type: "text", text: `Forgotten: "${text}"` }],
                   details: { action: "deleted", id: singleResult.entry.id },
                 };
               }
@@ -532,10 +552,11 @@ export default definePluginEntry({
       { name: "memory_forget" },
     );
 
-    registerMemoryCli(api, db, embeddings, resolveCliAgentId, cfg.recallMaxChars);
+    registerMemoryCli(api, db, embeddings, resolveCliAgentId, resolveCurrentHookConfig);
 
     api.on("before_prompt_build", async (event, ctx) => {
       const currentCfg = resolveCurrentHookConfig();
+      const recallMaxChars = currentCfg.recallMaxChars;
       if (!currentCfg.autoRecall) {
         return undefined;
       }
@@ -562,7 +583,7 @@ export default definePluginEntry({
             extractLatestUserText(Array.isArray(event.messages) ? event.messages : []) ??
               event.prompt,
           ),
-          currentCfg.recallMaxChars,
+          recallMaxChars,
         );
         if (!recallQuery) {
           return undefined;
@@ -573,9 +594,12 @@ export default definePluginEntry({
           task: async (deadlineAtMs) => {
             let vector: number[];
             try {
-              vector = await embeddings.embed(agentId, recallQuery, {
-                timeoutMs: Math.max(1, deadlineAtMs - Date.now()),
-              });
+              vector = await embeddings.embed(
+                agentId,
+                recallQuery,
+                currentCfg.embedding,
+                Math.max(1, deadlineAtMs - Date.now()),
+              );
             } catch (error) {
               throw new MemoryRecallEmbeddingError(error);
             }
@@ -613,7 +637,7 @@ export default definePluginEntry({
 
         api.logger.info?.(`memory-lancedb: injecting ${cleanResults.length} memories into context`);
 
-        const context = formatRelevantMemoriesContext(cleanResults);
+        const context = formatRelevantMemoriesContext(cleanResults, recallMaxChars);
         if (!context) {
           return undefined;
         }
@@ -678,7 +702,7 @@ export default definePluginEntry({
               }
 
               const category = detectCategory(sanitized);
-              const vector = await embeddings.embed(agentId, sanitized);
+              const vector = await embeddings.embed(agentId, sanitized, currentCfg.embedding);
 
               const existing = await findCleanDuplicateMemory(db, agentId, vector);
               if (existing) {
