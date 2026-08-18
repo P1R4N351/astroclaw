@@ -1,8 +1,8 @@
 // Voice Call tests cover webhook plugin behavior.
 import crypto from "node:crypto";
 import { request, type IncomingMessage } from "node:http";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { RealtimeTranscriptionProviderPlugin } from "openclaw/plugin-sdk/realtime-transcription";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { RealtimeTranscriptionProviderPlugin } from "astroclaw/plugin-sdk/realtime-transcription";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VoiceCallConfigSchema, resolveVoiceCallConfig, type VoiceCallConfig } from "./config.js";
 import type { CallManager } from "./manager.js";
@@ -2417,7 +2417,7 @@ describe("VoiceCallWebhookServer stream disconnect grace", () => {
     const call = createCall(Date.now() - 1_000);
     call.providerCallId = "CA-stream-1";
 
-    const endCall = vi.fn(async () => ({ success: true }));
+    const endCall = vi.fn(async () => ({ success: false, error: "carrier unavailable" }));
     const speakInitialMessage = vi.fn(async () => {});
     const getCallByProviderCallId = vi.fn((providerCallId: string) =>
       providerCallId === "CA-stream-1" ? call : undefined,
@@ -2503,6 +2503,9 @@ describe("VoiceCallWebhookServer stream disconnect grace", () => {
     expect(endCall).toHaveBeenCalledWith(call.callId);
     expect(messages).toContain(
       `[voice-call] Call finalization requested reason=stream-disconnect-grace-expired callId=${call.callId} providerCallId=CA-stream-1`,
+    );
+    expect(messages).toContain(
+      `[voice-call] Failed to auto-end call ${call.callId}: carrier unavailable`,
     );
 
     await server.stop();
