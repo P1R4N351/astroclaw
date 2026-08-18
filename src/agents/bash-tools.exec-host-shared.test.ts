@@ -13,8 +13,8 @@ import {
 import {
   buildExecApprovalPendingToolResult,
   createAndRegisterDefaultExecApprovalRequest,
-  createExecApprovalDecisionState,
-  enforceStrictInlineEvalApprovalBoundary,
+  resolveExecApprovalDecisionState,
+  resolveExecApprovalWaitOutcome,
   resolveExecHostApprovalContext,
   sendExecApprovalFollowupResult,
   shouldResolveExecApprovalUnavailableInline,
@@ -38,6 +38,8 @@ const mocks = vi.hoisted(() => ({
     file: { version: 1, agents: {} },
     hash: "approvals-hash",
   })),
+  approvalRunAbortedError: new Error("approval owning run aborted"),
+  resolveRegisteredExecApprovalDecision: vi.fn(async (): Promise<string | null> => "allow-once"),
 }));
 
 vi.mock("../infra/exec-approvals.js", async (importOriginal) => {
@@ -45,6 +47,15 @@ vi.mock("../infra/exec-approvals.js", async (importOriginal) => {
   return {
     ...mod,
     resolveExecApprovalsLocked: mocks.resolveExecApprovals,
+  };
+});
+
+vi.mock("./bash-tools.exec-approval-request.js", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("./bash-tools.exec-approval-request.js")>();
+  return {
+    ...mod,
+    isExecApprovalRunAbortedError: (error: unknown) => error === mocks.approvalRunAbortedError,
+    resolveRegisteredExecApprovalDecision: mocks.resolveRegisteredExecApprovalDecision,
   };
 });
 
@@ -487,67 +498,142 @@ describe("resolveExecHostApprovalContext", () => {
   });
 });
 
-describe("enforceStrictInlineEvalApprovalBoundary", () => {
-  it("denies unanswered approvals when ask fallback is fail-closed", () => {
-    expect(
-      createExecApprovalDecisionState({
+describe("resolveExecApprovalDecisionState", () => {
+  it.each([
+    {
+      name: "keeps fail-closed timeout denial",
+      decision: null,
+      askFallback: "deny" as const,
+      requiresExplicitApproval: false,
+      expected: { approvedByAsk: false, deniedReason: "approval-timeout" },
+    },
+    {
+      name: "accepts explicit approval across strict boundaries",
+      decision: "allow-once",
+      askFallback: "deny" as const,
+      requiresExplicitApproval: true,
+      expected: { approvedByAsk: true, deniedReason: null },
+    },
+  ])("$name", async ({ decision, askFallback, requiresExplicitApproval, expected }) => {
+    await expect(
+      resolveExecApprovalDecisionState({
+        decision,
+        askFallback,
+        requiresExplicitApproval,
+      }),
+    ).resolves.toMatchObject(expected);
+  });
+
+  it("applies current timeout policy before enforcing human-only approval", async () => {
+    const timeoutContext = { requiresExplicitApproval: true, policy: "current" };
+
+    await expect(
+      resolveExecApprovalDecisionState({
         decision: null,
+        askFallback: "full",
+        resolveTimedOut: async () => ({
+          approvedByAsk: true,
+          deniedReason: null,
+          context: timeoutContext,
+        }),
+        requiresExplicitApproval: (context) => context?.requiresExplicitApproval === true,
+      }),
+    ).resolves.toEqual({
+      baseDecision: { approvedByAsk: true, deniedReason: null, timedOut: true },
+      approvedByAsk: false,
+      deniedReason: "approval-timeout",
+      timeoutContext,
+    });
+  });
+});
+
+describe("resolveExecApprovalWaitOutcome", () => {
+  beforeEach(() => {
+    mocks.resolveRegisteredExecApprovalDecision.mockReset();
+    mocks.resolveRegisteredExecApprovalDecision.mockResolvedValue("allow-once");
+  });
+
+  it.each([
+    ["allow-once", true, null],
+    ["allow-always", true, null],
+    ["deny", false, "user-denied"],
+  ] as const)("returns a resolved %s decision", async (decision, approvedByAsk, deniedReason) => {
+    mocks.resolveRegisteredExecApprovalDecision.mockResolvedValue(decision);
+
+    await expect(
+      resolveExecApprovalWaitOutcome({
+        approvalId: "approval-1",
+        preResolvedDecision: undefined,
         askFallback: "deny",
+        requiresExplicitApproval: false,
       }),
-    ).toEqual({
-      baseDecision: {
-        approvedByAsk: false,
-        deniedReason: "approval-timeout",
-        timedOut: true,
-      },
-      approvedByAsk: false,
-      deniedReason: "approval-timeout",
+    ).resolves.toMatchObject({
+      kind: "resolved",
+      decision,
+      state: { approvedByAsk, deniedReason },
     });
   });
 
-  it("denies timeout-based fallback when strict inline-eval approval is required", () => {
-    expect(
-      enforceStrictInlineEvalApprovalBoundary({
-        baseDecision: { timedOut: true },
-        approvedByAsk: true,
-        deniedReason: null,
-        requiresInlineEvalApproval: true,
+  it("applies timeout policy before returning a resolved outcome", async () => {
+    mocks.resolveRegisteredExecApprovalDecision.mockResolvedValue(null);
+
+    await expect(
+      resolveExecApprovalWaitOutcome({
+        approvalId: "approval-timeout",
+        preResolvedDecision: undefined,
+        askFallback: "full",
+        resolveTimedOut: async () => ({ approvedByAsk: false, deniedReason: "policy-revoked" }),
+        requiresExplicitApproval: false,
       }),
-    ).toEqual({
-      approvedByAsk: false,
-      deniedReason: "approval-timeout",
+    ).resolves.toMatchObject({
+      kind: "resolved",
+      decision: null,
+      state: { approvedByAsk: false, deniedReason: "policy-revoked" },
     });
   });
 
-  it("denies timeout-based fallback when auto-review defers to human approval", () => {
-    const params = {
-      baseDecision: { timedOut: true },
-      approvedByAsk: true,
-      deniedReason: null,
-      requiresInlineEvalApproval: false,
-      requiresAutoReviewHumanApproval: true,
-    } satisfies Parameters<typeof enforceStrictInlineEvalApprovalBoundary>[0] & {
-      requiresAutoReviewHumanApproval: true;
-    };
+  it("classifies an approval waiter failure", async () => {
+    mocks.resolveRegisteredExecApprovalDecision.mockRejectedValue(new Error("store unavailable"));
 
-    expect(enforceStrictInlineEvalApprovalBoundary(params)).toEqual({
-      approvedByAsk: false,
-      deniedReason: "approval-timeout",
-    });
+    await expect(
+      resolveExecApprovalWaitOutcome({
+        approvalId: "approval-failed",
+        preResolvedDecision: undefined,
+        askFallback: "deny",
+        requiresExplicitApproval: false,
+      }),
+    ).resolves.toEqual({ kind: "request-failed" });
   });
 
-  it("keeps explicit approvals intact for strict inline-eval commands", () => {
-    expect(
-      enforceStrictInlineEvalApprovalBoundary({
-        baseDecision: { timedOut: false },
-        approvedByAsk: true,
-        deniedReason: null,
-        requiresInlineEvalApproval: true,
+  it("classifies owning-run cancellation", async () => {
+    mocks.resolveRegisteredExecApprovalDecision.mockRejectedValue(mocks.approvalRunAbortedError);
+
+    await expect(
+      resolveExecApprovalWaitOutcome({
+        approvalId: "approval-aborted",
+        preResolvedDecision: undefined,
+        askFallback: "deny",
+        requiresExplicitApproval: false,
       }),
-    ).toEqual({
-      approvedByAsk: true,
-      deniedReason: null,
+    ).resolves.toEqual({ kind: "run-aborted" });
+  });
+
+  it("does not consume a decision after the owning signal aborts", async () => {
+    const controller = new AbortController();
+    mocks.resolveRegisteredExecApprovalDecision.mockImplementation(async () => {
+      controller.abort(new Error("run stopped"));
+      return "allow-once";
     });
+
+    await expect(
+      resolveExecApprovalWaitOutcome({
+        approvalId: "approval-aborted-after-wait",
+        preResolvedDecision: undefined,
+        signal: controller.signal,
+        askFallback: "deny",
+        requiresExplicitApproval: false,
+      }),
+    ).resolves.toEqual({ kind: "run-aborted" });
   });
 });
 
