@@ -1,5 +1,5 @@
 // Browser tests cover client plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   browserAct,
@@ -65,6 +65,18 @@ describe("browser client", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(fetchFailed));
 
     await expect(browserStatus("http://127.0.0.1:18791")).rejects.toThrow(/sandboxed session/i);
+  });
+
+  it("preserves unavailable tab state from a disconnected browser", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ running: false, tabs: [] })),
+    );
+
+    await expect(browserTabs("http://127.0.0.1:18791")).resolves.toEqual({
+      running: false,
+      tabs: [],
+    });
   });
 
   it("adds useful cancellation messaging for abort-like failures", async () => {
@@ -295,7 +307,10 @@ describe("browser client", () => {
     expect(deepDoctorResult.ok).toBe(true);
     expect(deepDoctorResult.profile).toBe("openclaw");
 
-    await expect(browserTabs("http://127.0.0.1:18791")).resolves.toHaveLength(1);
+    await expect(browserTabs("http://127.0.0.1:18791")).resolves.toEqual({
+      running: true,
+      tabs: [expect.objectContaining({ targetId: "t1" })],
+    });
     const openedTab = await browserOpenTab("http://127.0.0.1:18791", "https://example.com");
     expect(openedTab.targetId).toBe("t2");
 
