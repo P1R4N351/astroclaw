@@ -70,6 +70,7 @@ const evaluation: SkillWorkshopEvaluation = {
 
 const proposal: SkillWorkshopProposal = {
   key: "proposal-1",
+  kind: "update",
   slug: "inbox-cleaner",
   name: "Inbox Cleaner",
   oneLine: "Clean inbox triage",
@@ -88,6 +89,13 @@ const proposal: SkillWorkshopProposal = {
 
 function propsFor(mode: SkillWorkshopMode): SkillWorkshopProps {
   return {
+    access: {
+      canEvaluate: true,
+      canApply: true,
+      canRevise: true,
+      canReject: true,
+      canScanHistory: true,
+    },
     loading: false,
     error: null,
     inspectingKey: null,
