@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 // Agent via gateway tests cover gateway-backed agent command dispatch and session loading.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configureExecutionIdentityAdmissionSink,
@@ -2136,18 +2136,23 @@ describe("agentCliCommand", () => {
 
   it("surfaces duplicate in-flight gateway runs without pretending a reply arrived", async () => {
     await withTempStore(async () => {
+      const signals = createSignalProcess();
       callGateway.mockResolvedValue({
         runId: "idem-1",
         status: "in_flight",
         sessionKey: "agent:main:main",
       });
 
-      await agentCliCommand({ message: "hi", to: "+1555", runId: "idem-1" }, runtime);
+      await agentCliCommand({ message: "hi", to: "+1555", runId: "idem-1" }, runtime, {
+        process: signals.processLike,
+      });
 
       expect(runtime.error).toHaveBeenCalledWith(
         "Agent run idem-1 is already in flight; not starting a duplicate run.",
       );
       expect(runtime.log).not.toHaveBeenCalledWith("No reply from agent.");
+      expect(runtime.exit).not.toHaveBeenCalled();
+      expect(signals.processLike.exitCode).toBe(1);
     });
   });
 
