@@ -2,39 +2,39 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
-import type { AnyAgentTool } from "astroclaw/plugin-sdk/agent-harness";
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-harness";
 import {
   HEARTBEAT_RESPONSE_TOOL_NAME,
   embeddedAgentLog,
   getPluginToolMeta,
   wrapToolWithBeforeToolCallHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
   createOwnerBackedContractTool,
   createTerminalPresentationContractTool,
-} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
 import {
   createEmptyPluginRegistry,
   createMockPluginRegistry,
   createTestRegistry,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 // Codex tests cover dynamic tools plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
-import { estimateToolResultTextChars } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import { estimateToolResultTextChars } from "openclaw/plugin-sdk/text-utility-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   handleDynamicToolCallWithTimeout,
@@ -987,7 +987,7 @@ describe("createCodexDynamicToolBridge", () => {
     ]);
   });
 
-  it("retains only MCP App preview details for OpenClaw transcript projection", async () => {
+  it("retains all sanitized details for OpenClaw transcript projection", async () => {
     const mcpAppPreview = {
       kind: "canvas",
       view: { id: "mcp-app-view-1", title: "Nearby food" },
@@ -1017,7 +1017,10 @@ describe("createCodexDynamicToolBridge", () => {
       arguments: { limit: 4 },
     });
 
-    expect(result.transcriptDetails).toEqual({ mcpAppPreview });
+    expect(result.transcriptDetails).toEqual({
+      mcpAppPreview,
+      structuredContent: { privateModelPayload: true },
+    });
     expect(Object.keys(result)).not.toContain("transcriptDetails");
     expect(JSON.stringify(result)).not.toContain("mcpAppPreview");
     expect(JSON.stringify(result)).not.toContain("privateModelPayload");
