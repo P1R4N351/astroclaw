@@ -87,6 +87,7 @@ export interface ShellViewHost {
   readonly runtime: ApplicationRuntime | undefined;
   readonly activeSessionKey: string;
   readonly commandPaletteElement: OptionalCustomElement;
+  readonly debugOverlayElement: OptionalCustomElement;
   readonly custodianMinimizeRequestId: number;
   readonly desktopNavigationExpanded: boolean;
   readonly execApprovalElement: OptionalCustomElement;
@@ -397,6 +398,7 @@ export function renderApplicationShell(host: ShellViewHost) {
       refreshRequired: navigationSurfaceHidden ? false : overlaySnapshot.controlUiRefreshRequired,
       onRefresh: () => host.refreshControlUi(),
       onHoldUpdate: () => context.overlays.holdUpdate(),
+      onReviewUpdate: () => host.navigate("updates"),
       onOpenApprovals: () => host.openApprovals(),
       onRetryConnect: () => context.gateway.connect(),
       onOpenNewSession: openNewSession,
@@ -433,6 +435,7 @@ export function renderApplicationShell(host: ShellViewHost) {
         refreshRequired: navigationSurfaceHidden ? false : overlaySnapshot.controlUiRefreshRequired,
         onRefresh: () => host.refreshControlUi(),
         onHoldUpdate: () => context.overlays.holdUpdate(),
+        onReviewUpdate: () => host.navigate("updates"),
         searchQuery: host.settingsSearchQuery,
         searchBlockMatches: settingsSearchBlocks,
         onExit: () => host.exitSettings(),
@@ -469,6 +472,9 @@ export function renderApplicationShell(host: ShellViewHost) {
           .onSelectSession=${(sessionKey: string) => host.selectChatSession(sessionKey)}
           .onSlashCommand=${(command: string) => host.handleCommandPaletteSlashCommand(command)}
         ></openclaw-command-palette>`
+      : nothing}
+    ${isOptionalElementDefined(host.debugOverlayElement)
+      ? html`<openclaw-debug-overlay></openclaw-debug-overlay>`
       : nothing}
     <div
       class="shell ${chatLikeRoute ? "shell--chat" : ""} ${navCollapsed
@@ -617,6 +623,7 @@ export function renderApplicationShell(host: ShellViewHost) {
           refreshRequired: overlaySnapshot.controlUiRefreshRequired,
           onRefresh: () => host.refreshControlUi(),
           onHoldUpdate: () => context.overlays.holdUpdate(),
+          onReviewUpdate: () => host.navigate("updates"),
         })}
         ${pageActionsBlocked && gatewaySnapshot.phase !== "reload-required"
           ? html`<div class="connection-action-block" role="status" aria-live="polite">
