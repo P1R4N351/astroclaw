@@ -1,11 +1,11 @@
 // Voice Call plugin module implements cli behavior.
 import path from "node:path";
-import type { Command } from "commander";
-import { MAX_TCP_PORT } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TCP_PORT } from "astroclaw/plugin-sdk/number-runtime";
 import {
   isRecord,
   normalizeOptionalLowercaseString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import type { Command } from "commander";
 import { registerVoiceCallLogs } from "./cli-call-log.js";
 import { parseCliInteger, writeCliJson, writeCliLine } from "./cli-command-io.js";
 import {
@@ -422,8 +422,13 @@ export function registerVoiceCallCli(params: {
 
         if (mode === "off") {
           for (const exposurePath of [tsPath, ...streamPaths]) {
-            await cleanupTailscaleExposureRoute({ mode: "serve", path: exposurePath });
-            await cleanupTailscaleExposureRoute({ mode: "funnel", path: exposurePath });
+            for (const tailscaleMode of ["serve", "funnel"] as const) {
+              await cleanupTailscaleExposureRoute({
+                mode: tailscaleMode,
+                port: config.tailscale.port,
+                path: exposurePath,
+              });
+            }
           }
           writeCliJson({ ok: true, mode: "off", path: tsPath, streamPaths });
           return;
@@ -431,6 +436,7 @@ export function registerVoiceCallCli(params: {
 
         const publicUrl = await setupTailscaleExposureRoutes({
           mode,
+          port: config.tailscale.port,
           routes: [
             { path: tsPath, localUrl },
             ...streamExposurePaths.map(({ publicPath, localPath }) => ({
