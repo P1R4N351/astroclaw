@@ -1,7 +1,7 @@
 // Canvas tests cover copy a2ui plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "astroclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { copyA2uiAssets } from "./copy-a2ui.mjs";
 
@@ -68,6 +68,7 @@ describe("canvas a2ui copy", () => {
       await fs.mkdir(srcDir, { recursive: true });
       await fs.writeFile(path.join(srcDir, "index.html"), "<html></html>", "utf8");
       await fs.writeFile(path.join(srcDir, "a2ui.bundle.js"), "console.log(1);", "utf8");
+      await fs.writeFile(path.join(srcDir, "a2ui-v0.9.bundle.js"), "console.log(2);", "utf8");
 
       await copyA2uiAssets({ srcDir, outDir });
 
@@ -76,6 +77,9 @@ describe("canvas a2ui copy", () => {
       );
       await expect(fs.readFile(path.join(outDir, "a2ui.bundle.js"), "utf8")).resolves.toBe(
         "console.log(1);",
+      );
+      await expect(fs.readFile(path.join(outDir, "a2ui-v0.9.bundle.js"), "utf8")).resolves.toBe(
+        "console.log(2);",
       );
     });
   });
@@ -89,6 +93,7 @@ describe("canvas a2ui copy", () => {
       await fs.mkdir(outDir, { recursive: true });
       await fs.writeFile(path.join(srcDir, "index.html"), "<html></html>", "utf8");
       await fs.writeFile(path.join(srcDir, "a2ui.bundle.js"), "console.log(1);", "utf8");
+      await fs.writeFile(path.join(srcDir, "a2ui-v0.9.bundle.js"), "console.log(2);", "utf8");
       await fs.writeFile(path.join(nestedAssetDir, "sample.txt"), "nested-asset", "utf8");
       await fs.writeFile(path.join(outDir, "stale.txt"), "stale-output", "utf8");
 
@@ -109,6 +114,7 @@ describe("canvas a2ui copy", () => {
       await fs.mkdir(srcDir, { recursive: true });
       await fs.writeFile(path.join(srcDir, "index.html"), "<html></html>", "utf8");
       await fs.writeFile(path.join(srcDir, "a2ui.bundle.js"), "console.log(1);", "utf8");
+      await fs.writeFile(path.join(srcDir, "a2ui-v0.9.bundle.js"), "console.log(2);", "utf8");
 
       await expect(copyA2uiAssets({ srcDir, outDir: srcDir })).rejects.toThrow("must not overlap");
       await expect(fs.readFile(path.join(srcDir, "index.html"), "utf8")).resolves.toBe(
