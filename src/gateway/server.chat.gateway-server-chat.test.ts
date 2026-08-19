@@ -22,6 +22,7 @@ import { captureEnv, setTestEnvValue } from "../test-utils/env.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import * as sessionLifecycleState from "./session-lifecycle-state.js";
 import {
+  agentDiscoveryMock,
   connectOk,
   dispatchInboundMessageMock,
   installGatewayTestHooks,
@@ -596,6 +597,10 @@ describe("gateway server chat", () => {
   test("handles chat send and history flows", async () => {
     const tempDirs: string[] = [];
     let webchatWs: WebSocket | undefined;
+    agentDiscoveryMock.enabled = true;
+    agentDiscoveryMock.models = [
+      { id: "claude-opus-4-6", provider: "anthropic", input: ["text", "image"] },
+    ];
 
     try {
       webchatWs = new WebSocket(`ws://127.0.0.1:${port}`, {
@@ -713,6 +718,7 @@ describe("gateway server chat", () => {
       expect(agentAllowedRes.payload?.status).toBe("accepted");
       expect(agentAllowedRes.payload?.runId).toBe("idem-2");
       await waitForFast(() => expect(agentCommandMock).toHaveBeenCalled());
+      await waitForFast(() => expect(getActiveGatewayRootWorkCount()).toBe(0));
 
       testState.sessionStorePath = undefined;
       testState.sessionConfig = undefined;
@@ -789,6 +795,7 @@ describe("gateway server chat", () => {
       expect(defaultMsgs.length).toBe(200);
       expect(extractFirstTextBlock(defaultMsgs[0])).toBe("m1");
     } finally {
+      Object.assign(agentDiscoveryMock, { enabled: false, models: [] });
       testState.agentConfig = undefined;
       testState.sessionStorePath = undefined;
       testState.sessionConfig = undefined;
@@ -904,6 +911,10 @@ describe("gateway server chat", () => {
       const persistSpy = vi
         .spyOn(sessionLifecycleState, "persistGatewaySessionLifecycleEvent")
         .mockImplementation(async (params) => {
+          if (params.event.runId !== "idem-dispatch-error-1") {
+            await persistLifecycleEvent(params);
+            return;
+          }
           persistenceEntered.resolve();
           await releasePersistence.promise;
           await persistLifecycleEvent(params);
