@@ -6,8 +6,8 @@ import {
   runAgentHarnessBeforeCompactionHook,
   type BeforeToolCallFailureDisposition,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { readStringField as readString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { readStringField as readString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import type { AttemptFailureSource, EmbeddedRunAttemptResult } from "./attempt-terminal.js";
 import { CodexAssistantProjection } from "./event-projector-assistant.js";
 import { CodexProjectionDiagnostics } from "./event-projector-diagnostics.js";
@@ -235,6 +235,13 @@ export class CodexAppServerEventProjector {
     } else if (!isCodexNotificationForTurn(params, this.threadId, this.turnId)) {
       return;
     }
+    if (
+      notification.method !== "guardianWarning" &&
+      notification.method !== "item/autoApprovalReview/started" &&
+      notification.method !== "item/autoApprovalReview/completed"
+    ) {
+      this.eventProjection.flushPendingGuardianWarning();
+    }
     this.nativeToolLifecycleProjector.handleNotification(notification);
     this.assistantProjection.handleNotification(notification.method, params);
 
@@ -337,6 +344,7 @@ export class CodexAppServerEventProjector {
     toolTelemetry: CodexAppServerToolTelemetry,
     options?: { yieldDetected?: boolean },
   ): EmbeddedRunAttemptResult & { terminalTurnId: string } {
+    this.eventProjection.flushPendingGuardianWarning();
     return buildCodexAttemptResult({
       runParams: this.params,
       turnId: this.turnId,
