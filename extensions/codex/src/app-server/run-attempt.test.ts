@@ -1,29 +1,32 @@
 // Codex tests cover run attempt plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import {
   embeddedAgentLog,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { replaceRuntimeAuthProfileStoreSnapshots } from "openclaw/plugin-sdk/agent-runtime";
-import { openFileBackedSessionManagerForTest } from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { replaceRuntimeAuthProfileStoreSnapshots } from "astroclaw/plugin-sdk/agent-runtime";
+import { openFileBackedSessionManagerForTest } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
-} from "openclaw/plugin-sdk/diagnostic-runtime";
-import { initializeGlobalHookRunner, registerInternalHook } from "openclaw/plugin-sdk/hook-runtime";
-import { registerMemoryCapability } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
-import { MESSAGE_TOOL_DELIVERY_HINTS } from "openclaw/plugin-sdk/message-tool-delivery-hints";
-import { registerPluginCommand } from "openclaw/plugin-sdk/plugin-runtime";
-import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "openclaw/plugin-sdk/provider-model-shared";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/diagnostic-runtime";
+import {
+  initializeGlobalHookRunner,
+  registerInternalHook,
+} from "astroclaw/plugin-sdk/hook-runtime";
+import { registerMemoryCapability } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+import { MESSAGE_TOOL_DELIVERY_HINTS } from "astroclaw/plugin-sdk/message-tool-delivery-hints";
+import { registerPluginCommand } from "astroclaw/plugin-sdk/plugin-runtime";
+import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "astroclaw/plugin-sdk/provider-model-shared";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   readSessionTranscriptEvents,
-} from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/session-transcript-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
 import { defaultCodexAppInventoryCache } from "./app-inventory-cache.js";
@@ -58,6 +61,7 @@ import { filterCodexDynamicTools } from "./dynamic-tool-profile.js";
 import { createCodexDynamicToolBridge } from "./dynamic-tools.js";
 import * as elicitationBridge from "./elicitation-bridge.js";
 import { CodexAppServerEventProjector } from "./event-projector.js";
+import { buildCodexRuntimeModelParams } from "./model-runtime.js";
 import {
   buildCodexAppServerConnectionFingerprint,
   buildCodexPluginAppCacheKey,
@@ -74,6 +78,7 @@ import {
   type v2,
 } from "./protocol.js";
 import { itemNotification, rawItemCompleted, turnCompleted } from "./protocol.test-helpers.js";
+import { resolveCodexDynamicToolDirectNames } from "./run-attempt-tools.js";
 
 type CodexAppServerToolTelemetry = Parameters<CodexAppServerEventProjector["buildResult"]>[0];
 import {
@@ -129,8 +134,9 @@ const agentHarnessRuntimeMocks = vi.hoisted(() => ({
   }>,
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     supportsModelTools: (...args: Parameters<typeof actual.supportsModelTools>) =>
@@ -153,26 +159,7 @@ const testing = {
   buildDeveloperInstructions,
   buildDynamicTools,
   filterCodexDynamicTools,
-  resolveCodexDynamicToolDirectNames(
-    params: EmbeddedRunAttemptParams,
-    hostSystemAgentActive = false,
-  ): string[] {
-    const names: string[] = [];
-    if (
-      hostSystemAgentActive &&
-      params.toolsAllow?.length === 1 &&
-      params.toolsAllow[0] === "openclaw"
-    ) {
-      names.push("openclaw");
-    }
-    if (params.sourceReplyDeliveryMode === "message_tool_only") {
-      names.push("message");
-    }
-    if (params.pluginHarnessToolPolicyRestricted === true) {
-      names.push("progress_card");
-    }
-    return names;
-  },
+  resolveCodexDynamicToolDirectNames,
   setOpenClawCodingToolsFactoryForTests(
     factory: NonNullable<typeof dynamicToolBuildState.openClawCodingToolsFactory>,
   ): void {
@@ -6212,6 +6199,39 @@ describe("runCodexAppServerAttempt", () => {
     expect(calledWithFailedClient).toBe(true);
     retireSpy.mockRestore();
   });
+  it("uses the prepared execution model without exposing it in lifecycle events", async () => {
+    const { sessionFile, workspaceDir } = createRunPaths();
+    const runtimeModelId = "codex-execution-model";
+    const { requests, waitForMethod, completeTurn } = createStartedThreadHarness(async (method) =>
+      method === "thread/start" ? { ...threadStartResult(), model: runtimeModelId } : undefined,
+    );
+    const params = createParams(sessionFile, workspaceDir);
+    params.modelId = "gpt-5.6-sol";
+    params.model = {
+      ...params.model,
+      id: "gpt-5.6-sol",
+      params: {
+        ...params.model.params,
+        ...buildCodexRuntimeModelParams("gpt-5.6-sol", runtimeModelId),
+      },
+    };
+    const onAgentEvent = vi.fn();
+    params.onAgentEvent = onAgentEvent;
+
+    const run = runCodexAppServerAttempt(params, { runtimeModelId });
+    await completeStartedRun(run, waitForMethod, completeTurn);
+
+    for (const method of ["thread/start", "turn/start"]) {
+      const request = requests.find((entry) => entry.method === method);
+      const requestParams = request?.params as Record<string, unknown> | undefined;
+      expect(requestParams?.model).toBe(runtimeModelId);
+    }
+    expect(onAgentEvent).toHaveBeenCalledWith({
+      stream: "codex_app_server.lifecycle",
+      data: expect.objectContaining({ phase: "turn_starting", model: "gpt-5.6-sol" }),
+    });
+  });
+
   it("passes configured app-server policy, sandbox, service tier, and model on resume", async () => {
     const { sessionFile, workspaceDir } = createRunPaths();
     await writeExistingBinding(sessionFile, workspaceDir, { model: "gpt-5.2" });
