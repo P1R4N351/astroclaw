@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
 // Coverage for context-engine bootstrap, assembly, and turn finalization.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { HEARTBEAT_TRANSCRIPT_PROMPT } from "../../../auto-reply/heartbeat.js";
 import {
@@ -197,6 +197,23 @@ describe("runEmbeddedAttempt context engine sessionKey forwarding", () => {
   it("enables Tool Search controls for embedded OpenClaw runs when configured", async () => {
     expect(toolSearchControlsCase.includeToolSearchControls).toBe(true);
     expect(toolSearchControlsCase.toolSearchCatalogRef).toEqual({});
+  });
+
+  it("carries the resolved context budget into OpenClaw tool construction", async () => {
+    await createContextEngineAttemptRunner({
+      contextEngine: createContextEngineBootstrapAndAssemble(),
+      sessionKey,
+      tempPaths,
+      attemptOverrides: {
+        contextTokenBudget: 1_000_000,
+        disableTools: false,
+      },
+    });
+
+    expect(
+      mockParams(hoisted.createOpenClawCodingToolsMock, 0, "tool construction params")
+        .modelContextWindowTokens,
+    ).toBe(1_000_000);
   });
 
   it("keeps client tool names out of context engine capability guidance", async () => {
