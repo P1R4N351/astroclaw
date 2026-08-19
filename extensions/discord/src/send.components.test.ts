@@ -16,9 +16,9 @@ const DISCORD_TEST_CFG = {
   session: { dmScope: "main" },
 } as const;
 
-vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-config-runtime")>(
-    "astroclaw/plugin-sdk/plugin-config-runtime",
+vi.mock("openclaw/plugin-sdk/plugin-config-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-config-runtime")>(
+    "openclaw/plugin-sdk/plugin-config-runtime",
   );
   return {
     ...actual,
@@ -119,6 +119,20 @@ describe("sendDiscordComponentMessage", () => {
     );
 
     expect(readRecordArg(postMock, 0, 1).body).toMatchObject({ allowed_mentions: { parse: [] } });
+  });
+
+  it("rejects component delivery to forum-style channels before posting", async () => {
+    const { rest, postMock, getMock } = makeDiscordRest();
+    getMock.mockResolvedValueOnce({ type: ChannelType.GuildForum, id: "forum-1" });
+
+    await expect(
+      sendDiscordComponentMessage(
+        "channel:forum-1",
+        { blocks: [{ type: "actions", buttons: [{ label: "Open widget" }] }] },
+        { cfg: DISCORD_TEST_CFG, rest, token: "t" },
+      ),
+    ).rejects.toThrow("Discord components are not supported in forum-style channels");
+    expect(postMock).not.toHaveBeenCalled();
   });
 
   it("keeps direct-channel DM session keys on component entries", async () => {
