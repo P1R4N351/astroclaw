@@ -1,9 +1,9 @@
 // Voice Call plugin module implements twilio behavior.
 import crypto from "node:crypto";
-import { setTimeout as sleep } from "node:timers/promises";
-import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
-import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { retryAsync } from "openclaw/plugin-sdk/retry-runtime";
+import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
+import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { getHeader } from "../http-headers.js";
 import type { MediaStreamHandler } from "../media-stream.js";
 import { chunkAudio } from "../telephony-audio.js";
@@ -246,21 +246,18 @@ export class TwilioProvider implements VoiceCallProvider {
     twiml: string,
     operation: string,
   ): Promise<void> {
-    for (const retryDelayMs of TWILIO_CALL_UPDATE_RETRY_DELAYS_MS) {
-      try {
-        await this.apiRequest(`/Calls/${providerCallId}.json`, { Twiml: twiml });
-        return;
-      } catch (err) {
-        if (!isTwilioCallNotInProgressError(err)) {
-          throw err;
-        }
+    await retryAsync(() => this.apiRequest(`/Calls/${providerCallId}.json`, { Twiml: twiml }), {
+      attempts: TWILIO_CALL_UPDATE_RETRY_DELAYS_MS.length + 1,
+      minDelayMs: 0,
+      shouldRetry: isTwilioCallNotInProgressError,
+      delayMs: ({ attempt }) => TWILIO_CALL_UPDATE_RETRY_DELAYS_MS[attempt - 1] ?? 0,
+      onRetry: ({ delayMs }) => {
         console.warn(
-          `[voice-call] Twilio ${operation} update hit call state race (21220); retrying in ${retryDelayMs}ms`,
+          `[voice-call] Twilio ${operation} update hit call state race (21220); retrying in ${delayMs}ms`,
         );
-        await sleep(retryDelayMs);
-      }
-    }
-    await this.apiRequest(`/Calls/${providerCallId}.json`, { Twiml: twiml });
+      },
+      sleep: (delayMs) => sleepWithAbort(delayMs),
+    });
   }
 
   /**
