@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { AgentHarnessPreflightError } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { AgentHarnessPreflightError } from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   ensureAuthProfileStore,
   findPersistedAuthProfileCredential,
@@ -20,9 +20,9 @@ import {
   type AuthProfileCredential,
   type AuthProfileStore,
   type OAuthCredential,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import { hasUsableOAuthCredential } from "astroclaw/plugin-sdk/provider-auth";
-import { readSecretFile } from "astroclaw/plugin-sdk/secret-file";
+} from "openclaw/plugin-sdk/agent-runtime";
+import { hasUsableOAuthCredential } from "openclaw/plugin-sdk/provider-auth";
+import { readSecretFile } from "openclaw/plugin-sdk/secret-file";
 import {
   resolveCodexAppServerHomeDir,
   resolveCodexAppServerLocalHomeDir,
@@ -339,7 +339,10 @@ export async function resolveCodexAppServerPreparedAuthHandoff(params: {
       'Codex remote-exec cloud placement requires prepared OpenAI auth. Configure an OpenAI API-key, OAuth, or token profile and use appServer.homeScope="agent"; ambient credentials and native Codex auth are not allowed.',
     );
   }
-  if (params.authRequirement === "api-key" && !usesNativeHome) {
+  if (usesNativeHome) {
+    return { nativeAuthProfile: true };
+  }
+  if (params.authRequirement === "api-key") {
     const apiKey = params.resolvedApiKey?.trim();
     if (!apiKey) {
       throw new Error("Prepared Codex API-key route is missing its resolved API key.");
@@ -357,10 +360,7 @@ export async function resolveCodexAppServerPreparedAuthHandoff(params: {
     agentDir: params.agentDir,
     config: params.config,
   });
-  if (
-    usesNativeHome ||
-    (params.authRequirement !== "subscription" && !params.requirePreparedAuth)
-  ) {
+  if (params.authRequirement !== "subscription" && !params.requirePreparedAuth) {
     return { authProfileId, nativeAuthProfile };
   }
   if (!authProfileId || (params.authRequirement === "subscription" && !nativeAuthProfile)) {
