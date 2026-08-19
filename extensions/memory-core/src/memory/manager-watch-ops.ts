@@ -1,18 +1,19 @@
 // Memory Core plugin module owns memory filesystem watch synchronization.
 import fsSync from "node:fs";
 import path from "node:path";
-import { classifyMemoryMultimodalPath } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import chokidar, { type FSWatcher } from "chokidar";
+import { isPathInside } from "openclaw/plugin-sdk/file-access-runtime";
+import { classifyMemoryMultimodalPath } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   createSubsystemLogger,
   type ResolvedMemorySearchConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   matchesExtraMemoryPathEntry,
   normalizeExtraMemoryPathEntries,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import chokidar, { type FSWatcher } from "chokidar";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { MemoryManagerSyncBase } from "./manager-sync-base.js";
 import {
   countChokidarWatchedEntries,
@@ -102,11 +103,6 @@ function shouldIgnoreMemoryWatchPath(
   return classifyMemoryMultimodalPath(normalized, multimodalSettings) === null;
 }
 
-function isWithinMemoryWatchRoot(root: string, candidate: string): boolean {
-  const relative = path.relative(root, candidate);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-}
-
 function runDetachedMemorySync(sync: () => Promise<void>, reason: "interval" | "watch") {
   void sync().catch((err: unknown) => {
     log.warn(`memory sync failed (${reason}): ${String(err)}`);
@@ -161,11 +157,9 @@ export abstract class MemoryManagerWatchOps extends MemoryManagerSyncBase {
     const markDirty = (watchPath?: string, stats?: MemoryWatchEventStats) => {
       if (watchPath && stats && !stats.isDirectory?.()) {
         const normalizedWatchPath = path.resolve(watchPath);
-        const matchingEntries = isWithinMemoryWatchRoot(memoryDir, normalizedWatchPath)
+        const matchingEntries = isPathInside(memoryDir, normalizedWatchPath)
           ? []
-          : additionalPaths.filter((entry) =>
-              isWithinMemoryWatchRoot(entry.path, normalizedWatchPath),
-            );
+          : additionalPaths.filter((entry) => isPathInside(entry.path, normalizedWatchPath));
         if (
           matchingEntries.length > 0 &&
           !matchingEntries.some((entry) => matchesExtraMemoryPathEntry(entry, normalizedWatchPath))
