@@ -1,7 +1,7 @@
-import type { AgentEvent } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentEvent } from "openclaw/plugin-sdk/agent-core";
 // Tool handler tests cover tool lifecycle events, read-path diagnostics,
 // messaging tool capture, approvals, and emitted summaries.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   onAgentEvent as registerAgentEventListener,
@@ -3607,6 +3607,67 @@ describe("messaging tool media URL tracking", () => {
         sourceReplyFinal: true,
       },
     ]);
+  });
+
+  it("commits trusted core current-channel widgets as message-tool-only source replies", async () => {
+    const { ctx } = createTestContext();
+    const onDeliveredMessageToolOnlySourceReply = vi.fn();
+    Object.assign(ctx.params, {
+      sourceReplyDeliveryMode: "message_tool_only",
+      coreBuiltinToolNames: new Set(["show_widget"]),
+      onDeliveredMessageToolOnlySourceReply,
+    });
+
+    await executeTool(ctx, {
+      toolName: "show_widget",
+      toolCallId: "tool-current-channel-widget",
+      args: { title: "Status", widget_code: "<p>ready</p>" },
+      isError: false,
+      result: {
+        details: {
+          kind: "widget",
+          presentation: {
+            target: "current_channel",
+            receipt: {
+              primaryPlatformMessageId: "discord-message-1",
+              platformMessageIds: ["discord-message-1"],
+              parts: [],
+              sentAt: 1,
+            },
+          },
+        },
+      },
+    });
+
+    expect(ctx.state.messageToolOnlySourceReplyDelivered).toBe(true);
+    expect(onDeliveredMessageToolOnlySourceReply).toHaveBeenCalledOnce();
+  });
+
+  it("does not commit inline Canvas widgets as message-tool-only source replies", async () => {
+    const { ctx } = createTestContext();
+    const onDeliveredMessageToolOnlySourceReply = vi.fn();
+    Object.assign(ctx.params, {
+      sourceReplyDeliveryMode: "message_tool_only",
+      coreBuiltinToolNames: new Set(["show_widget"]),
+      onDeliveredMessageToolOnlySourceReply,
+    });
+
+    await executeTool(ctx, {
+      toolName: "show_widget",
+      toolCallId: "tool-inline-widget",
+      args: { title: "Status", widget_code: "<p>ready</p>" },
+      isError: false,
+      result: {
+        details: {
+          kind: "canvas",
+          presentation: { target: "assistant_message", title: "Status", sandbox: "scripts" },
+          view: { id: "cv_1", url: "/__openclaw__/canvas/documents/cv_1/index.html" },
+        },
+      },
+    });
+
+    expect(ctx.state.messageToolOnlySourceReplyDelivered).toBe(false);
+    expect(onDeliveredMessageToolOnlySourceReply).not.toHaveBeenCalled();
   });
 
   it("commits projected payload-only delivery after middleware replaces details", async () => {
