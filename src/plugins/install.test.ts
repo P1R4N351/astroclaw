@@ -2,7 +2,7 @@ import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
 // Covers plugin install flows, manifests, and install records.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
@@ -1122,7 +1122,6 @@ describe("installPluginFromArchive", () => {
 
     expect(result.ok).toBe(true);
     const requests = readCapturedInstallPolicyRequests(logPath);
-    expect(requests).toHaveLength(2);
     expect(requests.map((request) => request.request.kind)).toEqual([
       "plugin-archive",
       "plugin-archive",
@@ -1946,7 +1945,6 @@ describe("installPluginFromArchive", () => {
 
     expect(result.ok).toBe(true);
     const requests = readCapturedInstallPolicyRequests(logPath);
-    expect(requests).toHaveLength(2);
     expect(requests.map((request) => request.request.kind)).toEqual(["plugin-dir", "plugin-dir"]);
     expect(requests.map((request) => request.plugin?.contentType)).toEqual([
       "package",
