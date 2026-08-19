@@ -2,14 +2,16 @@
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve as resolvePath, win32 } from "node:path";
-import { bundledDistPluginFile, bundledPluginFile } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile, bundledPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import {
   collectInstalledBundledRuntimeSidecarPaths,
   collectInstalledRootDependencyManifestErrors,
 } from "../scripts/astroclaw-npm-postpublish-verify.ts";
+import { collectBundledExtensionManifestErrors } from "../scripts/lib/bundled-extension-manifest.ts";
 import { listBundledPluginPackArtifacts } from "../scripts/lib/bundled-plugin-build-entries.mjs";
 import { resolveNpmJsonEntries } from "../scripts/lib/npm-json-output.mts";
+import { collectPackUnpackedSizeErrors } from "../scripts/lib/npm-pack-budget.mts";
 import {
   LOCAL_BUILD_METADATA_DIST_PATHS,
   PACKAGE_DIST_INVENTORY_RELATIVE_PATH,
@@ -25,13 +27,11 @@ import {
 } from "../scripts/lib/workspace-bootstrap-smoke.mts";
 import {
   collectAppcastSparkleVersionErrors,
-  collectBundledExtensionManifestErrors,
   collectCriticalPluginSdkEntrypointSizeErrors,
   collectForbiddenPackContentPaths,
   collectForbiddenPackPaths,
   collectMissingPackPaths,
   collectSkillShellScriptExecutableErrors,
-  collectPackUnpackedSizeErrors,
   collectPackedInstalledPackageVerificationErrors,
   createPackedPluginSdkTypescriptSmokeProject,
   createPackedCompletionSmokeEnv,
@@ -41,7 +41,6 @@ import {
   PACKED_BUNDLED_RUNTIME_DEPS_REPAIR_ARGS,
   PACKED_CLI_SMOKE_COMMANDS,
   PACKED_COMPLETION_SMOKE_ARGS,
-  packageNameFromSpecifier,
   resolvePackedTarballPath,
   resolveReleaseNpmCommand,
   resolveMissingPackBuildHint,
@@ -392,15 +391,6 @@ describe("collectBundledExtensionManifestErrors", () => {
 });
 
 describe("bundled plugin package dependency checks", () => {
-  it("maps package names from import specifiers", () => {
-    expect(packageNameFromSpecifier("@larksuiteoapi/node-sdk/subpath")).toBe(
-      "@larksuiteoapi/node-sdk",
-    );
-    expect(packageNameFromSpecifier("grammy/web")).toBe("grammy");
-    expect(packageNameFromSpecifier("node:fs")).toBeNull();
-    expect(packageNameFromSpecifier("./local")).toBeNull();
-  });
-
   it("does not require root deps for root chunks sourced from the owning installed plugin", () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "openclaw-root-owned-installed-"));
 
@@ -892,14 +882,14 @@ describe("createPackedPluginSdkTypescriptSmokeProject", () => {
       expect(packageJson.dependencies?.["@openclaw/ai"]).toBe("file:/tmp/openclaw-ai.tgz");
       expect(tsconfig.compilerOptions?.skipLibCheck).toBe(true);
       expect(source).toBe(fixtureSource);
-      expect(source).toContain('"openclaw/plugin-sdk/core"');
-      expect(source).toContain('"openclaw/plugin-sdk/plugin-entry"');
-      expect(source).toContain('"openclaw/plugin-sdk/channel-entry-contract"');
-      expect(source).toContain('"openclaw/plugin-sdk/config-contracts"');
-      expect(source).toContain('"openclaw/plugin-sdk/runtime-env"');
+      expect(source).toContain('"astroclaw/plugin-sdk/core"');
+      expect(source).toContain('"astroclaw/plugin-sdk/plugin-entry"');
+      expect(source).toContain('"astroclaw/plugin-sdk/channel-entry-contract"');
+      expect(source).toContain('"astroclaw/plugin-sdk/config-contracts"');
+      expect(source).toContain('"astroclaw/plugin-sdk/runtime-env"');
       expect(source).toContain("type PublicPluginSdkModules = [");
       expect(source).not.toContain("TelegramAccountConfig");
-      expect(source).not.toContain("openclaw/plugin-sdk/channel-contract-testing");
+      expect(source).not.toContain("astroclaw/plugin-sdk/channel-contract-testing");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
