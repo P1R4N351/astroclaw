@@ -514,7 +514,7 @@ function shouldExternalizeGatewayProtocolDependency(id: string): boolean {
 }
 
 function shouldExternalizeGatewayClientDependency(id: string): boolean {
-  return ["ws", "@astroclaw/gateway-protocol"].some(
+  return ["ws", "@astroclaw/gateway-protocol", "ipaddr.js"].some(
     (dependency) => id === dependency || id.startsWith(`${dependency}/`),
   );
 }
