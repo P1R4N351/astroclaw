@@ -1,25 +1,26 @@
 // Google provider module implements model/runtime integration.
-import { transcodeAudioBufferToOpus } from "openclaw/plugin-sdk/media-runtime";
+import { transcodeAudioBufferToOpus } from "astroclaw/plugin-sdk/media-runtime";
 import {
   assertOkOrThrowProviderError,
   postJsonRequest,
   readProviderJsonResponse,
   sanitizeConfiguredModelProviderRequest,
-} from "openclaw/plugin-sdk/provider-http";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-onboard";
-import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
+} from "astroclaw/plugin-sdk/provider-http";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/provider-onboard";
+import { retryAsync } from "astroclaw/plugin-sdk/retry-runtime";
+import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
 import type {
   SpeechDirectiveTokenParseContext,
   SpeechProviderConfig,
   SpeechProviderOverrides,
   SpeechProviderPlugin,
   SpeechSynthesisRequest,
-} from "openclaw/plugin-sdk/speech-core";
-import { trimToUndefined } from "openclaw/plugin-sdk/speech-core";
+} from "astroclaw/plugin-sdk/speech-core";
+import { trimToUndefined } from "astroclaw/plugin-sdk/speech-core";
 import {
   asOptionalRecord,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { resolveGoogleGenerativeAiHttpRequestConfig } from "./api.js";
 import { canonicalizeGoogleProviderBase64 } from "./base64.js";
 
@@ -495,18 +496,11 @@ async function synthesizeGoogleTtsPcm(params: {
   speakerName?: string;
   timeoutMs: number;
 }): Promise<Buffer> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      return await synthesizeGoogleTtsPcmOnce(params);
-    } catch (err) {
-      lastError = err;
-      if (!isGoogleTtsRetryableError(err) || attempt > 0) {
-        throw err;
-      }
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  return await retryAsync(() => synthesizeGoogleTtsPcmOnce(params), {
+    attempts: 2,
+    minDelayMs: 0,
+    shouldRetry: isGoogleTtsRetryableError,
+  });
 }
 
 type GoogleTtsSynthesisRequest = Pick<
