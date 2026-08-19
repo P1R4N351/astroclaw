@@ -1,17 +1,17 @@
-import { buildExecApprovalPendingReplyPayload } from "astroclaw/plugin-sdk/approval-reply-runtime";
+import { buildExecApprovalPendingReplyPayload } from "openclaw/plugin-sdk/approval-reply-runtime";
 // Signal tests cover core plugin behavior.
 import {
   createMessageReceiptFromOutboundResults,
   verifyChannelMessageAdapterCapabilityProofs,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { installChannelDmPolicyContractSuite } from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { installChannelDmPolicyContractSuite } from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   createPluginSetupWizardStatus,
   createTestWizardPrompter,
   type WizardPrompter,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { listSignalAccountIds } from "./accounts.js";
 import {
@@ -1260,6 +1260,37 @@ describe("signal outbound", () => {
           });
           expect(result?.receipt.platformMessageIds).toEqual(["signal-media-1"]);
         },
+        payload: () => {
+          expect(signalPlugin.outbound?.renderPresentation).toBeTypeOf("function");
+          expect(signalPlugin.outbound?.sendFormattedText).toBeTypeOf("function");
+        },
+        replyTo: async () => {
+          await registerSignalReplyContext({
+            to: "signal:+15555550123",
+            replyToId: "1700000000001",
+            author: "+15555550123",
+            body: "original message",
+          });
+          await signalPlugin.message?.send?.text?.({
+            cfg: {} as OpenClawConfig,
+            to: "signal:+15555550123",
+            text: "reply",
+            replyToId: "1700000000001",
+            deps,
+          } as Parameters<NonNullable<typeof signalPlugin.message.send.text>>[0] & {
+            deps: typeof deps;
+          });
+          expect(send).toHaveBeenLastCalledWith(
+            "+15555550123",
+            "reply",
+            expect.objectContaining({ replyToId: "1700000000001" }),
+          );
+        },
+        messageSendingHooks: () => {
+          expect(signalPlugin.outbound?.shouldSuppressLocalPayloadPrompt).toBeTypeOf("function");
+          expect(signalPlugin.outbound?.renderPresentation).toBeTypeOf("function");
+          expect(signalPlugin.outbound?.afterDeliverPayload).toBeTypeOf("function");
+        },
       },
     });
 
@@ -1267,12 +1298,12 @@ describe("signal outbound", () => {
       { capability: "text", status: "verified" },
       { capability: "media", status: "verified" },
       { capability: "poll", status: "not_declared" },
-      { capability: "payload", status: "not_declared" },
+      { capability: "payload", status: "verified" },
       { capability: "silent", status: "not_declared" },
-      { capability: "replyTo", status: "not_declared" },
+      { capability: "replyTo", status: "verified" },
       { capability: "thread", status: "not_declared" },
       { capability: "nativeQuote", status: "not_declared" },
-      { capability: "messageSendingHooks", status: "not_declared" },
+      { capability: "messageSendingHooks", status: "verified" },
       { capability: "batch", status: "not_declared" },
       { capability: "reconcileUnknownSend", status: "not_declared" },
       { capability: "afterSendSuccess", status: "not_declared" },
