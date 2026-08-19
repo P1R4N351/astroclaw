@@ -1,6 +1,6 @@
 // Diagnostic logger tests cover event emission, metrics, and support output.
 import fs from "node:fs";
-import { createRequireRecord, importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord, importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   appendTranscriptMessageSync,
@@ -713,11 +713,9 @@ describe("stuck session diagnostics threshold", () => {
     }
 
     // Warning stays throttled: still only the single 60s warning.
-    expect(stuckEvents).toHaveLength(1);
     expect(stuckEvents.map((event) => event.ageMs)).toEqual([60_000]);
     // Recovery was not suppressed by the warning backoff on the 90s tick.
     expect(recoverStuckSession).toHaveBeenCalledTimes(2);
-    expect(recoveryRequests).toHaveLength(2);
     expect(recoveryRequests.map((event) => event.ageMs)).toEqual([60_000, 90_000]);
   });
 
