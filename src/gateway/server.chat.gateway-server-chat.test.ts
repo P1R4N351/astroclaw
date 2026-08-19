@@ -36,6 +36,11 @@ import {
 import { agentCommandMock } from "./test-helpers.runtime-state.js";
 import { installConnectedControlUiServerSuite } from "./test-with-server.js";
 
+vi.mock("./session-utils.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./session-utils.js")>();
+  return { ...actual, resolveGatewayModelSupportsImages: vi.fn(async () => true) };
+});
+
 function createGatewayHistoryText(role: "user" | "assistant", text: unknown, timestamp: number) {
   return { role, content: [{ type: "text", text }], timestamp };
 }
@@ -328,8 +333,8 @@ describe("gateway server chat", () => {
     return res;
   };
   const waitForAgentRunDrained = async (runId: string) => {
-    await waitForAgentRunOk(runId);
     await waitForFast(() => expect(getActiveGatewayRootWorkCount()).toBe(0));
+    await waitForAgentRunOk(runId, 0);
   };
   const abortChatRun = async (runId: string) => {
     const res = await rpcReq(ws, "chat.abort", {
