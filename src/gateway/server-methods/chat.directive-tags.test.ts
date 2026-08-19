@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { CURRENT_SESSION_VERSION } from "openclaw/plugin-sdk/agent-sessions";
+import { CURRENT_SESSION_VERSION } from "astroclaw/plugin-sdk/agent-sessions";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   GATEWAY_CLIENT_CAPS,
@@ -3353,7 +3353,6 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
       });
 
       const messages = await readActiveAssistantTranscriptMessages();
-      expect(messages).toHaveLength(2);
       expect(messages.map((message) => message.idempotencyKey)).toEqual([
         "older-distinct-assistant",
         "runtime-owned-assistant",
