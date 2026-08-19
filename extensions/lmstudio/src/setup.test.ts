@@ -44,8 +44,9 @@ vi.mock("./models.fetch.js", () => ({
   ensureLmstudioModelLoaded: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth")>();
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth-runtime")>();
   return {
     ...actual,
     removeProviderAuthProfilesWithLock: (...args: unknown[]) =>
