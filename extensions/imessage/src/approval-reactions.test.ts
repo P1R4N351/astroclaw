@@ -1,7 +1,7 @@
 // Imessage tests cover approval reactions plugin behavior.
-import { buildApprovalReactionHint } from "openclaw/plugin-sdk/approval-reaction-runtime";
-import { buildTypedExecApprovalPendingReplyPayload } from "openclaw/plugin-sdk/approval-reply-runtime";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { buildApprovalReactionHint } from "astroclaw/plugin-sdk/approval-reaction-runtime";
+import { buildTypedExecApprovalPendingReplyPayload } from "astroclaw/plugin-sdk/approval-reply-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listPendingIMessageApprovalReactionPollTargets } from "./approval-reaction-poll-targets.js";
 import {
@@ -36,12 +36,18 @@ function registerIMessageApprovalReactionTarget(
   });
 }
 
-vi.mock("openclaw/plugin-sdk/approval-gateway-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/approval-gateway-runtime", () => ({
   resolveApprovalOverGateway: resolverMocks.resolveApprovalOverGateway,
 }));
-vi.mock("openclaw/plugin-sdk/error-runtime", () => ({
-  isApprovalNotFoundError: resolverMocks.isApprovalNotFoundError,
-}));
+vi.mock("astroclaw/plugin-sdk/error-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/error-runtime")>(
+    "astroclaw/plugin-sdk/error-runtime",
+  );
+  return {
+    ...actual,
+    isApprovalNotFoundError: resolverMocks.isApprovalNotFoundError,
+  };
+});
 
 function requireExecApprovalMetadata(payload: ReplyPayload): Record<string, unknown> {
   const value = payload.channelData?.execApproval;
