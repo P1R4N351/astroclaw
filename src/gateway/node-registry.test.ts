@@ -19,7 +19,7 @@ import {
   NODE_WORKER_WORKSPACE_EXEC_COMMAND,
 } from "../infra/node-commands.js";
 import { NODE_WORKER_SUPERVISOR_PROTOCOL_FEATURE } from "../infra/node-runner-inventory.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { resetLogger, setLoggerOverride } from "../logging/logger.js";
 import { createDiagnosticLogRecordCapture } from "../logging/test-helpers/diagnostic-log-capture.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
@@ -428,6 +428,26 @@ describe("gateway/node-registry", () => {
         },
       ),
     ).not.toBeNull();
+    await expect(nodeWorkerSupervisorTransport.listCurrentNodes()).resolves.toEqual([]);
+    expect(
+      isNodeRunnerSessionHost({
+        registry: nodeRegistry,
+        nodeId: "node-1",
+        connId: "conn-1",
+        pairingGeneration: "generation-b",
+      }),
+    ).toBe(false);
+    expect(
+      updateNodeRunnerInventory({
+        registry: nodeRegistry,
+        nodeId: "node-1",
+        connId: "conn-1",
+        declaration: {
+          protocolFeatures: [NODE_WORKER_SUPERVISOR_PROTOCOL_FEATURE],
+          workerHost: { enabled: true, capacity: { total: 2, available: 2 } },
+        },
+      }),
+    ).toEqual({ changed: true });
     await expect(nodeWorkerSupervisorTransport.listCurrentNodes()).resolves.toEqual([
       expect.objectContaining({ pairingGeneration: "generation-b" }),
     ]);
@@ -548,6 +568,14 @@ describe("gateway/node-registry", () => {
         },
       }),
     ).toEqual({ changed: true });
+    expect(
+      isNodeRunnerSessionHost({
+        registry: nodeRegistry,
+        nodeId: "node-1",
+        connId: "conn-1",
+        pairingGeneration: "generation-a",
+      }),
+    ).toBe(true);
 
     const workspaceInvoke = nodeWorkerSupervisorTransport.invoke({
       node: proof,
@@ -2612,7 +2640,7 @@ describe("gateway/node-registry", () => {
     setLoggerOverride({
       level: "warn",
       consoleLevel: "silent",
-      file: path.join(resolvePreferredOpenClawTmpDir(), `node-event-send-${process.pid}.log`),
+      file: path.join(resolvePreferredAstroclawTmpDir(), `node-event-send-${process.pid}.log`),
     });
     const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     const registry = createTestNodeRegistry();
