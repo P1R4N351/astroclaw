@@ -1,7 +1,7 @@
 import { toErrorObject as toLintErrorObject } from "@astroclaw/normalization-core/error-coercion";
 // Guarded fetch SSRF tests cover redirect hardening, pinned dispatcher setup,
 // trusted proxy modes, and safe header retention.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchConfiguredLocalOriginWithSsrFGuard,
@@ -832,6 +832,11 @@ describe("fetchWithSsrFGuard hardening", () => {
       family: 6,
     },
     {
+      title: "blocks exact-origin private DNS when it resolves to local-use NAT64 IPs",
+      address: "64:ff9b:1:808:808:808:a9fe:a9fe",
+      family: 6,
+    },
+    {
       title: "blocks exact-origin private DNS when it resolves to non-link-local metadata IPs",
       address: "100.100.100.200",
       family: 4,
@@ -854,6 +859,34 @@ describe("fetchWithSsrFGuard hardening", () => {
       }),
     ).rejects.toThrow(/private|internal|blocked/i);
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("allows local-use NAT64 DNS only with explicit private-network opt-in", async () => {
+    const lookupFn: LookupFn = vi.fn(async () => [
+      { address: "64:ff9b:1:808:808:808:a9fe:a9fe", family: 6 },
+    ]) as unknown as LookupFn;
+    const blockedFetchImpl = vi.fn(async () => okResponse());
+
+    await expect(
+      fetchWithSsrFGuard({
+        url: "http://model.lan:11434/v1/models",
+        fetchImpl: blockedFetchImpl,
+        lookupFn,
+        policy: { allowedOrigins: ["http://model.lan:11434"] },
+      }),
+    ).rejects.toThrow(/private|internal|blocked/i);
+    expect(blockedFetchImpl).not.toHaveBeenCalled();
+
+    const allowedFetchImpl = vi.fn(async () => okResponse());
+    const result = await fetchWithSsrFGuard({
+      url: "http://model.lan:11434/v1/models",
+      fetchImpl: allowedFetchImpl,
+      lookupFn,
+      policy: { allowedOrigins: ["http://model.lan:11434"], allowPrivateNetwork: true },
+    });
+
+    expect(allowedFetchImpl).toHaveBeenCalledTimes(1);
+    await result.release();
   });
 
   it.each([
