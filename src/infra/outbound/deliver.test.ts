@@ -31,7 +31,7 @@ import {
   type DiagnosticEventPayload,
 } from "../diagnostic-events.js";
 import { retryAsync } from "../retry.js";
-import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
 import { prepareOutboundPayloadBatch } from "./deliver-prepare.js";
 import { PlatformMessageNotDispatchedError } from "./deliver-types.js";
 import { createUnmodifiedPreparedOutboundBatch } from "./prepared-batch.js";
@@ -231,7 +231,7 @@ const matrixChunkConfig: OpenClawConfig = {
   channels: { matrix: { textChunkLimit: 4000 } } as OpenClawConfig["channels"],
 };
 
-const expectedPreferredTmpRoot = resolvePreferredAstroclawTmpDir();
+const expectedPreferredTmpRoot = resolvePreferredOpenClawTmpDir();
 
 type DeliverOutboundArgs = Parameters<DeliverModule["deliverOutboundPayloads"]>[0];
 type DeliverOutboundPayload = DeliverOutboundArgs["payloads"][number];
@@ -3700,6 +3700,66 @@ describe("deliverOutboundPayloads", () => {
     expect(queueMocks.ackDelivery).not.toHaveBeenCalled();
   });
 
+  it("runs partial after-delivery bookkeeping once with rendered payload and accepted target", async () => {
+    const platformError = new Error("second formatted chunk failed");
+    const firstResult = {
+      channel: "line" as const,
+      messageId: "fmt-1",
+      meta: { visibleText: "native formatted prefix" },
+    };
+    const afterDeliverPayload = vi.fn(async () => {
+      throw new Error("observer failed");
+    });
+    const onError = vi.fn();
+    setTestOutbound(
+      {
+        renderPresentation: ({ payload }) => ({ ...payload, text: "native formatted prefix" }),
+        sendFormattedText: async (ctx) => {
+          await ctx.onDeliveryResult?.(firstResult);
+          throw platformError;
+        },
+        sendText: async () => firstResult,
+        adoptTargetFromDelivery: ({ result }) =>
+          result.messageId === "fmt-1" ? { threadId: "thread-from-platform" } : null,
+        afterDeliverPayload,
+      },
+      "line",
+    );
+
+    const results = await deliverOutboundPayloads({
+      cfg: {},
+      channel: "line",
+      to: "U123",
+      payloads: [
+        {
+          text: "fallback",
+          presentation: { blocks: [{ type: "context", text: "native" }] },
+        },
+      ],
+      bestEffort: true,
+      skipQueue: true,
+      onError,
+    });
+
+    expect(results).toEqual([firstResult]);
+    expect(afterDeliverPayload).toHaveBeenCalledOnce();
+    expect(afterDeliverPayload).toHaveBeenCalledWith({
+      cfg: {},
+      target: {
+        channel: "line",
+        to: "U123",
+        accountId: undefined,
+        threadId: "thread-from-platform",
+      },
+      payload: { text: "native formatted prefix" },
+      results: [firstResult],
+    });
+    expect(onError).toHaveBeenCalledWith(
+      platformError,
+      expect.objectContaining({ text: "native formatted prefix" }),
+    );
+  });
+
   it("preserves repeated platform identities across separate adapter invocations", async () => {
     const sendFormattedText = vi.fn(
       async (ctx: {
@@ -4736,7 +4796,7 @@ describe("deliverOutboundPayloads", () => {
     // same capability the live send resolves, so a fabricated localRoots here
     // would hide whether the two gates agree.
     const sourceDir = await fsPromises.realpath(
-      await fsPromises.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "deliver-spool-")),
+      await fsPromises.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "deliver-spool-")),
     );
     const openClawState = await createOpenClawTestState({
       layout: "state-only",
