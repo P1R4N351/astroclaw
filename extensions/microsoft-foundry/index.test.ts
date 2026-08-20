@@ -1,8 +1,8 @@
 // Microsoft Foundry tests cover index plugin behavior.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { ProviderAuthMethod } from "openclaw/plugin-sdk/core";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { ProviderAuthMethod } from "astroclaw/plugin-sdk/core";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { azLoginDeviceCodeWithOptions, getAccessTokenResultAsync } from "./cli.js";
 import plugin from "./index.js";
@@ -40,8 +40,8 @@ vi.mock("node:child_process", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/process-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/process-runtime")>();
+vi.mock("astroclaw/plugin-sdk/process-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/process-runtime")>();
   return {
     ...actual,
     runCommandWithTimeout: runCommandWithTimeoutMock,
@@ -49,9 +49,9 @@ vi.mock("openclaw/plugin-sdk/process-runtime", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/provider-auth", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/provider-auth")>(
-    "openclaw/plugin-sdk/provider-auth",
+vi.mock("astroclaw/plugin-sdk/provider-auth", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/provider-auth")>(
+    "astroclaw/plugin-sdk/provider-auth",
   );
   return {
     ...actual,
@@ -1547,7 +1547,6 @@ describe("microsoft-foundry plugin", () => {
     ).toMatchObject({
       defaultLevel: "high",
       levels: [
-        { id: "off" },
         { id: "minimal" },
         { id: "low" },
         { id: "medium" },
