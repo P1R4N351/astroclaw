@@ -1,7 +1,7 @@
 import {
   hasOutboundReplyContent,
   isFastModeAutoProgressPayload,
-} from "astroclaw/plugin-sdk/reply-payload";
+} from "openclaw/plugin-sdk/reply-payload";
 import { isAskUserPromptPending } from "../../agents/tools/ask-user-tool.js";
 import { normalizeAgentPlanSteps } from "../../channels/streaming.js";
 import { logVerbose } from "../../globals.js";
@@ -49,7 +49,6 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
     isDispatchOperationAborted,
     markInboundDedupeReplayUnsafe,
     markProgress,
-    markVisibleToolErrorProgress,
     maybeApplyTtsWithFinalizationLease,
     normalizeReplyMediaPayload,
     notifySessionMetadataChanges,
@@ -131,7 +130,6 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
                 } satisfies InternalReplyResolverOptions),
                 onObservedReplyDelivery: state.markObservedReplyDelivery,
                 suppressToolErrorWarnings: state.suppressToolErrorWarnings,
-                shouldSuppressToolErrorWarnings: state.shouldSuppressToolErrorWarnings,
                 typingPolicy: typing.typingPolicy,
                 suppressTyping: typing.suppressTyping,
                 onPartialReply: deferFinalTtsText
@@ -173,11 +171,6 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
                   forwardWhenSourceDeliverySuppressed: true,
                   requiresToolSummaryVisibility: true,
                   waitForDirectBlockReplyDelivery: true,
-                  onVisible: (payload) => {
-                    if (state.hasFailedProgressStatus(payload)) {
-                      markVisibleToolErrorProgress();
-                    }
-                  },
                 }),
                 onCompactionStart: wrapProgressCallback(params.replyOptions?.onCompactionStart, {
                   allowWhenToolSummariesHidden:
@@ -313,9 +306,6 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
                       if (!requiresDurableToolResultDelivery(deliveryPayload)) {
                         return;
                       }
-                    }
-                    if (deliveryPayload.isError === true) {
-                      markVisibleToolErrorProgress();
                     }
                     const askUserQuestionId = readAskUserQuestionId(deliveryPayload);
                     if (
