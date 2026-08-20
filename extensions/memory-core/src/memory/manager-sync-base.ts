@@ -1,14 +1,13 @@
 // Memory Core plugin module owns shared manager synchronization state.
 import type { DatabaseSync } from "node:sqlite";
-import type { FSWatcher } from "chokidar";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentDir,
   resolveUserPath,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   ensureMemoryIndexSchema,
   loadSqliteVecExtension,
@@ -19,8 +18,9 @@ import {
   type MemorySource,
   type MemorySyncParams,
   type MemorySyncProgressUpdate,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { runSqliteImmediateTransactionSync } from "openclaw/plugin-sdk/sqlite-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { runSqliteImmediateTransactionSync } from "astroclaw/plugin-sdk/sqlite-runtime";
+import type { FSWatcher } from "chokidar";
 import type { MemoryCoreAcquireLocalService } from "./embedding-local-service.js";
 import {
   resolveEmbeddingProviderAdapterId,
@@ -123,6 +123,10 @@ export abstract class MemoryManagerSyncBase {
     timeoutMs: number;
   };
   protected readonly sources: Set<MemorySource> = new Set();
+  protected readonly sourceInspections = new Map<
+    MemorySource,
+    { eligible: number | null; issues: string[] }
+  >();
   protected providerKey: string | null = null;
   protected abstract readonly vector: {
     enabled: boolean;
