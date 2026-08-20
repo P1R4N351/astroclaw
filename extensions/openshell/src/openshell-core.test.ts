@@ -8,18 +8,18 @@ import {
   disposeSshSandboxSession,
   shellEscape,
   type CreateSandboxBackendParams,
-} from "astroclaw/plugin-sdk/sandbox";
+} from "openclaw/plugin-sdk/sandbox";
 import {
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   tempWorkspace,
   type TempWorkspace,
-} from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/temp-path";
 import {
   createSandboxBrowserConfig,
   createSandboxPruneConfig,
   createSandboxSshConfig,
   createSandboxTestContext,
-} from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenShellSandboxBackend } from "./backend.types.js";
 import {
@@ -29,7 +29,7 @@ import {
 } from "./cli.js";
 import { resolveOpenShellPluginConfig } from "./config.js";
 
-const openShellTestWorkspaceRoot = resolvePreferredAstroclawTmpDir();
+const openShellTestWorkspaceRoot = resolvePreferredOpenClawTmpDir();
 
 function createOpenShellTestWorkspace(label: string): Promise<TempWorkspace> {
   return tempWorkspace({
@@ -54,9 +54,9 @@ let createOpenShellSandboxBackendManager: typeof import("./backend.js").createOp
 let createOpenShellSandboxBackendFactory: typeof import("./backend.js").createOpenShellSandboxBackendFactory;
 
 async function installOpenShellBackendMocks() {
-  vi.doMock("astroclaw/plugin-sdk/sandbox", async () => {
-    const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/sandbox")>(
-      "astroclaw/plugin-sdk/sandbox",
+  vi.doMock("openclaw/plugin-sdk/sandbox", async () => {
+    const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/sandbox")>(
+      "openclaw/plugin-sdk/sandbox",
     );
     return {
       ...actual,
@@ -77,7 +77,7 @@ async function installOpenShellBackendMocks() {
 }
 
 function uninstallOpenShellBackendMocks() {
-  vi.doUnmock("astroclaw/plugin-sdk/sandbox");
+  vi.doUnmock("openclaw/plugin-sdk/sandbox");
   vi.doUnmock("./cli.js");
   vi.resetModules();
 }
@@ -868,6 +868,64 @@ describe("openshell fs bridges", () => {
   beforeAll(installOpenShellBackendMocks);
   afterAll(uninstallOpenShellBackendMocks);
   beforeEach(resetOpenShellBackendMocks);
+
+  it.each(["remote", "mirror"] as const)(
+    "keeps the factory backend as the canonical owner of the %s filesystem bridge",
+    async (mode) => {
+      await using workspace = await createOpenShellTestWorkspace("fs-owner");
+      const workspaceDir = workspace.dir;
+      sandboxMocks.remoteRoot = workspaceDir;
+      sandboxMocks.remoteAgentRoot = workspaceDir;
+      cliMocks.runOpenShellCli.mockResolvedValue({ code: 0, stdout: "", stderr: "" });
+      const factory = createOpenShellSandboxBackendFactory({
+        pluginConfig: resolveOpenShellPluginConfig({ command: "openshell", mode }),
+      });
+      const backend = (await factory({
+        sessionKey: "agent:main:turn",
+        scopeKey: "agent:main",
+        workspaceDir,
+        agentWorkspaceDir: workspaceDir,
+        cfg: createOpenShellBackendSandboxConfig(),
+      })) as OpenShellSandboxBackend;
+      const sandbox = createSandboxTestContext({
+        overrides: {
+          backendId: "openshell",
+          workspaceDir,
+          agentWorkspaceDir: workspaceDir,
+          containerWorkdir: "/sandbox",
+        },
+      });
+      const bridge = backend.createFsBridge?.({ sandbox });
+      if (!bridge) {
+        throw new Error("Expected an OpenShell filesystem bridge");
+      }
+      expect(bridge.resolvePath({ filePath: "owner.txt" })).toEqual({
+        ...(mode === "mirror" ? { hostPath: path.join(workspaceDir, "owner.txt") } : {}),
+        relativePath: "owner.txt",
+        containerPath: "/sandbox/owner.txt",
+      });
+
+      if (mode === "remote") {
+        const runRemoteShellScript = vi.spyOn(backend, "runRemoteShellScript").mockResolvedValue({
+          stdout: Buffer.from("0\n"),
+          stderr: Buffer.alloc(0),
+          code: 0,
+        });
+        await expect(bridge.stat({ filePath: "owner.txt" })).resolves.toBeNull();
+        expect(runRemoteShellScript).toHaveBeenCalledOnce();
+        return;
+      }
+
+      const syncLocalPathToRemote = vi
+        .spyOn(backend, "syncLocalPathToRemote")
+        .mockResolvedValue(undefined);
+      await bridge.writeFile({ filePath: "owner.txt", data: "owner" });
+      expect(syncLocalPathToRemote).toHaveBeenCalledWith(
+        path.join(workspaceDir, "owner.txt"),
+        "/sandbox/owner.txt",
+      );
+    },
+  );
 
   it.runIf(process.platform !== "win32")(
     "rejects remote-only symlink parents in pinned mirror mutations",
