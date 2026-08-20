@@ -3,26 +3,26 @@ import {
   buildLegacyDmAccountAllowlistAdapter,
   createAccountScopedAllowlistNameResolver,
   createNestedAllowlistOverrideResolver,
-} from "astroclaw/plugin-sdk/allowlist-config-edit";
+} from "openclaw/plugin-sdk/allowlist-config-edit";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageToolDiscovery,
-} from "astroclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
+} from "openclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "astroclaw/plugin-sdk/directory-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/directory-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolveTargetsWithOptionalToken } from "astroclaw/plugin-sdk/target-resolver-runtime";
+} from "openclaw/plugin-sdk/status-helpers";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolveTargetsWithOptionalToken } from "openclaw/plugin-sdk/target-resolver-runtime";
 import {
   listDiscordStartupAccountIds,
   resolveDiscordAccount,
@@ -217,6 +217,7 @@ const discordMessageActions: ChannelMessageActionAdapter = {
     resolveRuntimeDiscordMessageActions()?.prepareSendPayload?.(ctx) ??
     discordMessageActionsImpl.prepareSendPayload?.(ctx) ??
     null,
+  supportsAction: ({ action }) => action !== "poll",
   handleAction: async (
     ctx: Parameters<NonNullable<ChannelMessageActionAdapter["handleAction"]>>[0],
   ) => {
