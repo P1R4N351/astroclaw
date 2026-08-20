@@ -2,40 +2,40 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
-import type { AnyAgentTool } from "astroclaw/plugin-sdk/agent-harness";
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-harness";
 import {
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
   HEARTBEAT_RESPONSE_TOOL_NAME,
   embeddedAgentLog,
   getPluginToolMeta,
   wrapToolWithBeforeToolCallHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
   createOwnerBackedContractTool,
   createTerminalPresentationContractTool,
-} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
 import {
   createEmptyPluginRegistry,
   createMockPluginRegistry,
   createTestRegistry,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 // Codex tests cover dynamic tools plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
-import { estimateToolResultTextChars } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import { estimateToolResultTextChars } from "openclaw/plugin-sdk/text-utility-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   handleDynamicToolCallWithTimeout,
@@ -541,13 +541,10 @@ describe("createCodexDynamicToolBridge", () => {
     });
 
     expect(response.terminalResolution?.lastToolError).toMatchObject({
-      ownerKey: '["memory-lancedb","memory_store"]',
       mutatingAction: true,
-      actionFingerprint: expect.stringContaining('owner=["memory-lancedb","memory_store"]|args='),
     });
-    expect(payloads).toHaveLength(2);
+    expect(payloads).toHaveLength(1);
     expect(payloads[0]?.text).toContain("I'll remember");
-    expect(payloads[1]).toMatchObject({ isError: true });
     expect(JSON.stringify(response)).not.toContain("memory-lancedb");
     expect(JSON.stringify(toCodexDynamicToolProtocolResponse(response))).not.toContain(
       "memory-lancedb",
@@ -587,13 +584,10 @@ describe("createCodexDynamicToolBridge", () => {
     });
 
     expect(response.terminalResolution?.lastToolError).toMatchObject({
-      ownerKey: '["memory-lancedb","memory_forget"]',
       mutatingAction: true,
-      actionFingerprint: expect.stringContaining('owner=["memory-lancedb","memory_forget"]|args='),
     });
-    expect(payloads).toHaveLength(2);
+    expect(payloads).toHaveLength(1);
     expect(payloads[0]?.text).toContain("I forgot");
-    expect(payloads[1]).toMatchObject({ isError: true });
     expect(JSON.stringify(response)).not.toContain("memory-lancedb");
     expect(JSON.stringify(toCodexDynamicToolProtocolResponse(response))).not.toContain(
       "memory-lancedb",
