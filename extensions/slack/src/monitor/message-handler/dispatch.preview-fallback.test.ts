@@ -1,6 +1,6 @@
-import type { GetReplyOptions, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import type { GetReplyOptions, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 // Slack tests cover dispatch.preview fallback plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const FINAL_REPLY_TEXT = "final answer";
@@ -456,11 +456,11 @@ async function dispatchNativeProgressScenario(params: {
   );
 }
 
-vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
   resolveHumanDelayConfig: () => undefined,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-feedback", () => ({
+vi.mock("openclaw/plugin-sdk/channel-feedback", () => ({
   DEFAULT_TIMING: {
     doneHoldMs: 0,
     errorHoldMs: 0,
@@ -474,8 +474,8 @@ vi.mock("astroclaw/plugin-sdk/channel-feedback", () => ({
   removeAckReactionAfterReply: () => {},
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
+vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     createChannelProgressDraftCompositor: (
@@ -812,14 +812,14 @@ vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
+vi.mock("openclaw/plugin-sdk/reply-history", () => ({
   clearHistoryEntriesIfEnabled: () => {},
   createChannelHistoryWindow: () => ({
     clear: () => {},
   }),
 }));
 
-vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
+vi.mock("openclaw/plugin-sdk/reply-payload", () => ({
   isReplyPayloadNonTerminalToolErrorWarning: () => false,
   buildTtsSupplementMediaPayload: (payload: {
     text?: string;
@@ -865,24 +865,23 @@ vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   danger: (message: string) => message,
   logVerbose: logVerboseMock,
   shouldLogVerbose: () => false,
 }));
 
-vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
   return { ...actual, getGlobalHookRunner: getGlobalHookRunnerMock };
 });
 
-vi.mock("astroclaw/plugin-sdk/security-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/security-runtime", () => ({
   resolvePinnedMainDmOwnerFromAllowlist: () => mockedPinnedMainDmOwner,
 }));
 
-vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/string-coerce-runtime")>();
+vi.mock("openclaw/plugin-sdk/string-coerce-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/string-coerce-runtime")>();
   const normalizeMockLowercaseString = (value?: string) => value?.toLowerCase();
   const readMockOptionalString = (value?: string) => value;
   return {
@@ -988,8 +987,8 @@ vi.mock("../replies.js", () => ({
   resolveSlackThreadTs: () => mockedReplyThreadTs,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
+vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
   type DispatchParams = Parameters<typeof actual.dispatchChannelInboundTurn>[0];
   return {
     ...actual,
@@ -4146,6 +4145,123 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
     expect(deliverRepliesMock).toHaveBeenCalledTimes(1);
     expectDeliverReplyCall(0, FINAL_REPLY_TEXT);
     expect(draftUpdateTexts(draftStream).join("\n")).not.toMatch(/Working|💬|•|⏱️/u);
+  });
+
+  it("uses only compact commentary and replaces it with the final answer", async () => {
+    const draftStream = createDraftStreamStub();
+    createSlackDraftStreamMock.mockReturnValueOnce(draftStream);
+    finalizeSlackPreviewEditMock.mockResolvedValueOnce(undefined);
+    mockedNativeStreaming = true;
+    mockedSlackStreamingMode = "progress";
+    mockedSlackDraftMode = "status_final";
+    mockedDispatchSequence = [{ kind: "final", payload: { text: FINAL_REPLY_TEXT } }];
+    mockedReplyOptionEvents = [
+      {
+        kind: "item",
+        itemKind: "preamble",
+        itemId: "preamble-1",
+        progressText: "Checking the current Slack behavior.",
+      },
+      {
+        kind: "tool_start",
+        itemId: "tool-1",
+        name: "bash",
+        phase: "start",
+        args: { command: "pnpm test" },
+      },
+      {
+        kind: "command_output",
+        itemId: "tool-1",
+        name: "bash",
+        phase: "end",
+        title: "pnpm test",
+        exitCode: 0,
+      },
+      { kind: "reasoning", text: "Considering the transport choice." },
+      {
+        kind: "plan",
+        phase: "update",
+        explanation: "Running the checklist.",
+        steps: [{ step: "Patch", status: "in_progress" }],
+      },
+    ];
+
+    await dispatchPreparedSlackMessage(
+      createPreparedSlackMessage({
+        accountConfig: {
+          streaming: {
+            mode: "progress",
+            progress: {
+              style: "compact",
+              nativeTaskCards: true,
+              label: false,
+              commentary: true,
+              toolProgress: false,
+            },
+          },
+        },
+      }),
+    );
+
+    expect(createSlackDraftStreamMock).toHaveBeenCalledTimes(1);
+    expect(startSlackStreamMock).not.toHaveBeenCalled();
+    expect(appendSlackStreamMock).not.toHaveBeenCalled();
+    expect(stopSlackStreamMock).not.toHaveBeenCalled();
+    expect(draftStream.update.mock.calls.every(([update]) => typeof update === "string")).toBe(
+      true,
+    );
+    expectLastDraftUpdateText(draftStream, "_Checking the current Slack behavior._");
+    expect(draftUpdateTexts(draftStream).join("\n")).not.toMatch(
+      /pnpm test|Considering the transport choice|Running the checklist|Patch/u,
+    );
+    expectMockCallArgFields(finalizeSlackPreviewEditMock, 0, "compact progress final edit", {
+      channelId: "C123",
+      messageId: "171234.567",
+      text: FINAL_REPLY_TEXT,
+    });
+    const finalEdit = requireRecord(
+      requireMockCall(finalizeSlackPreviewEditMock, 0, "compact progress final edit")[0],
+      "compact progress final edit",
+    );
+    expect(finalEdit.blocks).toBeUndefined();
+    expect(deliverRepliesMock).not.toHaveBeenCalled();
+    expect(draftStream.clear).not.toHaveBeenCalled();
+  });
+
+  it("falls back to normal delivery when a compact final edit fails", async () => {
+    const draftStream = createDraftStreamStub();
+    createSlackDraftStreamMock.mockReturnValueOnce(draftStream);
+    mockedSlackStreamingMode = "progress";
+    mockedSlackDraftMode = "status_final";
+    mockedDispatchSequence = [{ kind: "final", payload: { text: FINAL_REPLY_TEXT } }];
+    mockedReplyOptionEvents = [
+      {
+        kind: "item",
+        itemKind: "preamble",
+        itemId: "preamble-1",
+        progressText: "Checking the current Slack behavior.",
+      },
+    ];
+
+    await dispatchPreparedSlackMessage(
+      createPreparedSlackMessage({
+        accountConfig: {
+          streaming: {
+            mode: "progress",
+            progress: {
+              style: "compact",
+              label: false,
+              commentary: true,
+              toolProgress: false,
+            },
+          },
+        },
+      }),
+    );
+
+    expect(finalizeSlackPreviewEditMock).toHaveBeenCalledTimes(1);
+    expect(deliverRepliesMock).toHaveBeenCalledTimes(1);
+    expectDeliverReplyCall(0, FINAL_REPLY_TEXT);
   });
 
   it("uses the enterprise event client for Slack commentary drafts", async () => {
