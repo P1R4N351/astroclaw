@@ -1,6 +1,6 @@
 // Lmstudio setup module handles plugin onboarding behavior.
-import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
-import type { ProviderAppGuidedSetupContext } from "astroclaw/plugin-sdk/plugin-entry";
+import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
+import type { ProviderAppGuidedSetupContext } from "openclaw/plugin-sdk/plugin-entry";
 import {
   buildApiKeyCredential,
   ensureApiKeyFromEnvOrPrompt,
@@ -9,14 +9,14 @@ import {
   type OpenClawConfig,
   type SecretInput,
   type SecretInputMode,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { removeProviderAuthProfilesWithLock } from "astroclaw/plugin-sdk/provider-auth-runtime";
+} from "openclaw/plugin-sdk/provider-auth";
+import { removeProviderAuthProfilesWithLock } from "openclaw/plugin-sdk/provider-auth-runtime";
 import {
   selectPreferredLocalModelId,
   type ModelDefinitionConfig,
   type ModelProviderConfig,
-} from "astroclaw/plugin-sdk/provider-model-shared";
-import { withAgentModelAliases } from "astroclaw/plugin-sdk/provider-onboard";
+} from "openclaw/plugin-sdk/provider-model-shared";
+import { withAgentModelAliases } from "openclaw/plugin-sdk/provider-onboard";
 import {
   applyProviderDefaultModel,
   configureOpenAICompatibleSelfHostedProviderNonInteractive,
@@ -25,10 +25,10 @@ import {
   type ProviderCatalogContext,
   type ProviderPrepareDynamicModelContext,
   type ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/provider-setup";
-import { isTruthyEnvValue } from "astroclaw/plugin-sdk/runtime-env";
-import { WizardCancelledError, type WizardPrompter } from "astroclaw/plugin-sdk/setup";
-import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-setup";
+import { isTruthyEnvValue } from "openclaw/plugin-sdk/runtime-env";
+import { WizardCancelledError, type WizardPrompter } from "openclaw/plugin-sdk/setup";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   LMSTUDIO_DEFAULT_API_KEY_ENV_VAR,
   LMSTUDIO_DEFAULT_INFERENCE_BASE_URL,
@@ -502,6 +502,41 @@ export async function prepareAppGuidedLmstudioSetup(
       },
     },
   };
+}
+
+/** Read-only reachability probe for app-guided setup when no loaded model qualifies. */
+export async function detectAppGuidedLmstudioAvailability(
+  ctx: ProviderAppGuidedSetupContext,
+): Promise<boolean> {
+  const existingProvider = ctx.config.models?.providers?.[PROVIDER_ID];
+  const baseUrl = resolveLmstudioInferenceBase(
+    existingProvider?.baseUrl ?? resolveLmstudioSetupDefaultInferenceBaseUrl(ctx.env),
+  );
+  let headers: Record<string, string> | undefined;
+  let configuredValue: string | undefined;
+  try {
+    headers = await resolveLmstudioProviderHeaders({
+      config: ctx.config,
+      env: ctx.env,
+      headers: existingProvider?.headers,
+    });
+    configuredValue = await resolveLmstudioConfiguredApiKey({
+      config: ctx.config,
+      env: ctx.env,
+      allowUnresolved: true,
+    });
+  } catch {
+    return false;
+  }
+  const environmentValue = ctx.env[LMSTUDIO_DEFAULT_API_KEY_ENV_VAR]?.trim();
+  const accessValue = configuredValue ?? environmentValue;
+  const discovery = await fetchLmstudioModels({
+    baseUrl,
+    apiKey: accessValue ?? LMSTUDIO_LOCAL_API_KEY_PLACEHOLDER,
+    ...(headers ? { headers } : {}),
+    timeoutMs: 5000,
+  });
+  return discovery.reachable;
 }
 
 /** Interactive LM Studio setup with connectivity and model-availability checks. */
