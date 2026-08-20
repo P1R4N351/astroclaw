@@ -12,9 +12,9 @@ const saveRemoteMediaMock = vi.hoisted(() => vi.fn());
 vi.mock("../pluralkit.js", () => ({
   fetchPluralKitMessageInfo: (...args: unknown[]) => fetchPluralKitMessageInfoMock(...args),
 }));
-vi.mock("astroclaw/plugin-sdk/media-understanding-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/media-understanding-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/media-understanding-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/media-understanding-runtime")>();
   return {
     ...actual,
     createChannelPreflightAudio: (
@@ -36,12 +36,12 @@ vi.mock("./dm-command-decision.js", () => ({
 import {
   isRecentOutboundMessageIdentity,
   recordOutboundMessageIdentity,
-} from "astroclaw/plugin-sdk/channel-outbound";
+} from "openclaw/plugin-sdk/channel-outbound";
 import {
   testing as sessionBindingTesting,
   registerSessionBindingAdapter,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { saveRemoteMedia } from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { saveRemoteMedia } from "openclaw/plugin-sdk/media-runtime";
 import {
   createDiscordMessage,
   createDiscordPreflightArgs,
@@ -53,7 +53,7 @@ import {
   type DiscordMessageEvent,
 } from "./message-handler.preflight.test-helpers.js";
 
-vi.mock("astroclaw/plugin-sdk/media-runtime", { spy: true });
+vi.mock("openclaw/plugin-sdk/media-runtime", { spy: true });
 let preflightDiscordMessage: typeof import("./message-handler.preflight.js").preflightDiscordMessage;
 let resolvePreflightMentionRequirement: typeof import("./message-handler.preflight.js").resolvePreflightMentionRequirement;
 let shouldIgnoreBoundThreadWebhookMessage: typeof import("./message-handler.preflight.js").shouldIgnoreBoundThreadWebhookMessage;
@@ -83,7 +83,7 @@ beforeEach(() => {
 });
 
 function createThreadBinding(
-  overrides?: Partial<import("astroclaw/plugin-sdk/conversation-runtime").SessionBindingRecord>,
+  overrides?: Partial<import("openclaw/plugin-sdk/conversation-runtime").SessionBindingRecord>,
 ) {
   return {
     bindingId: "default:thread-1",
@@ -104,11 +104,11 @@ function createThreadBinding(
       webhookToken: "tok-1",
     },
     ...overrides,
-  } satisfies import("astroclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
+  } satisfies import("openclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
 }
 
 function createPreflightArgs(params: {
-  cfg: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  cfg: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
   discordConfig: DiscordConfig;
   data: DiscordMessageEvent;
   client: DiscordClient;
@@ -185,7 +185,7 @@ async function runThreadBoundPreflight(params: {
   threadId: string;
   parentId: string;
   message: import("../internal/discord.js").Message;
-  threadBinding: import("astroclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
+  threadBinding: import("openclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
   discordConfig: DiscordConfig;
   registerBindingAdapter?: boolean;
 }) {
@@ -227,7 +227,7 @@ async function runGuildPreflight(params: {
   guildId: string;
   message: import("../internal/discord.js").Message;
   discordConfig: DiscordConfig;
-  cfg?: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
   guildEntries?: Parameters<typeof preflightDiscordMessage>[0]["guildEntries"];
   includeGuildObject?: boolean;
   abortSignal?: AbortSignal;
@@ -270,7 +270,7 @@ async function runDmPreflight(params: {
 }
 
 async function runUnresolvedDmPreflight(params: {
-  cfg?: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
   channelId: string;
   message: import("../internal/discord.js").Message;
   discordConfig: DiscordConfig;
@@ -369,6 +369,35 @@ describe("preflightDiscordMessage", () => {
     });
     handleDiscordDmCommandDecisionMock.mockReset();
     handleDiscordDmCommandDecisionMock.mockResolvedValue(undefined);
+  });
+
+  it("admits embed-only messages when their text appears after a textless first embed", async () => {
+    const channelId = "dm-channel-multiple-embeds";
+    const message = Object.assign(
+      createDiscordMessage({
+        id: "m-multiple-embeds",
+        channelId,
+        content: "",
+        author: { id: "user-1", bot: false, username: "alice" },
+      }),
+      {
+        embeds: [
+          { image: { url: "https://cdn.discordapp.com/image.png" } },
+          { title: "Alert", description: "Details" },
+          { description: "Follow-up" },
+        ],
+      },
+    );
+
+    const result = await runDmPreflight({
+      channelId,
+      message,
+      discordConfig: { dmPolicy: "open" } as DiscordConfig,
+    });
+
+    const preflight = expectPreflightResult(result);
+    expect(preflight.baseText).toBe("Alert\nDetails\nFollow-up");
+    expect(preflight.messageText).toBe("Alert\nDetails\nFollow-up");
   });
 
   it("drops bound-thread bot system messages to prevent ACP self-loop", async () => {
@@ -1203,7 +1232,7 @@ describe("preflightDiscordMessage", () => {
       createPreflightArgs({
         cfg: {
           ...DEFAULT_PREFLIGHT_CFG,
-        } as import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig,
+        } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
         discordConfig: {
           allowBots: true,
         } as DiscordConfig,
@@ -1544,7 +1573,7 @@ describe("preflightDiscordMessage", () => {
             unmentionedInbound: "room_event",
           },
         },
-      } as import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig,
+      } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
       guildEntries: {
         [guildId]: {
           channels: {
@@ -1628,7 +1657,7 @@ describe("preflightDiscordMessage", () => {
               mentionPatterns: ["openclaw"],
             },
           },
-        } as import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig,
+        } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
         discordConfig: {} as DiscordConfig,
         data: createGuildEvent({
           channelId,
@@ -2286,7 +2315,7 @@ describe("preflightDiscordMessage", () => {
               mentionPatterns: ["openclaw"],
             },
           },
-        } as import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig,
+        } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
         discordConfig: {} as DiscordConfig,
         data: createGuildEvent({
           channelId,
@@ -2356,7 +2385,7 @@ describe("preflightDiscordMessage", () => {
               mentionPatterns: ["openclaw"],
             },
           },
-        } as import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig,
+        } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
         discordConfig: {} as DiscordConfig,
         data: createGuildEvent({
           channelId,
@@ -2384,7 +2413,7 @@ describe("preflightDiscordMessage", () => {
   });
 
   it("drops guild message without mention when channel has configuredBinding and requireMention: true", async () => {
-    const conversationRuntime = await import("astroclaw/plugin-sdk/conversation-runtime");
+    const conversationRuntime = await import("openclaw/plugin-sdk/conversation-runtime");
     const channelId = "ch-binding-1";
     const bindingRoute = {
       bindingResolution: {
@@ -2427,7 +2456,7 @@ describe("preflightDiscordMessage", () => {
   });
 
   it("allows guild message with mention when channel has configuredBinding and requireMention: true", async () => {
-    const conversationRuntime = await import("astroclaw/plugin-sdk/conversation-runtime");
+    const conversationRuntime = await import("openclaw/plugin-sdk/conversation-runtime");
     const channelId = "ch-binding-2";
     const bindingRoute = {
       bindingResolution: {
