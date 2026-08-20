@@ -1,11 +1,11 @@
 // Telegram tests cover conversation route.base session key plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   testing as conversationBindingTesting,
   registerSessionBindingAdapter,
   type SessionBindingAdapter,
-} from "openclaw/plugin-sdk/conversation-runtime";
-import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   resolveTelegramConversationBaseSessionKey,
@@ -153,6 +153,7 @@ describe("resolveTelegramConversationBaseSessionKey", () => {
       accountId: "default",
       chatId: 12345,
       isGroup: false,
+      threadSpec: { scope: "none" },
       senderId: 12345,
     });
 
@@ -198,8 +199,7 @@ describe("resolveTelegramConversationBaseSessionKey", () => {
       accountId: "default",
       chatId: -1001234567890,
       isGroup: true,
-      resolvedThreadId: 11,
-      replyThreadId: 11,
+      threadSpec: { id: 11, scope: "forum" },
       senderId: 12345,
     });
 
