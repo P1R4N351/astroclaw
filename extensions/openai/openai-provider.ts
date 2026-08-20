@@ -2,8 +2,8 @@
 import type {
   ProviderResolveDynamicModelContext,
   ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
-import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
 import {
   getCachedLiveProviderModelRows,
   LiveModelCatalogHttpError,
@@ -11,11 +11,11 @@ import {
   readLiveModelCatalogPositiveSafeIntegerField,
   readLiveModelCatalogStringField,
   type LiveModelCatalogFetchGuard,
-} from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+} from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 import {
   buildManifestModelProviderConfig,
   type ProviderCatalogOutcome,
-} from "openclaw/plugin-sdk/provider-catalog-shared";
+} from "astroclaw/plugin-sdk/provider-catalog-shared";
 import {
   DEFAULT_CONTEXT_TOKENS,
   normalizeProviderId,
@@ -23,11 +23,11 @@ import {
   type ModelDefinitionConfig,
   type ModelProviderConfig,
   type ProviderPlugin,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
   OPENAI_CODEX_RESPONSES_BASE_URL,
@@ -875,6 +875,17 @@ const OPENAI_GPT_FORWARD_COMPAT_CASES = [
 ] satisfies Parameters<typeof resolveFamilyForwardCompatModel>[0]["cases"];
 
 function resolveOpenAIGptForwardCompatModel(ctx: ProviderResolveDynamicModelContext) {
+  const modelId = normalizeLowercaseStringOrEmpty(ctx.modelId);
+  if (
+    modelId === OPENAI_GPT_56_SOL_MODEL_ID ||
+    modelId === OPENAI_GPT_56_TERRA_MODEL_ID ||
+    modelId === OPENAI_GPT_56_LUNA_MODEL_ID
+  ) {
+    const exactModel = ctx.modelRegistry.find(PROVIDER_ID, ctx.modelId);
+    if (exactModel) {
+      return exactModel;
+    }
+  }
   return resolveFamilyForwardCompatModel({
     providerId: PROVIDER_ID,
     ctx,
@@ -938,7 +949,7 @@ export function buildOpenAIProvider(): ProviderPlugin {
         const auth = ctx.resolveProviderAuth(PROVIDER_ID);
         try {
           const { resolveApiKeyForProvider, resolveProviderAuthProfileMetadata } =
-            await import("openclaw/plugin-sdk/provider-auth-runtime");
+            await import("astroclaw/plugin-sdk/provider-auth-runtime");
           const runtimeAuth = await resolveApiKeyForProvider({
             provider: PROVIDER_ID,
             cfg: ctx.config,
