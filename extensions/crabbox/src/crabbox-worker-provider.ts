@@ -1,14 +1,14 @@
-import { redactSensitiveText } from "openclaw/plugin-sdk/logging-core";
+import { redactSensitiveText } from "astroclaw/plugin-sdk/logging-core";
 import {
   WorkerProviderError,
   type WorkerLease,
   type WorkerLeaseStatus,
   type WorkerProfile,
   type WorkerProvider,
-} from "openclaw/plugin-sdk/plugin-entry";
-import { runCommandWithTimeout, type SpawnResult } from "openclaw/plugin-sdk/process-runtime";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import { runCommandWithTimeout, type SpawnResult } from "astroclaw/plugin-sdk/process-runtime";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   crabboxCommandError,
   permanentCrabboxCommandError,
