@@ -3,12 +3,12 @@ import {
   type AgentEvent,
   type AgentTool,
   type StreamFn,
-} from "openclaw/plugin-sdk/agent-core";
+} from "astroclaw/plugin-sdk/agent-core";
 import {
   type AssistantMessage,
   createAssistantMessageEventStream,
   type Model,
-} from "openclaw/plugin-sdk/llm";
+} from "astroclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -457,6 +457,56 @@ describe("Tool Search dispatcher argument preparation", () => {
       expect(findToolExecutionEnd(events)?.errorKind).toBeUndefined();
     });
   });
+});
+
+describe("Tool Search terminal results", () => {
+  it("preserves a terminal target result on the direct control", async () => {
+    const target = fakeTool("terminal_action");
+    target.execute = vi.fn(async () => ({
+      ...jsonResult({ outcome: "terminal" }),
+      terminate: true,
+    }));
+    const { catalogRef, config } = createRuntime([target]);
+    const callTool = createToolSearchTools({ catalogRef, config }).find(
+      (tool) => tool.name === TOOL_CALL_RAW_TOOL_NAME,
+    );
+
+    const result = await callTool!.execute("terminal-parent", { id: target.name });
+
+    expect(result.terminate).toBe(true);
+    expect(result.details).toMatchObject({ result: { terminate: true } });
+  });
+
+  it.each([
+    { secondTerminal: true, expectedTerminal: true },
+    { secondTerminal: false, expectedTerminal: undefined },
+  ])(
+    "uses all-terminal semantics for code controls: $secondTerminal",
+    async ({ secondTerminal, expectedTerminal }) => {
+      const first = fakeTool("first_action");
+      first.execute = vi.fn(async () => ({ ...jsonResult({ first: true }), terminate: true }));
+      const second = fakeTool("second_action");
+      second.execute = vi.fn(async () => ({
+        ...jsonResult({ second: true }),
+        ...(secondTerminal ? { terminate: true } : {}),
+      }));
+      const { catalogRef, config } = createRuntime([first, second]);
+      const codeTool = createToolSearchTools({ catalogRef, config }).find(
+        (tool) => tool.name === TOOL_SEARCH_CODE_MODE_TOOL_NAME,
+      );
+
+      const result = await codeTool!.execute("code-parent", {
+        code: `
+          await openclaw.tools.call("first_action", {});
+          return await openclaw.tools.call("second_action", {});
+        `,
+      });
+
+      expect(result.terminate).toBe(expectedTerminal);
+      expect(first.execute).toHaveBeenCalledOnce();
+      expect(second.execute).toHaveBeenCalledOnce();
+    },
+  );
 });
 
 describe("Tool Search input schemas", () => {
