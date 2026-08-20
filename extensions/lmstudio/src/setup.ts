@@ -2,7 +2,6 @@
 import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
 import type { ProviderAppGuidedSetupContext } from "astroclaw/plugin-sdk/plugin-entry";
 import {
-  removeProviderAuthProfilesWithLock,
   buildApiKeyCredential,
   ensureApiKeyFromEnvOrPrompt,
   hasConfiguredSecretInput,
@@ -11,6 +10,7 @@ import {
   type SecretInput,
   type SecretInputMode,
 } from "astroclaw/plugin-sdk/provider-auth";
+import { removeProviderAuthProfilesWithLock } from "astroclaw/plugin-sdk/provider-auth-runtime";
 import {
   selectPreferredLocalModelId,
   type ModelDefinitionConfig,
