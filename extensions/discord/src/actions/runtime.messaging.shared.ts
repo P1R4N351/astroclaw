@@ -1,8 +1,8 @@
-import { ChannelType } from "discord-api-types/v10";
-import { normalizeAccountId } from "openclaw/plugin-sdk/account-resolution";
-import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
+import { normalizeAccountId } from "astroclaw/plugin-sdk/account-resolution";
+import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
 // Discord plugin module implements runtime.messaging.shared behavior.
-import { resolveOpenProviderRuntimeGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";
+import { resolveOpenProviderRuntimeGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";
+import { ChannelType } from "discord-api-types/v10";
 import { mergeDiscordAccountConfig, resolveDefaultDiscordAccountId } from "../accounts.js";
 import { createDiscordRuntimeAccountContext } from "../client.js";
 import {
@@ -28,6 +28,7 @@ type ConversationReadInvocationOrigin = NonNullable<
 >;
 
 export type DiscordMessagingActionOptions = {
+  reply?: ChannelMessageActionContext["reply"];
   mediaAccess?: ChannelMessageActionContext["mediaAccess"];
   mediaLocalRoots?: readonly string[];
   mediaReadFile?: (filePath: string) => Promise<Buffer>;
