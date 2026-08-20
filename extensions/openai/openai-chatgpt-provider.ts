@@ -1,28 +1,29 @@
 // Openai provider module implements model/runtime integration.
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import type {
   ProviderAuthContext,
   ProviderAuthMethod,
   ProviderAuthResult,
   ProviderResolveDynamicModelContext,
   ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   CODEX_CLI_PROFILE_ID,
   type OAuthCredential,
   buildOauthProviderAuthResult,
-} from "astroclaw/plugin-sdk/provider-auth";
+  resolveOpenAICodexAuthIdentity,
+} from "openclaw/plugin-sdk/provider-auth";
 import {
   DEFAULT_CONTEXT_TOKENS,
   normalizeModelCompat,
   normalizeProviderId,
   type ProviderPlugin,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 import {
   normalizeLowercaseStringOrEmpty,
   readStringValue,
   uniqueValues,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   isOpenAIApiBaseUrl,
   isOpenAICodexBaseUrl,
@@ -40,7 +41,6 @@ import {
   OPENAI_GPT_55_PRO_MODEL_ID as OPENAI_CODEX_GPT_55_PRO_MODEL_ID,
   OPENAI_GPT_56_VARIANT_MODEL_IDS as OPENAI_CODEX_GPT_56_MODEL_IDS,
 } from "./model-route-contract.js";
-import { resolveCodexAuthIdentity } from "./openai-chatgpt-auth-identity.js";
 import { loginOpenAICodexDeviceCode } from "./openai-chatgpt-device-code.js";
 import { loginOpenAICodexOAuth } from "./openai-chatgpt-oauth.runtime.js";
 import {
@@ -435,8 +435,8 @@ async function refreshOpenAICodexOAuthCredential(cred: OAuthCredential) {
   try {
     const { refreshOpenAICodexToken } = await import("./openai-chatgpt-provider.runtime.js");
     const refreshed = await refreshOpenAICodexToken(cred.refresh);
-    const identity = resolveCodexAuthIdentity({
-      accessToken: refreshed.access,
+    const identity = resolveOpenAICodexAuthIdentity({
+      access: refreshed.access,
       email: cred.email,
     });
     return {
@@ -481,8 +481,8 @@ async function runOpenAICodexOAuth(ctx: OpenAICodexOAuthContext) {
     return { profiles: [] };
   }
 
-  const identity = resolveCodexAuthIdentity({
-    accessToken: creds.access,
+  const identity = resolveOpenAICodexAuthIdentity({
+    access: creds.access,
     email: readStringValue(creds.email),
   });
 
@@ -551,8 +551,8 @@ async function runOpenAICodexDeviceCode(ctx: ProviderAuthContext) {
     });
     spin.stop("OpenAI device code complete");
 
-    const identity = resolveCodexAuthIdentity({
-      accessToken: creds.access,
+    const identity = resolveOpenAICodexAuthIdentity({
+      access: creds.access,
     });
 
     return buildOauthProviderAuthResult({
