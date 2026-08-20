@@ -1,5 +1,5 @@
 // Telegram tests cover threading tool context plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { telegramPlugin } from "./channel.js";
 import { buildTelegramThreadingToolContext } from "./threading-tool-context.js";
@@ -10,10 +10,18 @@ const tryReadSecretFileSyncMock = vi.hoisted(() =>
   }),
 );
 
-vi.mock("openclaw/plugin-sdk/secret-file-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/secret-file-runtime")>()),
+vi.mock("astroclaw/plugin-sdk/secret-file-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/secret-file-runtime")>()),
   tryReadSecretFileSync: tryReadSecretFileSyncMock,
 }));
+
+function requireTelegramToolContextTargetMatcher() {
+  const matchesToolContextTarget = telegramPlugin.threading?.matchesToolContextTarget;
+  if (!matchesToolContextTarget) {
+    throw new Error("Telegram tool context target matcher is unavailable");
+  }
+  return matchesToolContextTarget;
+}
 
 describe("telegramPlugin reply threading", () => {
   it.each([
@@ -60,6 +68,42 @@ describe("telegramPlugin reply threading", () => {
     expect(resolveReplyToMode({ cfg, accountId: "sut" })).toBe(expected);
     expect(tryReadSecretFileSyncMock).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { target: "-100123", currentChannelId: "telegram:-100123", expected: true },
+    { target: "telegram:-100123", currentChannelId: "-100123", expected: true },
+    {
+      target: "-100123:topic:77",
+      currentChannelId: "telegram:-100123:77",
+      expected: true,
+    },
+    {
+      target: "-100123:direct-topic:77",
+      currentChannelId: "telegram:-100123:direct-topic:77",
+      expected: true,
+    },
+    {
+      target: "-100123:topic:77",
+      currentChannelId: "telegram:-100123:direct-topic:77",
+      expected: false,
+    },
+    {
+      target: "-100123:topic:77",
+      currentChannelId: "telegram:-100123:topic:78",
+      expected: false,
+    },
+    { target: "-100456", currentChannelId: "telegram:-100123", expected: false },
+  ])(
+    "matches canonical target $target against current channel $currentChannelId",
+    ({ target, currentChannelId, expected }) => {
+      expect(
+        requireTelegramToolContextTargetMatcher()({
+          target,
+          toolContext: { currentChannelId },
+        }),
+      ).toBe(expected);
+    },
+  );
 });
 
 describe("buildTelegramThreadingToolContext", () => {
