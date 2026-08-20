@@ -1,6 +1,6 @@
 // Firecrawl tests cover firecrawl tools plugin behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { mockPinnedHostnameResolution } from "astroclaw/plugin-sdk/test-env";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { mockPinnedHostnameResolution } from "openclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createStreamingResponse } from "../../test-support/streaming-error-response.js";
 import {
@@ -309,6 +309,76 @@ describe("firecrawl tools", () => {
       expect(fetchMock).toHaveBeenCalledOnce();
       expect(transportSignal?.aborted).toBe(true);
       expect(transportSignal?.reason).toBe(reason);
+    },
+  );
+
+  it.each(["search", "scrape"] as const)(
+    "rejects late successful %s responses after cancellation and permits a fresh retry",
+    async (operation) => {
+      const controller = new AbortController();
+      const reason = new Error(`${operation} cancelled after dispatch`);
+      let transportSignal: AbortSignal | undefined;
+      const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const cancelledRequest = fetchMock.mock.calls.length === 1;
+        if (cancelledRequest) {
+          transportSignal = init?.signal ?? undefined;
+          controller.abort(reason);
+        }
+        const resultLabel = cancelledRequest ? "cancelled" : "fresh";
+        return Response.json({
+          success: true,
+          data:
+            operation === "search"
+              ? [{ url: `https://${resultLabel}.example/result`, title: resultLabel }]
+              : {
+                  markdown: `${resultLabel} scrape result`,
+                  metadata: {
+                    sourceURL: "https://example.com/firecrawl-cancelled-scrape",
+                    statusCode: 200,
+                  },
+                },
+        });
+      });
+      global.fetch = fetchMock as typeof fetch;
+      const cfg = {
+        plugins: {
+          entries: {
+            firecrawl: {
+              config: {
+                webSearch: { apiKey: "firecrawl-late-cancel-test" },
+                webFetch: { apiKey: "firecrawl-late-cancel-test" },
+              },
+            },
+          },
+        },
+      } as OpenClawConfig;
+      const searchParams = { cfg, query: "Firecrawl cancelled search must not populate cache" };
+      const scrapeParams = {
+        cfg,
+        url: "https://example.com/firecrawl-cancelled-scrape",
+        extractMode: "markdown" as const,
+      };
+      const request =
+        operation === "search"
+          ? runActualFirecrawlSearch({ ...searchParams, signal: controller.signal })
+          : runActualFirecrawlScrape({ ...scrapeParams, signal: controller.signal });
+
+      await expect(request).rejects.toBe(reason);
+      expect(transportSignal?.aborted).toBe(true);
+      expect(transportSignal?.reason).toBe(reason);
+
+      const retry =
+        operation === "search"
+          ? await runActualFirecrawlSearch(searchParams)
+          : await runActualFirecrawlScrape(scrapeParams);
+      if (operation === "search") {
+        expect(retry).toMatchObject({ results: [{ url: "https://fresh.example/result" }] });
+        expect(retry.cached).toBeUndefined();
+      } else {
+        expect(retry).toMatchObject({ status: 200 });
+        expect(retry.text).toContain("fresh scrape result");
+      }
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     },
   );
 
