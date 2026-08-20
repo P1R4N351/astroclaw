@@ -2,10 +2,11 @@
 import {
   registerSingleProviderPlugin,
   resolveProviderPluginChoice,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { resolveProviderAuthEnvVarCandidates } from "openclaw/plugin-sdk/provider-env-vars";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { resolveProviderAuthEnvVarCandidates } from "astroclaw/plugin-sdk/provider-env-vars";
 import { describe, expect, it } from "vitest";
 import { runSingleProviderCatalog } from "../test-support/provider-model-test-helpers.js";
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import arceePlugin from "./index.js";
 
 describe("arcee provider plugin", () => {
@@ -36,6 +37,13 @@ describe("arcee provider plugin", () => {
     }
     expect(orChoice.provider.id).toBe("arcee");
     expect(orChoice.method.id).toBe("openrouter");
+
+    const openRouterManifestChoice = manifest.providerAuthChoices.find(
+      (choice) => choice.choiceId === "arceeai-openrouter",
+    );
+    expect(openRouterManifestChoice).toMatchObject({ optionKey: "openrouterApiKey" });
+    expect(openRouterManifestChoice).not.toHaveProperty("cliFlag");
+    expect(openRouterManifestChoice).not.toHaveProperty("cliOption");
   });
 
   it("stores the OpenRouter onboarding path under the OpenRouter auth profile", async () => {
