@@ -1,5 +1,5 @@
 // Slack tests cover config schema plugin behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { SlackConfigSchema } from "../config-api.js";
 import { listSlackAccountIds, resolveSlackAccount } from "./accounts.js";
@@ -33,6 +33,19 @@ function expectSlackConfigKeyRejected(config: unknown, key: string) {
 }
 
 describe("slack config schema", () => {
+  it("accepts compact progress style", () => {
+    expectSlackConfigValid({
+      streaming: {
+        mode: "progress",
+        progress: { style: "compact" },
+      },
+    });
+    expectSlackConfigIssue(
+      { streaming: { mode: "progress", progress: { style: "plain" } } },
+      "streaming.progress.style",
+    );
+  });
+
   it("accepts capability arrays and rejects retired interactive reply objects", () => {
     expectSlackConfigValid({ capabilities: ["presentation"] });
     expectSlackConfigIssue({ capabilities: { interactiveReplies: true } }, "capabilities");
