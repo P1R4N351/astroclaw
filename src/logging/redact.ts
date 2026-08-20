@@ -1,8 +1,11 @@
-import { findStructuredAuthParamRanges, redactStructuredAuthHeaders } from "@astroclaw/acp-core";
 import { isSensitiveUrlQueryParamName } from "@astroclaw/net-policy/redact-sensitive-url";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Redaction helpers scrub secrets and sensitive identifiers from log output.
 import { sliceUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import {
+  findStructuredAuthParamRanges,
+  redactStructuredAuthHeaders,
+} from "../../packages/acp-core/src/structured-auth-redaction.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { compileConfigRegex } from "../security/config-regex.js";
 import { readLoggingConfig } from "./config.js";
