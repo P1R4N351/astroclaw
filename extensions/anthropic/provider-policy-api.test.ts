@@ -1,5 +1,5 @@
 // Anthropic tests cover provider policy api plugin behavior.
-import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-model-types";
+import type { ModelDefinitionConfig } from "astroclaw/plugin-sdk/provider-model-types";
 import { describe, expect, it } from "vitest";
 import {
   applyConfigDefaults,
@@ -146,7 +146,6 @@ describe("anthropic provider policy public artifact", () => {
 
       expect(profile).toEqual({
         levels: [
-          { id: "off" },
           { id: "minimal" },
           { id: "low" },
           { id: "medium" },
@@ -192,7 +191,7 @@ describe("anthropic provider policy public artifact", () => {
     });
 
     expect(profile?.defaultLevel).toBe("adaptive");
-    expect(profile?.levels.map((level) => level.id)).toContain("max");
+    expect(profile?.levels.map((level) => level.id)).not.toContain("max");
   });
 
   it("exposes native max without xhigh for direct Claude 4.6 routes", () => {
