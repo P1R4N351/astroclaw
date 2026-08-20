@@ -29,7 +29,7 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_FILES = [
 ] as const;
 const BUNDLED_TYPED_HOOK_REGISTRATION_GUARDS = {
   "extensions/acpx/index.ts": ["reply_dispatch"],
-  "extensions/active-memory/index.ts": ["agent_end", "before_model_resolve", "before_prompt_build"],
+  "extensions/active-memory/index.ts": ["agent_end", "before_prompt_build"],
   "extensions/clickclack/src/discussions/register.ts": ["before_tool_call"],
   "extensions/codex/index.ts": ["after_compaction", "inbound_claim", "session_end"],
   "extensions/diffs/src/plugin.ts": ["before_prompt_build"],
@@ -347,7 +347,7 @@ describe("plugin contract boundary invariants", () => {
       }
       const source = readRepoSource(file);
       return (
-        source.includes("openclaw/plugin-sdk/test-fixtures") &&
+        source.includes("astroclaw/plugin-sdk/test-fixtures") &&
         /\b(?:BUNDLED_PLUGIN_|bundled(?:Dist)?Plugin(?:Root|File|DirPrefix)|installedPluginRoot|repoInstallSpec)\b/u.test(
           source,
         )
