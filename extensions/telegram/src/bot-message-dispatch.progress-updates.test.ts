@@ -1,7 +1,7 @@
 import {
   createChannelPartialDeliveryError,
   isChannelPartialDeliveryError,
-} from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
 import { expect, it } from "vitest";
 import { expectWindowRetiredWithoutSummary } from "./bot-message-dispatch.progress-window.test-helpers.js";
 import {
@@ -293,7 +293,7 @@ describeTelegramDispatch("dispatchTelegramMessage progress-updates", () => {
       expectRecordFields(mockCallArg(emitTelegramMessageSentHooks), {
         content: "Photo",
         messageId: 2001,
-        success: true,
+        success: false,
       });
       expect(appendAssistantMirrorMessageByIdentity).toHaveBeenCalledTimes(1);
       expectRecordFields(mockCallArg(appendAssistantMirrorMessageByIdentity), {
