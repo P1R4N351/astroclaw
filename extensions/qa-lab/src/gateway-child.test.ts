@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { Writable } from "node:stream";
 import { pathToFileURL } from "node:url";
-import { toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createQaBundledPluginsDir,
@@ -52,13 +52,13 @@ const qaTempPathState = vi.hoisted(() => ({
   preferredTmpDir: process.env.TMPDIR || "/tmp",
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: fetchWithSsrFGuardMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/temp-path", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/temp-path")>()),
-  resolvePreferredOpenClawTmpDir: () => qaTempPathState.preferredTmpDir,
+vi.mock("astroclaw/plugin-sdk/temp-path", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/temp-path")>()),
+  resolvePreferredAstroclawTmpDir: () => qaTempPathState.preferredTmpDir,
 }));
 
 vi.mock("./node-exec.js", () => ({
@@ -397,18 +397,19 @@ describe("Gateway child fixture helpers", () => {
       }),
     ]);
     expect(catalog.models[0]).not.toHaveProperty("supports_reasoning_summaries");
-    expect(
-      buildQaForcedRuntimeEnvPatch({
-        forcedRuntime: "codex",
-        providerMode: "mock-openai",
-        providerBaseUrl: "http://127.0.0.1:44080/v1",
-        codexModelCatalogPath: modelCatalogPath,
-      }),
-    ).toEqual(
+    const runtimeEnvPatch = buildQaForcedRuntimeEnvPatch({
+      forcedRuntime: "codex",
+      providerMode: "mock-openai",
+      providerBaseUrl: "http://127.0.0.1:44080/v1",
+      codexModelCatalogPath: modelCatalogPath,
+    });
+    expect(runtimeEnvPatch).toEqual(
       expect.objectContaining({
         OPENCLAW_CODEX_APP_SERVER_ARGS: `app-server -c openai_base_url=http://127.0.0.1:44080/v1 -c ${JSON.stringify(`model_catalog_json=${modelCatalogPath}`)} -c sandbox_workspace_write.exclude_tmpdir_env_var=true -c sandbox_workspace_write.exclude_slash_tmp=true --listen stdio://`,
       }),
     );
+    expect(runtimeEnvPatch).not.toHaveProperty("OPENAI_API_KEY");
+    expect(runtimeEnvPatch).not.toHaveProperty("CODEX_API_KEY");
   });
 
   it("does not stage a Codex catalog for other runtimes or live providers", async () => {
@@ -1911,7 +1912,7 @@ describe("qa bundled plugin dir", () => {
     await writeFile(
       path.join(repoRoot, "dist", "extensions", "qa-channel", "index.js"),
       [
-        'import { normalizeAccountId } from "openclaw/plugin-sdk/account-id";',
+        'import { normalizeAccountId } from "astroclaw/plugin-sdk/account-id";',
         'export const accountId = normalizeAccountId("QA");',
         "",
       ].join("\n"),
@@ -2126,7 +2127,7 @@ describe("qa bundled plugin dir", () => {
     await writeFile(
       path.join(repoRoot, "extensions", "qa-channel", "index.ts"),
       [
-        'import { normalizeAccountId } from "openclaw/plugin-sdk/account-id";',
+        'import { normalizeAccountId } from "astroclaw/plugin-sdk/account-id";',
         'import { marker } from "fake-dep";',
         'export const accountId = `${normalizeAccountId("QA")}:${marker}`;',
         "",
