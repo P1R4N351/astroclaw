@@ -1,5 +1,5 @@
 // Codex plugin module implements auth behavior.
-import { loadAuthProfileStoreWithoutExternalProfiles } from "astroclaw/plugin-sdk/agent-runtime";
+import { loadAuthProfileStoreWithoutExternalProfiles } from "openclaw/plugin-sdk/agent-runtime";
 import {
   createMigrationItem,
   markMigrationItemConflict,
@@ -7,8 +7,8 @@ import {
   markMigrationItemSkipped,
   mergeMigrationConfigValue,
   resolveMigrationConfigRuntime,
-} from "astroclaw/plugin-sdk/migration";
-import type { MigrationItem, MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/migration";
+import type { MigrationItem, MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   buildApiKeyCredential,
@@ -22,11 +22,11 @@ import {
   type OAuthCredential,
   type OpenClawConfig,
   type ProviderAuthResult,
-} from "astroclaw/plugin-sdk/provider-auth";
+} from "openclaw/plugin-sdk/provider-auth";
 import {
   isRecord,
   normalizeOptionalString as readString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { readJsonObject } from "./helpers.js";
 import type { CodexSource } from "./source.js";
 import type { resolveCodexMigrationTargets } from "./targets.js";
@@ -430,7 +430,9 @@ export async function buildCodexAuthItems(params: {
       kind: "auth",
       action: skipped ? "skip" : "create",
       source: params.source.authPath,
-      target: `${params.targets.agentDir}/auth-profiles.json#${profileId}`,
+      // Credentials land in the agent's SQLite auth profile store; naming the
+      // retired JSON file here promised operators a file that is never created.
+      target: `${params.targets.agentDir}/openclaw-agent.sqlite#auth_profile_store:${profileId}`,
       status: skipped ? "skipped" : conflict ? "conflict" : "planned",
       sensitive: true,
       reason: skipped
