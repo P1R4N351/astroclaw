@@ -12,6 +12,7 @@ import { commitStagedDeliveryQueueEntryOnceAcrossNamespaces } from "./delivery-q
 import {
   completeDeliveryQueueEntry,
   countFailedDeliveryQueueEntries,
+  countPendingDeliveryQueueEntries,
   deleteDeliveryQueueEntry,
   getDeliveryQueueEntryStatus,
   loadDeliveryQueueEntries,
@@ -21,7 +22,7 @@ import {
   updateDeliveryQueueEntry,
   upsertDeliveryQueueEntry,
 } from "./delivery-queue-sqlite.js";
-import { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "./tmp-astroclaw-dir.js";
 
 describe("delivery-queue-sqlite corrupt JSON resilience", () => {
   let stateDir: string;
@@ -34,7 +35,7 @@ describe("delivery-queue-sqlite corrupt JSON resilience", () => {
   } as const;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-dq-case-"));
+    tmpDir = fs.mkdtempSync(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-dq-case-"));
     stateDir = path.join(tmpDir, "state");
     fs.mkdirSync(stateDir, { recursive: true });
   });
@@ -108,6 +109,24 @@ describe("delivery-queue-sqlite corrupt JSON resilience", () => {
 
       expect(loadDeliveryQueueEntries(QUEUE, stateDir)).toHaveLength(3);
     });
+  });
+
+  it("counts pending rows across only the selected namespaces", () => {
+    enqueueValid("pending");
+    upsertDeliveryQueueEntry({
+      queueName: "other-q",
+      entry: { id: "other", enqueuedAt: Date.now(), retryCount: 0 },
+      stateDir,
+    });
+    upsertDeliveryQueueEntry({
+      queueName: "ignored-q",
+      entry: { id: "ignored", enqueuedAt: Date.now(), retryCount: 0 },
+      stateDir,
+    });
+    completeDeliveryQueueEntry(QUEUE, "pending", stateDir);
+
+    expect(countPendingDeliveryQueueEntries([QUEUE, "other-q"], stateDir)).toBe(1);
+    expect(countPendingDeliveryQueueEntries([], stateDir)).toBe(0);
   });
 
   describe("updateDeliveryQueueEntry with corrupt row", () => {
