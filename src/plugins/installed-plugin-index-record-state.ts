@@ -1,4 +1,4 @@
-import { safeParseJson } from "@astroclaw/normalization-core";
+import { safeParseJson } from "@astroclaw/normalization-core/json-coercion";
 import {
   inspectPluginInstallRecordMap,
   type PluginInstallRecordMapState,
