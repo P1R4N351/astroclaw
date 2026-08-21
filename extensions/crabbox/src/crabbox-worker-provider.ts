@@ -1,14 +1,14 @@
-import { redactSensitiveText } from "astroclaw/plugin-sdk/logging-core";
+import { redactSensitiveText } from "openclaw/plugin-sdk/logging-core";
 import {
   WorkerProviderError,
   type WorkerLease,
   type WorkerLeaseStatus,
   type WorkerProfile,
   type WorkerProvider,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { runCommandWithTimeout, type SpawnResult } from "astroclaw/plugin-sdk/process-runtime";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { runCommandWithTimeout, type SpawnResult } from "openclaw/plugin-sdk/process-runtime";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   crabboxCommandError,
   permanentCrabboxCommandError,
@@ -77,7 +77,7 @@ type CrabboxProfile = ReturnType<typeof parseCrabboxProfile>;
 
 type LeaseCommandContext = { binary: string; id: string; provider: string };
 type LeaseHeartbeatContext = LeaseCommandContext &
-  Pick<CrabboxProfile, "heartbeatIntervalMs" | "idleTimeout">;
+  Pick<CrabboxProfile, "heartbeatIntervalMs" | "heartbeatTimeoutMs" | "idleTimeout">;
 type ProvisionInspectContext = Omit<LeaseCommandContext, "id"> & {
   deadline: number;
   inspect: ParsedInspect;
@@ -433,7 +433,7 @@ export function createCrabboxWorkerProvider(
         binary: context.binary,
         runCommand,
         signal,
-        timeoutMs: Math.min(CRABBOX_LIFECYCLE_TIMEOUT_MS, context.heartbeatIntervalMs),
+        timeoutMs: context.heartbeatTimeoutMs,
       }),
     warn,
   });
@@ -466,6 +466,7 @@ export function createCrabboxWorkerProvider(
     return {
       binary: resolveBinary(parsed.binary),
       heartbeatIntervalMs: parsed.heartbeatIntervalMs,
+      heartbeatTimeoutMs: parsed.heartbeatTimeoutMs,
       id: lease.leaseId,
       idleTimeout: parsed.idleTimeout,
       provider: parsed.provider,
@@ -637,6 +638,7 @@ export function createCrabboxWorkerProvider(
       heartbeats.start({
         binary,
         heartbeatIntervalMs: parsed.heartbeatIntervalMs,
+        heartbeatTimeoutMs: parsed.heartbeatTimeoutMs,
         id: leaseId,
         idleTimeout: parsed.idleTimeout,
         provider: parsed.provider,
