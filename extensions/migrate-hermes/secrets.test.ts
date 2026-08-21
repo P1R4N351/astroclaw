@@ -6,14 +6,14 @@ import {
   resolveAuthStorePathForDisplay,
   saveAuthProfileStore,
   type AuthProfileStore,
-} from "openclaw/plugin-sdk/agent-runtime";
-import type { MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-auth";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import type { MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/provider-auth";
 import {
-  resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir,
   tempWorkspace,
   type TempWorkspace,
-} from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   HERMES_REASON_AUTH_PROFILE_EXISTS,
@@ -91,7 +91,7 @@ async function makeHermesSecretFixture(sourceName = "hermes") {
 describe("Hermes migration secret items", () => {
   beforeEach(async () => {
     testWorkspace = await tempWorkspace({
-      rootDir: resolvePreferredOpenClawTmpDir(),
+      rootDir: resolvePreferredAstroclawTmpDir(),
       prefix: "openclaw-migrate-hermes-",
     });
   });
@@ -658,6 +658,7 @@ describe("Hermes migration secret items", () => {
       reportDir,
     });
     const plan = await provider.plan(ctx);
+    const plannedTarget = authProfileTarget(agentDir, "openai:hermes-import");
     writeAuthProfileStore(agentDir, {
       version: 1,
       profiles: {
@@ -677,7 +678,7 @@ describe("Hermes migration secret items", () => {
         kind: "secret",
         action: "create",
         source: path.join(source, ".env"),
-        target: authProfileTarget(agentDir, "openai:hermes-import"),
+        target: plannedTarget,
         status: "conflict",
         sensitive: true,
         reason: HERMES_REASON_AUTH_PROFILE_EXISTS,
