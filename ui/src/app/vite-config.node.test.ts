@@ -380,6 +380,18 @@ describe("Control UI Vite config", () => {
       find: "@astroclaw/normalization-core/phone-presentation",
       replacement: path.join(repoRoot, "packages/normalization-core/src/phone-presentation.ts"),
     });
+    const resultAliasIndex = aliases.findIndex(
+      (alias) => alias.find === "@astroclaw/normalization-core/result",
+    );
+    const rootAliasIndex = aliases.findIndex(
+      (alias) => alias.find === "@astroclaw/normalization-core",
+    );
+    expect(aliases[resultAliasIndex]).toEqual({
+      find: "@astroclaw/normalization-core/result",
+      replacement: path.join(repoRoot, "packages/normalization-core/src/result.ts"),
+    });
+    expect(resultAliasIndex).toBeGreaterThanOrEqual(0);
+    expect(rootAliasIndex).toBeGreaterThan(resultAliasIndex);
   });
 
   it("uses Node package resolution for external packages inherited by worktrees", () => {
