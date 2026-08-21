@@ -885,6 +885,7 @@ describe("createPackedPluginSdkTypescriptSmokeProject", () => {
       expect(source).toContain('"astroclaw/plugin-sdk/channel-entry-contract"');
       expect(source).toContain('"astroclaw/plugin-sdk/config-contracts"');
       expect(source).toContain('"astroclaw/plugin-sdk/runtime-env"');
+      expect(source).toContain('"astroclaw/plugin-sdk/conversation-binding-inspection-runtime"');
       expect(source).toContain("type PublicPluginSdkModules = [");
       expect(source).not.toContain("TelegramAccountConfig");
       expect(source).not.toContain("astroclaw/plugin-sdk/channel-contract-testing");
