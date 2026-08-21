@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 
 function runBuiltCli(tempHome: string, args: string[], envOverrides: NodeJS.ProcessEnv = {}) {
@@ -292,6 +292,27 @@ describe("cli json stdout contract", () => {
         });
       },
       { prefix: "openclaw-json-failure-e2e-" },
+    );
+  });
+
+  it("renders a missing TaskFlow as one canonical JSON document without stderr", async () => {
+    await withTempHome(
+      async (tempHome) => {
+        const result = runBuiltCli(tempHome, ["tasks", "flow", "show", "missing-flow", "--json"]);
+
+        expect(result.status, result.stderr).toBe(1);
+        expect(result.stdout, result.stderr).not.toBe("");
+        expect(JSON.parse(result.stdout)).toEqual({
+          ok: false,
+          error: {
+            type: "cli_error",
+            message:
+              "TaskFlow not found: missing-flow. Run openclaw tasks flow list to see recent flow ids.",
+          },
+        });
+        expect(result.stderr).toBe("");
+      },
+      { prefix: "openclaw-task-flow-json-failure-e2e-" },
     );
   });
 
