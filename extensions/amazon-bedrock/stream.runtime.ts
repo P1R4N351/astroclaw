@@ -27,7 +27,7 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import type { DocumentType } from "@smithy/types";
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
 import {
   adjustMaxTokensForThinking,
   AssistantMessageEventStream,
@@ -53,8 +53,8 @@ import {
   type Tool,
   type ToolCall,
   type ToolResultMessage,
-} from "astroclaw/plugin-sdk/llm";
-import { canonicalizeBase64 } from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/llm";
+import { canonicalizeBase64 } from "openclaw/plugin-sdk/media-runtime";
 import {
   resolveClaudeFable5ModelIdentity,
   resolveClaudeModelIdentity,
@@ -64,17 +64,18 @@ import {
   requiresClaudeMandatoryAdaptiveThinking,
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeXhighEffort,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 import {
   applyAnthropicRefusal,
   createDeferredEventBuffer,
   notifyLlmRequestActivity,
-} from "astroclaw/plugin-sdk/provider-stream-shared";
+} from "openclaw/plugin-sdk/provider-stream-shared";
 import {
   describeToolResultMediaPlaceholder,
   finalizeTerminalToolCallArguments,
-} from "astroclaw/plugin-sdk/provider-transport-runtime";
-import { isRecord, normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+  notifyProviderHttpMetadata,
+} from "openclaw/plugin-sdk/provider-transport-runtime";
+import { isRecord, normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { supportsBedrockPromptCaching, type BedrockOptions } from "./bedrock-options.js";
 import { supportsBedrockNativeMaxEffort } from "./thinking-policy.js";
 
@@ -289,19 +290,24 @@ const streamBedrock: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
       const command = new ConverseStreamCommand(commandInput);
 
       const response = await client.send(command, { abortSignal: options.signal });
+      const responseIterator = response.stream![Symbol.asyncIterator]();
       if (response.$metadata.httpStatusCode !== undefined) {
         const responseHeaders: Record<string, string> = {};
         if (response.$metadata.requestId) {
           responseHeaders["x-amzn-requestid"] = response.$metadata.requestId;
         }
-        await options?.onResponse?.(
-          { status: response.$metadata.httpStatusCode, headers: responseHeaders },
+        await notifyProviderHttpMetadata({
+          options,
+          response: { status: response.$metadata.httpStatusCode, headers: responseHeaders },
           model,
-        );
+          cancelStream: async () => {
+            await responseIterator.return?.();
+          },
+        });
       }
 
       let sawMessageStop = false;
-      for await (const item of response.stream!) {
+      for await (const item of { [Symbol.asyncIterator]: () => responseIterator }) {
         if (item.messageStart) {
           if (item.messageStart.role !== ConversationRole.ASSISTANT) {
             throw new Error(
