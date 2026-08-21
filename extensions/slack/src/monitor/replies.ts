@@ -1,23 +1,24 @@
 // Slack plugin module implements replies behavior.
 import type { MessageMetadata } from "@slack/types";
 import type { Block, KnownBlock } from "@slack/web-api";
-import { createChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   chunkMarkdownTextWithMode,
   isSilentReplyText,
   SILENT_REPLY_TOKEN,
   type ChunkMode,
-} from "openclaw/plugin-sdk/reply-chunking";
+} from "astroclaw/plugin-sdk/reply-chunking";
 import {
   deliverTextOrMediaReply,
   getReplyPayloadTtsSupplement,
   resolveSendableOutboundReplyParts,
   type ReplyPayload,
-} from "openclaw/plugin-sdk/reply-payload";
-import { createReplyReferencePlanner } from "openclaw/plugin-sdk/reply-reference";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/reply-payload";
+import { createReplyReferencePlanner } from "astroclaw/plugin-sdk/reply-reference";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import { buildSlackBlocksFallbackText } from "../blocks-fallback.js";
 import { SLACK_MAX_BLOCKS } from "../blocks-input.js";
 import { markdownToSlackMrkdwnChunks } from "../format.js";
@@ -146,42 +147,6 @@ export async function deliverReplies(params: {
   eventScope?: SlackEventScope;
 }) {
   let latestResult: SlackSendResult | undefined;
-  const sendReply = async (input: {
-    text: string;
-    threadTs?: string | undefined;
-    mediaUrl?: string | undefined;
-    blocks?: (Block | KnownBlock)[] | undefined;
-    authoredTextPlacement?: "none" | "blocks" | "outside-blocks";
-    nativeDataFallbackBaseText?: string;
-    textIsSlackMrkdwn?: boolean;
-    textIsSlackPlainText?: boolean;
-  }): Promise<SlackSendResult> => {
-    return await sendMessageSlack(params.target, input.text, {
-      cfg: params.cfg,
-      token: params.token,
-      threadTs: input.threadTs,
-      accountId: params.accountId,
-      ...(input.mediaUrl ? { mediaUrl: input.mediaUrl } : {}),
-      ...(input.blocks ? { blocks: input.blocks } : {}),
-      ...(input.authoredTextPlacement
-        ? { authoredTextPlacement: input.authoredTextPlacement }
-        : {}),
-      ...(Object.hasOwn(input, "nativeDataFallbackBaseText")
-        ? { nativeDataFallbackBaseText: input.nativeDataFallbackBaseText }
-        : {}),
-      ...(input.textIsSlackMrkdwn ? { textIsSlackMrkdwn: true } : {}),
-      ...(input.textIsSlackPlainText ? { textIsSlackPlainText: true } : {}),
-      ...(params.eventScope
-        ? {
-            eventScope: params.eventScope,
-            textLimit: params.textLimit,
-            ...(params.mediaMaxBytes !== undefined ? { mediaMaxBytes: params.mediaMaxBytes } : {}),
-          }
-        : {}),
-      ...(params.identity ? { identity: params.identity } : {}),
-      ...(params.metadata ? { metadata: params.metadata } : {}),
-    });
-  };
   for (const payload of params.replies) {
     if (payload.isReasoning === true) {
       continue;
@@ -203,6 +168,49 @@ export async function deliverReplies(params: {
     if (!textRaw && !reply.hasMedia && segments.length === 0) {
       continue;
     }
+
+    const acceptedResults: SlackSendResult[] = [];
+    const sendReply = async (input: {
+      text: string;
+      threadTs?: string | undefined;
+      mediaUrl?: string | undefined;
+      blocks?: (Block | KnownBlock)[] | undefined;
+      authoredTextPlacement?: "none" | "blocks" | "outside-blocks";
+      nativeDataFallbackBaseText?: string;
+      textIsSlackMrkdwn?: boolean;
+      textIsSlackPlainText?: boolean;
+    }): Promise<SlackSendResult> => {
+      return await sendMessageSlack(params.target, input.text, {
+        cfg: params.cfg,
+        token: params.token,
+        threadTs: input.threadTs,
+        accountId: params.accountId,
+        onDeliveryResult: (result) => {
+          acceptedResults.push(result);
+        },
+        ...(input.mediaUrl ? { mediaUrl: input.mediaUrl } : {}),
+        ...(input.blocks ? { blocks: input.blocks } : {}),
+        ...(input.authoredTextPlacement
+          ? { authoredTextPlacement: input.authoredTextPlacement }
+          : {}),
+        ...(Object.hasOwn(input, "nativeDataFallbackBaseText")
+          ? { nativeDataFallbackBaseText: input.nativeDataFallbackBaseText }
+          : {}),
+        ...(input.textIsSlackMrkdwn ? { textIsSlackMrkdwn: true } : {}),
+        ...(input.textIsSlackPlainText ? { textIsSlackPlainText: true } : {}),
+        ...(params.eventScope
+          ? {
+              eventScope: params.eventScope,
+              textLimit: params.textLimit,
+              ...(params.mediaMaxBytes !== undefined
+                ? { mediaMaxBytes: params.mediaMaxBytes }
+                : {}),
+            }
+          : {}),
+        ...(params.identity ? { identity: params.identity } : {}),
+        ...(params.metadata ? { metadata: params.metadata } : {}),
+      });
+    };
 
     // Fire the `message_sent` hook(s) after delivery, mirroring Telegram's
     // `emitMessageSentHooks` in `extensions/telegram/src/bot/delivery.replies.ts`.
@@ -309,7 +317,15 @@ export async function deliverReplies(params: {
     } catch (error) {
       const hookContent = hookParts.join("\n\n") || textRaw || spokenText || "";
       emitFailed(hookContent, error);
-      throw error;
+      if (acceptedResults.length === 0) {
+        throw error;
+      }
+      const receipt = createMessageReceiptFromOutboundResults({ results: acceptedResults });
+      throw createChannelPartialDeliveryError(error, {
+        messageIds: receipt.platformMessageIds,
+        receipt,
+        visibleReplySent: true,
+      });
     }
     if (delivered) {
       const hookContent = hookParts.join("\n\n") || textRaw || spokenText || "";
