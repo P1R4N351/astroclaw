@@ -4,17 +4,17 @@ import fs from "node:fs/promises";
 import { createServer } from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { createChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { createInboundDebouncer } from "openclaw/plugin-sdk/channel-inbound-debounce";
+import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { createInboundDebouncer } from "astroclaw/plugin-sdk/channel-inbound-debounce";
 import {
   createMessageReceiptFromOutboundResults,
   DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createTestInboundDebounceFlush } from "openclaw/plugin-sdk/channel-test-helpers";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createTestInboundDebounceFlush } from "astroclaw/plugin-sdk/channel-test-helpers";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocketServer } from "ws";
 import type { MattermostPost } from "./client.js";
@@ -119,13 +119,13 @@ const mockState = vi.hoisted(() => ({
   updateMattermostPost: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>()),
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>()),
   getGlobalHookRunner: mockState.getGlobalHookRunner,
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     createChannelProgressDraftCompositor: (
@@ -138,8 +138,8 @@ vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/reply-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/reply-runtime")>();
+vi.mock("astroclaw/plugin-sdk/reply-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/reply-runtime")>();
   return {
     ...actual,
     createReplyDispatcherWithTyping: (...args: unknown[]) =>
@@ -860,6 +860,11 @@ describe("mattermost inbound user posts", () => {
     expect(ctx?.BodyForAgent).toBe("hello from mattermost");
     expect(ctx?.ConversationLabel).toBe("Town Square id:chan-1");
     expect(ctx?.MessageSid).toBe("post-inbound-system-event-regular");
+    expect(ctx?.ConversationRouteContextObserved).toBe(true);
+    expect(ctx?.ConversationRoutePeerId).toBe("chan-1");
+    expect(ctx?.GroupSpace).toBe("team-1");
+    expect(ctx?.NativeChannelId).toBe("chan-1");
+    expect(ctx?.InboundAccessAuthorized).toBe(true);
     expect(ctx?.OriginatingChannel).toBe("mattermost");
     expect(ctx?.Provider).toBe("mattermost");
   });
