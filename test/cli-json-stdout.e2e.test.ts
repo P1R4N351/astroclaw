@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "openclaw/plugin-sdk/test-env";
+import { withTempHome } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 
 function runBuiltCli(tempHome: string, args: string[], envOverrides: NodeJS.ProcessEnv = {}) {
@@ -376,6 +376,101 @@ describe("cli json stdout contract", () => {
         );
       },
       { prefix: "openclaw-sandbox-json-failure-e2e-" },
+    );
+  });
+
+  it.each([
+    {
+      name: "status with an invalid duration in human mode",
+      args: ["nodes", "status", "--last-connected", "not-a-duration"],
+      message: "Invalid --last-connected: Invalid duration",
+      human: true,
+    },
+    {
+      name: "status with JSON before its invalid duration",
+      args: ["nodes", "status", "--json", "--last-connected", "not-a-duration"],
+      message: "Invalid --last-connected: Invalid duration",
+    },
+    {
+      name: "status with JSON after its invalid duration",
+      args: ["nodes", "status", "--last-connected", "not-a-duration", "--json"],
+      message: "Invalid --last-connected: Invalid duration",
+    },
+    {
+      name: "list with an invalid duration in human mode",
+      args: ["nodes", "list", "--last-connected", "not-a-duration"],
+      message: "Invalid --last-connected: Invalid duration",
+      human: true,
+    },
+    {
+      name: "list with JSON before its invalid duration",
+      args: ["nodes", "list", "--json", "--last-connected", "not-a-duration"],
+      message: "Invalid --last-connected: Invalid duration",
+    },
+    {
+      name: "list with JSON after its invalid duration",
+      args: ["nodes", "list", "--last-connected", "not-a-duration", "--json"],
+      message: "Invalid --last-connected: Invalid duration",
+    },
+    {
+      name: "invoke with an explicitly JSON blank node",
+      args: ["nodes", "invoke", "--node", "   ", "--command", "canvas.eval", "--json"],
+      message: "--node and --command required",
+    },
+    {
+      name: "invoke with an implicitly JSON blank node",
+      args: ["nodes", "invoke", "--node", "   ", "--command", "canvas.eval"],
+      message: "--node and --command required",
+    },
+    {
+      name: "invoke with an explicitly JSON blank command",
+      args: ["nodes", "invoke", "--node", "mac-1", "--command", "   ", "--json"],
+      message: "--node and --command required",
+    },
+    {
+      name: "invoke with an implicitly JSON blank command",
+      args: ["nodes", "invoke", "--node", "mac-1", "--command", "   "],
+      message: "--node and --command required",
+    },
+    {
+      name: "rename with a blank name",
+      args: ["nodes", "rename", "--node", "mac-1", "--name", "   ", "--json"],
+      message: "--name must not be empty",
+    },
+  ])("renders nodes $name through the shared validation owner", async (testCase) => {
+    await withTempHome(
+      async (tempHome) => {
+        const denyNetwork = Buffer.from(
+          `import net from "node:net";
+           net.Socket.prototype.connect = function () { throw new Error("AUTOQA_NETWORK_FORBIDDEN"); };
+           globalThis.fetch = async () => { throw new Error("AUTOQA_NETWORK_FORBIDDEN"); };`,
+        ).toString("base64");
+        const result = runBuiltCli(tempHome, testCase.args, {
+          NODE_OPTIONS: `--permission --allow-fs-read=* --import=data:text/javascript;base64,${denyNetwork}`,
+          NODE_DISABLE_COMPILE_CACHE: "1",
+          OPENCLAW_NO_RESPAWN: "1",
+          OPENCLAW_LOG_LEVEL: "silent",
+          OPENCLAW_STATE_DIR: path.join(tempHome, "isolated-state"),
+          OPENCLAW_CONFIG_PATH: path.join(tempHome, "missing-openclaw.json"),
+        });
+
+        expect(result.status, result.stderr).toBe(1);
+        if ("human" in testCase && testCase.human) {
+          expect(result.stdout).toBe("");
+          expect(result.stderr).toContain(`nodes ${testCase.args[1]} failed:`);
+        } else {
+          expect(JSON.parse(result.stdout)).toEqual({
+            ok: false,
+            error: {
+              type: "cli_error",
+              message: expect.stringContaining(testCase.message),
+            },
+          });
+        }
+        expect(result.stderr).toContain(testCase.message);
+        expect(result.stderr).not.toContain("AUTOQA_NETWORK_FORBIDDEN");
+      },
+      { prefix: "openclaw-nodes-json-failure-e2e-" },
     );
   });
 
