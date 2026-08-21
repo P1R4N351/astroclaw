@@ -22,6 +22,7 @@ import { addTestHook } from "../../plugins/hooks.test-fixtures.js";
 import { createEmptyPluginRegistry } from "../../plugins/registry.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import type { PluginHookRegistration } from "../../plugins/types.js";
+import { createDeferredCore } from "../../shared/deferred.js";
 import { createOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { createOutboundTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { createInternalHookEventPayload } from "../../test-utils/internal-hook-event-payload.js";
@@ -31,7 +32,7 @@ import {
   type DiagnosticEventPayload,
 } from "../diagnostic-events.js";
 import { retryAsync } from "../retry.js";
-import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
 import { prepareOutboundPayloadBatch } from "./deliver-prepare.js";
 import { PlatformMessageNotDispatchedError } from "./deliver-types.js";
 import { createUnmodifiedPreparedOutboundBatch } from "./prepared-batch.js";
@@ -231,7 +232,7 @@ const matrixChunkConfig: OpenClawConfig = {
   channels: { matrix: { textChunkLimit: 4000 } } as OpenClawConfig["channels"],
 };
 
-const expectedPreferredTmpRoot = resolvePreferredOpenClawTmpDir();
+const expectedPreferredTmpRoot = resolvePreferredAstroclawTmpDir();
 
 type DeliverOutboundArgs = Parameters<DeliverModule["deliverOutboundPayloads"]>[0];
 type DeliverOutboundPayload = DeliverOutboundArgs["payloads"][number];
@@ -906,6 +907,7 @@ describe("deliverOutboundPayloads", () => {
       undefined,
       expect.objectContaining({ replyToId: undefined, threadId: undefined }),
     );
+    expect(queueMocks.markDeliveryPlatformSendDispatched).toHaveBeenCalledOnce();
     const [successParams] = expectDefined(
       (
         afterSendSuccess.mock.calls as unknown as Array<
@@ -930,6 +932,40 @@ describe("deliverOutboundPayloads", () => {
     expect(commitParams?.result?.messageId).toBe("message-adapter-1");
     expect(results[0]?.channel).toBe("matrix");
     expect(results[0]?.messageId).toBe("message-adapter-1");
+  });
+
+  it("revalidates before direct adapter handoff when the adapter ignores the dispatch callback", async () => {
+    const enteredPreflight = createDeferredCore();
+    const resumePreflight = createDeferredCore();
+    const messageSendText = vi.fn(async () => ({
+      messageId: "must-not-send",
+      receipt: createMessageReceiptFromOutboundResults({
+        results: [{ channel: "matrix", messageId: "must-not-send" }],
+        kind: "text",
+      }),
+    }));
+    setMatrixMessageAdapter({
+      id: "matrix",
+      send: {
+        lifecycle: {
+          beforeSendAttempt: async () => {
+            enteredPreflight.resolve();
+            await resumePreflight.promise;
+          },
+        },
+        text: messageSendText,
+      },
+    });
+    const onPlatformSendDispatch = vi.fn(async () => {
+      throw new Error("turn authority closed");
+    });
+
+    const delivery = deliverMatrix({ skipQueue: true, onPlatformSendDispatch });
+    await enteredPreflight.promise;
+    resumePreflight.resolve();
+
+    await expect(delivery).rejects.toThrow("turn authority closed");
+    expect(messageSendText).not.toHaveBeenCalled();
   });
 
   it("does not claim platform custody when message adapter preflight fails", async () => {
@@ -4796,7 +4832,7 @@ describe("deliverOutboundPayloads", () => {
     // same capability the live send resolves, so a fabricated localRoots here
     // would hide whether the two gates agree.
     const sourceDir = await fsPromises.realpath(
-      await fsPromises.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "deliver-spool-")),
+      await fsPromises.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "deliver-spool-")),
     );
     const openClawState = await createOpenClawTestState({
       layout: "state-only",
