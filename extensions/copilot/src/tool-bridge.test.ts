@@ -4,29 +4,25 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { Tool as SdkTool, ToolInvocation, ToolResultObject } from "@github/copilot-sdk";
-import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import {
   type AnyAgentTool,
   type SandboxContext,
   wrapToolWithBeforeToolCallHook,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
   createOwnerBackedContractTool,
   textToolResult,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import {
-  clearMemoryPluginState,
-  type MemoryFlushPlan,
-  registerMemoryCapability,
-} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { readMemoryArtifactProvenance } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
 import {
   loadPluginManifestRegistryCore,
   resetPluginRuntimeStateForTest,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { withTempDir } from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { withTempDir } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCopilotTestHostCapabilities } from "./host-capability.test-support.js";
 import { createCopilotToolBridge as createCopilotToolBridgeImpl } from "./tool-bridge.js";
@@ -977,21 +973,6 @@ describe("createCopilotToolBridge", () => {
     it("quarantines owner memory writes, edits, and patches after a network tool", async () => {
       const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-copilot-memory-"));
       await fs.mkdir(path.join(workspaceDir, "memory"));
-      const recordWriteProvenance = vi.fn<NonNullable<MemoryFlushPlan["recordWriteProvenance"]>>(
-        async () => undefined,
-      );
-      registerMemoryCapability("memory-core", {
-        flushPlanResolver: () => ({
-          softThresholdTokens: 1,
-          forceFlushTranscriptBytes: 1,
-          reserveTokensFloor: 1,
-          prompt: "flush",
-          systemPrompt: "flush",
-          relativePath: "memory/day.md",
-          recordWriteProvenance,
-        }),
-      });
-
       try {
         let turnTainted = false;
         const onToolOutcome = vi.fn<
@@ -1107,12 +1088,17 @@ describe("createCopilotToolBridge", () => {
           { path: "memory/fresh.md", content: "fresh owner note\n" },
         );
 
-        expect(recordWriteProvenance.mock.calls.map(([entry]) => entry.originClass)).toEqual([
-          "agent",
-          "untrusted",
-          "untrusted",
-          "untrusted",
-          "agent",
+        await expect(
+          Promise.all(
+            ["memory/trusted.md", "memory/network.md", "memory/patched.md", "memory/fresh.md"].map(
+              (relativePath) => readMemoryArtifactProvenance({ workspaceDir, relativePath }),
+            ),
+          ),
+        ).resolves.toEqual([
+          expect.objectContaining({ originClass: "untrusted" }),
+          expect.objectContaining({ originClass: "untrusted" }),
+          expect.objectContaining({ originClass: "untrusted" }),
+          expect.objectContaining({ originClass: "agent" }),
         ]);
         await expect(
           fs.readFile(path.join(workspaceDir, "memory/trusted.md"), "utf8"),
@@ -1121,7 +1107,6 @@ describe("createCopilotToolBridge", () => {
           fs.readFile(path.join(workspaceDir, "memory/patched.md"), "utf8"),
         ).resolves.toBe("network patch\n");
       } finally {
-        clearMemoryPluginState();
         await fs.rm(workspaceDir, { recursive: true, force: true });
       }
     });
