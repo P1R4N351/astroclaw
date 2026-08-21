@@ -1,21 +1,21 @@
+// Telegram plugin module implements bot message context behavior.
+import type { ReactionTypeEmoji } from "grammy/types";
 import {
   resolveAckReaction,
   shouldAckReaction as shouldAckReactionGate,
-} from "astroclaw/plugin-sdk/channel-feedback";
-import { logInboundDrop } from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-feedback";
+import { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
 import type {
   TelegramDirectConfig,
   TelegramGroupConfig,
-} from "astroclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+} from "openclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 import {
   deriveLastRoutePolicy,
   normalizeAccountId,
   resolveThreadSessionKeys,
-} from "astroclaw/plugin-sdk/routing";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-// Telegram plugin module implements bot message context behavior.
-import type { ReactionTypeEmoji } from "grammy/types";
+} from "openclaw/plugin-sdk/routing";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import {
   expandTelegramAllowFromWithAccessGroups,
   resolveTelegramDmAllow,
@@ -434,8 +434,6 @@ export const buildTelegramMessageContext = async ({
     }),
   };
   const activationOverride = resolveGroupActivation({
-    chatId,
-    messageThreadId: resolvedThreadId,
     sessionKey,
     agentId: route.agentId,
     cfg,
