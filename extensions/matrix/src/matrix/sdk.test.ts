@@ -4,16 +4,16 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+// Matrix tests cover sdk plugin behavior.
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { CryptoEvent } from "matrix-js-sdk/lib/crypto-api/CryptoEvent.js";
 import type { DecryptionFailureCode as DecryptionFailureCodeValue } from "matrix-js-sdk/lib/crypto-api/index.js";
 import { MatrixError } from "matrix-js-sdk/lib/http-api/errors.js";
 import { type MatrixEvent, MsgType } from "matrix-js-sdk/lib/matrix.js";
 import { EventStatus } from "matrix-js-sdk/lib/models/event-status.js";
 import { SyncApi, SyncState } from "matrix-js-sdk/lib/sync.js";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
-// Matrix tests cover sdk plugin behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installMatrixTestRuntime } from "../test-runtime.js";
 import type { CoreConfig } from "../types.js";
@@ -1585,6 +1585,7 @@ describe("MatrixClient request hardening", () => {
   it.each([SyncState.Error, SyncState.Reconnecting])(
     "does not replace a poisoned %s generation until late transient work really releases",
     async (syncState) => {
+      vi.useFakeTimers();
       const accountId = `sdk-retirement-${syncState.toLowerCase()}`;
       const cfg = {
         channels: {
@@ -1668,14 +1669,14 @@ describe("MatrixClient request hardening", () => {
           () => ({ ok: true as const }),
           (error: unknown) => ({ ok: false as const, error }),
         );
-        await vi.waitFor(() => {
-          expect(firstSdkClient.classicSyncStop).toHaveBeenCalledOnce();
-        });
+        await vi.advanceTimersByTimeAsync(0);
+        expect(firstSdkClient.classicSyncStop).toHaveBeenCalledOnce();
         expect(borrowedSignal?.aborted).toBe(true);
         await expect(keepaliveOutcome).resolves.toBe("SyncApi.stop() was called");
         expect(syncInternals.connectionReturnedResolvers).toBeUndefined();
 
         expect(createSharedMatrixClientMock).toHaveBeenCalledOnce();
+        await vi.advanceTimersByTimeAsync(5_000);
         await expect(monitorOutcome).resolves.toMatchObject({
           ok: false,
           error: { message: "Matrix transient leases did not drain within 5000ms" },
