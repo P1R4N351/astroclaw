@@ -2,14 +2,14 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import { describe, expect, it, vi } from "vitest";
 
 const completeWithPreparedSimpleCompletionModel = vi.hoisted(() => vi.fn());
 const runCodexIsolatedCompletion = vi.hoisted(() => vi.fn());
 const runCodexAppServerAttempt = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/simple-completion-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/simple-completion-runtime", () => ({
   completeWithPreparedSimpleCompletionModel,
 }));
 vi.mock("./src/app-server/isolated-completion.js", () => ({
@@ -34,9 +34,13 @@ describe("Codex agent harness supports()", () => {
 
   it("publishes provider ids for lightweight auto selection", () => {
     expect(harness.autoSelection?.providerIds).toEqual(["codex", "openai"]);
-    expect(
-      (harness as typeof harness & { cloudPlacement?: { mode: "remote-exec" } }).cloudPlacement,
-    ).toEqual({ mode: "remote-exec" });
+    expect(harness.cloudPlacement).toEqual({
+      mode: "remote-exec",
+      devicePlacement: {
+        requiredNodeCommands: ["codex.exec-server.stdio.v1"],
+        consumesWorkerSlot: false,
+      },
+    });
   });
 
   it("keeps computer-control denies out of the native-surface exemption", () => {
@@ -258,6 +262,17 @@ describe("Codex agent harness supports()", () => {
           requestTransportOverrides: "none",
           preparedAuth: { source: "harness" },
         },
+      }),
+    ).toEqual({ supported: true, priority: 100 });
+  });
+
+  it("lets explicit Codex model discovery run before auth has been prepared", () => {
+    expect(
+      harness.supports({
+        provider: "openai",
+        modelId: "gpt-future",
+        requestedRuntime: "codex",
+        modelProvider: { requestTransportOverrides: "none" },
       }),
     ).toEqual({ supported: true, priority: 100 });
   });
