@@ -1,6 +1,5 @@
 // Collects daemon status from service files, config snapshots, ports, probes, and plugin drift.
 import fs from "node:fs/promises";
-import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import { asNonArrayRecord } from "@astroclaw/normalization-core/record-coerce";
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import JSON5 from "json5";
@@ -66,6 +65,7 @@ import {
 } from "../../plugins/plugin-version-drift.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import { VERSION } from "../../version.js";
+import { parseTimeoutMsWithFallback } from "../parse-timeout.js";
 import { normalizeListenerAddress, parsePortFromArgs, pickProbeHostForBind } from "./shared.js";
 import type { GatewayRpcOpts } from "./types.js";
 
@@ -597,7 +597,9 @@ export async function gatherDaemonStatus(
     allowExecSecretRefs?: boolean;
   } & FindExtraGatewayServicesOptions,
 ): Promise<DaemonStatus> {
-  const timeoutMs = parseStrictPositiveInteger(opts.rpc.timeout ?? undefined) ?? 10_000;
+  const timeoutMs = parseTimeoutMsWithFallback(opts.rpc.timeout, 10_000, {
+    invalidType: "error",
+  });
   const service = resolveGatewayService();
   const serviceState = await readGatewayServiceState(service, {
     env: process.env,
