@@ -1,4 +1,5 @@
 // Normalizes provider auth choice metadata from plugin setup surfaces.
+import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { isRecord as isPlainRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeLowercaseStringOrEmpty,
@@ -11,15 +12,14 @@ import {
   toAgentEntriesRecord,
 } from "../agents/agent-scope-config.js";
 import { normalizeConfiguredProviderCatalogModelId } from "../agents/model-ref-shared.js";
-import { normalizeProviderId } from "../agents/model-selection.js";
 import {
   normalizeAgentModelMapForConfig,
   normalizeAgentModelRefForConfig,
 } from "../config/model-input.js";
 import { normalizeProviderConfigForConfigDefaults } from "../config/provider-policy.js";
 import type { AgentModelConfig } from "../config/types.agents-shared.js";
-import type { ModelProviderConfig } from "../config/types.models.js";
 import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ModelProviderConfig } from "../config/types.models.js";
 import type { ProviderAuthMethod, ProviderPlugin } from "./types.js";
 
 export function resolveProviderMatch(
