@@ -1,13 +1,14 @@
 // Memory Core plugin module owns shared manager synchronization state.
 import type { DatabaseSync } from "node:sqlite";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { FSWatcher } from "chokidar";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentDir,
   resolveUserPath,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   ensureMemoryIndexSchema,
   loadSqliteVecExtension,
@@ -18,9 +19,8 @@ import {
   type MemorySource,
   type MemorySyncParams,
   type MemorySyncProgressUpdate,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { runSqliteImmediateTransactionSync } from "astroclaw/plugin-sdk/sqlite-runtime";
-import type { FSWatcher } from "chokidar";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { runSqliteImmediateTransactionSync } from "openclaw/plugin-sdk/sqlite-runtime";
 import type { MemoryCoreAcquireLocalService } from "./embedding-local-service.js";
 import {
   resolveEmbeddingProviderAdapterId,
@@ -151,6 +151,7 @@ export abstract class MemoryManagerSyncBase {
   protected memoryWatchPressureStartupTimer: NodeJS.Timeout | null = null;
   protected closed = false;
   protected dirty = false;
+  protected memorySourceProvenanceRepairPending = false;
   // Failed full memory reindexes must retry as full rebuilds, not incremental
   // dirty syncs that can skip unchanged files against the still-live index.
   protected memoryFullRetryDirty = false;
