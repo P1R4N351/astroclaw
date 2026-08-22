@@ -7,6 +7,7 @@ const datePattern = /^\d{4}-\d{2}-\d{2}$/u;
 const removalDatePendingCompatCodes = new Set<PluginCompatCode>([
   "plugin-sdk-tool-plugin-public-demotion",
   "agent-harness-sdk-alias",
+  "plugin-sdk-shipped-channel-setup-exports",
 ]);
 const retiredPluginSdkSubpathCodes = [
   "plugin-sdk-channel-streaming-subpath",
@@ -109,8 +110,8 @@ describe("plugin compatibility registry", () => {
       removeAfter: undefined,
     });
     expect(records.get("agent-harness-sdk-alias")?.surfaces).toEqual([
-      "openclaw/plugin-sdk/agent-harness",
-      "openclaw/plugin-sdk/agent-harness-runtime",
+      "astroclaw/plugin-sdk/agent-harness",
+      "astroclaw/plugin-sdk/agent-harness-runtime",
     ]);
   });
 
@@ -143,18 +144,18 @@ describe("plugin compatibility registry", () => {
     }
     expect(records.get("plugin-sdk-broad-runtime-barrels")?.surfaces).toEqual(
       expect.arrayContaining([
-        "openclaw/plugin-sdk/agent-runtime",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.useCache",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.cacheOnly",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.metadataSnapshot",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog",
-        "openclaw/plugin-sdk/cli-runtime",
-        "openclaw/plugin-sdk/conversation-runtime",
-        "openclaw/plugin-sdk/hook-runtime",
-        "openclaw/plugin-sdk/media-runtime",
-        "openclaw/plugin-sdk/media-runtime buildAgentMediaPayload",
-        "openclaw/plugin-sdk/plugin-runtime",
-        "openclaw/plugin-sdk/security-runtime",
+        "astroclaw/plugin-sdk/agent-runtime",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.useCache",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.cacheOnly",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.metadataSnapshot",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog",
+        "astroclaw/plugin-sdk/cli-runtime",
+        "astroclaw/plugin-sdk/conversation-runtime",
+        "astroclaw/plugin-sdk/hook-runtime",
+        "astroclaw/plugin-sdk/media-runtime",
+        "astroclaw/plugin-sdk/media-runtime buildAgentMediaPayload",
+        "astroclaw/plugin-sdk/plugin-runtime",
+        "astroclaw/plugin-sdk/security-runtime",
       ]),
     );
     expect(records.get("deprecated-session-store-beta5-api")?.surfaces).toEqual(
@@ -215,15 +216,15 @@ describe("plugin compatibility registry", () => {
     expect(record?.removeAfter).toBeUndefined();
   });
 
-  it("keeps removed shipped channel setup exports as a migration tombstone", () => {
+  it("keeps shipped channel setup exports until published packages migrate", () => {
     const record = listPluginCompatRecords().find(
       (candidate) => candidate.code === "plugin-sdk-shipped-channel-setup-exports",
     );
 
     expect(record).toMatchObject({
-      status: "removed",
+      status: "deprecated",
       replacement:
-        "plugin-owned config schemas plus generic `openclaw/plugin-sdk/channel-config-schema` and `openclaw/plugin-sdk/setup-runtime` primitives",
+        "retain until supported published packages migrate to plugin-owned config schemas plus generic `openclaw/plugin-sdk/channel-config-schema` and `openclaw/plugin-sdk/setup-runtime` primitives",
     });
     expect(record?.removeAfter).toBeUndefined();
   });
