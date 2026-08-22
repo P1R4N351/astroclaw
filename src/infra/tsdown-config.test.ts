@@ -1,7 +1,7 @@
 // Covers bundling rules encoded in the root tsdown config.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { bundledPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import tsdownConfig, {
   createStateSchemaInlinePlugin,
@@ -177,6 +177,7 @@ describe("tsdown config", () => {
       "agents/compaction-planning.worker",
       "agents/model-provider-auth.worker",
       "config/sessions/session-accessor.sqlite-archive.worker",
+      "infra/sqlite-readonly-location.worker",
       "state/openclaw-database-verify.worker",
       "system-agent/setup-inference-detection.worker",
       "plugins/memory-state",
@@ -363,8 +364,8 @@ describe("tsdown config", () => {
 
     expect(alwaysBundle("@openclaw/fs-safe")).toBe(true);
     expect(alwaysBundle("@openclaw/fs-safe/path")).toBe(true);
-    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
-    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime")).toBe(false);
+    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
+    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime")).toBe(false);
     expect(alwaysBundle("zod")).toBe(true);
     expect(alwaysBundle("zod/v4/core")).toBe(true);
     expect(alwaysBundle("not-a-runtime-dependency")).toBe(false);
