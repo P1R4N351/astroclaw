@@ -1,10 +1,10 @@
 // Nextcloud Talk tests cover send.cfg threading plugin behavior.
-import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
+import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-outbound";
 import {
   createSendCfgThreadingRuntime,
   expectProvidedCfgSkipsRuntimeLoad,
-} from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig as CoreConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig as CoreConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
@@ -100,6 +100,44 @@ describe("nextcloud-talk send cfg threading", () => {
     hoisted.mockFetchGuard.mockReset();
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  function useUnavailableBotSecretAccount() {
+    hoisted.resolveNextcloudTalkAccount.mockReturnValue({
+      ...defaultAccount,
+      secret: "",
+      tokenStatus: "configured_unavailable",
+    });
+    return { source: "provided" } as const;
+  }
+
+  it("rejects sends before HTTP when the configured account credential is unavailable", async () => {
+    const cfg = useUnavailableBotSecretAccount();
+
+    await expect(sendMessageNextcloudTalk("room:abc123", "hello", { cfg })).rejects.toThrow(
+      /secret|unavailable/i,
+    );
+
+    expect(hoisted.mockFetchGuard).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("uses an explicit per-call credential when the configured account SecretRef is unavailable", async () => {
+    const cfg = useUnavailableBotSecretAccount();
+    mockNextcloudMessageResponse(456, 1_706_000_000);
+
+    await expect(
+      sendMessageNextcloudTalk("room:abc123", "hello", {
+        cfg,
+        secret: "per-call-secret",
+      }),
+    ).resolves.toMatchObject({ messageId: "456" });
+
+    expect(hoisted.generateNextcloudTalkSignature).toHaveBeenCalledWith({
+      body: "hello",
+      secret: "per-call-secret",
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("uses provided cfg for sendMessage and skips runtime loadConfig", async () => {
