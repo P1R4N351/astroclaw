@@ -2,34 +2,34 @@
 import { createServer } from "node:http";
 import type { IncomingMessage } from "node:http";
 import net from "node:net";
-import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { isDiagnosticsEnabled } from "astroclaw/plugin-sdk/diagnostic-runtime";
+import { InputFile } from "grammy";
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { isDiagnosticsEnabled } from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   logWebhookError,
   logWebhookProcessed,
   logWebhookReceived,
   startDiagnosticHeartbeat,
   stopDiagnosticHeartbeat,
-} from "astroclaw/plugin-sdk/logging-core";
-import { parseStrictNonNegativeInteger } from "astroclaw/plugin-sdk/number-runtime";
-import type { BackoffPolicy, RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/logging-core";
+import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
+import type { BackoffPolicy, RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   computeBackoff,
   defaultRuntime,
   formatDurationPrecise,
   sleepWithAbort,
-} from "astroclaw/plugin-sdk/runtime-env";
-import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/runtime-env";
+import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   applyBasicWebhookRequestGuards,
   createFixedWindowRateLimiter,
   WEBHOOK_RATE_LIMIT_DEFAULTS,
-} from "astroclaw/plugin-sdk/webhook-ingress";
-import { readJsonBodyWithLimit } from "astroclaw/plugin-sdk/webhook-request-guards";
-import { InputFile } from "grammy";
+} from "openclaw/plugin-sdk/webhook-ingress";
+import { readJsonBodyWithLimit } from "openclaw/plugin-sdk/webhook-request-guards";
 import { mergeTelegramAccountConfig } from "./account-config.js";
 import { resolveTelegramAllowedUpdates } from "./allowed-updates.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
@@ -304,6 +304,7 @@ export async function startTelegramWebhook(opts: {
   secret?: string;
   runtime?: RuntimeEnv;
   buildContext?: Parameters<typeof createTelegramBot>[0]["buildContext"];
+  dispatchReplyFromConfig?: Parameters<typeof createTelegramBot>[0]["dispatchReplyFromConfig"];
   fetch?: typeof fetch;
   abortSignal?: AbortSignal;
   healthPath?: string;
@@ -361,6 +362,7 @@ export async function startTelegramWebhook(opts: {
     token: opts.token,
     runtime,
     buildContext: opts.buildContext,
+    dispatchReplyFromConfig: opts.dispatchReplyFromConfig,
     proxyFetch: opts.fetch,
     fetchAbortSignal: botFetchAbortSignal,
     accountAbortSignal,
