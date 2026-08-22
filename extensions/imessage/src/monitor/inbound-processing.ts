@@ -15,28 +15,27 @@ import {
   toInboundMediaFactsWithMetadata,
   type ChannelInboundMediaInput,
   type MediaPlaceholderTextFact,
-} from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
 import {
   createChannelIngressResolver,
   defineStableChannelIngressIdentity,
   type ChannelIngressIdentityDescriptor,
-} from "openclaw/plugin-sdk/channel-ingress-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-runtime";
 import {
   buildChannelGroupsScopeTree,
   resolveChannelGroupPolicy,
   resolveScopeRequireMention,
-} from "openclaw/plugin-sdk/channel-policy";
-import { hasControlCommand } from "openclaw/plugin-sdk/command-auth-native";
-import type { DmPolicy, GroupPolicy, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolveChannelContextVisibilityMode } from "openclaw/plugin-sdk/context-visibility-runtime";
-import type { ConfiguredBindingRouteResult } from "openclaw/plugin-sdk/conversation-runtime";
-import { createChannelHistoryWindow, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
-import type { FinalizedMsgContext } from "openclaw/plugin-sdk/reply-runtime";
-import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
-import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sanitizeTerminalText } from "openclaw/plugin-sdk/text-chunking";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
-import { resolveIMessageAccount } from "../accounts.js";
+} from "astroclaw/plugin-sdk/channel-policy";
+import { hasControlCommand } from "astroclaw/plugin-sdk/command-auth-native";
+import type { DmPolicy, GroupPolicy, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveChannelContextVisibilityMode } from "astroclaw/plugin-sdk/context-visibility-runtime";
+import type { ConfiguredBindingRouteResult } from "astroclaw/plugin-sdk/conversation-runtime";
+import { createChannelHistoryWindow, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import type { FinalizedMsgContext } from "astroclaw/plugin-sdk/reply-runtime";
+import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
+import { uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sanitizeTerminalText } from "astroclaw/plugin-sdk/text-chunking";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { resolveIMessageDirectChatService } from "../chat-context.js";
 import { resolveIMessageConversationRoute } from "../conversation-route.js";
 import {
@@ -48,6 +47,7 @@ import {
   isAllowedIMessageReplyContextSender,
   normalizeIMessageHandle,
   parseIMessageAllowTarget,
+  type IMessageService,
 } from "../targets.js";
 import type { IMessageDmHistoryContext } from "./dm-history.js";
 import {
@@ -895,6 +895,7 @@ export async function resolveIMessageInboundDecision(params: {
 
 export async function buildIMessageInboundContext(params: {
   cfg: OpenClawConfig;
+  accountService: IMessageService | undefined;
   decision: IMessageInboundDispatchDecision;
   message: IMessagePayload;
   envelopeOptions?: EnvelopeFormatOptions;
@@ -989,11 +990,7 @@ export async function buildIMessageInboundContext(params: {
   }
 
   const directService =
-    resolveIMessageDirectChatService(
-      resolveIMessageAccount({ cfg: params.cfg, accountId: decision.route.accountId }).config
-        .service,
-      decision.chatGuid,
-    ) ?? "auto";
+    resolveIMessageDirectChatService(params.accountService, decision.chatGuid) ?? "auto";
   const imessageTo = decision.isGroup
     ? chatTarget || `imessage:${decision.sender}`
     : `${directService}:${decision.sender}`;
