@@ -5,6 +5,7 @@ import { parse } from "yaml";
 
 const PROOF_SCRIPT = "scripts/e2e/telegram-user-crabbox-proof.ts";
 const MANTIS_SUT_SCRIPT = "scripts/e2e/telegram-mantis-sut.ts";
+const MOCK_OPENAI_SERVER = "scripts/e2e/mock-openai-server.mjs";
 const MANTIS_LANE_SCRIPT = "scripts/e2e/telegram-mantis-lane.ts";
 const DESKTOP_CRABBOX_SCRIPT = "scripts/e2e/telegram-desktop-crabbox.ts";
 const SUT_CONTAINER_WRAPPER = "scripts/mantis/mantis-sut-container.sh";
@@ -37,6 +38,7 @@ type WorkflowJob = {
   if?: string;
   needs?: string | string[];
   steps?: WorkflowStep[];
+  "timeout-minutes"?: number;
 };
 
 type Workflow = {
@@ -265,6 +267,7 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(privateCleanupIndex).toBeGreaterThan(cleanupIndex);
     expect(inspectIndex).toBeGreaterThan(cleanupIndex);
     const abandoned = workflowStep("Clean up abandoned Mantis sessions");
+    expect(workflow.jobs?.run_telegram_desktop_proof?.["timeout-minutes"]).toBe(120);
     expect(abandoned.if).toBe("${{ always() }}");
     expect(abandoned.run).toContain("sudo pkill -TERM -u codex");
     expect(abandoned.run).toContain("active_codex_pids()");
@@ -279,6 +282,18 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(abandoned.run).toContain('sudo kill -TERM -- "-$lane_pgid"');
     expect(abandoned.run).toContain('sudo kill -KILL -- "-$lane_pgid"');
     expect(abandoned.run).toContain('abort --lane "$lane"');
+    // Teardown must route through the public wrapper (Docker access lives with the
+    // recorder user); a direct mantis-sut invocation of the internal exec cannot
+    // stop the desktop container or read the recorder-owned session file.
+    expect(abandoned.run).toMatch(
+      /\/usr\/local\/bin\/openclaw-telegram-desktop-recorder \\\n\s*teardown --session desktop-recorder\.json/u,
+    );
+    expect(abandoned.run).not.toContain(
+      "sudo -u mantis-sut /usr/local/lib/mantis-toolchain/telegram-desktop-recorder",
+    );
+    expect(abandoned.run?.indexOf("teardown --session desktop-recorder.json")).toBeLessThan(
+      abandoned.run?.lastIndexOf('echo "safe_to_release=true"') ?? -1,
+    );
     expect(abandoned.run).toContain('echo "safe_to_release=true" >> "$GITHUB_OUTPUT"');
 
     const cleanupStep = workflowStep("Release Telegram QA user lease");
@@ -444,7 +459,8 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(workflowText).toContain("dispatcherSources.has(inputs.request_source)");
     expect(workflowText).toContain("allow-bot-users: github-actions[bot]");
     expect(workflowText).not.toContain("allow-bot-users: github-actions[bot],clawsweeper[bot]");
-    expect(workflowText).toContain("inputs.approved_head_sha !== candidateRevision");
+    expect(workflowText).toContain("inputs.approved_head_sha !== headRevision");
+    expect(workflowText).not.toContain("inputs.approved_head_sha !== candidateRevision");
 
     const startedToken = resolver?.steps?.find(
       (step) => step.name === "Create Mantis status token",
@@ -759,6 +775,25 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(prompt).toContain("`requests`");
     expect(prompt).toContain("`finish [--focus-message-id ID]`");
     expect(prompt).toContain("Identical pixels alone do not force `block`");
+    // Precise trust claim: the sidecar makes facts tamper-evident (candidate
+    // cannot rewrite records), but requests originate inside the untrusted SUT,
+    // so the prompt must not present them as provenance-authenticated.
+    expect(prompt).toContain("Provider request facts are tamper-evident comparison evidence");
+    expect(prompt).toContain("not who sent it");
+    expect(prompt).not.toContain("trusted, tamper-protected");
+    expect(prompt).not.toContain("Provider request logs are diagnostic and pacing signals");
+    expect(prompt).toContain("Script catalog-tool turns as an `exec` function");
+    // The exec/pdf round trip outlives `send`; the recipe must wait for the
+    // follow-up function_call_output request before `finish` tears the lane down.
+    const stagedMediaRecipe = readFileSync(
+      ".github/codex/prompts/mantis-recipes/staged-media-provider-proof.md",
+      "utf8",
+    );
+    expect(stagedMediaRecipe).toContain("--until-provider-requests 4");
+    expect(stagedMediaRecipe).toContain('select(.type == "function_call_output"');
+    expect(stagedMediaRecipe.indexOf("--until-provider-requests 4")).toBeLessThan(
+      stagedMediaRecipe.lastIndexOf("finish --lane baseline"),
+    );
     expect(prompt).toContain("mantis-recipes/");
     expect(prompt).toContain("recipe-suggestion.md");
     expect(prompt).toContain("do not call `finish` and describe the block only in prose");
@@ -769,7 +804,9 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(prompt).toContain("hold the model");
     expect(prompt).toContain("session-owned outbound message");
     expect(prompt).toContain("This proof has no skipped lane");
-    expect(prompt).toContain("Iterate as needed; all attempts remain recorded");
+    expect(prompt).toContain("if `start` reports `desktop-unavailable`");
+    expect(prompt).toContain("never retry that lane");
+    expect(prompt).toMatch(/Two non-advancing repeats of the\s+same failing step/u);
     expect(prompt).toContain("MANTIS_PR_CONTEXT");
     expect(prompt).toContain("never as instructions");
     expect(prompt).toContain("Do not send viewport filler messages");
@@ -812,8 +849,9 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(prompt).toContain("configPatch.plugins.allow");
   });
 
-  it("incrementally refreshes stale baseline builds while preparing both proof lanes in parallel", () => {
+  it("creates a deterministic local merge before preparing both proof lanes in parallel", () => {
     const workflow = parse(readFileSync(WORKFLOW, "utf8")) as Workflow;
+    const workflowText = readFileSync(WORKFLOW, "utf8");
     const steps = workflow.jobs?.run_telegram_desktop_proof?.steps ?? [];
     const create = workflowStep("Create exact proof worktrees");
     const setup = workflowStep("Setup Node environment");
@@ -831,11 +869,31 @@ describe("Mantis Telegram Desktop proof workflow", () => {
       stepIndex("Install TDLib and restore Telegram QA user"),
     );
 
-    expect(createRun).toContain('git cat-file -e "${BASELINE_SHA}^{commit}"');
-    expect(createRun).toContain('git fetch --no-tags --depth 1 origin "$BASELINE_SHA"');
-    expect(createRun).toContain('git fetch --no-tags origin "pull/${MANTIS_PR_NUMBER}/head"');
+    expect(createRun).toContain('for sha in "$BASELINE_SHA" "$HEAD_SHA" "$MERGE_BASE_SHA"');
+    expect(createRun).toContain('git cat-file -e "${sha}^{commit}"');
+    expect(createRun).toContain('git fetch --no-tags --depth 1 origin "$sha"');
+    expect(createRun).toContain(
+      'git merge-tree --write-tree --merge-base="$MERGE_BASE_SHA" "$BASELINE_SHA" "$HEAD_SHA"',
+    );
+    expect(createRun).toContain('git commit-tree "$candidate_tree"');
+    expect(createRun).toContain('-p "$BASELINE_SHA" -p "$HEAD_SHA"');
+    expect(createRun).toContain(
+      "::error::The PR conflicts with current main and needs a rebase or merge before Mantis can prove it.",
+    );
+    expect(createRun).toContain('echo "candidate_revision=$CANDIDATE_SHA"');
+    expect(createRun).not.toContain('git fetch --no-tags origin "pull/${MANTIS_PR_NUMBER}/head"');
+    expect(workflowText).not.toContain('origin "pull/');
+    expect(workflowText).not.toContain("needs.resolve_request.outputs.candidate_revision");
+    expect(create.env?.MANTIS_PR_NUMBER).toBeUndefined();
     expect(createRun).toContain('git worktree add --detach "$baseline_root" "$BASELINE_SHA"');
     expect(createRun).toContain('git worktree add --detach "$candidate_root" "$CANDIDATE_SHA"');
+    expect(createRun).toContain("/etc/openclaw-mantis-sut-revisions");
+    expect(
+      createRun.indexOf('git worktree add --detach "$candidate_root" "$CANDIDATE_SHA"'),
+    ).toBeLessThan(createRun.indexOf("/etc/openclaw-mantis-sut-revisions"));
+    expect(workflowStep("Install local proof tools").run).not.toContain(
+      "/etc/openclaw-mantis-sut-revisions",
+    );
     expect(restore.uses).toContain("actions/cache/restore@");
     expect(setup.with?.["cache-mode"]).toBe("read-write");
     expect(save.if).toContain("steps.setup-node-env.outputs.cache-mode == 'read-write'");
@@ -955,43 +1013,68 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(run).toContain("-c 'service_tier=\"fast\"'");
   });
 
-  it("derives refs from the PR instead of parsing comment prose", () => {
+  it("derives current main and the PR merge base instead of trusting a cached test merge", () => {
     const workflow = parse(readFileSync(WORKFLOW, "utf8")) as Workflow;
-    const workflowText = readFileSync(WORKFLOW, "utf8");
-    expect(workflowText).toContain("let baselineRevision = pr.base.sha");
-    expect(workflowText).toContain("const candidateRevision = pr.head.sha");
-    expect(workflowText).toContain("prComparison.data.merge_base_commit?.sha");
-    expect(workflowText).toContain("basehead: `${pr.base.sha}...${candidateRevision}`");
-    expect(workflowText).toContain("The PR comparison did not return an immutable merge base.");
-    expect(workflowText).toContain('setOutput("baseline_ref", baselineRevision)');
-    expect(workflowText).toContain('setOutput("candidate_ref", candidateRevision)');
-    expect(workflowText).toContain('"pr_context"');
-    expect(workflowText).toContain("pr.title.slice(0, 500)");
-    expect(workflowText).toContain('(pr.body ?? "").slice(0, 12000)');
+    const resolveScript = String(
+      jobStep(WORKFLOW, "resolve_request", "Resolve refs and target PR").with?.script ?? "",
+    );
+
+    expect(resolveScript).toContain("let baselineRevision = pr.base.sha");
+    expect(resolveScript).toContain("const headRevision = pr.head.sha;");
+    expect(resolveScript).toContain('let mergeBaseRevision = "";');
+    expect(resolveScript).toContain("github.rest.git.getRef");
+    expect(resolveScript).toContain('ref: "heads/main"');
+    expect(resolveScript).toContain("baselineRevision = mainRef.object.sha");
+    expect(resolveScript).toContain('pr.base.ref !== "main"');
+    expect(resolveScript).toContain("Mantis proves landing on main");
+    expect(resolveScript).toContain('"GET /repos/{owner}/{repo}/compare/{basehead}"');
+    expect(resolveScript).toContain("basehead: `${baselineRevision}...${headRevision}`");
+    expect(resolveScript).toContain("comparison.data.merge_base_commit.sha");
+    expect(resolveScript).toContain("mergeBaseRevision = comparison.data.merge_base_commit.sha");
+    expect(resolveScript.match(/github\.rest\.pulls\.get/gu)).toHaveLength(1);
+    expect(resolveScript).not.toContain("merge_commit_sha");
+    expect(resolveScript).not.toContain("prComparison");
+    expect(resolveScript).toContain('setOutput("baseline_ref", baselineRevision)');
+    expect(resolveScript).toContain('setOutput("head_revision", headRevision)');
+    expect(resolveScript).toContain('setOutput("merge_base_revision", mergeBaseRevision)');
+    expect(resolveScript).toContain('"pr_context"');
+    expect(resolveScript).toContain("pr.title.slice(0, 500)");
+    expect(resolveScript).toContain('(pr.body ?? "").slice(0, 12000)');
     for (const job of Object.values(workflow.jobs ?? {})) {
       for (const step of job.steps ?? []) {
         expect(step.run ?? "").not.toContain("${{ needs.resolve_request.outputs.pr_context }}");
       }
     }
-    expect(workflowText).not.toContain("body.match");
-    expect(workflowText).not.toContain("baselineMatch");
-    expect(workflowText).not.toContain("candidateMatch");
-    expect(workflowText).not.toContain("leaseMatch");
-    expect(workflowText).not.toContain("fork-ok");
-    expect(workflowText).toContain("allow_fork_candidate");
-    expect(workflowText).toContain("Fork PR heads require explicit allow_fork_candidate approval");
+    expect(resolveScript).not.toContain("body.match");
+    expect(resolveScript).not.toContain("baselineMatch");
+    expect(resolveScript).not.toContain("candidateMatch");
+    expect(resolveScript).not.toContain("leaseMatch");
+    expect(resolveScript).not.toContain("fork-ok");
+    expect(resolveScript).toContain("allow_fork_candidate");
+    expect(resolveScript).toContain("Fork PR heads require explicit allow_fork_candidate approval");
   });
 
-  it("trusts the open PR head and marks fork heads for sandboxed handling", () => {
+  it("requires a main-targeting PR and pins fork approval to the exact head", () => {
     const workflow = parse(readFileSync(WORKFLOW, "utf8")) as Workflow;
     const workflowText = readFileSync(WORKFLOW, "utf8");
+    const resolveScript = String(
+      jobStep(WORKFLOW, "resolve_request", "Resolve refs and target PR").with?.script ?? "",
+    );
     expect(workflow.jobs?.run_telegram_desktop_proof?.needs).toBe("resolve_request");
-    expect(workflowText).toContain('"GET /repos/{owner}/{repo}/compare/{basehead}"');
-    expect(workflowText).toContain('baselineOnMain.data.status !== "ahead"');
-    expect(workflowText).toContain('baselineOnMain.data.status !== "identical"');
-    expect(workflowText).toContain('pr.state !== "open"');
-    expect(workflowText).toContain("Candidate PR source repository is unavailable.");
-    expect(workflowText).toContain("pr.head.repo.full_name !== `${owner}/${repo}`");
+    expect(resolveScript).toContain("const headRevision = pr.head.sha;");
+    expect(resolveScript).toContain('pr.state !== "open"');
+    expect(resolveScript).toContain("PR source repository is unavailable.");
+    expect(resolveScript).toContain('pr.base.ref !== "main"');
+    expect(resolveScript).toContain("Main tip SHA");
+    expect(resolveScript).toContain("Merge base SHA");
+    expect(resolveScript).toContain('"GET /repos/{owner}/{repo}/compare/{basehead}"');
+    expect(resolveScript).not.toContain("pr.mergeable");
+    expect(resolveScript).not.toContain("github.rest.git.getCommit");
+    expect(resolveScript).not.toContain("baselineOnMain");
+    expect(resolveScript).toContain("pr.head.repo.full_name !== `${owner}/${repo}`");
+    expect(resolveScript).toContain("inputs.approved_head_sha !== headRevision");
+    expect(resolveScript).not.toContain("inputs.approved_head_sha !== candidateRevision");
+    expect(workflowText).not.toContain('origin "pull/${MANTIS_PR_NUMBER}/head"');
 
     const agent = workflowStep("Run Codex Mantis Telegram agent");
     expect(agent.env?.MANTIS_CANDIDATE_TRUST).toBeUndefined();
@@ -1141,6 +1224,7 @@ describe("Mantis Telegram Desktop proof workflow", () => {
   it("does not pass the full workflow environment into the local Telegram SUT", () => {
     const sutScript = readFileSync(MANTIS_SUT_SCRIPT, "utf8");
     const laneScript = readFileSync(MANTIS_LANE_SCRIPT, "utf8");
+    const mockServer = readFileSync(MOCK_OPENAI_SERVER, "utf8");
     const prompt = readFileSync(PROMPT, "utf8");
     const workflow = readFileSync(WORKFLOW, "utf8");
     const wrapper = readFileSync(SUT_CONTAINER_WRAPPER, "utf8");
@@ -1212,10 +1296,7 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(workflow).toContain(
       'sudo install -m 0444 "$toolchain_build/scripts/e2e/mock-openai-server.mjs"',
     );
-    expect(wrapper).toContain("node /opt/mantis/mock-openai-server.mjs");
-    expect(wrapper).toContain(
-      '--mount "type=bind,src=$mock_server_script,dst=/opt/mantis/mock-openai-server.mjs,readonly"',
-    );
+    expect(wrapper).not.toContain('node /opt/mantis/mock-openai-server.mjs >"$MOCK_LOG"');
     expect(wrapper).not.toContain("node scripts/e2e/mock-openai-server.mjs");
     expect(workflow).toContain('sudo usermod -aG mantis-proof "$recorder_user"');
     expect(workflow).toContain(
@@ -1268,6 +1349,25 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(wrapper).toContain(
       "--env TELEGRAM_PROXY_RECORD_FILE=/opt/mantis/proxy-control/requests.ndjson",
     );
+    const mockContainerSpec = wrapper.slice(
+      wrapper.indexOf('"$docker_bin" run --detach --name "$mock_container_name"'),
+      wrapper.indexOf('wait_for_mock_openai "$mock_container_name"'),
+    );
+    expect(mockContainerSpec).toContain('--network "$network_name"');
+    expect(mockContainerSpec).toContain("--network-alias mock-openai");
+    expect(mockContainerSpec).not.toContain("$egress_network_name");
+    expect(mockContainerSpec).toContain(
+      '--mount "type=bind,src=$mock_server_script,dst=/opt/mantis/mock-openai-server.mjs,readonly"',
+    );
+    expect(mockContainerSpec).toContain(
+      '--mount "type=bind,src=$response_control_dir,dst=/opt/mantis/mock-control"',
+    );
+    expect(wrapper).toContain("--env MOCK_BIND_HOST=0.0.0.0");
+    expect(mockContainerSpec).toContain('--user "$(id -u mantis-sut):$(id -g mantis-sut)"');
+    expect(mockServer).toContain('const bindHost = process.env.MOCK_BIND_HOST ?? "127.0.0.1"');
+    expect(mockServer).toContain("server.listen(port, bindHost");
+    expect(wrapper).toContain('wait_for_mock_openai "$mock_container_name" "$mock_log"');
+    expect(wrapper).toContain("mock OpenAI container exited before readiness");
     // Candidate code shares the mantis-sut UID with the proxy record sink, so
     // the SUT container must shadow proxy-control; otherwise the lane under
     // test could rewrite its own trusted Bot API evidence before publication.
@@ -1277,8 +1377,16 @@ describe("Mantis Telegram Desktop proof workflow", () => {
     expect(wrapper.indexOf(proxyControlShadow)).toBeGreaterThan(
       wrapper.indexOf('--mount "type=bind,src=$safe_runtime,dst=$runtime_source"'),
     );
+    const mockControlShadow =
+      '--mount "type=tmpfs,dst=$runtime_source/mock-control,tmpfs-size=65536,tmpfs-mode=0000"';
+    expect(wrapper).toContain(mockControlShadow);
+    expect(wrapper.indexOf(mockControlShadow)).toBeGreaterThan(
+      wrapper.indexOf('--mount "type=bind,src=$safe_runtime,dst=$runtime_source"'),
+    );
     expect(wrapper).toContain('export TELEGRAM_BOT_TOKEN="$telegram_alias_token"');
     expect(wrapper).not.toContain('export TELEGRAM_BOT_TOKEN="$telegram_bot_token"');
+    expect(wrapper.match(/remove_container_or_fail "\$mock_container_name"/gu)).toHaveLength(2);
+    expect(wrapper).toContain('remove_container_or_fail "${1}-mock-openai"');
     expect(wrapper).toContain('remove_container_or_fail "${1}-telegram-proxy"');
     expect(workflow).toContain(
       "/usr/local/lib/mantis-toolchain/scripts/e2e/telegram-bot-api-proxy.mjs",
@@ -1322,17 +1430,21 @@ describe("Mantis Telegram Desktop proof workflow", () => {
       'const proxyControlDir = path.join(config.tempRoot, "proxy-control")',
     );
     expect(sutScript).toContain(
-      'const requestLog = path.join(config.tempRoot, "mock-openai-requests.ndjson")',
+      'const requestLog = path.join(mockResponseControlDir, "mock-openai-requests.ndjson")',
     );
-    expect(wrapper).toContain(
-      'export MOCK_RESPONSE_CONTROL="$runtime_source/mock-control/response.json"',
+    expect(sutScript).toContain(
+      'const mockLog = path.join(mockResponseControlDir, "mock-openai.log")',
     );
     const forwardedEnv = wrapper.slice(
       wrapper.indexOf("forwarded_env=("),
       wrapper.indexOf("docker_env=()"),
     );
-    expect(forwardedEnv).toContain("MOCK_RESPONSE_CONTROL");
+    expect(forwardedEnv).not.toContain("MOCK_RESPONSE_CONTROL");
+    expect(forwardedEnv).not.toContain("MOCK_REQUEST_LOG");
+    expect(forwardedEnv).not.toContain("MOCK_LOG");
+    expect(forwardedEnv).not.toContain("MOCK_PORT");
     expect(wrapper).toContain("refusing to destroy a running SUT container");
+    expect(wrapper).toContain("refusing to destroy a running mock OpenAI container");
     expect(wrapper).toContain('destroy_bounded_filesystem "$runtime_root"');
     expect(wrapper).toContain('create_runtime_claim "$container_name" "$runtime_source"');
     expect(wrapper).toContain('cancel_runtime_claim "$1" "$runtime_source"');
