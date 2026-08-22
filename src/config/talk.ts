@@ -1,10 +1,13 @@
 // Normalizes talk-mode config for voice and channel interactions.
+import { findNormalizedProviderKey } from "@astroclaw/model-catalog-core/provider-id";
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeFastMode,
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
-import { normalizeThinkLevel } from "../auto-reply/thinking.js";
-import { isRecord } from "../utils.js";
+import { normalizeThinkLevel } from "../auto-reply/thinking.shared.js";
+import { isBlockedObjectKey } from "../infra/prototype-keys.js";
+import type { OpenClawConfig } from "./types.astroclaw.js";
 import type {
   ResolvedTalkConfig,
   TalkConfig,
@@ -12,7 +15,6 @@ import type {
   TalkProviderConfig,
   TalkRealtimeConfig,
 } from "./types.gateway.js";
-import type { OpenClawConfig } from "./types.astroclaw.js";
 import { coerceSecretRef } from "./types.secrets.js";
 
 function normalizeTalkSecretInput(value: unknown): TalkProviderConfig["apiKey"] | undefined {
@@ -71,7 +73,7 @@ function normalizeTalkProviderConfig(value: unknown): TalkProviderConfig | undef
     provider[key] = raw;
   }
 
-  return Object.keys(provider).length > 0 ? provider : undefined;
+  return provider;
 }
 
 function normalizeTalkProviders(value: unknown): Record<string, TalkProviderConfig> | undefined {
@@ -171,16 +173,28 @@ function normalizeTalkRealtimeConfig(value: unknown): TalkRealtimeConfig | undef
 }
 
 function activeProviderFromTalk(talk: TalkConfig): string | undefined {
-  const provider = normalizeOptionalString(talk.provider);
-  const providers = talk.providers;
-  if (provider) {
-    if (providers && !Object.hasOwn(providers, provider)) {
-      return undefined;
-    }
-    return provider;
+  const providerIds = Object.keys(talk.providers ?? {});
+  const provider = normalizeOptionalString(
+    talk.provider ?? (providerIds.length === 1 ? providerIds[0] : undefined),
+  );
+  if (!provider || isBlockedObjectKey(provider.toLowerCase())) {
+    return undefined;
   }
-  const providerIds = providers ? Object.keys(providers) : [];
-  return providerIds.length === 1 ? providerIds[0] : undefined;
+  return talk.providers ? findNormalizedProviderKey(talk.providers, provider) : provider;
+}
+
+/** Resolve the explicitly selected or sole authored Talk speech provider. */
+export function resolveConfiguredTalkSpeechProviderId(
+  config: Pick<OpenClawConfig, "talk">,
+): string | undefined {
+  return config.talk ? activeProviderFromTalk(config.talk) : undefined;
+}
+
+/** Resolve the explicitly selected or sole authored Talk realtime provider. */
+export function resolveConfiguredTalkRealtimeProviderId(
+  config: Pick<OpenClawConfig, "talk">,
+): string | undefined {
+  return config.talk?.realtime ? activeProviderFromTalk(config.talk.realtime) : undefined;
 }
 
 /**
@@ -261,17 +275,16 @@ export function normalizeTalkConfig(config: OpenClawConfig): OpenClawConfig {
 export function resolveActiveTalkProviderConfig(
   talk: TalkConfig | undefined,
 ): ResolvedTalkConfig | undefined {
+  const selectedProvider = resolveConfiguredTalkSpeechProviderId({ talk });
+  if (!selectedProvider || !talk) {
+    return undefined;
+  }
   const normalizedTalk = normalizeTalkSection(talk);
-  if (!normalizedTalk) {
-    return undefined;
-  }
-  const provider = activeProviderFromTalk(normalizedTalk);
-  if (!provider) {
-    return undefined;
-  }
+  const provider =
+    findNormalizedProviderKey(normalizedTalk?.providers, selectedProvider) ?? selectedProvider;
   return {
     provider,
-    config: normalizedTalk.providers?.[provider] ?? {},
+    config: normalizedTalk?.providers?.[provider] ?? {},
   };
 }
 
