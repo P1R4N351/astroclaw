@@ -3,16 +3,16 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
-import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
-import { parseSqliteSessionFileMarker } from "astroclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
+import { parseSqliteSessionFileMarker } from "openclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyCliRuntimeRecallTimeoutDefault } from "./config.js";
 import plugin, { testing } from "./index.js";
@@ -68,14 +68,14 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/memory-host-search", () => ({
+vi.mock("openclaw/plugin-sdk/memory-host-search", () => ({
   closeActiveMemorySearchManager: hoisted.closeActiveMemorySearchManager,
   getActiveMemorySearchManager: hoisted.getActiveMemorySearchManager,
 }));
 
-vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/memory-host-core")>(
-    "astroclaw/plugin-sdk/memory-host-core",
+vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/memory-host-core")>(
+    "openclaw/plugin-sdk/memory-host-core",
   );
   return {
     ...actual,
@@ -89,9 +89,9 @@ vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
-    "astroclaw/plugin-sdk/session-store-runtime",
+vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
+    "openclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -101,10 +101,10 @@ vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async () => {
+vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
-  >("astroclaw/plugin-sdk/session-transcript-runtime");
+    typeof import("openclaw/plugin-sdk/session-transcript-runtime")
+  >("openclaw/plugin-sdk/session-transcript-runtime");
   return {
     ...actual,
     readSessionTranscriptRawDelta: async (
@@ -2111,7 +2111,11 @@ describe("active-memory plugin", () => {
             score: 1,
             snippet: "Prefer aisle seats.",
             source: "memory" as const,
-            originClass: "agent",
+            provenance: {
+              originClass: "agent" as const,
+              sessionKind: "interactive" as const,
+              observedAt: 1,
+            },
             triggers: "booking a flight",
           },
         ]),
