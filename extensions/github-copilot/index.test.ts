@@ -7,17 +7,17 @@ import {
   clearRuntimeAuthProfileStoreSnapshots,
   ensureAuthProfileStore,
   saveAuthProfileStore,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import { MAX_DATE_TIMESTAMP_MS, MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
+import { MAX_DATE_TIMESTAMP_MS, MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import type {
   OpenClawConfig,
   OpenClawPluginApi,
   ProviderAuthResult,
   ProviderCatalogResult,
   UnifiedModelCatalogEntry,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
-import type { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import type { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { runGitHubCopilotDeviceFlow } from "./login.js";
@@ -36,9 +36,9 @@ function requireAuthMethod<T>(methods: readonly T[], index: number): T {
   return expectDefined(methods[index], `GitHub Copilot auth method ${index}`);
 }
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>(
-    "astroclaw/plugin-sdk/ssrf-runtime",
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/ssrf-runtime")>(
+    "openclaw/plugin-sdk/ssrf-runtime",
   );
   return {
     ...actual,
@@ -413,6 +413,34 @@ describe("github-copilot plugin", () => {
 
     expect(result).toBeNull();
     expect(mocks.resolveCopilotRuntimeAuth).not.toHaveBeenCalled();
+  });
+
+  it("does not exchange auth or discover models for an unavailable direct SecretRef", async () => {
+    const agentDir = await createAgentDir();
+    const provider = registerProviderWithPluginConfig({});
+
+    await expect(
+      provider.catalog.run({
+        config: {
+          models: {
+            providers: {
+              "github-copilot": {
+                apiKey: {
+                  source: "env",
+                  provider: "default",
+                  id: "OPENCLAW_MISSING_COPILOT_CATALOG_TOKEN",
+                },
+              },
+            },
+          },
+        },
+        agentDir,
+        env: { COPILOT_GITHUB_TOKEN: "ambient-token" },
+      }),
+    ).rejects.toThrow("models.providers.github-copilot.apiKey");
+
+    expect(mocks.resolveCopilotRuntimeAuth).not.toHaveBeenCalled();
+    expect(mocks.fetchWithSsrFGuard).not.toHaveBeenCalled();
   });
 
   it("exposes xhigh thinking for catalog-supported Copilot reasoning efforts", () => {
