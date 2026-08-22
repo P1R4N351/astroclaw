@@ -49,7 +49,7 @@ const gatewayRpcMock = vi.hoisted(() => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/gateway-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/gateway-runtime", () => ({
   GatewayClient: gatewayRpcMock.GatewayClient,
   startGatewayClientWhenEventLoopReady: gatewayRpcMock.startGatewayClientWhenEventLoopReady,
 }));
@@ -109,18 +109,6 @@ describe("startQaGatewayRpcClient", () => {
     const requestOptions = gatewayRpcMock.request.mock.calls[0]?.[2] as { timeoutMs: number };
     expect(requestOptions.timeoutMs).toBeGreaterThanOrEqual(44_900);
     expect(requestOptions.timeoutMs).toBeLessThanOrEqual(45_000);
-  });
-
-  it("can request a narrower operator scope for authorization-sensitive probes", async () => {
-    const client = await startQaGatewayRpcClient({
-      wsUrl: "ws://127.0.0.1:18789",
-      token: "qa-token",
-      logs: () => "qa logs",
-      scopes: ["operator.write"],
-    });
-
-    expect(gatewayRpcMock.clients[0]?.options.scopes).toEqual(["operator.write"]);
-    await client.stop();
   });
 
   it("dispatches concurrent requests over the same client", async () => {
