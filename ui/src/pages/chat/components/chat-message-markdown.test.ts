@@ -2,8 +2,9 @@
 // Contract for the full-message fetch flag: the Gateway marks every display-
 // capped projection (user rows included), but the expander that consumes this
 // flag renders loaded content for assistant rows alone.
-import { describe, expect, it } from "vitest";
-import { resolveMessageActionDetails } from "./chat-message-markdown.ts";
+import { render } from "lit";
+import { describe, expect, it, vi } from "vitest";
+import { renderUserMessageMarkdown, resolveMessageActionDetails } from "./chat-message-markdown.ts";
 
 const cappedMeta = { id: "msg-1", truncated: true, reason: "display-cap" };
 
@@ -49,5 +50,77 @@ describe("resolveMessageActionDetails full-message fetch flag", () => {
       senderLabel: "assistant",
     });
     expect(details?.shouldFetchFullMessage).toBe(false);
+  });
+
+  it("projects an oversized assistant marker to a notice without disabling recovery", () => {
+    const message = {
+      role: "assistant",
+      content: "[chat.history omitted: message too large]",
+      __openclaw: { id: "msg-oversized", truncated: true, reason: "oversized" },
+    };
+    const details = resolveMessageActionDetails({
+      message,
+      messageId: "msg-oversized",
+      canFetchFullMessage: true,
+      onReply: () => {},
+      senderLabel: "assistant",
+    });
+
+    expect(details?.shouldFetchFullMessage).toBe(true);
+    expect(details?.markdown).toBe("This message is too large to display here.");
+    expect(details?.replyTarget?.text).toBe("This message is too large to display here.");
+
+    const loaded = resolveMessageActionDetails({
+      message,
+      messageId: "msg-oversized",
+      canFetchFullMessage: true,
+      getAssistantMessageExpansion: () => ({
+        status: "loaded",
+        markdown: "Recovered full assistant content.",
+        revision: 1,
+      }),
+      onReply: () => {},
+      senderLabel: "assistant",
+    });
+
+    expect(loaded?.shouldFetchFullMessage).toBe(true);
+    expect(loaded?.markdown).toBe("Recovered full assistant content.");
+    expect(loaded?.replyTarget?.text).toBe("Recovered full assistant content.");
+  });
+});
+
+describe("user message disclosure", () => {
+  it.each([
+    {
+      name: "seven short lines",
+      markdown: [
+        "please re-review these:",
+        "#127818",
+        "#127826",
+        "#127844",
+        "#127881",
+        "",
+        "rerun the same session we had for these",
+      ].join("\n"),
+    },
+    { name: "exactly 1200 UTF-16 code units", markdown: "a".repeat(1_200) },
+    { name: "forty short lines", markdown: Array(40).fill("a").join("\n") },
+  ])("keeps $name fully visible", ({ markdown }) => {
+    const container = document.createElement("div");
+
+    render(
+      renderUserMessageMarkdown(
+        markdown,
+        "message",
+        { isStreaming: false, onToggleUserMessageExpanded: vi.fn() },
+        {},
+      ),
+      container,
+    );
+
+    expect(container.querySelector(".chat-message-disclosure")).toBeNull();
+    for (const line of markdown.split("\n").filter(Boolean)) {
+      expect(container.textContent).toContain(line);
+    }
   });
 });
