@@ -1,12 +1,12 @@
 import os from "node:os";
 import path from "node:path";
-import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { captureEnv } from "astroclaw/plugin-sdk/test-env";
+import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { captureEnv } from "openclaw/plugin-sdk/test-env";
 // Telegram tests cover action runtime plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   handleTelegramAction as handleTelegramActionRuntime,
@@ -868,6 +868,7 @@ describe("handleTelegramAction", () => {
       telegramConfig(),
       {
         gatewayClientScopes: ["operator.write"],
+        deliveryRetryOwner: "caller",
         sessionKey: "agent:main:telegram:direct:123",
         reply: {
           replyToId: "456",
@@ -888,6 +889,9 @@ describe("handleTelegramAction", () => {
       to: "@testchannel",
       durability: "required",
       gatewayClientScopes: ["operator.write"],
+      // The gateway-owned plugin send must inherit the caller's retry ownership,
+      // or the failed row stays replay-eligible and duplicates (#124279).
+      deliveryRetryOwner: "caller",
       session: { key: "agent:main:telegram:direct:123", agentId: "main" },
       reply: { replyToId: "456", source: "implicit", mode: "first" },
       payloads: [{ text: "Hello, Telegram!" }],
@@ -912,7 +916,7 @@ describe("handleTelegramAction", () => {
       createTestRegistry,
       readQueuedDeliveryEntriesForTest,
       setActivePluginRegistry,
-    } = await import("astroclaw/plugin-sdk/plugin-test-runtime");
+    } = await import("openclaw/plugin-sdk/plugin-test-runtime");
     const readDurableQueueEntries = () => readQueuedDeliveryEntriesForTest(stateDir);
     const sendText = vi
       .fn()
