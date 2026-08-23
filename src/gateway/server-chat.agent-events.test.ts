@@ -2,7 +2,7 @@
 // session lifecycle persistence, and subscriber registry behavior.
 
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import {
@@ -2313,6 +2313,34 @@ describe("agent event handler", () => {
     expectRecordFields(requireRecord(payload.session, "sessions changed session"), {
       hasActiveRun: true,
       activeRunIds: null,
+    });
+  });
+
+  it("persists the linked client run without replacing provider lifecycle ownership", async () => {
+    const { chatRunState, handler, sessionEventSubscribers } = createHarness();
+    sessionEventSubscribers.subscribe("conn-session");
+    registerChatRun(chatRunState, "provider-run", "session-linked", "client-run");
+
+    emitAgentEvent(
+      handler,
+      "provider-run",
+      "lifecycle",
+      { phase: "end", startedAt: 1_000, endedAt: 2_000 },
+      { ts: 2_000 },
+    );
+
+    await waitForFast(() => {
+      expect(persistGatewaySessionLifecycleEventMock).toHaveBeenCalledTimes(1);
+    });
+    const params = requireRecord(
+      requireMockArg(persistGatewaySessionLifecycleEventMock, 0, 0, "persist lifecycle params"),
+      "persist lifecycle params",
+    );
+    expect(params.sessionKey).toBe("session-linked");
+    expect(params.event).toMatchObject({
+      runId: "provider-run",
+      clientRunId: "client-run",
+      data: { phase: "end" },
     });
   });
 
