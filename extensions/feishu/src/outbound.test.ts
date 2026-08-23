@@ -2,14 +2,14 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-outbound";
+import { createChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
 import {
   adaptMessagePresentationForChannel,
   renderMessagePresentationFallbackText,
   type MessagePresentation,
   type MessagePresentationAction,
-} from "astroclaw/plugin-sdk/interactive-runtime";
+} from "openclaw/plugin-sdk/interactive-runtime";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "../runtime-api.js";
 
@@ -44,7 +44,7 @@ const resolvePinnedHostnameWithPolicyMock = vi.hoisted(() =>
   }),
 );
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
@@ -214,7 +214,7 @@ afterAll(() => {
   vi.doUnmock("./client.js");
   vi.doUnmock("./drive.js");
   vi.doUnmock("./comment-reaction.js");
-  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
@@ -2280,6 +2280,7 @@ describe("feishuOutbound comment-thread routing", () => {
   });
 
   it("preserves comment-thread routing when deliverCommentThreadText falls back to add_comment", async () => {
+    const onDeliveryResult = vi.fn();
     deliverCommentThreadTextMock.mockResolvedValueOnce({
       delivery_mode: "add_comment",
       comment_id: "comment_msg",
@@ -2291,13 +2292,15 @@ describe("feishuOutbound comment-thread routing", () => {
       to: "comment:docx:doxcn123:7623358762119646411",
       text: "whole-comment follow-up",
       accountId: "main",
+      onDeliveryResult,
     });
 
     expect(commentThreadParams()?.file_token).toBe("doxcn123");
     expect(commentThreadParams()?.file_type).toBe("docx");
     expect(commentThreadParams()?.comment_id).toBe("7623358762119646411");
     expect(commentThreadParams()?.content).toBe("whole-comment follow-up");
-    expectFeishuResult(result, "reply_from_add_comment");
+    expectFeishuResult(result, "comment_msg");
+    expect(onDeliveryResult.mock.calls[0]?.[0]?.messageId).toBe("comment_msg");
   });
 
   it("does not wait for ambient comment typing cleanup before sending comment-thread replies", async () => {
