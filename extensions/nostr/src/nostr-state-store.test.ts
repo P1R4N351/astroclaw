@@ -2,11 +2,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { describe, expect, it } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 import {
@@ -49,6 +49,9 @@ async function withTempStateDir<T>(fn: (dir: string) => Promise<T>) {
     } else {
       process.env.OPENCLAW_STATE_DIR = previous;
     }
+    // The keyed store keeps the state database open under the temporary dir, so Windows
+    // fails the removal with EBUSY unless the cached handle is released first.
+    resetPluginStateStoreForTests();
     await fs.rm(dir, { recursive: true, force: true });
   }
 }
