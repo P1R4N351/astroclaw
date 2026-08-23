@@ -4,22 +4,23 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { embeddedAgentLog, type AgentMessage } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { embeddedAgentLog, type AgentMessage } from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-import { readSessionTranscriptEvents } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { readSessionTranscriptEvents } from "openclaw/plugin-sdk/session-transcript-runtime";
 import {
   castAgentMessage,
   makeAgentAssistantMessage,
   makeAgentUserMessage,
-} from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CodexThread } from "./protocol.js";
 import { readCodexMirroredSessionHistoryMessages } from "./session-history.js";
+import { attachCodexMirrorRunId } from "./transcript-mirror-attestation.js";
 import {
   buildCodexUserPromptMessage,
   codexTranscriptMirrorRuntime,
@@ -34,9 +35,9 @@ const mirrorTranscriptBestEffort = codexTranscriptMirrorRuntime.mirrorBestEffort
 
 const publishSessionTranscriptUpdateByIdentityMock = vi.hoisted(() => vi.fn());
 
-vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-runtime")>();
   return {
     ...actual,
     publishSessionTranscriptUpdateByIdentity: publishSessionTranscriptUpdateByIdentityMock,
@@ -793,6 +794,17 @@ describe("projectBoundedCodexThreadHistory", () => {
 });
 
 describe("mirrorCodexAppServerTranscript", () => {
+  it("clears terminal ownership when a mirrored message becomes non-terminal", () => {
+    const message = makeAgentAssistantMessage({
+      content: [{ type: "text", text: "intermediate narration" }],
+      timestamp: Date.now(),
+    });
+    const terminal = attachCodexMirrorRunId(message, "run-1", true);
+    const intermediate = attachCodexMirrorRunId(terminal, "run-1");
+
+    expect(intermediate).toMatchObject({ __openclaw: { runId: "run-1" } });
+    expect(intermediate).not.toHaveProperty("__openclaw.runTerminal");
+  });
   it("hides current memory-maintenance messages without hiding replayed turns", async () => {
     initializeGlobalHookRunner(
       createMockPluginRegistry([
@@ -1061,6 +1073,8 @@ describe("mirrorCodexAppServerTranscript", () => {
         ),
       ],
       idempotencyScope: "codex-app-server:thread-1",
+      runId: "openclaw-run-1",
+      runMirrorIdentityPrefix: "turn-1:",
       terminalAssistantOwner: {
         mirrorIdentity: "turn-1:assistant",
         runId: "openclaw-run-1",
@@ -1072,6 +1086,22 @@ describe("mirrorCodexAppServerTranscript", () => {
     );
     expect(updates.map((update) => update.update?.messageSeq)).toEqual([1, 2]);
     expect(updates.map((update) => update.update?.runId)).toEqual([undefined, "openclaw-run-1"]);
+    expect(
+      updates.map(
+        (update) =>
+          (update.update?.message as { __openclaw?: { runId?: string } } | undefined)?.[
+            "__openclaw"
+          ]?.runId,
+      ),
+    ).toEqual(["openclaw-run-1", "openclaw-run-1"]);
+    expect(
+      updates.map(
+        (update) =>
+          (update.update?.message as { __openclaw?: { runTerminal?: boolean } } | undefined)?.[
+            "__openclaw"
+          ]?.runTerminal,
+      ),
+    ).toEqual([undefined, true]);
     expect(
       updates.map((update) => {
         const message = update.update?.message as { role?: string } | undefined;
@@ -1483,7 +1513,7 @@ describe("mirrorCodexAppServerTranscript", () => {
       turnId: "turn-1",
     });
 
-    expect(mirrorOutcome.assistantTranscriptOwned).toBe(true);
+    expect(mirrorOutcome.assistantTranscriptOwned).toBe(false);
     expect(mirrorOutcome.mirroredMessages).toEqual([]);
   });
 
