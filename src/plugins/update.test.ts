@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { bundledPluginRootAt } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRootAt } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -1571,7 +1571,7 @@ describe("updateNpmInstalledPlugins", () => {
           status: "updated",
           currentVersion: "2026.5.28-beta.4",
           nextVersion: "2026.5.28-beta.3",
-          message: "Updated msteams: 2026.5.28-beta.4 -> 2026.5.28-beta.3.",
+          message: "Downgraded msteams: 2026.5.28-beta.4 -> 2026.5.28-beta.3.",
         },
       ]);
     }
@@ -2757,6 +2757,12 @@ describe("updateNpmInstalledPlugins", () => {
       targetVersion: "1.2.3",
       status: "unchanged",
       message: "demo is up to date (1.2.3).",
+    },
+    {
+      name: "reports exact npm dry-runs that move backwards as downgrades",
+      targetVersion: "1.2.2",
+      status: "updated",
+      message: "Would downgrade demo: 1.2.3 -> 1.2.2.",
     },
   ] as const)("$name", async ({ targetVersion, status, message }) => {
     const installPath = createInstalledPackageDir({
