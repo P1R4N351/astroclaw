@@ -1,13 +1,14 @@
 // Ollama plugin entrypoint registers its OpenClaw integration.
 import { collectConfiguredModelRefValues } from "@astroclaw/model-catalog-core/configured-model-refs";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import type { MediaUnderstandingProvider } from "openclaw/plugin-sdk/media-understanding";
+import { findNormalizedProviderKey } from "@astroclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import type { MediaUnderstandingProvider } from "astroclaw/plugin-sdk/media-understanding";
 import {
   adaptMemoryEmbeddingProviderAdapter,
   type MemoryEmbeddingProviderAdapter,
-} from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
-import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type OpenClawPluginApi,
@@ -21,20 +22,20 @@ import {
   type ProviderPlugin,
   type ProviderReplayPolicy,
   type ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import {
   buildApiKeyCredential,
   coerceSecretRef,
   isNonSecretApiKeyMarker,
-} from "openclaw/plugin-sdk/provider-auth";
-import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "openclaw/plugin-sdk/provider-model-shared";
-import { buildOpenAICompatibleReplayPolicy } from "openclaw/plugin-sdk/provider-model-shared";
-import { buildProviderToolCompatFamilyHooks } from "openclaw/plugin-sdk/provider-tools";
-import { resolveConfiguredSecretInputString } from "openclaw/plugin-sdk/secret-input-runtime";
+} from "astroclaw/plugin-sdk/provider-model-shared";
+import { buildOpenAICompatibleReplayPolicy } from "astroclaw/plugin-sdk/provider-model-shared";
+import { buildProviderToolCompatFamilyHooks } from "astroclaw/plugin-sdk/provider-tools";
+import { resolveConfiguredSecretInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
 import { resolveThinkingProfile as resolveOllamaThinkingProfile } from "./provider-policy-api.js";
 import {
   DEFAULT_OLLAMA_EMBEDDING_MODEL,
@@ -129,7 +130,7 @@ const lazyOllamaMediaUnderstandingProvider: MediaUnderstandingProvider = {
 
 async function checkWsl2CrashLoopRiskLazily(api: OpenClawPluginApi): Promise<void> {
   try {
-    const { isWSL2Sync } = await import("openclaw/plugin-sdk/runtime-env");
+    const { isWSL2Sync } = await import("astroclaw/plugin-sdk/runtime-env");
     if (!isWSL2Sync()) {
       return;
     }
@@ -806,42 +807,48 @@ async function augmentConfiguredOllamaCatalogModels(params: {
 }
 
 // Local and cloud own distinct auth/catalog policy but share native transport and replay rules.
-const OLLAMA_SHARED_PROVIDER_HOOKS = {
-  ...buildProviderToolCompatFamilyHooks("llamacpp-gbnf"),
-  createStreamFn: ({ config, model, provider }) => {
-    if (model.api !== "ollama") {
-      return undefined;
-    }
-    return createLazyConfiguredOllamaStreamFn({
-      model,
-      providerBaseUrl:
-        readProviderBaseUrl(
-          resolveConfiguredOllamaProviderConfig({ config, providerId: provider }),
-        ) ?? (provider === OLLAMA_CLOUD_PROVIDER_ID ? OLLAMA_CLOUD_BASE_URL : undefined),
-    });
-  },
-  buildReplayPolicy: ({ modelApi }) =>
-    modelApi === "ollama"
-      ? buildNativeOllamaReplayPolicy()
-      : buildOpenAICompatibleReplayPolicy(modelApi),
-  resolveReasoningOutputMode: () => "native",
-  resolveThinkingProfile: resolveOllamaThinkingProfile,
-  wrapStreamFn: createConfiguredOllamaCompatStreamWrapper,
-  matchesContextOverflowError: ({ errorMessage }) =>
-    matchesOllamaContextOverflowError(errorMessage),
-  classifyFailoverReason: ({ errorMessage }) => classifyOllamaFailoverReason(errorMessage),
-} satisfies Pick<
-  ProviderPlugin,
-  | "createStreamFn"
-  | "normalizeToolSchemas"
-  | "inspectToolSchemas"
-  | "buildReplayPolicy"
-  | "resolveReasoningOutputMode"
-  | "resolveThinkingProfile"
-  | "wrapStreamFn"
-  | "matchesContextOverflowError"
-  | "classifyFailoverReason"
->;
+const createOllamaSharedProviderHooks = (
+  acquireLocalService: OpenClawPluginApi["runtime"]["llm"]["acquireLocalService"],
+) =>
+  ({
+    ...buildProviderToolCompatFamilyHooks("llamacpp-gbnf"),
+    createStreamFn: ({ config, model, provider }) => {
+      if (model.api !== "ollama") {
+        return undefined;
+      }
+      const configuredProviderId =
+        findNormalizedProviderKey(config?.models?.providers, provider) ?? provider;
+      return createLazyConfiguredOllamaStreamFn({
+        model,
+        localService: { providerId: configuredProviderId, acquire: acquireLocalService },
+        providerBaseUrl:
+          readProviderBaseUrl(
+            resolveConfiguredOllamaProviderConfig({ config, providerId: configuredProviderId }),
+          ) ?? (provider === OLLAMA_CLOUD_PROVIDER_ID ? OLLAMA_CLOUD_BASE_URL : undefined),
+      });
+    },
+    buildReplayPolicy: ({ modelApi }) =>
+      modelApi === "ollama"
+        ? buildNativeOllamaReplayPolicy()
+        : buildOpenAICompatibleReplayPolicy(modelApi),
+    resolveReasoningOutputMode: () => "native",
+    resolveThinkingProfile: resolveOllamaThinkingProfile,
+    wrapStreamFn: createConfiguredOllamaCompatStreamWrapper,
+    matchesContextOverflowError: ({ errorMessage }) =>
+      matchesOllamaContextOverflowError(errorMessage),
+    classifyFailoverReason: ({ errorMessage }) => classifyOllamaFailoverReason(errorMessage),
+  }) satisfies Pick<
+    ProviderPlugin,
+    | "createStreamFn"
+    | "normalizeToolSchemas"
+    | "inspectToolSchemas"
+    | "buildReplayPolicy"
+    | "resolveReasoningOutputMode"
+    | "resolveThinkingProfile"
+    | "wrapStreamFn"
+    | "matchesContextOverflowError"
+    | "classifyFailoverReason"
+  >;
 
 export default definePluginEntry({
   id: "ollama",
@@ -849,6 +856,7 @@ export default definePluginEntry({
   description: "Bundled Ollama provider plugin",
   register(api: OpenClawPluginApi) {
     const startupPluginConfig = (api.pluginConfig ?? {}) as OllamaPluginConfig;
+    const providerHooks = createOllamaSharedProviderHooks(api.runtime.llm.acquireLocalService);
     if (api.registrationMode === "full") {
       void checkWsl2CrashLoopRiskLazily(api);
     }
@@ -926,7 +934,7 @@ export default definePluginEntry({
           provider: buildStaticOllamaCloudProvider(),
         }),
       },
-      ...OLLAMA_SHARED_PROVIDER_HOOKS,
+      ...providerHooks,
       resolveDynamicModel: ({ provider, modelId }) => {
         const cloudProvider = buildStaticOllamaCloudProvider();
         const model = cloudProvider.models?.find((entry) => entry.id === modelId);
@@ -1090,7 +1098,7 @@ export default definePluginEntry({
         const { ensureOllamaModelPulled } = await loadOllamaSetup();
         await ensureOllamaModelPulled({ config, model, prompter });
       },
-      ...OLLAMA_SHARED_PROVIDER_HOOKS,
+      ...providerHooks,
       augmentModelCatalog: async (ctx) =>
         await augmentConfiguredOllamaCatalogModels({
           config: ctx.config,
