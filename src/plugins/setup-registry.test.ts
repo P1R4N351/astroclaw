@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 // Verifies plugin setup registry discovery and lookup behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { withMockedWindowsPlatform } from "../test-utils/vitest-spies.js";
 import { cleanupTrackedTempDirs, makeTrackedTempDir } from "./test-helpers/fs-fixtures.js";
@@ -15,7 +15,8 @@ import {
 // falling back to jiti. These tests script plugin-loading behavior through the
 // source-transform mock, so force the fallback path and keep the fixture
 // transformer authoritative.
-vi.mock("./native-module-require.js", () => ({
+vi.mock("./native-module-require.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./native-module-require.js")>()),
   isJavaScriptModulePath: (_modulePath: string) => false,
   tryNativeRequireJavaScriptModule: (_modulePath: string) => ({ ok: false }),
 }));
