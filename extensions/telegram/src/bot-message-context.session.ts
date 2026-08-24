@@ -9,22 +9,22 @@ import {
   toLocationContext,
   type NormalizedLocation,
   type InboundEventKind,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { normalizeCommandBody } from "astroclaw/plugin-sdk/command-surface";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { normalizeCommandBody } from "openclaw/plugin-sdk/command-surface";
 import type {
   OpenClawConfig,
   TelegramDirectConfig,
   TelegramGroupConfig,
   TelegramTopicConfig,
-} from "astroclaw/plugin-sdk/config-contracts";
-import { resolveChannelContextVisibilityMode } from "astroclaw/plugin-sdk/context-visibility-runtime";
-import { timestampMsToIsoString } from "astroclaw/plugin-sdk/number-runtime";
-import { createChannelHistoryWindow, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
-import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { evaluateSupplementalContextVisibility } from "astroclaw/plugin-sdk/security-runtime";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/config-contracts";
+import { resolveChannelContextVisibilityMode } from "openclaw/plugin-sdk/context-visibility-runtime";
+import { timestampMsToIsoString } from "openclaw/plugin-sdk/number-runtime";
+import { createChannelHistoryWindow, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import { logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { evaluateSupplementalContextVisibility } from "openclaw/plugin-sdk/security-runtime";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import type { NormalizedAllowFrom } from "./bot-access.js";
 import { isSenderAllowed, normalizeAllowFrom } from "./bot-access.js";
 import type {
@@ -60,6 +60,7 @@ import {
   isTelegramChatWindowPromptContext,
   mergeTelegramGroupHistoryPromptContext,
   recordTelegramGroupHistoryEntry,
+  retainTelegramGroupHistoryPromptContext,
   selectTelegramGroupHistoryAfterLastSelf,
 } from "./group-history-window.js";
 import { TELEGRAM_REPLY_CHAIN_MAX_DEPTH, type TelegramReplyChainEntry } from "./message-cache.js";
@@ -572,8 +573,14 @@ export async function buildTelegramInboundContextPayload(params: {
     groupHistoryPromptEntries =
       inboundEventKind === "room_event" ? fullGroupHistoryEntries : watermarkedGroupHistoryEntries;
   }
+  const retainedVisiblePromptContext = hasGroupHistoryContext
+    ? retainTelegramGroupHistoryPromptContext({
+        promptContext: baseVisiblePromptContext,
+        entries: groupHistoryPromptEntries,
+      })
+    : baseVisiblePromptContext;
   const visiblePromptContext = mergeTelegramGroupHistoryPromptContext({
-    promptContext: baseVisiblePromptContext,
+    promptContext: retainedVisiblePromptContext,
     entries: groupHistoryPromptEntries,
   });
 
