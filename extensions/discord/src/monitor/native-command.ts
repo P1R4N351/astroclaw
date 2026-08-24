@@ -1,11 +1,9 @@
-// Discord plugin module implements native command behavior.
-import { ApplicationCommandOptionType } from "discord-api-types/v10";
-import { loadPreparedModelCatalog, resolveAgentDir } from "openclaw/plugin-sdk/agent-runtime";
-import { resolveNativeCommandSessionTargets } from "openclaw/plugin-sdk/command-auth-native";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { buildPairingReply } from "openclaw/plugin-sdk/conversation-runtime";
-import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
-import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
+import { loadPreparedModelCatalog, resolveAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveNativeCommandSessionTargets } from "astroclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { buildPairingReply } from "astroclaw/plugin-sdk/conversation-runtime";
+import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
+import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
 import {
   buildCommandTextFromArgs,
   findCommandByNativeName,
@@ -14,15 +12,17 @@ import {
   serializeCommandArgs,
   type ChatCommandDefinition,
   type NativeCommandSpec,
-} from "openclaw/plugin-sdk/native-command-registry";
+} from "astroclaw/plugin-sdk/native-command-registry";
 import type {
   PluginCommandCatalogDecision,
   PluginCommandNativeCandidate,
-} from "openclaw/plugin-sdk/plugin-command-runtime";
-import { resolveChunkMode, resolveTextChunkLimit } from "openclaw/plugin-sdk/reply-chunking";
-import { getRuntimeConfigSnapshot } from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { createSubsystemLogger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { resolveOpenProviderRuntimeGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";
+} from "astroclaw/plugin-sdk/plugin-command-runtime";
+import { resolveChunkMode, resolveTextChunkLimit } from "astroclaw/plugin-sdk/reply-chunking";
+import { getRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { createSubsystemLogger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { resolveOpenProviderRuntimeGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";
+// Discord plugin module implements native command behavior.
+import { ApplicationCommandOptionType } from "discord-api-types/v10";
 import {
   resolveDiscordAccountAllowFrom,
   resolveDiscordAccountDmPolicy,
@@ -84,7 +84,11 @@ import {
   truncateDiscordCommandDescription,
 } from "./native-command.options.js";
 import { nativeCommandRuntime } from "./native-command.runtime.js";
-import type { DiscordCommandArgs, DiscordConfig } from "./native-command.types.js";
+import type {
+  DiscordCommandArgs,
+  DiscordConfig,
+  DiscordDispatchReplyFromConfig,
+} from "./native-command.types.js";
 import { resolveDiscordNativeInteractionChannelContext } from "./native-interaction-channel-context.js";
 import { resolveDiscordSenderIdentity } from "./sender-identity.js";
 import type { ThreadBindingManager } from "./thread-bindings.js";
@@ -101,6 +105,7 @@ export function createDiscordNativeCommand(params: {
   sessionPrefix: string;
   ephemeralDefault: boolean;
   threadBindings: ThreadBindingManager;
+  dispatchReplyFromConfig?: DiscordDispatchReplyFromConfig;
 }): Command {
   const {
     command,
@@ -110,6 +115,7 @@ export function createDiscordNativeCommand(params: {
     sessionPrefix,
     ephemeralDefault,
     threadBindings,
+    dispatchReplyFromConfig,
   } = params;
   const fallbackCommandDefinition = createNativeCommandDefinition(command);
   const pluginCommandCandidate = "prepareDispatch" in command ? command : undefined;
@@ -203,6 +209,7 @@ export function createDiscordNativeCommand(params: {
         preferFollowUp: true,
         threadBindings,
         responseEphemeral: ephemeralDefault,
+        dispatchReplyFromConfig,
         pluginCommandDispatch: preparedPluginCommand ?? NON_PLUGIN_COMMAND_DISPATCH,
       });
     }
@@ -222,6 +229,7 @@ async function dispatchDiscordCommandInteraction(params: {
   threadBindings: ThreadBindingManager;
   responseEphemeral?: boolean;
   suppressReplies?: boolean;
+  dispatchReplyFromConfig?: DiscordDispatchReplyFromConfig;
   pluginCommandDispatch: PluginCommandCatalogDecision;
 }): Promise<DispatchDiscordCommandInteractionResult> {
   const {
@@ -237,6 +245,7 @@ async function dispatchDiscordCommandInteraction(params: {
     threadBindings,
     responseEphemeral,
     suppressReplies,
+    dispatchReplyFromConfig,
   } = params;
   const cfg = getRuntimeConfigSnapshot() ?? inputConfig;
   const commandName = command.nativeName ?? command.key;
@@ -530,6 +539,7 @@ async function dispatchDiscordCommandInteraction(params: {
         accountId,
         sessionPrefix,
         threadBindings,
+        dispatchReplyFromConfig,
       },
       safeInteractionCall: safeDiscordInteractionCall,
       dispatchCommandInteraction: dispatchDiscordCommandInteraction,
@@ -722,6 +732,7 @@ async function dispatchDiscordCommandInteraction(params: {
     preferFollowUp,
     responseEphemeral,
     suppressReplies,
+    dispatchReplyFromConfig,
     log,
     pluginCommandDispatch: params.pluginCommandDispatch,
   });
