@@ -1,7 +1,7 @@
 // Firecrawl plugin module implements firecrawl client behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { parseFiniteNumber } from "openclaw/plugin-sdk/number-runtime";
-import { readProviderJsonObjectResponse } from "openclaw/plugin-sdk/provider-http";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { parseFiniteNumber } from "astroclaw/plugin-sdk/number-runtime";
+import { readProviderJsonObjectResponse } from "astroclaw/plugin-sdk/provider-http";
 import {
   DEFAULT_CACHE_TTL_MINUTES,
   markdownToText,
@@ -12,21 +12,22 @@ import {
   withSelfHostedWebToolsEndpoint,
   withStrictWebToolsEndpoint,
   writeCache,
-} from "openclaw/plugin-sdk/provider-web-fetch";
-import { normalizeSecretInput } from "openclaw/plugin-sdk/secret-input";
+} from "astroclaw/plugin-sdk/provider-web-fetch";
+import { resolveSiteName } from "astroclaw/plugin-sdk/provider-web-search";
+import { normalizeSecretInput } from "astroclaw/plugin-sdk/secret-input";
 import {
   truncateSanitizedExternalContent,
   wrapExternalContent,
   wrapWebContent,
-} from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/security-runtime";
 import {
   SsrFBlockedError,
   isBlockedHostnameOrIp,
   isPrivateIpAddress,
   resolvePinnedHostnameWithPolicy,
   type LookupFn,
-} from "openclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 import {
   DEFAULT_FIRECRAWL_BASE_URL,
@@ -70,14 +71,6 @@ type FirecrawlSearchItem = {
   published?: string;
   siteName?: string;
 };
-
-async function readFirecrawlJsonResponse(
-  response: Response,
-  label: string,
-  opts?: { maxBytes?: number },
-): Promise<Record<string, unknown>> {
-  return await readProviderJsonObjectResponse(response, label, opts);
-}
 
 type FirecrawlSearchParams = {
   cfg?: OpenClawConfig;
@@ -274,15 +267,6 @@ async function postFirecrawlJson<T>(
   return result;
 }
 
-function resolveSiteName(urlRaw: string): string | undefined {
-  try {
-    const host = new URL(urlRaw).hostname.replace(/^www\./, "");
-    return host || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 function normalizeFirecrawlResultUrl(value: unknown): string | undefined {
   if (typeof value !== "string" || value.length > FIRECRAWL_RESULT_URL_MAX_CHARS) {
     return undefined;
@@ -388,7 +372,7 @@ function resolveSearchItems(payload: Record<string, unknown>): FirecrawlSearchIt
       description,
       content,
       published,
-      siteName: resolveSiteName(url),
+      siteName: resolveSiteName(url)?.replace(/^www\./, ""),
     });
   }
   return items;
@@ -534,7 +518,10 @@ export async function runFirecrawlSearch(
       ...(params.signal ? { signal: params.signal } : {}),
     },
     async (response) => {
-      const payloadValue = await readFirecrawlJsonResponse(response, "Firecrawl Search API error");
+      const payloadValue = await readProviderJsonObjectResponse(
+        response,
+        "Firecrawl Search API error",
+      );
       if (payloadValue.success === false) {
         const error =
           typeof payloadValue.error === "string"
@@ -697,16 +684,16 @@ export async function runFirecrawlScrape(
       },
     },
     async (response) => {
-      const payloadLocal = await readFirecrawlJsonResponse(response, "Firecrawl fetch failed", {
+      const data = await readProviderJsonObjectResponse(response, "Firecrawl fetch failed", {
         // Scrape can legitimately return page bodies before maxChars truncates parsed output.
         maxBytes: FIRECRAWL_SCRAPE_RESPONSE_MAX_BYTES,
       });
-      if (payloadLocal.success === false) {
+      if (data.success === false) {
         const detail =
-          typeof payloadLocal.error === "string"
-            ? payloadLocal.error
-            : typeof payloadLocal.message === "string"
-              ? payloadLocal.message
+          typeof data.error === "string"
+            ? data.error
+            : typeof data.message === "string"
+              ? data.message
               : response.statusText;
         throw new Error(
           `Firecrawl fetch failed (${response.status}): ${wrapWebContent(
@@ -715,7 +702,7 @@ export async function runFirecrawlScrape(
           )}`.trim(),
         );
       }
-      return payloadLocal;
+      return data;
     },
   );
   return parseFirecrawlScrapePayload({
@@ -730,7 +717,6 @@ export const testing = {
   assertFirecrawlScrapeTargetAllowed,
   parseFirecrawlScrapePayload,
   postFirecrawlJson,
-  readFirecrawlJsonResponse,
   resolveEndpoint,
   resolveSearchItems,
 };
