@@ -8,12 +8,9 @@ import {
   bundledPluginFile,
 } from "./bundled-plugin-paths.mjs";
 import { shouldBuildBundledCluster } from "./optional-bundled-clusters.mjs";
-import {
-  findPluginManifestPath,
-  pluginPackageMetadata,
-  PLUGIN_MANIFEST_FILENAME,
-  PLUGIN_MANIFEST_FILENAMES,
-} from "./plugin-manifest-filenames.mjs";
+import { collectRootPackageExcludedExtensionDirs } from "./root-package-bundled-plugin-excludes.mjs";
+
+export { collectRootPackageExcludedExtensionDirs };
 
 const TOP_LEVEL_PUBLIC_SURFACE_EXTENSIONS = new Set([".ts", ".js", ".mts", ".cts", ".mjs", ".cjs"]);
 /** Bundled plugin directories built with core but not packaged as standalone npm plugins. */
@@ -73,21 +70,19 @@ function readBundledPluginPackageJson(packageJsonPath, options = {}) {
   }
 }
 
-const BUNDLED_PLUGIN_PACKAGE_SCOPES = ["@astroclaw", "@openclaw"];
-
 function isManifestlessBundledRuntimeSupportPackage(params) {
-  if (pluginPackageMetadata(params.packageJson)?.release?.publishToNpm === true) {
+  if (params.packageJson?.openclaw?.release?.publishToNpm === true) {
     return false;
   }
   const packageName = typeof params.packageJson?.name === "string" ? params.packageJson.name : "";
-  if (!BUNDLED_PLUGIN_PACKAGE_SCOPES.some((scope) => packageName === `${scope}/${params.dirName}`)) {
+  if (packageName !== `@openclaw/${params.dirName}`) {
     return false;
   }
   return params.topLevelPublicSurfaceEntries.length > 0;
 }
 
 function shouldBuildBundledDistEntry(packageJson) {
-  return pluginPackageMetadata(packageJson)?.build?.bundledDist !== false;
+  return packageJson?.openclaw?.build?.bundledDist !== false;
 }
 
 function isExcludedTopLevelPublicSurfaceFile(fileName) {
@@ -103,15 +98,15 @@ function isExcludedTopLevelPublicSurfaceFile(fileName) {
 
 /** Collect plugin source entry files declared by package export metadata. */
 export function collectPluginSourceEntries(packageJson) {
-  const pluginMetadata = pluginPackageMetadata(packageJson);
-  let packageEntries = Array.isArray(pluginMetadata?.extensions)
-    ? pluginMetadata.extensions.filter(
+  let packageEntries = Array.isArray(packageJson?.openclaw?.extensions)
+    ? packageJson.openclaw.extensions.filter(
         (entry) => typeof entry === "string" && entry.trim().length > 0,
       )
     : [];
   const setupEntry =
-    typeof pluginMetadata?.setupEntry === "string" && pluginMetadata.setupEntry.trim().length > 0
-      ? pluginMetadata.setupEntry
+    typeof packageJson?.openclaw?.setupEntry === "string" &&
+    packageJson.openclaw.setupEntry.trim().length > 0
+      ? packageJson.openclaw.setupEntry
       : undefined;
   if (setupEntry) {
     packageEntries = Array.from(new Set([...packageEntries, setupEntry]));
@@ -234,10 +229,9 @@ export function collectBundledPluginBuildEntries(params = {}) {
 
   for (const candidate of candidates) {
     const { dirName, pluginDir, relativeFiles, topLevelPublicSurfaceEntries } = candidate;
-    const manifestFilename = relativeFiles
-      ? PLUGIN_MANIFEST_FILENAMES.find((filename) => relativeFiles.includes(filename))
-      : (findPluginManifestPath(pluginDir)?.split(/[\\/]/u).pop() ?? undefined);
-    const hasManifest = manifestFilename !== undefined;
+    const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
+    const hasManifest =
+      relativeFiles?.includes("openclaw.plugin.json") ?? fs.existsSync(manifestPath);
     const packageJsonPath = path.join(pluginDir, "package.json");
     const packageJson = readBundledPluginPackageJson(packageJsonPath, {
       hasPackageJson: relativeFiles?.includes("package.json"),
@@ -265,7 +259,6 @@ export function collectBundledPluginBuildEntries(params = {}) {
     entries.push({
       id: dirName,
       hasManifest,
-      ...(manifestFilename ? { manifestFilename } : {}),
       hasPackageJson: packageJson !== null,
       packageJson,
       sourceEntries: Array.from(
@@ -322,31 +315,6 @@ export function listBundledPluginBuildEntries(params = {}) {
 }
 
 /**
- * Collect bundled extension dirs that root package builds should exclude.
- * @internal Shared repository-script contract.
- */
-export function collectRootPackageExcludedExtensionDirs(params = {}) {
-  const cwd = params.cwd ?? process.cwd();
-  const packageJsonPath = path.join(cwd, "package.json");
-  const excluded = new Set();
-  if (!fs.existsSync(packageJsonPath)) {
-    return excluded;
-  }
-
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-  for (const entry of packageJson.files ?? []) {
-    if (typeof entry !== "string") {
-      continue;
-    }
-    const match = /^!dist\/extensions\/([^/]+)\/\*\*$/u.exec(entry);
-    if (match?.[1]) {
-      excluded.add(match[1]);
-    }
-  }
-  return excluded;
-}
-
-/**
  * List package artifact files generated for bundled plugins.
  * @internal Shared repository-script contract.
  */
@@ -360,9 +328,9 @@ export function listBundledPluginPackArtifacts(params = {}) {
   );
   const artifacts = new Set();
 
-  for (const { id, hasManifest, manifestFilename, hasPackageJson, sourceEntries } of entries) {
+  for (const { id, hasManifest, hasPackageJson, sourceEntries } of entries) {
     if (hasManifest) {
-      artifacts.add(bundledDistPluginFile(id, manifestFilename ?? PLUGIN_MANIFEST_FILENAME));
+      artifacts.add(bundledDistPluginFile(id, "openclaw.plugin.json"));
     }
     if (hasPackageJson) {
       artifacts.add(bundledDistPluginFile(id, "package.json"));
