@@ -1,1 +1,2 @@
-export { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Slack plugin module implements thread behavior.
+export { logVerbose } from "openclaw/plugin-sdk/runtime-env";
