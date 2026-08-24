@@ -1,38 +1,48 @@
+import { expectDefined } from "@astroclaw/normalization-core";
 // Gateway node command policy.
 // Computes per-platform allowlists from built-in, plugin, runtime, and config inputs.
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
-  NODE_BROWSER_PROXY_COMMAND,
+  NODE_AGENT_CLI_CLAUDE_RUN_COMMAND,
+  NODE_BROWSER_PROXY_COMMANDS,
+  NODE_DEVICE_APPS_COMMAND,
   NODE_EXEC_APPROVALS_COMMANDS,
+  NODE_FILE_COMMANDS,
+  NODE_MCP_TOOLS_CALL_COMMAND,
   NODE_SYSTEM_NOTIFY_COMMAND,
   NODE_SYSTEM_RUN_COMMANDS,
+  NODE_WORKER_PRIVATE_COMMANDS,
+  isPrivateNodeInvokeCommand,
 } from "../infra/node-commands.js";
 import { getActivePluginGatewayNodePolicyRegistry } from "../plugins/runtime.js";
+import { NODE_DESKTOP_STREAM_COMMAND } from "../shared/node-desktop-stream.js";
 import { normalizeDeviceMetadataForPolicy } from "./device-metadata-normalization.js";
+import { MOBILE_NODE_COMMANDS } from "./node-command-policy-mobile.js";
 import type { NodeSession } from "./node-registry.js";
 
 const CAMERA_COMMANDS = ["camera.list"];
-const CAMERA_DANGEROUS_COMMANDS = ["camera.snap", "camera.clip"];
+const MAC_CAMERA_COMMANDS = ["camera.ptz.status"];
+
+const CAMERA_DANGEROUS_COMMANDS = ["camera.snap", "camera.clip", "camera.ptz.control"];
 
 const SCREEN_COMMANDS = ["screen.snapshot"];
-const SCREEN_DANGEROUS_COMMANDS = ["screen.record"];
+const SCREEN_DANGEROUS_COMMANDS = ["screen.record", NODE_DESKTOP_STREAM_COMMAND];
 
-// Desktop computer use (pointer/keyboard injection). Declarable at pairing on
-// macOS but invocable only with explicit allowCommands opt-in (arming).
-const COMPUTER_DANGEROUS_COMMANDS = ["computer.act"];
+// Desktop computer use is advertised only while the node-local control is
+// enabled. Pairing approval of that advertised surface is the durable grant.
+const COMPUTER_COMMANDS = ["computer.act"];
 
-const LOCATION_COMMANDS = ["location.get"];
-const NOTIFICATION_COMMANDS = ["notifications.list"];
-const ANDROID_NOTIFICATION_COMMANDS = [...NOTIFICATION_COMMANDS, "notifications.actions"];
+// Android advertises these only while Accessibility Control is enabled. The
+// action tool adds its own model-visible confirmation contract for mutations.
+const MOBILE_UI_COMMANDS = ["mobile.ui.observe", "mobile.ui.act"];
 
-const DEVICE_COMMANDS = ["device.info", "device.status"];
 const ANDROID_DEVICE_COMMANDS = [
-  ...DEVICE_COMMANDS,
+  ...MOBILE_NODE_COMMANDS.device,
   "device.permissions",
   "device.health",
-  "device.apps",
+  NODE_DEVICE_APPS_COMMAND,
 ];
 
 const CONTACTS_COMMANDS = ["contacts.search"];
@@ -46,21 +56,24 @@ const CALL_LOG_COMMANDS = ["callLog.search"];
 const REMINDERS_COMMANDS = ["reminders.list"];
 const REMINDERS_DANGEROUS_COMMANDS = ["reminders.add"];
 
-// Android alarms/timers via the AlarmClock intent API. Creating an alarm or
-// timer is device-local, ephemeral, and the canonical voice-assistant action,
-// so it is default-allowed alongside opening the alarm list. Dismissing alarms
-// can silence an alarm the user relies on (mode=all clears every alarm), so it
-// is gated as dangerous and must be opted into via gateway.nodes.allowCommands.
-const ALARMS_COMMANDS = ["alarms.set", "alarms.setTimer", "alarms.show"];
-const ALARMS_DANGEROUS_COMMANDS = ["alarms.dismiss"];
-
 const PHOTOS_COMMANDS = ["photos.latest"];
 
 const MOTION_COMMANDS = ["motion.activity", "motion.pedometer"];
 
+const HEALTH_DANGEROUS_COMMANDS = ["health.summary"];
+
 const SMS_DANGEROUS_COMMANDS = ["sms.send", "sms.search"];
 
-const TALK_PTT_COMMANDS = ["talk.ptt.start", "talk.ptt.stop", "talk.ptt.cancel", "talk.ptt.once"];
+export const TALK_PTT_COMMANDS = [
+  "talk.ptt.start",
+  "talk.ptt.stop",
+  "talk.ptt.cancel",
+  "talk.ptt.once",
+];
+
+// The iPhone node owns the relay to its companion Watch. Keep these commands
+// out of the direct watchOS node surface, which has a separate fixed policy.
+export const IOS_WATCH_RELAY_COMMANDS = ["watch.status", "watch.notify"];
 
 // iOS nodes don't implement system.run/which, but they do support notifications.
 const IOS_SYSTEM_COMMANDS = [NODE_SYSTEM_NOTIFY_COMMAND];
@@ -68,39 +81,45 @@ const IOS_SYSTEM_COMMANDS = [NODE_SYSTEM_NOTIFY_COMMAND];
 const SYSTEM_COMMANDS = [
   ...NODE_SYSTEM_RUN_COMMANDS,
   ...NODE_EXEC_APPROVALS_COMMANDS,
+  ...NODE_FILE_COMMANDS,
   NODE_SYSTEM_NOTIFY_COMMAND,
-  NODE_BROWSER_PROXY_COMMAND,
+  ...NODE_BROWSER_PROXY_COMMANDS,
+  NODE_MCP_TOOLS_CALL_COMMAND,
+  NODE_AGENT_CLI_CLAUDE_RUN_COMMAND,
 ];
 const DESKTOP_HOST_COMMANDS = new Set<string>([
   ...NODE_SYSTEM_RUN_COMMANDS,
   ...NODE_EXEC_APPROVALS_COMMANDS,
-  NODE_BROWSER_PROXY_COMMAND,
+  ...NODE_FILE_COMMANDS,
+  ...NODE_BROWSER_PROXY_COMMANDS,
+  NODE_MCP_TOOLS_CALL_COMMAND,
+  NODE_AGENT_CLI_CLAUDE_RUN_COMMAND,
   ...SCREEN_COMMANDS,
+  NODE_DESKTOP_STREAM_COMMAND,
 ]);
 const UNKNOWN_PLATFORM_COMMANDS = [
   ...CAMERA_COMMANDS,
-  ...LOCATION_COMMANDS,
+  ...MOBILE_NODE_COMMANDS.location,
   NODE_SYSTEM_NOTIFY_COMMAND,
 ];
 
 // "High risk" node commands. These can be enabled by explicitly adding them to
-// `gateway.nodes.allowCommands` (and ensuring they're not blocked by denyCommands).
+// `gateway.nodes.commands.allow` (and ensuring they're not blocked by commands.deny).
 export const DEFAULT_DANGEROUS_NODE_COMMANDS = [
   ...CAMERA_DANGEROUS_COMMANDS,
   ...SCREEN_DANGEROUS_COMMANDS,
-  ...COMPUTER_DANGEROUS_COMMANDS,
   ...CONTACTS_DANGEROUS_COMMANDS,
   ...CALENDAR_DANGEROUS_COMMANDS,
   ...REMINDERS_DANGEROUS_COMMANDS,
-  ...ALARMS_DANGEROUS_COMMANDS,
   ...SMS_DANGEROUS_COMMANDS,
+  ...HEALTH_DANGEROUS_COMMANDS,
 ];
 
-const PLATFORM_DEFAULTS: Record<string, string[]> = {
+export const PLATFORM_DEFAULTS: Record<string, string[]> = {
   ios: [
     ...CAMERA_COMMANDS,
-    ...LOCATION_COMMANDS,
-    ...DEVICE_COMMANDS,
+    ...MOBILE_NODE_COMMANDS.location,
+    ...MOBILE_NODE_COMMANDS.device,
     ...CONTACTS_COMMANDS,
     ...CALENDAR_COMMANDS,
     ...REMINDERS_COMMANDS,
@@ -108,25 +127,27 @@ const PLATFORM_DEFAULTS: Record<string, string[]> = {
     ...MOTION_COMMANDS,
     ...IOS_SYSTEM_COMMANDS,
   ],
-  watchos: [...DEVICE_COMMANDS, ...IOS_SYSTEM_COMMANDS],
+  watchos: [...MOBILE_NODE_COMMANDS.device, ...IOS_SYSTEM_COMMANDS],
   android: [
     ...CAMERA_COMMANDS,
-    ...LOCATION_COMMANDS,
-    ...ANDROID_NOTIFICATION_COMMANDS,
+    ...MOBILE_NODE_COMMANDS.location,
+    ...MOBILE_NODE_COMMANDS.androidNotification,
     NODE_SYSTEM_NOTIFY_COMMAND,
     ...ANDROID_DEVICE_COMMANDS,
     ...CONTACTS_COMMANDS,
     ...CALENDAR_COMMANDS,
     ...CALL_LOG_COMMANDS,
     ...REMINDERS_COMMANDS,
-    ...ALARMS_COMMANDS,
     ...PHOTOS_COMMANDS,
     ...MOTION_COMMANDS,
+    ...MOBILE_UI_COMMANDS,
   ],
   macos: [
     ...CAMERA_COMMANDS,
-    ...LOCATION_COMMANDS,
-    ...DEVICE_COMMANDS,
+    ...MAC_CAMERA_COMMANDS,
+    ...MOBILE_NODE_COMMANDS.location,
+    ...MOBILE_NODE_COMMANDS.device,
+    NODE_DEVICE_APPS_COMMAND,
     ...CONTACTS_COMMANDS,
     ...CALENDAR_COMMANDS,
     ...REMINDERS_COMMANDS,
@@ -134,23 +155,20 @@ const PLATFORM_DEFAULTS: Record<string, string[]> = {
     ...MOTION_COMMANDS,
     ...SYSTEM_COMMANDS,
     ...SCREEN_COMMANDS,
-    // Dangerous: declarable at pairing so the surface gets approved once, but
-    // excluded from the runtime allowlist until explicitly armed (see
-    // resolveNodeCommandAllowlistInternal).
-    ...COMPUTER_DANGEROUS_COMMANDS,
+    ...COMPUTER_COMMANDS,
   ],
-  linux: [...SYSTEM_COMMANDS],
+  linux: [...SYSTEM_COMMANDS, ...SCREEN_COMMANDS, ...COMPUTER_COMMANDS],
   windows: [
     ...CAMERA_COMMANDS,
-    ...LOCATION_COMMANDS,
-    ...DEVICE_COMMANDS,
+    ...MOBILE_NODE_COMMANDS.location,
+    ...MOBILE_NODE_COMMANDS.device,
     ...SYSTEM_COMMANDS,
     ...SCREEN_COMMANDS,
+    ...COMPUTER_COMMANDS,
   ],
   // Fail-safe: unknown metadata should not receive host exec defaults.
   unknown: [...UNKNOWN_PLATFORM_COMMANDS],
 };
-
 type PlatformId = "ios" | "watchos" | "android" | "macos" | "windows" | "linux" | "unknown";
 
 const CANONICAL_PLATFORM_IDS = new Set<Exclude<PlatformId, "unknown">>([
@@ -276,14 +294,23 @@ function listDefaultPluginNodeCommands(platformId: PlatformId): string[] {
   if (!registry) {
     return [];
   }
-  const commands = registry.nodeInvokePolicies.flatMap((entry) => {
+  const policyCommands = registry.nodeInvokePolicies.flatMap((entry) => {
     if (entry.policy.dangerous === true) {
       return [];
     }
     const defaults = entry.policy.defaultPlatforms ?? [];
     return defaults.includes(platformId) ? entry.policy.commands : [];
   });
-  return normalizeUniqueStringEntries(commands);
+  const nodeHostCommands = registry.nodeHostCommands
+    .filter((entry) => {
+      if (entry.command.dangerous === true) {
+        return false;
+      }
+      const defaults = entry.command.agentTool?.defaultPlatforms ?? [];
+      return defaults.includes(platformId);
+    })
+    .map((entry) => entry.command.command);
+  return normalizeUniqueStringEntries([...policyCommands, ...nodeHostCommands]);
 }
 
 export function isForegroundRestrictedPluginNodeCommand(command: string): boolean {
@@ -301,33 +328,6 @@ export function isForegroundRestrictedPluginNodeCommand(command: string): boolea
       entry.policy.commands.some((policyCommand) => policyCommand.trim() === normalized),
   );
 }
-
-export function filterLegacyNodeProtocolFeatures(params: {
-  caps: readonly string[];
-  commands: readonly string[];
-  pluginSurfaces: readonly string[];
-}): { caps: string[]; commands: string[] } {
-  // N-1 nodes predate plugin-hosted surfaces. Preserve their durable pairing
-  // declarations elsewhere, but hide unusable plugin features from this session.
-  const registry = getActivePluginGatewayNodePolicyRegistry();
-  if (!registry) {
-    return { caps: [...params.caps], commands: [...params.commands] };
-  }
-  const pluginIds = new Set([
-    ...registry.nodeHostCommands.map((entry) => entry.pluginId),
-    ...registry.nodeInvokePolicies.map((entry) => entry.pluginId),
-  ]);
-  const pluginCaps = new Set([...params.pluginSurfaces, ...pluginIds]);
-  const pluginCommands = new Set([
-    ...registry.nodeHostCommands.map((entry) => entry.command.command),
-    ...registry.nodeInvokePolicies.flatMap((entry) => entry.policy.commands),
-  ]);
-  return {
-    caps: params.caps.filter((cap) => !pluginCaps.has(cap)),
-    commands: params.commands.filter((command) => !pluginCommands.has(command)),
-  };
-}
-
 type NodeCommandPolicyNode = Pick<NodeSession, "platform" | "deviceFamily"> &
   Partial<Pick<NodeSession, "caps" | "commands" | "connId" | "nodeId">> & {
     approvedCommands?: readonly string[];
@@ -391,29 +391,43 @@ function resolveNodeCommandAllowlistInternal(
   const platformId = normalizePlatformId(node?.platform, node?.deviceFamily);
   const base = filterDesktopHostCommandDefaults({
     platformId,
-    commands: PLATFORM_DEFAULTS[platformId] ?? PLATFORM_DEFAULTS.unknown,
+    commands:
+      expectDefined(PLATFORM_DEFAULTS[platformId], "platform defaults entry at platform id") ??
+      PLATFORM_DEFAULTS.unknown,
     includeDesktopHostCommands: options?.includeDesktopHostCommands,
   });
+  const watchRelayCommands =
+    platformId === "ios" && normalizeDeviceMetadataForPolicy(node?.deviceFamily) === "iphone"
+      ? IOS_WATCH_RELAY_COMMANDS
+      : [];
   const talkCommands = hasTalkSurface(node) ? TALK_PTT_COMMANDS : [];
   const pluginDefaults = listDefaultPluginNodeCommands(platformId);
   const approved = filterApprovedRuntimeCommands({
     platformId,
     commands: node?.approvedCommands ?? (isLiveNodeSession(node) ? (node?.commands ?? []) : []),
   });
-  const extra = cfg.gateway?.nodes?.allowCommands ?? [];
-  const deny = new Set(cfg.gateway?.nodes?.denyCommands ?? []);
-  const dangerousPluginCommands = new Set(listDangerousPluginNodeCommands());
-  // Dangerous built-ins in PLATFORM_DEFAULTS (e.g. computer.act on macOS) stay
-  // declarable/approvable at pairing but never enter the runtime allowlist by
-  // default; the pairing variant opts in via includeDangerousDefaults.
+  const extra = cfg.gateway?.nodes?.commands?.allow ?? [];
+  const deny = new Set(cfg.gateway?.nodes?.commands?.deny ?? []);
+  // A plugin `dangerous` flag governs the surface that plugin contributes
+  // (listDefaultPluginNodeCommands) and forces a registered invoke policy. It is
+  // not authority to revoke a command core itself declares in PLATFORM_DEFAULTS,
+  // whose grant chain is node-local enablement plus pairing approval. Letting it
+  // do so disabled desktop `computer.act` on every Gateway that auto-starts a
+  // bundled computer-use provider plugin.
+  const baseCommands = new Set(base);
+  const dangerousPluginCommands = new Set(
+    listDangerousPluginNodeCommands().filter((command) => !baseCommands.has(command)),
+  );
+  // Dangerous built-ins that also appear in PLATFORM_DEFAULTS stay declarable
+  // at pairing but do not enter the runtime allowlist by default.
   const dangerousBuiltinCommands =
     options?.includeDangerousDefaults === true
       ? new Set<string>()
       : new Set(DEFAULT_DANGEROUS_NODE_COMMANDS);
   // Dangerous plugin commands are excluded from plugin defaults. Explicit
-  // gateway.nodes.allowCommands below can still opt them in for operators.
+  // gateway.nodes.commands.allow below can still opt them in for operators.
   const allow = new Set(
-    [...base, ...talkCommands, ...pluginDefaults, ...approved, ...extra]
+    [...base, ...watchRelayCommands, ...talkCommands, ...pluginDefaults, ...approved, ...extra]
       .map((cmd) => cmd.trim())
       .filter(
         (cmd) => cmd && !dangerousPluginCommands.has(cmd) && !dangerousBuiltinCommands.has(cmd),
@@ -425,14 +439,12 @@ function resolveNodeCommandAllowlistInternal(
       allow.add(trimmed);
     }
   }
-  // In pairing mode, denylisted dangerous defaults stay declarable so a node
-  // retains the surface it can later be armed for: arming removes them from
-  // denyCommands and adds them to allowCommands. Fresh setup seeds denyCommands
-  // with DEFAULT_DANGEROUS_NODE_COMMANDS, so without this exemption a declarable
-  // dangerous default (e.g. computer.act on macOS) would be stripped from the
-  // pairing surface and stay uninvocable even after arming, because the live
-  // node session never retained the command. Invoke-time policy still gates
-  // every call on the runtime allowlist, which honors deny in full.
+  if (cfg.wizard?.appRecommendations === false) {
+    allow.delete(NODE_DEVICE_APPS_COMMAND);
+  }
+  // In pairing mode, denylisted dangerous defaults stay declarable so an
+  // explicit persistent allow can authorize them without another pairing.
+  // Invoke-time policy still honors deny in full.
   const denyExemptDeclarable =
     options?.includeDangerousDefaults === true
       ? new Set(DEFAULT_DANGEROUS_NODE_COMMANDS)
@@ -442,6 +454,9 @@ function resolveNodeCommandAllowlistInternal(
     if (trimmed && !denyExemptDeclarable.has(trimmed)) {
       allow.delete(trimmed);
     }
+  }
+  for (const privateCommand of NODE_WORKER_PRIVATE_COMMANDS) {
+    allow.delete(privateCommand);
   }
   return allow;
 }
@@ -471,7 +486,7 @@ function normalizeDeclaredCommands(commands?: readonly string[]): string[] {
   const normalized: string[] = [];
   for (const value of commands) {
     const trimmed = value.trim();
-    if (!trimmed || seen.has(trimmed)) {
+    if (!trimmed || seen.has(trimmed) || isPrivateNodeInvokeCommand(trimmed)) {
       continue;
     }
     seen.add(trimmed);
@@ -489,6 +504,33 @@ export function normalizeDeclaredNodeCommands(params: {
   );
 }
 
+// Capability and command are one advertisement: a node offers `computer` because
+// it can run `computer.act`. Keeping the capability after policy withheld every
+// command that fulfills it yields a surface that reads as available and then
+// rejects every invoke. Families core does not own here stay untouched.
+const CAPABILITY_COMMAND_FAMILIES: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+  ["camera", new Set([...CAMERA_COMMANDS, ...MAC_CAMERA_COMMANDS, ...CAMERA_DANGEROUS_COMMANDS])],
+  ["computer", new Set(COMPUTER_COMMANDS)],
+  ["location", new Set(MOBILE_NODE_COMMANDS.location)],
+  ["screen", new Set([...SCREEN_COMMANDS, ...SCREEN_DANGEROUS_COMMANDS])],
+]);
+
+/** Drops capabilities whose commands policy withheld without admitting a sibling. */
+export function retainFulfilledNodeCapabilities(params: {
+  caps: readonly string[];
+  admittedCommands: readonly string[];
+  withheldCommands: readonly string[];
+}): string[] {
+  return params.caps.filter((capability) => {
+    const family = CAPABILITY_COMMAND_FAMILIES.get(capability);
+    return (
+      !family ||
+      !params.withheldCommands.some((command) => family.has(command)) ||
+      params.admittedCommands.some((command) => family.has(command))
+    );
+  });
+}
+
 export function isNodeCommandAllowed(params: {
   command: string;
   declaredCommands?: string[];
@@ -497,6 +539,9 @@ export function isNodeCommandAllowed(params: {
   const command = params.command.trim();
   if (!command) {
     return { ok: false, reason: "command required" };
+  }
+  if (isPrivateNodeInvokeCommand(command)) {
+    return { ok: false, reason: "command not allowlisted" };
   }
   if (!params.allowlist.has(command)) {
     return { ok: false, reason: "command not allowlisted" };
