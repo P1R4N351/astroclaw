@@ -5,10 +5,10 @@ import {
   listChatCommands,
   type ChatCommandDefinition,
   type CommandArgs,
-} from "openclaw/plugin-sdk/command-auth-native";
-import type { ModelsProviderData } from "openclaw/plugin-sdk/models-provider-runtime";
-import { getRuntimeConfigSnapshot } from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/command-auth-native";
+import type { ModelsProviderData } from "astroclaw/plugin-sdk/models-provider-runtime";
+import { getRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   Button,
   StringSelectMenu,
@@ -620,6 +620,7 @@ async function handleDiscordModelPickerInteraction(params: {
       accountId: ctx.accountId,
       sessionPrefix: ctx.sessionPrefix,
       threadBindings: ctx.threadBindings,
+      dispatchReplyFromConfig: ctx.dispatchReplyFromConfig,
       route,
       resolvedModelRef,
       selectedRuntime,
