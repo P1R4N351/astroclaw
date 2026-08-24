@@ -1,7 +1,7 @@
 import { reduceSessionProjection } from "@astroclaw/gateway-client/browser";
 // @vitest-environment node
 // Control UI tests cover chat behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
 import { GatewayRequestError } from "../../api/gateway.ts";
@@ -2735,55 +2735,21 @@ describe("loadChatHistory filtering", () => {
     expect(state.chatMessagesBySession?.has("agent:main:main")).toBe(false);
   });
 
-  it("rejects a stale startup roster before mutating chat-local selection", async () => {
+  it("loads startup history without taking ownership of the agent roster", async () => {
     const currentRoster = {
       agents: [{ id: "research", name: "Research" }],
       defaultId: "research",
       mainKey: "main",
       scope: "per-sender" as const,
     };
-    const onAgentsList = vi.fn(() => false);
-    const { state } = createResolvedHistoryState(
-      {
-        agentsList: {
-          agents: [{ id: "main", name: "Stale Main" }],
-          defaultId: "main",
-          mainKey: "main",
-          scope: "per-sender",
-        },
-        messages: [],
-      },
-      {
-        agentsError: "keep newer roster status",
-        agentsList: currentRoster,
-        agentsSelectedId: "research",
-        onAgentsList,
-      },
-    );
-
-    await loadChatHistory(state, { startup: true });
-
-    expect(onAgentsList).toHaveBeenCalledOnce();
-    expect(state.agentsError).toBe("keep newer roster status");
-    expect(state.agentsList).toBe(currentRoster);
-    expect(state.agentsSelectedId).toBe("research");
-  });
-
-  it("loads startup history with agents in one request", async () => {
-    const onAgentsList = vi.fn(() => true);
     const { request, state } = createResolvedHistoryState(
       {
         messages: [{ role: "assistant", content: [{ type: "text", text: "ready" }] }],
-        agentsList: {
-          agents: [{ id: "ops", name: "Ops" }],
-          defaultId: "ops",
-          mainKey: "main",
-          scope: "agent",
-        },
       },
       {
         agentsError: "previous agents.list failure",
-        onAgentsList,
+        agentsList: currentRoster,
+        agentsSelectedId: "research",
         sessionKey: "global",
       },
     );
@@ -2791,16 +2757,16 @@ describe("loadChatHistory filtering", () => {
     await loadChatHistory(state, { startup: true });
 
     expect(request).toHaveBeenCalledWith("chat.startup", {
+      agentId: "research",
       sessionKey: "global",
       limit: 100,
     });
     expect(state.chatMessages).toEqual([
       { role: "assistant", content: [{ type: "text", text: "ready" }] },
     ]);
-    expect(state.agentsError).toBeNull();
-    expect(state.agentsList?.defaultId).toBe("ops");
-    expect(state.agentsSelectedId).toBe("ops");
-    expect(onAgentsList).toHaveBeenCalledOnce();
+    expect(state.agentsError).toBe("previous agents.list failure");
+    expect(state.agentsList).toBe(currentRoster);
+    expect(state.agentsSelectedId).toBe("research");
   });
 
   it.each([
