@@ -1,1 +1,2 @@
-export { renderQrTerminal } from "astroclaw/plugin-sdk/media-runtime";
+// Whatsapp plugin module implements qr terminal behavior.
+export { renderQrTerminal } from "openclaw/plugin-sdk/media-runtime";
