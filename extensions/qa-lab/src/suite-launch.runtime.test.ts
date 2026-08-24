@@ -48,8 +48,8 @@ vi.mock("./test-file-scenario-docker-batch.js", async (importOriginal) => ({
   prepareDockerE2eEnvironment,
 }));
 
-vi.mock("astroclaw/plugin-sdk/security-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/security-runtime")>();
+vi.mock("openclaw/plugin-sdk/security-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/security-runtime")>();
   replaceFileAtomicMock.mockImplementation(actual.replaceFileAtomic);
   return { ...actual, replaceFileAtomic: replaceFileAtomicMock };
 });
@@ -148,8 +148,8 @@ async function expectArtifactPublicationFailurePreservesPrior(params: {
     await fs.chmod(finalPath, 0o640);
   }
   const actualSecurityRuntime = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/security-runtime")
-  >("astroclaw/plugin-sdk/security-runtime");
+    typeof import("openclaw/plugin-sdk/security-runtime")
+  >("openclaw/plugin-sdk/security-runtime");
   const publicationOrder: string[] = [];
   const failSelectedArtifact = async (options: Parameters<typeof replaceFileAtomicMock>[0]) => {
     publicationOrder.push(path.basename(options.filePath));
@@ -1458,10 +1458,10 @@ describe("qa suite runtime launcher", () => {
       repoRoot,
       outputDir: ".artifacts/qa-e2e/crabline-serial",
       channelDriverSelection: {
-        capabilityMatrixPath: "crabline-fake-provider-capabilities.json",
+        capabilityMatrixPath: "crabline-channel-driver-capabilities.json",
         channel: "telegram",
         channelDriver: "crabline",
-        smokeArtifactPath: "crabline-fake-provider-smoke.json",
+        providerReadinessArtifactPath: "crabline-provider-readiness.json",
       },
       scenarioIds: ["telegram-help-command", "dm-chat-baseline", "control-ui-chat-flow-playwright"],
     });
@@ -1521,10 +1521,10 @@ describe("qa suite runtime launcher", () => {
       repoRoot,
       outputDir: ".artifacts/qa-e2e/crabline-isolated",
       channelDriverSelection: {
-        capabilityMatrixPath: "crabline-fake-provider-capabilities.json",
+        capabilityMatrixPath: "crabline-channel-driver-capabilities.json",
         channel: "telegram",
         channelDriver: "crabline",
-        smokeArtifactPath: "crabline-fake-provider-smoke.json",
+        providerReadinessArtifactPath: "crabline-provider-readiness.json",
       },
       concurrency: 8,
       scenarioIds: [
