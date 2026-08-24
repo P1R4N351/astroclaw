@@ -17,7 +17,7 @@ import {
   getRuntimeConfigSourceSnapshot,
   setRuntimeConfigSnapshot,
 } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { writeRuntimeJson, defaultRuntime, type RuntimeEnv } from "../../runtime.js";
 import { getProviderEnvVars } from "../../secrets/provider-env-vars.js";
 import { resolveCommandConfigWithSecrets } from "../command-config-resolution.js";
@@ -90,7 +90,7 @@ export function formatEnvelopeForText(value: unknown): string {
 
 export function providerSummaryText(value: unknown): string {
   const providers = value as Array<Record<string, unknown>>;
-  return providers.map((entry) => JSON.stringify(entry)).join("\n");
+  return providers.map((entry) => JSON.stringify(entry)).join("\n") || "No results found.";
 }
 
 function hasOwnKeys(value: unknown): boolean {
