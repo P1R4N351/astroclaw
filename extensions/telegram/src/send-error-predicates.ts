@@ -1,14 +1,24 @@
-// Telegram API rejection predicates shared by durable and streaming send funnels.
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 
-const RICH_ENTITY_INVALID_RE =
-  /RICH_MESSAGE_(?:EMAIL|URL|MENTION|HASHTAG|CASHTAG|BOT_COMMAND|PHONE|BANK_CARD)_INVALID/i;
-const PARSE_ERR_RE = /can't parse entities|parse entities|find end of the entity/i;
+const TELEGRAM_CAPTION_TOO_LONG_RE = /caption is too long/i;
+const TELEGRAM_PHOTO_LIMIT_ERROR_RE = /\b(?:PHOTO_INVALID_DIMENSIONS|PHOTO_TOO_BIG)\b/i;
+const TELEGRAM_VOICE_FORBIDDEN_MARKER = "VOICE_MESSAGES_FORBIDDEN";
 
-export function isTelegramRichEntityInvalidError(err: unknown): boolean {
-  return RICH_ENTITY_INVALID_RE.test(formatErrorMessage(err));
+function resolveTelegramErrorDescription(error: unknown): string {
+  return isRecord(error) && typeof error.description === "string"
+    ? error.description
+    : formatErrorMessage(error);
 }
 
-export function isTelegramHtmlParseError(err: unknown): boolean {
-  return PARSE_ERR_RE.test(formatErrorMessage(err));
+export function isTelegramCaptionTooLongError(error: unknown): boolean {
+  return TELEGRAM_CAPTION_TOO_LONG_RE.test(resolveTelegramErrorDescription(error));
+}
+
+export function isTelegramPhotoLimitError(error: unknown): boolean {
+  return TELEGRAM_PHOTO_LIMIT_ERROR_RE.test(resolveTelegramErrorDescription(error));
+}
+
+export function isTelegramVoiceMessagesForbiddenError(error: unknown): boolean {
+  return resolveTelegramErrorDescription(error).includes(TELEGRAM_VOICE_FORBIDDEN_MARKER);
 }
