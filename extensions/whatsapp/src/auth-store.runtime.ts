@@ -1,1 +1,2 @@
-export { resolveOAuthDir } from "astroclaw/plugin-sdk/state-paths";
+// Whatsapp plugin module implements auth store behavior.
+export { resolveOAuthDir } from "openclaw/plugin-sdk/state-paths";
