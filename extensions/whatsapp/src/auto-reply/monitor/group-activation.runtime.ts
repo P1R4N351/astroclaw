@@ -1,1 +1,2 @@
-export { normalizeGroupActivation } from "astroclaw/plugin-sdk/group-activation";
+// Whatsapp plugin module implements group activation behavior.
+export { normalizeGroupActivation } from "openclaw/plugin-sdk/group-activation";
