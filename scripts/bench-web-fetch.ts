@@ -4,10 +4,10 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { extractBasicHtmlContent } from "../src/agents/tools/web-fetch-utils.js";
 import { createWebFetchTool } from "../src/agents/tools/web-fetch.js";
-import type { OpenClawConfig } from "../src/config/types.astroclaw.js";
+import type { OpenClawConfig } from "../src/config/types.openclaw.js";
 import type { LookupFn } from "../src/infra/net/ssrf.js";
 import { extractReadableContent } from "../src/web-fetch/content-extractors.runtime.js";
-import { stripLeadingPackageManagerSeparator } from "./lib/arg-utils.mjs";
+import { stripLeadingPackageManagerSeparator } from "./lib/arg-utils.mts";
 
 type BenchmarkCaseId =
   | "tool-create"
@@ -114,13 +114,12 @@ const TEXT_BODY = "OpenClaw web_fetch direct text benchmark body.".repeat(160);
 const MARKDOWN_BODY = "# Web Fetch Benchmark\n\n" + "- markdown list item\n".repeat(220);
 const OFFLINE_PROVIDER_ENV_VARS = ["FIRECRAWL_API_KEY"] as const;
 
-const lookupFn: LookupFn = async () => [{ address: "93.184.216.34", family: 4 }];
+const lookupFn = (async () => [{ address: "93.184.216.34", family: 4 }]) as unknown as LookupFn;
 const toolConfig: OpenClawConfig = {
   tools: {
     web: {
       fetch: {
         cacheTtlMinutes: 0,
-        firecrawl: { enabled: false },
       },
     },
   },
@@ -157,8 +156,11 @@ function parsePositiveInteger(flag: string, fallback: number, args: string[]): n
     return fallback;
   }
   const raw = args[index + 1];
+  if (!/^\d+$/u.test(raw ?? "")) {
+    throw new CliArgumentError(`${flag} must be a positive integer`);
+  }
   const value = Number(raw);
-  if (!Number.isInteger(value) || value <= 0) {
+  if (!Number.isSafeInteger(value) || value <= 0) {
     throw new CliArgumentError(`${flag} must be a positive integer`);
   }
   return value;
@@ -170,8 +172,11 @@ function parseNonNegativeInteger(flag: string, fallback: number, args: string[])
     return fallback;
   }
   const raw = args[index + 1];
+  if (!/^\d+$/u.test(raw ?? "")) {
+    throw new CliArgumentError(`${flag} must be a non-negative integer`);
+  }
   const value = Number(raw);
-  if (!Number.isInteger(value) || value < 0) {
+  if (!Number.isSafeInteger(value) || value < 0) {
     throw new CliArgumentError(`${flag} must be a non-negative integer`);
   }
   return value;
@@ -270,7 +275,7 @@ function installMockFetch(params: { body: string; contentType: string }) {
       headers: {
         "content-type": params.contentType,
       },
-    })) as typeof globalThis.fetch & { mock: object };
+    })) as unknown as typeof globalThis.fetch & { mock: object };
   // fetchWithSsrFGuard preserves dispatcher support unless global fetch is a
   // test double. The marker keeps this benchmark offline and deterministic.
   fetchImpl.mock = {};
