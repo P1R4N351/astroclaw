@@ -1,7 +1,6 @@
 // Control UI module implements main behavior.
 import "./styles.css";
 import "./app/app-host.ts";
-import "./components/board/board-view.ts";
 import { inferControlUiPublicAssetPath } from "./app/public-assets.ts";
 import {
   installMissingStylesheetRecovery,
@@ -30,7 +29,11 @@ if (isProd && "serviceWorker" in navigator) {
       window.location.reload();
     }
   });
-  void navigator.serviceWorker.register(swUrl, { updateViaCache: "none" });
+  void navigator.serviceWorker
+    .register(swUrl, { updateViaCache: "none" })
+    .catch((error: unknown) => {
+      console.warn("OpenClaw service worker registration failed.", error);
+    });
 } else if (!isProd && "serviceWorker" in navigator) {
   // Unregister any leftover dev SW to avoid stale cache issues.
   void navigator.serviceWorker.getRegistrations().then((registrations) => {
