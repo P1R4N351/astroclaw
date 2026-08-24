@@ -18,6 +18,7 @@ const { GatewayIntents, GatewayPlugin } = vi.hoisted(() => {
     GuildPresences: 1 << 6,
     GuildMembers: 1 << 7,
     GuildVoiceStates: 1 << 8,
+    GuildExpressions: 1 << 9,
   } as const;
 
   class TestEmitter {
@@ -63,7 +64,7 @@ vi.mock("../internal/gateway.js", () => ({
   GatewayPlugin,
 }));
 
-vi.mock("openclaw/plugin-sdk/proxy-capture", () => ({
+vi.mock("astroclaw/plugin-sdk/proxy-capture", () => ({
   captureHttpExchange: vi.fn(),
   captureWsEvent: vi.fn(),
   resolveEffectiveDebugProxyUrl: () => undefined,
@@ -72,8 +73,8 @@ vi.mock("openclaw/plugin-sdk/proxy-capture", () => ({
 
 // Suite runs isolate=false: a partial factory here poisons the shared module
 // cache for later files in the worker (#123025), so spread the real module.
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     danger: (value: string) => value,
@@ -106,8 +107,11 @@ describe("createDiscordGatewayPlugin", () => {
     });
   }
 
-  it("omits GuildVoiceStates by default for text-only Discord configs", () => {
-    expect(resolveDiscordGatewayIntents() & GatewayIntents.GuildVoiceStates).toBe(0);
+  it("subscribes to guild emoji changes without enabling voice by default", () => {
+    const intents = resolveDiscordGatewayIntents();
+
+    expect(intents & GatewayIntents.GuildExpressions).toBe(GatewayIntents.GuildExpressions);
+    expect(intents & GatewayIntents.GuildVoiceStates).toBe(0);
   });
 
   it("includes GuildVoiceStates when voice is enabled", () => {
@@ -255,6 +259,7 @@ describe("createDiscordGatewayPlugin", () => {
       autoInteractions: false,
       intents:
         GatewayIntents.Guilds |
+        GatewayIntents.GuildExpressions |
         GatewayIntents.GuildMessages |
         GatewayIntents.MessageContent |
         GatewayIntents.DirectMessages |
