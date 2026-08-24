@@ -1,8 +1,8 @@
 // Mattermost tests cover slash http.send config plugin behavior.
 import { ServerResponse, type IncomingMessage } from "node:http";
 import { PassThrough } from "node:stream";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/core";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedMattermostAccount } from "./accounts.js";
 
@@ -127,11 +127,6 @@ vi.mock("./monitor-auth.js", () => ({
 }));
 
 vi.mock("./reply-delivery.js", () => ({
-  createMattermostReplyDeliveryBarrier: vi.fn(() => ({
-    markDeliverySettled: vi.fn(),
-    resolveTimeoutPolicy: vi.fn(),
-    trackDmChannelResolution: vi.fn(),
-  })),
   deliverMattermostReplyPayload: vi.fn(),
 }));
 
