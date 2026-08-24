@@ -1,12 +1,12 @@
 // Slack plugin module implements action runtime behavior.
-import { normalizeAccountId } from "astroclaw/plugin-sdk/account-resolution";
-import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
-import { readBooleanParam } from "astroclaw/plugin-sdk/boolean-param";
-import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
-import { resolveOpenProviderRuntimeGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeAccountId } from "openclaw/plugin-sdk/account-resolution";
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import { readBooleanParam } from "openclaw/plugin-sdk/boolean-param";
+import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
+import { resolveOpenProviderRuntimeGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { ResolvedSlackAccount } from "./accounts.js";
 import {
   resolveSlackAutoThreadId,
@@ -50,7 +50,7 @@ const messagingActions = new Set([
 
 const reactionsActions = new Set(["react", "reactions"]);
 const pinActions = new Set(["pinMessage", "unpinMessage", "listPins"]);
-const SLACK_REACTION_USER_LIMIT = 100;
+const SLACK_REACTION_RESULT_LIMIT = 100;
 
 type SlackActionsRuntimeModule = typeof import("./actions.runtime.js");
 
@@ -615,8 +615,8 @@ export async function handleSlackAction(
     const limit = Math.min(
       readPositiveIntegerParam(params, "limit", {
         message: "limit must be a positive integer.",
-      }) ?? SLACK_REACTION_USER_LIMIT,
-      SLACK_REACTION_USER_LIMIT,
+      }) ?? SLACK_REACTION_RESULT_LIMIT,
+      SLACK_REACTION_RESULT_LIMIT,
     );
     const reactions = await slackActionRuntime.listSlackReactions(channelId, messageId, readOpts);
     return jsonResult({
@@ -1016,25 +1016,24 @@ export async function handleSlackAction(
     if (!isActionEnabled("emojiList")) {
       throw new Error("Slack emoji list is disabled.");
     }
-    const limit = readPositiveIntegerParam(params, "limit", {
-      message: "limit must be a positive integer.",
-    });
+    const limit = Math.min(
+      readPositiveIntegerParam(params, "limit", {
+        message: "limit must be a positive integer.",
+      }) ?? SLACK_REACTION_RESULT_LIMIT,
+      SLACK_REACTION_RESULT_LIMIT,
+    );
     const teamId = resolveTrustedCurrentSlackTeamId({ account, context });
     assertSlackDetachedTargetAllowed(account.accountId, teamId);
     const result = await slackActionRuntime.listSlackEmojis(buildActionOpts("read", teamId));
-    if (limit != null && limit > 0 && result.emoji != null) {
-      const entries = Object.entries(result.emoji).toSorted(([a], [b]) => a.localeCompare(b));
-      if (entries.length > limit) {
-        return jsonResult({
-          ok: true,
-          emojis: {
-            ...result,
-            emoji: Object.fromEntries(entries.slice(0, limit)),
-          },
-        });
-      }
-    }
-    return jsonResult({ ok: true, emojis: result });
+    const emojis = Object.entries(result.emoji ?? {})
+      .toSorted(([left], [right]) => left.localeCompare(right))
+      .slice(0, limit)
+      .map(([name, value]) =>
+        value.startsWith("alias:")
+          ? { name, identifier: name, aliasOf: value.slice("alias:".length) }
+          : { name, identifier: name },
+      );
+    return jsonResult({ ok: true, emojis });
   }
 
   throw new Error(`Unknown action: ${action}`);
