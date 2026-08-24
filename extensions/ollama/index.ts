@@ -1,14 +1,14 @@
 // Ollama plugin entrypoint registers its OpenClaw integration.
 import { collectConfiguredModelRefValues } from "@astroclaw/model-catalog-core/configured-model-refs";
 import { findNormalizedProviderKey } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import type { MediaUnderstandingProvider } from "astroclaw/plugin-sdk/media-understanding";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import type { MediaUnderstandingProvider } from "openclaw/plugin-sdk/media-understanding";
 import {
   adaptMemoryEmbeddingProviderAdapter,
   type MemoryEmbeddingProviderAdapter,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
-import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type OpenClawPluginApi,
@@ -22,20 +22,20 @@ import {
   type ProviderPlugin,
   type ProviderReplayPolicy,
   type ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   buildApiKeyCredential,
   coerceSecretRef,
   isNonSecretApiKeyMarker,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
+} from "openclaw/plugin-sdk/provider-auth";
+import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "astroclaw/plugin-sdk/provider-model-shared";
-import { buildOpenAICompatibleReplayPolicy } from "astroclaw/plugin-sdk/provider-model-shared";
-import { buildProviderToolCompatFamilyHooks } from "astroclaw/plugin-sdk/provider-tools";
-import { resolveConfiguredSecretInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
+} from "openclaw/plugin-sdk/provider-model-shared";
+import { buildOpenAICompatibleReplayPolicy } from "openclaw/plugin-sdk/provider-model-shared";
+import { buildProviderToolCompatFamilyHooks } from "openclaw/plugin-sdk/provider-tools";
+import { resolveConfiguredSecretInputString } from "openclaw/plugin-sdk/secret-input-runtime";
 import { resolveThinkingProfile as resolveOllamaThinkingProfile } from "./provider-policy-api.js";
 import {
   DEFAULT_OLLAMA_EMBEDDING_MODEL,
@@ -130,7 +130,7 @@ const lazyOllamaMediaUnderstandingProvider: MediaUnderstandingProvider = {
 
 async function checkWsl2CrashLoopRiskLazily(api: OpenClawPluginApi): Promise<void> {
   try {
-    const { isWSL2Sync } = await import("astroclaw/plugin-sdk/runtime-env");
+    const { isWSL2Sync } = await import("openclaw/plugin-sdk/runtime-env");
     if (!isWSL2Sync()) {
       return;
     }
@@ -807,15 +807,14 @@ async function augmentConfiguredOllamaCatalogModels(params: {
 }
 
 // Local and cloud own distinct auth/catalog policy but share native transport and replay rules.
-const createOllamaSharedProviderHooks = (
-  acquireLocalService: OpenClawPluginApi["runtime"]["llm"]["acquireLocalService"],
-) =>
+const createOllamaSharedProviderHooks = (api: OpenClawPluginApi) =>
   ({
     ...buildProviderToolCompatFamilyHooks("llamacpp-gbnf"),
     createStreamFn: ({ config, model, provider }) => {
       if (model.api !== "ollama") {
         return undefined;
       }
+      const { acquireLocalService } = api.runtime.llm;
       const configuredProviderId =
         findNormalizedProviderKey(config?.models?.providers, provider) ?? provider;
       return createLazyConfiguredOllamaStreamFn({
@@ -856,7 +855,7 @@ export default definePluginEntry({
   description: "Bundled Ollama provider plugin",
   register(api: OpenClawPluginApi) {
     const startupPluginConfig = (api.pluginConfig ?? {}) as OllamaPluginConfig;
-    const providerHooks = createOllamaSharedProviderHooks(api.runtime.llm.acquireLocalService);
+    const providerHooks = createOllamaSharedProviderHooks(api);
     if (api.registrationMode === "full") {
       void checkWsl2CrashLoopRiskLazily(api);
     }
