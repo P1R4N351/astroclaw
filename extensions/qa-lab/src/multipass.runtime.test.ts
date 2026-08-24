@@ -2,14 +2,14 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const runExecMock = vi.hoisted(() => vi.fn());
 const TEST_ENV_VALUE = "qa-fixture-value";
 
-vi.mock("openclaw/plugin-sdk/process-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/process-runtime")>();
+vi.mock("astroclaw/plugin-sdk/process-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/process-runtime")>();
   return {
     ...actual,
     runExec: runExecMock,
@@ -191,10 +191,10 @@ describe("qa multipass runtime", () => {
       outputDirName: "multipass-selection-test",
       runtimePair: ["openclaw", "codex"],
       channelDriverSelection: {
-        capabilityMatrixPath: "crabline-fake-provider-capabilities.json",
+        capabilityMatrixPath: "crabline-channel-driver-capabilities.json",
         channel: "telegram",
         channelDriver: "crabline",
-        smokeArtifactPath: "crabline-fake-provider-smoke.json",
+        providerReadinessArtifactPath: "crabline-provider-readiness.json",
       },
       enabledPluginIds: ["browser", "memory-core", "browser"],
     });
