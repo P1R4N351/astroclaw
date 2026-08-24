@@ -1,13 +1,13 @@
 // Memory Core plugin module implements the concrete memory index manager.
 import type { DatabaseSync } from "node:sqlite";
-import { formatErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentWorkspaceDir,
   resolveMemorySearchConfig,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   readMemoryFile,
   MEMORY_EMBEDDING_CACHE_TABLE,
@@ -18,8 +18,8 @@ import {
   type MemorySessionSyncTarget,
   type MemorySource,
   type MemorySyncParams,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
 import type { MemoryCoreAcquireLocalService } from "./embedding-local-service.js";
 import type { EmbeddingProvider, EmbeddingProviderRequest } from "./embeddings.js";
 import { awaitPendingManagerWork } from "./manager-async-state.js";
@@ -482,12 +482,22 @@ export class MemoryIndexManager extends MemorySearchOrchestration implements Mem
       requestedProvider: this.requestedProvider,
       configuredModel: this.settings.model || undefined,
     });
+    const pendingSyncSources: MemorySource[] = [];
+    if (this.syncing) {
+      if (this.dirty) {
+        pendingSyncSources.push("memory");
+      }
+      if (this.sessionsDirty) {
+        pendingSyncSources.push("sessions");
+      }
+    }
 
     return {
       backend: "builtin",
       files: aggregateState.files,
       chunks: aggregateState.chunks,
       dirty: this.dirty || this.sessionsDirty || this.indexIdentityDirty,
+      pendingSyncSources: pendingSyncSources.length > 0 ? pendingSyncSources : undefined,
       workspaceDir: this.workspaceDir,
       dbPath: this.settings.store.databasePath,
       provider: providerInfo.provider,
