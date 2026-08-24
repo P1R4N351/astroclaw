@@ -2,14 +2,14 @@
 import { access, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { createPluginRuntimeMock } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { withEnvAsync } from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { withEnvAsync } from "astroclaw/plugin-sdk/test-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { API, LoginQRCallbackEvent } from "./zca-client.js";
 import { LoginQRCallbackEventType } from "./zca-constants.js";
@@ -57,6 +57,14 @@ function seedStoredCredentials(
   credentials: Omit<StoredZaloCredentials, "profile">,
 ): void {
   saveStoredZaloCredentials(profile, credentials, { OPENCLAW_STATE_DIR: stateDir });
+}
+
+// Credential reads and writes leave the shared state database open under the temporary
+// state dir, so it must be released before removal or Windows keeps the files locked and
+// the removal fails with EBUSY.
+async function removeCredentialStateDir(stateDir: string): Promise<void> {
+  resetPluginStateStoreForTests();
+  await rm(stateDir, { recursive: true, force: true });
 }
 
 function createMockApi(params: {
@@ -127,7 +135,7 @@ describe("zalouser credential persistence", () => {
       ).toBe(false);
       expect(loadStoredZaloCredentials(profile, env)).toBeNull();
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -184,7 +192,7 @@ describe("zalouser credential persistence", () => {
         expect(stored.cookie).toEqual(refreshedCookie);
       });
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -233,7 +241,7 @@ describe("zalouser credential persistence", () => {
         expect(loadStoredZaloCredentials(profile)).toBeNull();
       });
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -304,7 +312,7 @@ describe("zalouser credential persistence", () => {
         expect(stored.lastUsedAt).toMatch(ISO_TIMESTAMP_RE);
       });
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -344,7 +352,7 @@ describe("zalouser credential persistence", () => {
         expect(await readStoredCredentials(stateDir, profile)).toEqual(storedBefore);
       });
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -400,7 +408,7 @@ describe("zalouser credential persistence", () => {
         expect(stored.lastUsedAt).toMatch(ISO_TIMESTAMP_RE);
       });
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -440,7 +448,7 @@ describe("zalouser credential persistence", () => {
         expect(await readStoredCredentials(stateDir, profile)).toEqual(firstStored);
       });
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -464,7 +472,7 @@ describe("zalouser credential persistence", () => {
         expectMissingSessionResult(result);
       });
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -479,7 +487,7 @@ describe("zalouser credential persistence", () => {
         expectMissingSessionResult(result);
       });
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 
@@ -501,7 +509,7 @@ describe("zalouser credential persistence", () => {
         access(path.join(stateDir, "state", "openclaw.sqlite")),
       ).resolves.toBeUndefined();
     } finally {
-      await rm(stateDir, { recursive: true, force: true });
+      await removeCredentialStateDir(stateDir);
     }
   });
 });
