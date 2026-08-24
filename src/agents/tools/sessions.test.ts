@@ -3,7 +3,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 // Sessions tool tests cover list/send helpers, announce-target resolution,
 // and assistant-visible text sanitization.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelMessagingAdapter } from "../../channels/plugins/types.public.js";
 import { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } from "../../config/io.js";
@@ -18,7 +18,7 @@ import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import { GatewayClientRequestError } from "../../gateway/client.js";
 import { withTestDir } from "../../test-helpers/temp-dir.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
-import { extractStoredAssistantText, sanitizeTextContent } from "./chat-history-text.js";
+import { extractStoredAssistantText } from "./chat-history-text.js";
 
 const callGatewayMock = vi.fn();
 const inProcessGatewayRequestMock = vi.fn((opts: unknown) => callGatewayMock(opts));
@@ -381,13 +381,13 @@ async function executeFireAndForgetA2AFrom(
   return flowParams;
 }
 
-describe("sanitizeTextContent", () => {
+describe("extractStoredAssistantText sanitization", () => {
   it("strips minimax tool call XML and downgraded markers", () => {
     // Session recall should not replay provider/tool markup as assistant text.
     const input =
       'Hello <invoke name="tool">payload</invoke></minimax:tool_call> ' +
       "[Tool Call: foo (ID: 1)] world";
-    const result = sanitizeTextContent(input).trim();
+    const result = extractStoredAssistantText({ role: "assistant", content: input })?.trim();
     expect(result).toBe("Hello  world");
     expect(result).not.toContain("invoke");
     expect(result).not.toContain("Tool Call");
@@ -395,14 +395,14 @@ describe("sanitizeTextContent", () => {
 
   it("strips tool_result XML via the shared assistant-visible sanitizer", () => {
     const input = 'Prefix\n<tool_result>{"output":"hidden"}</tool_result>\nSuffix';
-    const result = sanitizeTextContent(input).trim();
+    const result = extractStoredAssistantText({ role: "assistant", content: input })?.trim();
     expect(result).toBe("Prefix\n\nSuffix");
     expect(result).not.toContain("tool_result");
   });
 
   it("strips thinking tags", () => {
     const input = "Before <think>secret</think> after";
-    const result = sanitizeTextContent(input).trim();
+    const result = extractStoredAssistantText({ role: "assistant", content: input })?.trim();
     expect(result).toBe("Before  after");
   });
 });
