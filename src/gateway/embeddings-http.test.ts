@@ -9,16 +9,25 @@ import {
 } from "node:http";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDeferred } from "../../test/helpers/promise.js";
 import { resolveAgentDir } from "../agents/agent-scope.js";
 import { createConfigIO, resetConfigRuntimeState } from "../config/config.js";
 import type {
   MemoryEmbeddingProviderAdapter,
   MemoryEmbeddingProviderCallOptions,
 } from "../plugins/memory-embedding-providers.js";
-import { createDeferred } from "../test-utils/deferred.js";
+import { adaptMemoryEmbeddingProviderAdapter } from "../plugins/memory-embedding-providers.js";
+import { createPluginRegistry } from "../plugins/registry.js";
+import type { PluginRuntime } from "../plugins/runtime/types.js";
 import { startOpenAiCompatGatewayServer } from "./openai-compatible-http.test-helpers.js";
-import { getFreePort, installGatewayTestHooks, testState } from "./test-helpers.js";
+import {
+  getGatewayTestPort,
+  installGatewayTestHooks,
+  resetTestPluginRegistry,
+  setTestPluginRegistry,
+  testState,
+} from "./test-helpers.js";
 
 installGatewayTestHooks({ scope: "suite" });
 
@@ -49,11 +58,10 @@ let embedBatchMock: ReturnType<
   >
 >;
 let closeEmbeddingProviderMock: ReturnType<typeof vi.fn<() => Promise<void> | void>>;
-let clearMemoryEmbeddingProviders: typeof import("../plugins/memory-embedding-providers.js").clearMemoryEmbeddingProviders;
-let registerMemoryEmbeddingProvider: typeof import("../plugins/memory-embedding-providers.js").registerMemoryEmbeddingProvider;
 let openAiAdapter: MemoryEmbeddingProviderAdapter;
 let drainRetainedOpenAiEmbeddingProviders: typeof import("./embeddings-http.js").drainRetainedOpenAiEmbeddingProviders;
 let clearEmbeddingProviders: typeof import("../plugins/embedding-providers.js").clearEmbeddingProviders;
+let registerEmbeddingProvider: typeof import("../plugins/embedding-providers.js").registerEmbeddingProvider;
 let enabledServer: Awaited<ReturnType<typeof startOpenAiCompatGatewayServer>>;
 let genericEmbeddingServer: { baseUrl: string; close: () => Promise<void> };
 let enabledPort: number;
@@ -124,9 +132,8 @@ async function startGenericEmbeddingServer(): Promise<{
 
 beforeAll(async () => {
   ({ drainRetainedOpenAiEmbeddingProviders } = await import("./embeddings-http.js"));
-  ({ clearMemoryEmbeddingProviders, registerMemoryEmbeddingProvider } =
-    await import("../plugins/memory-embedding-providers.js"));
-  ({ clearEmbeddingProviders } = await import("../plugins/embedding-providers.js"));
+  ({ clearEmbeddingProviders, registerEmbeddingProvider } =
+    await import("../plugins/embedding-providers.js"));
   embedBatchMock = vi.fn(async (texts: string[]) =>
     texts.map((_text, index) => [index + 0.1, index + 0.2]),
   );
@@ -142,8 +149,6 @@ beforeAll(async () => {
       },
     }),
   );
-  clearMemoryEmbeddingProviders();
-  clearEmbeddingProviders();
   genericEmbeddingServer = await startGenericEmbeddingServer();
   genericEmbeddingBaseUrl = genericEmbeddingServer.baseUrl;
   openAiAdapter = {
@@ -165,9 +170,8 @@ beforeAll(async () => {
       return result;
     },
   };
-  registerMemoryEmbeddingProvider(openAiAdapter);
   ({ startGatewayServer } = await import("./server.js"));
-  enabledPort = await getFreePort();
+  enabledPort = await getGatewayTestPort();
   enabledServer = await startOpenAiCompatGatewayServer({
     startGatewayServer,
     port: enabledPort,
@@ -176,11 +180,29 @@ beforeAll(async () => {
   });
 });
 
+beforeEach(() => {
+  const builder = createPluginRegistry({
+    logger: {
+      info() {},
+      warn() {},
+      error() {},
+      debug() {},
+    },
+    runtime: {} as PluginRuntime,
+    activateGlobalSideEffects: true,
+  });
+  setTestPluginRegistry(builder.registry);
+  registerEmbeddingProvider(adaptMemoryEmbeddingProviderAdapter(openAiAdapter));
+});
+
+afterEach(() => {
+  clearEmbeddingProviders();
+  resetTestPluginRegistry();
+});
+
 afterAll(async () => {
   await enabledServer.close({ reason: "embeddings http enabled suite done" });
   await genericEmbeddingServer.close();
-  clearMemoryEmbeddingProviders();
-  clearEmbeddingProviders();
   vi.resetModules();
 });
 
@@ -385,8 +407,16 @@ describe("OpenAI-compatible embeddings HTTP API (e2e)", () => {
 
   it("rejects explicit unknown agent ids", async () => {
     try {
-      testState.agentsConfig = { entries: { main: {}, beta: {} } };
+      testState.agentsConfig = { ownership: "explicit", entries: { main: {}, beta: {} } };
       resetConfigRuntimeState();
+
+      const missing = await postEmbeddings({ model: "openclaw", input: "hello" });
+      expect(missing.status).toBe(400);
+      const missingJson = (await missing.json()) as {
+        error?: { type?: string; message?: string };
+      };
+      expect(missingJson.error?.type).toBe("invalid_request_error");
+      expect(missingJson.error?.message).toContain("has no explicit owner");
 
       const header = await postEmbeddings(
         { model: "openclaw/default", input: "hello" },
@@ -408,6 +438,33 @@ describe("OpenAI-compatible embeddings HTTP API (e2e)", () => {
       input: [{ nope: true }],
     });
     await expectInvalidEmbeddingRequest(res);
+  });
+
+  it.each([
+    { name: "an empty string", input: "" },
+    { name: "an empty batch", input: [] },
+    { name: "an empty batch entry", input: [""] },
+    { name: "a mixed batch with an empty entry", input: ["valid", ""] },
+  ])("rejects $name before creating an embedding provider", async ({ input }) => {
+    const providersCreatedBefore = createEmbeddingProviderMock.mock.calls.length;
+    const res = await postEmbeddings({
+      model: "openclaw/default",
+      input,
+    });
+
+    await expectInvalidEmbeddingRequest(res, "`input` must contain at least one non-empty string.");
+    expect(createEmbeddingProviderMock).toHaveBeenCalledTimes(providersCreatedBefore);
+  });
+
+  it("preserves whitespace-only embedding input", async () => {
+    const input = " \t\n";
+    const res = await postEmbeddings({
+      model: "openclaw/default",
+      input,
+    });
+
+    await expectDefaultEmbeddingResponse(res);
+    expect(embedBatchMock.mock.calls.at(-1)?.[0]).toEqual([input]);
   });
 
   it("ignores narrower declared scopes for shared-secret bearer auth", async () => {
@@ -547,7 +604,7 @@ describe("OpenAI-compatible embeddings HTTP API (e2e)", () => {
   });
 
   it("rejects x-openclaw-model for trusted write-only callers", async () => {
-    const port = await getFreePort();
+    const port = await getGatewayTestPort();
     const server = await startOpenAiCompatGatewayServer({
       startGatewayServer,
       port,
