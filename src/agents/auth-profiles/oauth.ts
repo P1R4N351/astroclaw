@@ -6,7 +6,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { coerceSecretRef } from "../../config/types.secrets.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import {
@@ -28,7 +28,7 @@ import {
 } from "../../secrets/runtime-degraded-state.js";
 import { normalizeOptionalSecretInput } from "../../utils/normalize-secret-input.js";
 import { resolveProviderIdForAuth } from "../provider-auth-aliases.js";
-import { authProfilesLog } from "./constants.js";
+import { authProfilesLog, CLAUDE_CLI_PROFILE_ID } from "./constants.js";
 import {
   evaluateStoredCredentialEligibility,
   resolveTokenExpiryState,
@@ -257,6 +257,9 @@ async function tryResolveOAuthProfile(
   params: ResolveApiKeyForProfileParams,
 ): Promise<ResolveApiKeyForProfileResult | null> {
   const { cfg, store, profileId } = params;
+  if (isRetiredOAuthProfileId(profileId)) {
+    return null;
+  }
   const cred = store.profiles[profileId];
   if (!cred || cred.type !== "oauth") {
     return null;
@@ -291,6 +294,10 @@ async function tryResolveOAuthProfile(
     profileType: cred.type,
     credential: resolved.credential,
   });
+}
+
+function isRetiredOAuthProfileId(profileId: string): boolean {
+  return profileId === CLAUDE_CLI_PROFILE_ID;
 }
 
 function authProfileSecretRefKey(
@@ -380,6 +387,11 @@ export async function resolveApiKeyForProfile(
   const { cfg, store, profileId } = params;
   const storedProfile = store.profiles[profileId];
   if (!storedProfile) {
+    return null;
+  }
+  // Claude owns this native login slot. Legacy persisted copies must never
+  // resolve, refresh, or leave OpenClaw as bearer tokens.
+  if (isRetiredOAuthProfileId(profileId)) {
     return null;
   }
   const configForRefResolution = cfg ?? getRuntimeConfig();
