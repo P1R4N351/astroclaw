@@ -3,8 +3,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   telegramBotInfoForTest,
@@ -23,9 +23,9 @@ const { triggerInternalHookMock } = vi.hoisted(() => ({
   triggerInternalHookMock: vi.fn<(event: unknown) => Promise<void>>(async () => undefined),
 }));
 
-vi.mock("astroclaw/plugin-sdk/hook-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/hook-runtime")>(
-    "astroclaw/plugin-sdk/hook-runtime",
+vi.mock("openclaw/plugin-sdk/hook-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/hook-runtime")>(
+    "openclaw/plugin-sdk/hook-runtime",
   );
   return {
     ...actual,
@@ -33,7 +33,7 @@ vi.mock("astroclaw/plugin-sdk/hook-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/file-access-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/file-access-runtime", () => ({
   root: async (rootDir: string) => ({
     read: async (relativePath: string, options?: { maxBytes?: number }) =>
       await rootRead({ rootDir, relativePath, maxBytes: options?.maxBytes }),
@@ -223,9 +223,10 @@ function expectTypeOnlyMediaPayload(kind: string, rawBody = "") {
     media: [expect.objectContaining({ kind })],
     RawBody: rawBody,
   });
-  const media = payload.media as Array<{ path?: string }>;
+  const media = payload.media as Array<{ path?: string; fileName?: string }>;
   expect(media).toHaveLength(1);
   expect(media[0]?.path).toBeUndefined();
+  expect(media[0]?.fileName).toBeUndefined();
 }
 
 function setTelegramIngestGroupConfig(
