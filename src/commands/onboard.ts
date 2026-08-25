@@ -8,7 +8,7 @@ import { formatCliCommand } from "../cli/command-format.js";
 import { formatInvalidPortOption } from "../cli/error-format.js";
 import { readConfigFileSnapshot, resolveGatewayPort } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isValidEnvSecretRefId } from "../config/types.secrets.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
@@ -644,8 +644,7 @@ export async function setupWizardCommand(
   if (!normalizedOpts.nonInteractive && !hasInteractiveOnboardingTty()) {
     // Reset is destructive, so prove the selected interactive surface can run
     // before reading or moving any operator state.
-    runtime.error(t("wizard.guided.ttyRequired"));
-    runtime.exit(1);
+    rejectOption(normalizedOpts, runtime, t("wizard.guided.ttyRequired"));
     return;
   }
 
