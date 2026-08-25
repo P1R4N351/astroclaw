@@ -6,7 +6,7 @@
  * module cache across gateway restarts.
  *
  * Workspace, managed, and plugin hooks may be edited by the user between
- * restarts. For those we append `?t=<mtime>&s=<size>` so the module key
+ * restarts. For those we append `?t=<mtime>&c=<ctime>&s=<size>` so the module key
  * reflects on-disk changes while staying stable for unchanged files.
  */
 
@@ -18,7 +18,7 @@ import type { HookSource } from "./types.js";
  * Sources whose handler files never change between `npm install` runs.
  * Imports from these sources skip cache busting entirely.
  */
-const IMMUTABLE_SOURCES: ReadonlySet<HookSource> = new Set(["astroclaw-bundled"]);
+const IMMUTABLE_SOURCES: ReadonlySet<HookSource> = new Set(["openclaw-bundled"]);
 
 export function buildImportUrl(handlerPath: string, source: HookSource): string {
   const base = pathToFileURL(handlerPath).href;
@@ -29,8 +29,8 @@ export function buildImportUrl(handlerPath: string, source: HookSource): string 
 
   // Use file metadata so the cache key only changes when the file changes
   try {
-    const { mtimeMs, size } = fs.statSync(handlerPath);
-    return `${base}?t=${mtimeMs}&s=${size}`;
+    const { ctimeMs, mtimeMs, size } = fs.statSync(handlerPath);
+    return `${base}?t=${mtimeMs}&c=${ctimeMs}&s=${size}`;
   } catch {
     // If stat fails (unlikely), fall back to Date.now() to guarantee freshness
     return `${base}?t=${Date.now()}`;
