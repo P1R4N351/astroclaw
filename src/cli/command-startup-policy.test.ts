@@ -1,5 +1,5 @@
 // Command startup policy tests cover which CLI commands require startup side effects.
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cliCommandCatalog } from "./command-catalog.js";
 import { resolveCliExecutionStartupContext } from "./command-execution-startup.js";
@@ -328,6 +328,9 @@ describe("command-startup-policy", () => {
       }).hideBanner,
     ).toBe(true);
     expect(resolvePolicy({ commandPath: ["status"], env: {} }).hideBanner).toBe(false);
+    expect(
+      resolvePolicy({ commandPath: ["status"], jsonOutputMode: true, env: {} }).hideBanner,
+    ).toBe(true);
   });
 
   it("uses process env banner suppression when startup env is omitted", () => {
@@ -366,7 +369,7 @@ describe("command-startup-policy", () => {
       }),
     ).toEqual({
       suppressDoctorStdout: true,
-      hideBanner: false,
+      hideBanner: true,
       skipConfigGuard: true,
       loadPlugins: false,
       pluginRegistry: { scope: "channels" },
