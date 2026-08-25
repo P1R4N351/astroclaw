@@ -1,6 +1,6 @@
 // Message send tests cover outbound channel message dispatch and error handling.
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { OutboundDeliveryError } from "../../infra/outbound/deliver-types.js";
 import type { OutboundPayloadDeliveryOutcome } from "../../infra/outbound/deliver-types.js";
 import type { OutboundDeliveryIntent } from "../../infra/outbound/deliver.js";
@@ -216,6 +216,28 @@ describe("withDurableMessageSendContext", () => {
       channelDataCount: 1,
       items: [{ kinds: ["channelData"], hasChannelData: true }],
     });
+  });
+
+  it.each([
+    {
+      name: "title-only presentations",
+      payload: { presentation: { title: "Delivery failed: action required", blocks: [] } },
+      expected: { presentationCount: 1, items: [{ kinds: ["presentation"] }] },
+    },
+    {
+      name: "single attachments mirrored by the media alias",
+      payload: { mediaUrl: "/tmp/image.png", mediaUrls: ["/tmp/image.png"] },
+      expected: { mediaCount: 1, items: [{ mediaUrls: ["/tmp/image.png"] }] },
+    },
+  ])("keeps $name visible in durable live previews", async ({ payload, expected }) => {
+    await withDurableMessageSendContext(
+      { cfg, channel: "telegram", to: "chat-1", payloads: [payload] },
+      async (ctx) => {
+        const rendered = await ctx.render();
+        expect(rendered.plan).toMatchObject(expected);
+        expect((await ctx.previewUpdate(rendered)).lastRendered?.plan).toMatchObject(expected);
+      },
+    );
   });
 
   it("forwards the durable send context signal to outbound delivery", async () => {
