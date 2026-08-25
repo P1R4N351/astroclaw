@@ -1,12 +1,12 @@
 // Slack plugin module implements action runtime behavior.
-import { normalizeAccountId } from "openclaw/plugin-sdk/account-resolution";
-import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
-import { readBooleanParam } from "openclaw/plugin-sdk/boolean-param";
-import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
-import { resolveOpenProviderRuntimeGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";
-import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeAccountId } from "astroclaw/plugin-sdk/account-resolution";
+import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
+import { readBooleanParam } from "astroclaw/plugin-sdk/boolean-param";
+import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
+import { resolveOpenProviderRuntimeGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";
+import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import type { ResolvedSlackAccount } from "./accounts.js";
 import {
   resolveSlackAutoThreadId,
@@ -925,7 +925,8 @@ export async function handleSlackAction(
         if (!downloaded) {
           return jsonResult({
             ok: false,
-            error: "File could not be downloaded (not found, too large, or inaccessible).",
+            error:
+              "File could not be downloaded. Confirm the fileId came from the requested Slack channel or explicit thread and that the file is accessible and within the size limit.",
           });
         }
         if (!isImageContentType(downloaded.contentType)) {
