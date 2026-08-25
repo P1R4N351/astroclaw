@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   ProviderModelRouteCandidate,
   ProviderModelRouteResolution,
@@ -144,6 +144,33 @@ describe("createModelAuthAvailabilityResolver", () => {
       routeResolution: null,
       selectedAuthMode: "api_key",
     });
+  });
+
+  it("keeps prepared native-runtime authentication scoped to its exact owner", () => {
+    const metadataSnapshot = {
+      index: { plugins: [] },
+      plugins: [
+        {
+          id: "anthropic",
+          origin: "bundled",
+          providerAuthAliases: { "claude-cli": "anthropic" },
+        },
+      ],
+    } as unknown as PluginMetadataSnapshot;
+    const resolver = createModelAuthAvailabilityResolver({
+      cfg: {},
+      authStore: authStore(),
+      env: {},
+      metadataSnapshot,
+      preparedRuntimeAuthModes: { "claude-cli": "api_key" },
+    });
+
+    expect(resolver.evaluateModelAuth("claude-cli")).toMatchObject({
+      availability: true,
+      evidence: "runtime",
+      selectedAuthMode: "api_key",
+    });
+    expect(resolver.evaluateModelAuth("anthropic").availability).not.toBe(true);
   });
 
   it.each([
