@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
 import type { GatewayRequestContext } from "./server-methods/types.js";
 import type { GatewayPostReadySidecarHandle } from "./server-startup-post-attach.js";
@@ -67,6 +67,10 @@ export async function createGatewayChatMetadataLifecycle(params: {
     ]);
     const unregisterPreparedModelRuntimePublication =
       registerPreparedModelRuntimePublicationListener((event) => {
+        if (event.phase === "catalog-published") {
+          invalidateForSubordinateChange();
+          return;
+        }
         preparedModelRuntimeEventVersion += 1;
         if (event.phase === "invalidated") {
           preparedModelRuntimeAvailable = false;
