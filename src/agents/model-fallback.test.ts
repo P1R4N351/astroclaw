@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Covers model fallback ordering, error classification, and auth cooldown behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TranscriptNotContinuableError } from "../../packages/agent-core/src/errors.js";
 import type { OpenClawConfig } from "../config/config.js";
@@ -2265,7 +2265,23 @@ describe("runWithModelFallback", () => {
           }),
         }),
     ],
-  ])("aborts fallback on %s device capacity failures", async (_label, makeError) => {
+    [
+      "workspace reconciliation",
+      () =>
+        Object.assign(new Error("cloud worker workspace result could not be reconciled"), {
+          name: "WorkerWorkspaceReconciliationError",
+        }),
+    ],
+    [
+      "wrapped workspace reconciliation",
+      () =>
+        new Error("worker turn failed", {
+          cause: Object.assign(new Error("cloud worker workspace result could not be reconciled"), {
+            name: "WorkerWorkspaceReconciliationError",
+          }),
+        }),
+    ],
+  ])("aborts fallback on %s worker coordination failures", async (_label, makeError) => {
     const error = makeError();
     const run = vi.fn().mockRejectedValueOnce(error).mockResolvedValueOnce("too late");
     const onError = vi.fn();
