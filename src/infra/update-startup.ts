@@ -13,7 +13,7 @@ import type {
 } from "../../packages/gateway-protocol/src/index.js";
 import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   refreshRemoteModelCatalog,
   REMOTE_MODEL_CATALOG_TTL_MS,
@@ -25,7 +25,6 @@ import {
   runOpenClawStateWriteTransaction,
 } from "../state/openclaw-state-db.js";
 import { VERSION } from "../version.js";
-import { resolveOpenClawPackageRoot } from "./astroclaw-root.js";
 import { isTruthyEnvValue } from "./env.js";
 import type { GatewayActiveWorkInspectors } from "./gateway-active-work.js";
 import {
@@ -37,6 +36,7 @@ import {
   executeSqliteQueryTakeFirstSync,
   getNodeSqliteKysely,
 } from "./kysely-sync.js";
+import { resolveOpenClawPackageRoot } from "./openclaw-root.js";
 import { readVerifiedGitUpdateReceipt, type VerifiedGitUpdateReceipt } from "./restart-sentinel.js";
 import {
   normalizeGatewayRestartDelayMs,
@@ -64,7 +64,7 @@ import {
 import { CONTROL_PLANE_UPDATE_HANDOFF_STARTED_REASON } from "./update-control-plane-sentinel.js";
 import {
   applyDevUpdateTargetEnv,
-  devUpdateTargetFromGitCampaign,
+  devUpdateTargetFromGitTarget,
   type TrackedDevUpdateTarget,
 } from "./update-dev-target.js";
 import { updateInstallRootsMatch } from "./update-install-root.js";
@@ -1121,7 +1121,7 @@ export async function runGatewayUpdateCheck(params: {
               tag: "dev",
               forced,
               root: root ?? status.root ?? undefined,
-              devTarget: devUpdateTargetFromGitCampaign(target),
+              devTarget: devUpdateTargetFromGitTarget(target),
               log: params.log,
               runAuto,
             }),
