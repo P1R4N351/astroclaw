@@ -1,12 +1,12 @@
 // Vercel Ai Gateway tests cover provider catalog plugin behavior.
-import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { fetchWithSsrFGuardMock } = vi.hoisted(() => ({
   fetchWithSsrFGuardMock: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: fetchWithSsrFGuardMock,
   ssrfPolicyFromHttpBaseUrlAllowedHostname: (baseUrl: string) => ({
     allowedHostnames: [new URL(baseUrl).hostname],
@@ -126,6 +126,43 @@ describe("vercel ai gateway provider catalog", () => {
     });
     expect(resolveVercelAiGatewayModel("anthropic/claude-sonnet-4-6")).toMatchObject({
       input: ["text", "image"],
+    });
+  });
+
+  it("excludes non-language models while preserving vision and legacy catalog rows", async () => {
+    fetchWithSsrFGuardMock.mockResolvedValueOnce({
+      response: jsonResponse({
+        data: [
+          {
+            id: "alibaba/qwen3-235b-a22b-thinking",
+            type: "language",
+            tags: ["vision", "reasoning"],
+          },
+          ...[
+            ["embedding", "alibaba/qwen3-embedding-0.6b"],
+            ["image", "bfl/flux-2-flex"],
+            ["video", "alibaba/wan-v2.5-t2v-preview"],
+            ["reranking", "cohere/rerank-v3.5"],
+            ["speech", "fish-audio/s1"],
+            ["transcription", "fish-audio/transcribe-1"],
+            ["realtime", "openai/gpt-realtime-1.5"],
+          ].map(([type, id]) => ({ id, type })),
+          { id: "custom/legacy-model" },
+        ],
+      }),
+      release: async () => {},
+      finalUrl: `${VERCEL_AI_GATEWAY_BASE_URL}/v1/models`,
+    });
+
+    await withLiveDiscovery(async () => {
+      expect((await buildVercelAiGatewayProvider()).models).toMatchObject([
+        {
+          id: "alibaba/qwen3-235b-a22b-thinking",
+          reasoning: true,
+          input: ["text", "image"],
+        },
+        { id: "custom/legacy-model", input: ["text"] },
+      ]);
     });
   });
 
