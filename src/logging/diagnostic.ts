@@ -3,7 +3,7 @@ import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import { resolveCompactionTimeoutMs } from "../agents/embedded-agent-runner/compaction-safety-timeout.js";
 import { getRuntimeConfig } from "../config/config.js";
 import { resolveAllAgentSessionStoreTargetsSync } from "../config/sessions/targets.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   areDiagnosticsEnabledForProcess,
   emitInternalDiagnosticEvent as emitDiagnosticEvent,
@@ -1266,17 +1266,15 @@ export function startDiagnosticHeartbeat(
         activity,
         staleMs: stuckSessionWarnMs,
       });
-      const repeatedRequestAttention =
-        state.state === "processing" &&
-        (activity.repeatedRequestNoProgressAgeMs ?? 0) > stuckSessionWarnMs;
+      // Inbound traffic refreshes session age; owned work stalls on its progress clock.
+      const ownedWorkAgeMs = activity.activeWorkKind ? (activity.lastProgressAgeMs ?? 0) : 0;
+      const attentionAgeMs = idleQueuedRecoverableStall
+        ? (activity.lastProgressAgeMs ?? ageMs)
+        : Math.max(ageMs, activity.repeatedRequestNoProgressAgeMs ?? 0, ownedWorkAgeMs);
       if (
-        (state.state === "processing" && ageMs > stuckSessionWarnMs) ||
-        repeatedRequestAttention ||
+        (state.state === "processing" && attentionAgeMs > stuckSessionWarnMs) ||
         idleQueuedRecoverableStall
       ) {
-        const attentionAgeMs = idleQueuedRecoverableStall
-          ? (activity.lastProgressAgeMs ?? ageMs)
-          : Math.max(ageMs, activity.repeatedRequestNoProgressAgeMs ?? 0);
         const classification = logSessionAttention({
           sessionId: state.sessionId,
           sessionKey: state.sessionKey,
