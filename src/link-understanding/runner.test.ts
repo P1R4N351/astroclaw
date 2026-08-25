@@ -1,7 +1,7 @@
 // Link-understanding runner tests cover guarded fetches, command execution, scoping, and template behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { LinkModelConfig } from "../config/types.tools.js";
 import { fetchWithSsrFGuard } from "../infra/net/fetch-guard.js";
 import { runCommandWithTimeout } from "../process/exec.js";
@@ -70,6 +70,39 @@ describe("runLinkUnderstanding", () => {
   beforeEach(() => {
     mocks.fetchWithSsrFGuard.mockReset();
     mocks.runCommandWithTimeout.mockReset();
+  });
+
+  it("applies shared media scope rules to link message context", async () => {
+    const result = await runLinkUnderstanding({
+      cfg: {
+        tools: {
+          links: {
+            enabled: true,
+            scope: {
+              default: "allow",
+              rules: [
+                {
+                  action: "deny",
+                  match: { channel: "slack", chatType: "channel", keyPrefix: "agent:main:" },
+                },
+              ],
+            },
+            models: [{ type: "cli", command: "summarize" }],
+          },
+        },
+      } as OpenClawConfig,
+      ctx: {
+        Body: "see https://example.com/page",
+        ChatType: "channel",
+        Provider: "discord",
+        SessionKey: "agent:main:slack:channel:C123",
+        Surface: "slack",
+      } as MsgContext,
+    });
+
+    expect(result).toEqual({ urls: [], outputs: [] });
+    expect(fetchWithSsrFGuard).not.toHaveBeenCalled();
+    expect(runCommandWithTimeout).not.toHaveBeenCalled();
   });
 
   it("fetches links through the SSRF guard before passing content to CLI stdin", async () => {
