@@ -2,8 +2,8 @@
 import {
   embeddedAgentLog,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { formatCodexDisplayText } from "../command-formatters.js";
 import {
   createCodexElicitationResponse,
@@ -97,6 +97,16 @@ export async function routeCodexAppServerElicitationRequest(params: {
   if (requestTurnId !== null && requestTurnId !== undefined && requestTurnId !== params.turnId) {
     return { kind: "not-mine" };
   }
+  const meta = isJsonObject(requestParams["_meta"]) ? requestParams["_meta"] : undefined;
+  const approvalShaped =
+    meta?.[MCP_TOOL_APPROVAL_KIND_KEY] === MCP_TOOL_APPROVAL_KIND ||
+    (params.computerUseMcpServerName !== undefined &&
+      readNonBlankStringField(requestParams, "serverName") === params.computerUseMcpServerName);
+  // Plugin ownership identifies which approval policy applies; it does not turn
+  // ordinary MCP forms or OAuth URLs into destructive-action approvals.
+  if (!approvalShaped) {
+    return { kind: "not-mine" };
+  }
   const pluginResolution = resolvePluginElicitation({
     requestParams,
     pluginAppPolicyContext: params.pluginAppPolicyContext,
@@ -128,14 +138,7 @@ export async function routeCodexAppServerElicitationRequest(params: {
     readComputerUseApprovalElicitation(requestParams, params.computerUseMcpServerName) ??
     readBridgeableApprovalElicitation(requestParams);
   if (!approvalPrompt) {
-    const meta = isJsonObject(requestParams["_meta"]) ? requestParams["_meta"] : undefined;
-    const approvalShaped =
-      meta?.[MCP_TOOL_APPROVAL_KIND_KEY] === MCP_TOOL_APPROVAL_KIND ||
-      (params.computerUseMcpServerName !== undefined &&
-        readNonBlankStringField(requestParams, "serverName") === params.computerUseMcpServerName);
-    return approvalShaped
-      ? handled(createCodexElicitationResponse("decline"))
-      : { kind: "not-mine" };
+    return handled(createCodexElicitationResponse("decline"));
   }
 
   const outcome = await requestPluginApprovalOutcome({
