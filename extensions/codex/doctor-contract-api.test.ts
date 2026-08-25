@@ -5,13 +5,13 @@ import path from "node:path";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import type {
   OpenKeyedStoreOptions,
   PluginDoctorStateMigrationContext,
-} from "astroclaw/plugin-sdk/runtime-doctor-migrations";
-import { getSessionEntry, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+} from "openclaw/plugin-sdk/runtime-doctor-migrations";
+import { getSessionEntry, upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   legacyConfigRules,
@@ -192,8 +192,9 @@ describe("codex doctor contract", () => {
     ).toBe(false);
   });
 
-  it("reports the retired on-failure app-server approval policy", () => {
+  it("reports retired app-server approval policies", () => {
     expect(legacyConfigRules[2]?.match({ approvalPolicy: "on-failure" })).toBe(true);
+    expect(legacyConfigRules[2]?.match({ approvalPolicy: "untrusted" })).toBe(true);
     expect(legacyConfigRules[2]?.match({ approvalPolicy: "on-request" })).toBe(false);
   });
 
@@ -1373,7 +1374,7 @@ describe("codex doctor contract", () => {
     const result = normalizeCompatibilityConfig({ cfg: original });
 
     expect(result.changes).toEqual([
-      'Renamed plugins.entries.codex.config.appServer.approvalPolicy="on-failure" to "on-request".',
+      'Renamed retired plugins.entries.codex.config.appServer.approvalPolicy to "on-request".',
     ]);
     expect(result.config.plugins?.entries?.codex?.config).toEqual({
       appServer: {
@@ -1382,6 +1383,37 @@ describe("codex doctor contract", () => {
       },
     });
     expect(original.plugins.entries.codex.config.appServer.approvalPolicy).toBe("on-failure");
+  });
+
+  it("renames the retired app-server untrusted approval policy", () => {
+    const original = {
+      plugins: {
+        entries: {
+          codex: {
+            enabled: true,
+            config: {
+              appServer: {
+                approvalPolicy: "untrusted",
+                sandbox: "workspace-write",
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = normalizeCompatibilityConfig({ cfg: original });
+
+    expect(result.changes).toEqual([
+      'Renamed retired plugins.entries.codex.config.appServer.approvalPolicy to "on-request".',
+    ]);
+    expect(result.config.plugins?.entries?.codex?.config).toEqual({
+      appServer: {
+        approvalPolicy: "on-request",
+        sandbox: "workspace-write",
+      },
+    });
+    expect(original.plugins.entries.codex.config.appServer.approvalPolicy).toBe("untrusted");
   });
 });
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
