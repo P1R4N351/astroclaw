@@ -9,8 +9,8 @@ import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { tryResolveLegacyCompatibilityAgentId } from "../config/legacy.default-agent-owner.js";
 import type { AgentModelEntryConfig } from "../config/types.agent-defaults.js";
 import type { AgentRuntimePolicyConfig } from "../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ModelDefinitionConfig, ModelProviderConfig } from "../config/types.models.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { listAgentEntries, resolveSessionAgentIds } from "./agent-scope.js";
 
@@ -22,6 +22,7 @@ type ResolvedModelRuntimePolicy = {
   policy?: AgentRuntimePolicyConfig;
   source?: ModelRuntimePolicySource;
   matchedProvider?: string;
+  forcedByEnvironment?: true;
 };
 
 type ModelEntryMatchKind = "none" | "exact" | "provider-wildcard";
@@ -222,7 +223,7 @@ export function resolveModelRuntimePolicy(params: {
   if (process.env.OPENCLAW_BUILD_PRIVATE_QA === "1") {
     const forcedRuntime = process.env.OPENCLAW_QA_FORCE_RUNTIME?.trim().toLowerCase();
     if (forcedRuntime === "openclaw" || forcedRuntime === "codex") {
-      return { policy: { id: forcedRuntime }, source: "model" };
+      return { policy: { id: forcedRuntime }, source: "model", forcedByEnvironment: true };
     }
   }
 
