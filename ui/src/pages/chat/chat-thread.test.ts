@@ -1,7 +1,7 @@
 import { expectDefined } from "@astroclaw/normalization-core";
 // @vitest-environment node
 // Control UI tests cover build chat items behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { markInboundContextLabel } from "../../../../src/auto-reply/reply/inbound-context-marker.js";
 import type { MessageGroup } from "../../lib/chat/chat-types.ts";
@@ -3409,16 +3409,26 @@ describe("buildCachedChatItems", () => {
     });
   });
 
-  it("keeps failed queued sends out of the thread", () => {
+  it("keeps failed submitted sends in the thread for inline retry", () => {
     const groups = messageGroups({
       queue: [
-        queuedSend("failed-send-1", "restore me to the composer", 1, "failed", {
+        queuedSend("failed-send-1", "retry me from the transcript", 1, "failed", {
+          sendError: "send failed",
           sendSubmittedAtMs: 10,
         }),
       ],
     });
 
-    expect(groups).toStrictEqual([]);
+    expect(groups).toHaveLength(1);
+    expect(messageRecord(groupAt(groups, 0))).toMatchObject({
+      content: [{ type: "text", text: "retry me from the transcript" }],
+      __openclaw: {
+        id: "failed-send-1",
+        kind: "pending-send",
+        state: "failed",
+        error: "send failed",
+      },
+    });
   });
 
   it("filters submitted queued sends while chat search is active", () => {
