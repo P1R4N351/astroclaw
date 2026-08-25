@@ -12,7 +12,7 @@ import {
   listSessionEntriesReadOnly,
   updateSessionEntry,
 } from "../../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { OPENCLAW_EMBEDDED_CONTEXT_ENGINE_HOST } from "../../../context-engine/host-compat.js";
 import type { AssembleResult } from "../../../context-engine/types.js";
 import { resolveHeartbeatSummaryForAgent } from "../../../infra/heartbeat-summary.js";
@@ -456,7 +456,11 @@ export async function prepareEmbeddedAttemptHistory(input: {
       policy: input.transcriptPolicy,
     });
 
-    if (attempt.sessionKey && !isSettledTurnFinalization) {
+    if (
+      attempt.sessionKey &&
+      attempt.sessionPersistence !== "detached" &&
+      !isSettledTurnFinalization
+    ) {
       const storePath = resolveSessionStorePathCore(attempt.config?.session?.store, {
         agentId: input.sessionAgentId,
       });
