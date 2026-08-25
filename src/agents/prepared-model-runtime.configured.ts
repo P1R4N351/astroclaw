@@ -7,8 +7,8 @@ import {
   parseModelCatalogRef,
 } from "@astroclaw/model-catalog-core/model-catalog-refs";
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import { MODEL_APIS } from "../config/types.models.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
 import {
   normalizePluginDiscoveryResult,
@@ -75,6 +75,7 @@ export function toStaticCatalogEntry(model: ProviderRuntimeModel): ModelCatalogE
     ...(model.contextWindowDefault ? { contextWindowDefault: model.contextWindowDefault } : {}),
     ...(model.contextTokens ? { contextTokens: model.contextTokens } : {}),
     ...(model.reasoning !== undefined ? { reasoning: model.reasoning } : {}),
+    ...(model.thinkingLevelMap ? { thinkingLevelMap: model.thinkingLevelMap } : {}),
     ...(model.input ? { input: model.input } : {}),
     ...(model.params ? { params: model.params } : {}),
     ...(model.compat ? { compat: model.compat } : {}),
