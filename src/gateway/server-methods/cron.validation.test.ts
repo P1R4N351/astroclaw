@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../test/helpers/promise.js";
 import { createOperationalRunInstanceRef } from "../../agents/admitted-run-context.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { CronRuntimeAuthority } from "../../cron/runtime-authority.js";
 import { CronService, type CronEvent } from "../../cron/service.js";
 import { createCronStoreHarness, createNoopLogger } from "../../cron/service.test-harness.js";
@@ -1366,6 +1366,36 @@ describe("cron method validation", () => {
       accountId: "work",
     });
     expectCronSuccess(respond);
+  });
+
+  it("stamps the authenticated profile as private cron creator provenance", async () => {
+    const client: GatewayClient = {
+      connect: {} as GatewayClient["connect"],
+      authenticatedUserProfile: {
+        profileId: "profile-ada",
+        displayName: "Ada",
+        hasAvatar: false,
+        updatedAt: 1,
+      },
+    };
+
+    const { context, respond } = await invokeCronAdd(agentTurnCronParams(), { client });
+
+    const options = requireRecord(context.cron.add.mock.calls[0]?.[1], "cron.add options");
+    expect(options.createdActor).toEqual({ type: "human", id: "profile-ada" });
+    expect(requireCronAddPayload(context)).not.toHaveProperty("createdActor");
+    expectCronSuccess(respond);
+  });
+
+  it("rejects caller-supplied cron creator provenance", async () => {
+    const { context, respond } = await invokeCronAdd(
+      agentTurnCronParams({
+        createdActor: { type: "human", id: "spoofed-profile" },
+      }),
+    );
+
+    expect(context.cron.add).not.toHaveBeenCalled();
+    expectResponseError(respond, { code: "INVALID_REQUEST" });
   });
 
   it("consumes an exact live configured-MCP grant once at cron.add commit", async () => {
