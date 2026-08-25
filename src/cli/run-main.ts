@@ -7,7 +7,7 @@ import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { Command as CommanderCommand, Option as CommanderOption } from "commander";
 import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { resolveGatewayPort, resolveStateDir } from "../config/paths.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
 import { isLoopbackAddress, isSecureWebSocketUrl } from "../gateway/net.js";
 import { normalizeWebSocketProtocol } from "../gateway/websocket-protocol.js";
 import {
@@ -1497,17 +1497,19 @@ async function runCliWithPreparedOutputMode(
       return;
     }
 
-    const { tryRouteCli } = await startupTrace.measure("route-import", () => import("./route.js"));
-    const routed = await startupTrace.measure(
-      "route",
-      () =>
-        options.builtInMachineOutput
-          ? tryRouteCli(normalizedArgv, { machineOutput: true })
-          : tryRouteCli(normalizedArgv),
-      { timeline: false },
-    );
-    if (routed) {
-      return;
+    if (!isHelpOrVersionInvocation) {
+      const route = await startupTrace.measure("route-import", () => import("./route.js"));
+      const routed = await startupTrace.measure(
+        "route",
+        () =>
+          options.builtInMachineOutput
+            ? route.tryRouteCli(normalizedArgv, { machineOutput: true })
+            : route.tryRouteCli(normalizedArgv),
+        { timeline: false },
+      );
+      if (routed) {
+        return;
+      }
     }
 
     let parseArgv = normalizeGeneratedHelpCommandArgv(normalizedArgv);
