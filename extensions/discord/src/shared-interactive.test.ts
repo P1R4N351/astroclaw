@@ -1,9 +1,9 @@
 // Discord tests cover shared interactive plugin behavior.
-import { buildApprovalResolutionRef } from "astroclaw/plugin-sdk/approval-reference-runtime";
+import { buildApprovalResolutionRef } from "openclaw/plugin-sdk/approval-reference-runtime";
 import type {
   MessagePresentation,
   MessagePresentationAction,
-} from "astroclaw/plugin-sdk/interactive-runtime";
+} from "openclaw/plugin-sdk/interactive-runtime";
 import { describe, expect, it } from "vitest";
 import { parseExecApprovalData } from "./approval-custom-id.js";
 import { buildDiscordActivityCustomId } from "./component-custom-id.js";
@@ -95,6 +95,59 @@ describe("buildDiscordInteractiveComponents", () => {
           buttons: [{ label: "Docs", style: "link", url: "https://example.com/docs" }],
         },
       ],
+    });
+  });
+
+  it.each([
+    {
+      name: "approval",
+      action: {
+        type: "approval" as const,
+        approvalId: "approval-1",
+        approvalKind: "exec" as const,
+        decision: "allow-once" as const,
+      },
+      expected: {
+        internalCustomId: "execapproval:kind=exec;id=approval-1;action=allow-once",
+      },
+    },
+    {
+      name: "callback",
+      action: { type: "callback" as const, value: "plugin:opaque|value" },
+      expected: { callbackData: "plugin:opaque|value", callbackDataKind: "callback" },
+    },
+    {
+      name: "command",
+      action: { type: "command" as const, command: "/codex inspect" },
+      expected: { callbackData: "/codex inspect", callbackDataKind: "command" },
+    },
+    {
+      name: "question",
+      action: {
+        type: "question" as const,
+        questionId: "ask_0123456789abcdef0123456789abcdef",
+        optionValue: "Production",
+      },
+      expected: { internalCustomId: "ocq:id=ask_0123456789abcdef0123456789abcdef;i=1" },
+    },
+  ])("preserves typed $name authority through the legacy renderer", ({ action, expected }) => {
+    expect(
+      buildDiscordInteractiveComponents({
+        blocks: [
+          {
+            type: "buttons",
+            buttons: [
+              {
+                label: "Unavailable",
+                action: { type: "web-app", widgetId: "invalid" },
+              },
+              { label: "Continue", action },
+            ],
+          },
+        ],
+      }),
+    ).toMatchObject({
+      blocks: [{ type: "actions", buttons: [{ label: "Continue", ...expected }] }],
     });
   });
 
