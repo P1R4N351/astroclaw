@@ -1,7 +1,7 @@
 // Talk provider types describe realtime voice provider configuration and APIs.
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { TalkTransport } from "./talk-events.js";
 
 export type RealtimeVoiceProviderId = string;
@@ -271,6 +271,7 @@ type RealtimeVoiceBrowserWebRtcSdpSession = {
   clientSecret: string;
   offerUrl?: string;
   offerHeaders?: Record<string, string>;
+  offerResponseMaxBytes?: number;
   model?: string;
   voice?: string;
   expiresAt?: number;
