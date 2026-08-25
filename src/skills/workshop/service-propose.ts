@@ -1,5 +1,5 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { sha256Hex } from "../../infra/crypto-digest.js";
 import { buildWorkspaceSkillStatus, resolveSkillStatusEntry } from "../discovery/status.js";
 import {
@@ -8,7 +8,6 @@ import {
 } from "../lifecycle/workspace-skill-write.js";
 import { resolveSkillWorkshopConfig } from "./config.js";
 import { stripProposalFrontmatterForSkill } from "./frontmatter.js";
-import { isWorkshopOwnedSkillDir } from "./ownership.js";
 import { createSkillProposalEvent, dispatchSkillProposalChanged } from "./plugin-hooks.js";
 import { prepareSkillProposalDraft, resolveUpdateProposalDescription } from "./proposal-draft.js";
 import { createSkillProposalGenerationDraftFile } from "./proposal-generation.js";
@@ -220,15 +219,6 @@ export async function proposeUpdateSkill(
     throw new Error(`Skill not found: ${skillName}`);
   }
   assertWritableSkillTarget(input.workspaceDir, targetSkill);
-  if (
-    !isWorkshopOwnedSkillDir(
-      input.workspaceDir,
-      targetSkill.baseDir,
-      proposalStoreOptions(input.env),
-    )
-  ) {
-    throw new Error(`Skill Workshop does not own this skill path: ${targetSkill.skillKey}`);
-  }
   const currentContent = await readWorkspaceSkillFile(targetSkill.filePath);
   if (currentContent === null) {
     throw new Error(`Skill file is missing: ${targetSkill.filePath}`);
