@@ -1,15 +1,15 @@
-import { calculateCost, type Usage } from "astroclaw/plugin-sdk/llm";
+import { calculateCost, type Usage } from "openclaw/plugin-sdk/llm";
 import type {
   ProviderResolveDynamicModelContext,
   ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import {
   capturePluginRegistration,
   registerSingleProviderPlugin,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 // Anthropic tests cover index plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { readClaudeCliCredentialsForSetupMock, readClaudeCliCredentialsForRuntimeMock } = vi.hoisted(
@@ -97,6 +97,7 @@ describe("anthropic provider replay hooks", () => {
     expect(backend.bundleMcp).toBe(true);
     expectFields(backend.config, {
       command: "claude",
+      freshSessionRecovery: "invalidated-only",
       modelArg: "--model",
       sessionArgs: ["--session-id", "{sessionId}"],
     });
