@@ -4,7 +4,7 @@ import {
   resolveMergedModelProviderConfig,
   resolveMergedModelProviderModels,
 } from "../config/model-provider-config.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { ProviderModelRouteCandidate } from "../plugin-sdk/provider-model-types.js";
 import type { ModelCatalogEntry } from "./model-catalog.types.js";
 import { splitTrailingAuthProfile } from "./model-ref-profile.js";
@@ -36,7 +36,13 @@ export type ModelCatalogRouteProjection =
 type ModelCatalogLogicalOverrides = Partial<
   Pick<
     ModelCatalogEntry,
-    "name" | "contextWindow" | "contextTokens" | "reasoning" | "configuredReasoning" | "input"
+    | "name"
+    | "contextWindow"
+    | "contextTokens"
+    | "reasoning"
+    | "configuredReasoning"
+    | "thinkingLevelMap"
+    | "input"
   >
 >;
 
@@ -69,6 +75,7 @@ export function resolveConfiguredModelCatalogOverrides(params: {
     ...(model?.contextTokens !== undefined ? { contextTokens: model.contextTokens } : {}),
     ...(model?.reasoning !== undefined ? { reasoning: model.reasoning } : {}),
     ...(model?.reasoning !== undefined ? { configuredReasoning: model.reasoning } : {}),
+    ...(model?.thinkingLevelMap ? { thinkingLevelMap: model.thinkingLevelMap } : {}),
     ...(model?.input !== undefined ? { input: model.input } : {}),
   };
   return Object.keys(overrides).length > 0 ? overrides : undefined;
@@ -180,6 +187,7 @@ export function projectModelCatalogEntryForRoute(params: {
       ...(donor?.contextWindow !== undefined ? { contextWindow: donor.contextWindow } : {}),
       ...(donor?.contextTokens !== undefined ? { contextTokens: donor.contextTokens } : {}),
       ...(donor?.reasoning !== undefined ? { reasoning: donor.reasoning } : {}),
+      ...(donor?.thinkingLevelMap ? { thinkingLevelMap: donor.thinkingLevelMap } : {}),
       ...(donor?.input !== undefined ? { input: donor.input } : {}),
     },
     params.overrides,
