@@ -6,8 +6,8 @@ import {
 import { sanitizeUserFacingText } from "../../agents/embedded-agent-helpers/sanitize-user-facing-text.js";
 import { renderUserFacingText } from "../../agents/embedded-agent-helpers/user-facing-text.js";
 import type { MessagingToolSend } from "../../agents/embedded-agent-messaging.types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ReplyToMode } from "../../config/types.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { logVerbose } from "../../globals.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import { stripLegacyBracketToolCallBlocks } from "../../shared/text/assistant-visible-text.js";
@@ -23,11 +23,7 @@ import { SILENT_REPLY_TOKEN } from "../tokens.js";
 import type { ReplyPayload, ReplyThreadingPolicy } from "../types.js";
 import { formatBunFetchSocketError, isBunFetchSocketError } from "./agent-runner-utils.js";
 import { createBlockReplyContentKey, type BlockReplyPipeline } from "./block-reply-pipeline.js";
-import {
-  resolveOriginAccountId,
-  resolveOriginMessageProvider,
-  resolveOriginMessageTo,
-} from "./origin-routing.js";
+import { resolveOriginMessageProvider } from "./origin-routing.js";
 import { normalizeReplyPayloadDirectives } from "./reply-delivery.js";
 import {
   applyReplyThreading,
@@ -234,9 +230,7 @@ export async function buildReplyPayloads(params: {
     originatingChannel: params.originatingChannel,
     provider: params.messageProvider,
   });
-  const accountId = resolveOriginAccountId({
-    originatingAccountId: params.accountId,
-  });
+  const accountId = params.accountId;
   const replyDelivery = createReplyDeliveryContext(params.replyToMode, params.originatingChatType);
   const replyDeliverySource = messageProvider
     ? {
@@ -299,9 +293,7 @@ export async function buildReplyPayloads(params: {
   let dedupedPayloads = threadedPayloads;
   if (shouldCheckMessagingToolDedupe) {
     const dedupeRuntime = await loadReplyPayloadsDedupeRuntime();
-    const originatingTo = resolveOriginMessageTo({
-      originatingTo: params.originatingTo,
-    });
+    const originatingTo = params.originatingTo;
     dedupedPayloads = [];
     for (const payload of threadedPayloads) {
       // Source mirrors exist because an internal sink send must reach the UI and
