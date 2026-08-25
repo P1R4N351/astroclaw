@@ -1,10 +1,10 @@
 // Covers assistant error formatting for streaming, sandbox, and context errors.
 import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { MALFORMED_STREAMING_FRAGMENT_ERROR_MESSAGE } from "../../shared/assistant-error-format.js";
 import { makeAssistantMessageFixture } from "../test-helpers/assistant-message-fixtures.js";
-import { formatAssistantErrorText } from "./error-text.js";
+import { formatAssistantErrorText, formatUserFacingAssistantErrorText } from "./error-text.js";
 
 const { toolPolicyAuditInfo } = vi.hoisted(() => ({
   toolPolicyAuditInfo: vi.fn(),
@@ -47,6 +47,15 @@ describe("formatAssistantErrorText streaming JSON parse classification", () => {
       "Expected ',' or '}' after property value in JSON at position 334 (line 1 column 335)",
     );
   });
+
+  it.each(["request timed out", "LLM request timed out."])(
+    "preserves safe user-facing timeout copy for provider error %j",
+    (errorMessage) => {
+      expect(formatUserFacingAssistantErrorText(makeAssistantError(errorMessage))).toBe(
+        "LLM request timed out.",
+      );
+    },
+  );
 
   it("keeps non-streaming provider request-validation syntax diagnostics", () => {
     const msg = makeAssistantError(
