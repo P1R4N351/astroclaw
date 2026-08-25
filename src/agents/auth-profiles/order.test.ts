@@ -7,7 +7,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resetProviderAuthAliasMapCacheForTest } from "../provider-auth-aliases.test-support.js";
 import { isAmbientCredentialAllowedByProviderAuthPin } from "./ambient-auth.js";
 import { saveAuthProfileStore } from "./store.js";
@@ -31,7 +31,8 @@ const pluginMetadataMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("../../plugins/current-plugin-metadata-snapshot.js", () => ({
+vi.mock("../../plugins/current-plugin-metadata-snapshot.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../plugins/current-plugin-metadata-snapshot.js")>()),
   getCurrentPluginMetadataSnapshot: pluginMetadataMocks.getCurrentPluginMetadataSnapshot,
 }));
 
