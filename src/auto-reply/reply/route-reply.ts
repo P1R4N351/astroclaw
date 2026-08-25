@@ -15,7 +15,7 @@ import { createChannelReplyTransform } from "../../channels/message/reply-transf
 import { getBundledChannelPlugin } from "../../channels/plugins/bundled.js";
 import { getLoadedChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { normalizeChatChannelId } from "../../channels/registry.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
 import { hasReplyPayloadContent } from "../../interactive/payload.js";
@@ -37,6 +37,12 @@ import type { ResponsePrefixContext } from "./response-prefix-template.js";
 const messageRuntimeLoader = createLazyImportLoader(
   () => import("../../channels/message/runtime.js"),
 );
+
+const BLOCK_REPLY_COMPLETION_RETENTION = {
+  idPrefix: "block-reply:v1:",
+  maxAgeMs: 24 * 60 * 60_000,
+  maxEntries: 2_000,
+} as const;
 
 function loadDeliverRuntime() {
   return messageRuntimeLoader.load();
@@ -105,6 +111,8 @@ type RouteReplyParams = {
   replyKind: ReplyDispatchKind;
   /** Agent run id for hook context. */
   runId?: string;
+  /** @internal Stable producer-owned block delivery intent. */
+  deliveryIntentId?: string;
   /** Model/session context for response-prefix template interpolation. */
   responsePrefixContext?: ResponsePrefixContext;
 };
@@ -354,6 +362,14 @@ export async function routeReply(params: RouteReplyParams): Promise<RouteReplyRe
       threadId: resolvedThreadId,
       session: outboundSession,
       signal: abortSignal,
+      ...(params.deliveryIntentId
+        ? {
+            deliveryIntentId: params.deliveryIntentId,
+            reusePendingDeliveryIntent: true,
+            completionRetention: BLOCK_REPLY_COMPLETION_RETENTION,
+            durability: "required" as const,
+          }
+        : {}),
       mirror:
         params.mirror !== false && params.sessionKey
           ? {
