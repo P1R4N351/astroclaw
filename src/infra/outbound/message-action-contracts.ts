@@ -11,7 +11,7 @@ import type {
   ChannelThreadingToolContext,
 } from "../../channels/plugins/types.public.js";
 import type { InternalChannelThreadingToolContext } from "../../channels/threading-tool-context-internal.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import type { GatewayClientMode, GatewayClientName } from "../../utils/message-channel.js";
 import type { OutboundDeliveryResult } from "./deliver-types.js";
@@ -178,9 +178,39 @@ export type MessageActionResult =
       dryRun: boolean;
     };
 
-export const isMessageBroadcastSuccessful = (
-  result: Extract<MessageActionResult, { kind: "broadcast" }>,
-): boolean => result.payload.results.every((entry) => entry.ok);
+export function resolveMessageSendOutcome(
+  sendResult: MessageSendResult | undefined,
+  action: "Message" | "Broadcast" = "Message",
+): { ok: true } | { ok: false; error: string; sentBeforeError?: true } {
+  if (
+    !sendResult ||
+    sendResult.deliveryStatus === undefined ||
+    sendResult.deliveryStatus === "sent"
+  ) {
+    return { ok: true };
+  }
+  switch (sendResult.deliveryStatus) {
+    case "suppressed":
+      return {
+        ok: false,
+        error: `${action} send suppressed: ${sendResult.suppressionReason ?? "unknown reason"}.`,
+      };
+    case "failed":
+      return { ok: false, error: sendResult.error ?? `${action} send failed.` };
+    case "partial_failed":
+      return {
+        ok: false,
+        error: sendResult.error ?? `${action} send partially failed.`,
+        sentBeforeError: true,
+      };
+  }
+  return sendResult.deliveryStatus satisfies never;
+}
+
+export const isMessageActionSuccessful = (result: MessageActionResult): boolean =>
+  result.kind === "broadcast"
+    ? result.payload.results.every((entry) => entry.ok)
+    : result.kind !== "send" || result.dryRun || resolveMessageSendOutcome(result.sendResult).ok;
 
 export type ResolvedActionContext = {
   cfg: OpenClawConfig;
