@@ -1,6 +1,7 @@
+import type { RetiredAuthProfileCleanupPlan } from "../commands/doctor-auth-legacy-oauth.js";
 import type { probeGatewayMemoryStatus } from "../commands/doctor-gateway-health.js";
 import type { DoctorOptions, DoctorPrompter } from "../commands/doctor-prompter.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { buildGatewayConnectionDetails } from "../gateway/call.js";
 import type { UpdatePostInstallDoctorResult } from "../infra/update-doctor-result.js";
 import type { PluginMetadataSnapshotScopeRunner } from "../plugins/current-plugin-metadata-snapshot.js";
@@ -23,6 +24,8 @@ type DoctorConfigResult = {
   preservedLegacyRootKeys?: readonly string[];
   shouldRepairCronCodexModelRefsAfterConfigWrite?: boolean;
   retiredPhoneControlStateCleanupPending?: boolean;
+  /** Store cleanup deferred until the repaired config reaches disk. */
+  retiredAuthProfileCleanupPlans?: readonly RetiredAuthProfileCleanupPlan[];
   blockedCodexModelIdentities?: readonly string[];
   /** Ephemeral doctor-only auth rename plan; never part of persisted config. */
   openAICodexAuthProfileIdMap?: ReadonlyMap<string, string>;
