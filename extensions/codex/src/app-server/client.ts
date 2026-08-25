@@ -4,10 +4,10 @@
  */
 import { randomUUID } from "node:crypto";
 import { createInterface, type Interface as ReadlineInterface } from "node:readline";
-import { embeddedAgentLog, OPENCLAW_VERSION } from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { coerceErrorMessage, toStringifiedError } from "astroclaw/plugin-sdk/error-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe, truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { embeddedAgentLog, OPENCLAW_VERSION } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { coerceErrorMessage, toStringifiedError } from "openclaw/plugin-sdk/error-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe, truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { parse as parseSemver } from "semver";
 import { resolveCodexAppServerRuntimeOptions, type CodexAppServerStartOptions } from "./config.js";
 import { createCodexElicitationResponse } from "./elicitation-response.js";
@@ -674,6 +674,17 @@ export class CodexAppServerClient {
   addCloseHandler(handler: (client: CodexAppServerClient) => void): () => void {
     this.closeHandlers.add(handler);
     return () => this.closeHandlers.delete(handler);
+  }
+
+  /** Registers a handler for physical transport exit and returns its disposer. */
+  addTransportExitHandler(handler: (client: CodexAppServerClient) => void): () => void {
+    if (this.transportExited) {
+      handler(this);
+      return () => undefined;
+    }
+    const onExit = () => handler(this);
+    this.child.once("exit", onExit);
+    return () => this.child.off?.("exit", onExit);
   }
 
   /** Closes the transport without waiting for process/socket shutdown. */
