@@ -1,6 +1,9 @@
 import { ErrorCodes, errorShape } from "../../../packages/gateway-protocol/src/index.js";
 import { getAdmittedRunDelegatedAuthority } from "../../agents/admitted-run-context.js";
-import { attachAgentCommandAdmissionFacts } from "../../agents/agent-command-admission-facts.js";
+import {
+  attachAgentCommandAdmissionFacts,
+  attachAgentCommandRecoveryAdmissionFacts,
+} from "../../agents/agent-command-admission-facts.js";
 import type { AgentRunTerminalOutcome } from "../../agents/agent-run-terminal-outcome.js";
 import { prepareGitCoauthorAttribution } from "../../agents/git-coauthor-attribution.js";
 import { repairMainSessionRecoveryMutation } from "../../agents/main-session-recovery/main-session-recovery-lifecycle.js";
@@ -19,7 +22,7 @@ import {
   setChannelSourceTurnSameThreadRequired,
 } from "../../auto-reply/reply/source-turn-id.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessageWithCode } from "../../infra/errors.js";
 import type { MediaFact } from "../../media/media-facts.js";
 import type { PromptImageOrderEntry } from "../../media/prompt-image-order.js";
@@ -265,7 +268,9 @@ export function startAgentRunExecution(params: {
       );
 
       const localUserIngress = getGatewayLocalUserIngress(params.client);
-      if (localUserIngress) {
+      if (params.isRestartRecoveryResumeRun) {
+        attachAgentCommandRecoveryAdmissionFacts(runContext);
+      } else if (localUserIngress) {
         attachAgentCommandAdmissionFacts(runContext, localUserIngress.facts);
       }
       finalizePreparedAgentRunUserTurn(prepared.userTurn);
