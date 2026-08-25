@@ -1,7 +1,7 @@
 // Tests /learn prompt rewriting, defaults, standards, and availability gating.
 import { describe, expect, it } from "vitest";
 import { migratePersistedImplicitMainRoster } from "../../config/legacy.roster.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { DEFAULT_LEARN_REQUEST } from "../../skills/workshop/learn-prompt.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import { handleLearnCommand } from "./commands-learn.js";
@@ -103,8 +103,10 @@ describe("learn command", () => {
       "Revise the best pending proposal or update the best Workshop-owned skill before creating anything new.",
     );
     expect(instruction).toContain("Make at most one proposal mutation.");
-    expect(instruction).toContain("first ~60 characters");
-    expect(instruction).toContain("never invent flags, commands, paths, APIs");
+    expect(instruction).toContain("within the first 60 characters");
+    expect(instruction).toContain(
+      "every step comes from the observed trajectory or the existing skill",
+    );
   });
 
   it("replies without continuing when the workshop is unavailable", async () => {
