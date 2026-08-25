@@ -11,7 +11,7 @@ import type { TlsOptions } from "node:tls";
 import { isCoreCanvasHostEnabled } from "../canvas/config.js";
 import { isCanvasDocumentHttpPath } from "../canvas/constants.js";
 import { getRuntimeConfig } from "../config/io.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   createDiagnosticTraceContext,
   runWithDiagnosticTraceContext,
@@ -139,17 +139,6 @@ function isWebSocketUpgradeRequest(req: IncomingMessage): boolean {
 }
 
 type GatewayHttpRequestStage = () => Promise<boolean> | boolean;
-
-async function runGatewayHttpRequestStages(
-  stages: readonly GatewayHttpRequestStage[],
-): Promise<boolean> {
-  for (const stage of stages) {
-    if (await stage()) {
-      return true;
-    }
-  }
-  return false;
-}
 
 /** Creates the gateway HTTP/HTTPS server and ordered request-stage router. */
 export function createGatewayHttpServer(opts: {
@@ -640,8 +629,11 @@ export function createGatewayHttpServer(opts: {
       );
       addRequestStage(controlUiEnabled, handleControlUiRequest);
 
-      if (await runGatewayHttpRequestStages(requestStages)) {
-        return;
+      // A completed or disconnected response owns the request even when a stage reports fallthrough.
+      for (const stage of requestStages) {
+        if ((await stage()) || res.destroyed || res.writableEnded) {
+          return;
+        }
       }
 
       // Startup owns sidecar readiness. The plugin registry is still empty here, so an
