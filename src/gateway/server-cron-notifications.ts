@@ -7,7 +7,7 @@ import {
 import { resolveUserTimezone } from "../agents/date-time.js";
 import type { ReplyPayload } from "../auto-reply/reply-payload.js";
 import type { CliDeps } from "../cli/deps.types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { redactCronCommandSummaryForExternalDelivery } from "../cron/command-output-summary.js";
 import { resolveCronDeliveryPlan, sendCronAnnouncePayloadStrict } from "../cron/delivery.js";
 import { retryTransientDirectCronDelivery } from "../cron/isolated-agent/delivery-dispatch-policy.js";
@@ -440,7 +440,7 @@ export function dispatchGatewayCronFinishedNotifications(params: {
 
   // Script notify is carried as the completion summary, so its absence uses
   // the same silent-summary suppression path as NO_REPLY output.
-  if (completionWebhookUrl && (completionSummary || params.evt.status === "error")) {
+  if (completionWebhookUrl && (completionSummary || params.evt.completionStatus === "failed")) {
     const payload = buildCronFinishedWebhookPayload(redactedWebhookEvent);
     dispatchDetachedCronNotification({
       jobId: params.evt.jobId,
