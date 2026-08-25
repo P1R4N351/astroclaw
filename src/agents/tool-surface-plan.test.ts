@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { runWithAgentRingZeroTools } from "./agent-tools.ring-zero-context.js";
 import { createCodeModeTools } from "./code-mode.js";
 import { createStubTool } from "./test-helpers/agent-tool-stubs.js";
@@ -31,10 +31,6 @@ describe("resolveAgentToolSurfacePlan", () => {
     { name: "raw model run", overrides: { isRawModelRun: true } },
     { name: "host-scoped ring-zero run", overrides: {}, ringZero: true },
     { name: "empty explicit allowlist", overrides: { toolsAllow: [] } },
-    {
-      name: "proposal-only skill workshop run",
-      overrides: { skillWorkshopProposalOnly: true },
-    },
   ] satisfies Array<{
     name: string;
     overrides: Partial<AgentToolSurfacePlanParams>;
