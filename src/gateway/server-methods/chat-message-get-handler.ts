@@ -5,7 +5,7 @@ import {
   validateChatMessageGetParams,
 } from "../../../packages/gateway-protocol/src/index.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   augmentChatHistoryWithCanvasBlocks,
   dropPreSessionStartAnnouncePairs,
@@ -13,10 +13,8 @@ import {
 } from "../chat-display-projection.js";
 import { resolveCurrentUserProfileDisplay } from "../current-user-profile-display.js";
 import { MAX_PAYLOAD_BYTES } from "../server-constants.js";
-import {
-  readSessionMessageByIdAsync,
-  readSessionMessagesAsync,
-} from "../session-transcript-readers.js";
+import { readSessionMessagesAroundIdWithStatsAsync } from "../session-transcript-anchor-reader.js";
+import { readSessionMessageByIdAsync } from "../session-transcript-readers.js";
 import { loadGatewaySessionEntryReadOnly } from "../session-utils.js";
 import { readChatHistoryMessageId } from "./chat-history-pages.js";
 import { resolveRequestedChatAgentId, validateChatSelectedAgent } from "./chat-origin-routing.js";
@@ -37,7 +35,9 @@ async function isChatMessageIdVisibleAfterHistoryFilters(params: {
   if (params.sessionStartedAt === undefined) {
     return true;
   }
-  const messages = await readSessionMessagesAsync(
+  // The anchored reader includes the immediately preceding row, which is the
+  // complete context needed to hide a stale announce and its paired reply.
+  const { messages } = await readSessionMessagesAroundIdWithStatsAsync(
     {
       agentId: params.agentId,
       sessionEntry: params.sessionEntry,
@@ -46,8 +46,8 @@ async function isChatMessageIdVisibleAfterHistoryFilters(params: {
       storePath: params.storePath,
     },
     {
-      mode: "full",
-      reason: "chat.message.get visibility",
+      maxMessages: 1,
+      messageId: params.messageId,
       ...(params.allowResetArchiveFallback === true ? { allowResetArchiveFallback: true } : {}),
     },
   );
