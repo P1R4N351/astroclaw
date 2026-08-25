@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { createDeferred } from "../../../test/helpers/promise.js";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
@@ -963,16 +963,22 @@ describe("compactEmbeddedAgentSessionDirect hooks", () => {
     );
   });
 
-  it.each(["direct", "queued"] as const)(
-    "tracks the provider request allowance for %s compaction",
-    async (mode) => {
-      const requestTimeoutMs = 420_000;
+  it.each([
+    { mode: "direct", providerTimeoutMs: 420_000, expectedTimeoutMs: 420_000 },
+    { mode: "queued", providerTimeoutMs: 420_000, expectedTimeoutMs: 420_000 },
+    { mode: "direct", expectedTimeoutMs: 30_000 },
+    { mode: "queued", expectedTimeoutMs: 30_000 },
+  ] as const)(
+    "tracks the owned request allowance for $mode compaction",
+    async ({ mode, expectedTimeoutMs, ...scenario }) => {
       const providerRequest = createDeferred<unknown>();
       const ref = { sessionId: TEST_SESSION_ID, sessionKey: TEST_SESSION_KEY };
       let activeSnapshot:
         | ReturnType<typeof diagnosticRunActivity.getDiagnosticSessionActivitySnapshot>
         | undefined;
-      mockResolvedModel({ requestTimeoutMs });
+      mockResolvedModel(
+        "providerTimeoutMs" in scenario ? { requestTimeoutMs: scenario.providerTimeoutMs } : {},
+      );
       resolveEmbeddedAgentStreamFnMock.mockReturnValue(vi.fn(() => providerRequest.promise));
       attemptServerEndpointCompactionMock.mockImplementationOnce(async (input: unknown) => {
         const { context, model, streamFn } = input as {
@@ -1015,7 +1021,7 @@ describe("compactEmbeddedAgentSessionDirect hooks", () => {
         expect(activeSnapshot).toMatchObject({
           activeWorkKind: "model_call",
           hasActiveEmbeddedRun: true,
-          activeModelCallRequestTimeoutMs: requestTimeoutMs,
+          activeModelCallRequestTimeoutMs: expectedTimeoutMs,
         });
         await diagnosticEvents.waitForDiagnosticEventsDrained();
         expect(
