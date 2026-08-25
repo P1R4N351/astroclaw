@@ -1,9 +1,17 @@
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { canonicalizeMainSessionAlias } from "../../config/sessions/main-session.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { McpLoopbackRequestContext } from "../../gateway/mcp-grant-store.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import type { RunCliAgentParams } from "./types.js";
+
+const SESSION_PERMISSION_BY_EXEC_MODE = {
+  deny: "read-only",
+  allowlist: "guarded",
+  ask: "guarded",
+  auto: "workspace",
+  full: "full",
+} as const;
 
 export function normalizeOptionalMcpContextValue(value: string | undefined): string | undefined {
   return value?.trim() || undefined;
@@ -11,12 +19,19 @@ export function normalizeOptionalMcpContextValue(value: string | undefined): str
 
 function buildCliMcpExecSession(
   sessionEntry: RunCliAgentParams["sessionEntry"],
+  execOverrides: RunCliAgentParams["execOverrides"],
 ): McpLoopbackRequestContext["execSession"] {
+  const permissionMode = sessionEntry?.permissionMode;
+  const effectivePermissionMode =
+    permissionMode && execOverrides?.mode
+      ? SESSION_PERMISSION_BY_EXEC_MODE[execOverrides.mode]
+      : permissionMode;
   const execSession = {
     execHost: normalizeOptionalMcpContextValue(sessionEntry?.execHost),
     execSecurity: normalizeOptionalMcpContextValue(sessionEntry?.execSecurity),
     execAsk: normalizeOptionalMcpContextValue(sessionEntry?.execAsk),
     execNode: normalizeOptionalMcpContextValue(sessionEntry?.execNode),
+    ...(effectivePermissionMode ? { permissionMode: effectivePermissionMode } : {}),
   };
   return Object.values(execSession).some(Boolean) ? execSession : undefined;
 }
@@ -28,6 +43,7 @@ function buildCliMcpExecOverrides(
     return undefined;
   }
   const scopedOverrides = {
+    ...(execOverrides.mode !== undefined ? { mode: execOverrides.mode } : {}),
     ...(execOverrides.host !== undefined ? { host: execOverrides.host } : {}),
     ...(execOverrides.security !== undefined ? { security: execOverrides.security } : {}),
     ...(execOverrides.ask !== undefined ? { ask: execOverrides.ask } : {}),
@@ -109,7 +125,7 @@ export function buildCliMcpGrantContext(params: {
   const clientCaps = uniqueStrings(
     (params.run.clientCaps ?? []).map((cap) => cap.trim()).filter(Boolean),
   );
-  const execSession = buildCliMcpExecSession(params.run.sessionEntry);
+  const execSession = buildCliMcpExecSession(params.run.sessionEntry, params.run.execOverrides);
   const execOverrides = buildCliMcpExecOverrides(params.run.execOverrides);
   const bashElevated = buildCliMcpBashElevated(params.run.bashElevated);
   const channelContext = buildCliMcpChannelContext(params.run.channelContext, params.run.senderId);
