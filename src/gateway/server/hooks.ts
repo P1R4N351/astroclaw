@@ -11,7 +11,7 @@ import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.j
 import type { CliDeps } from "../../cli/deps.types.js";
 import { getRuntimeConfig } from "../../config/io.js";
 import { canonicalizeMainSessionAlias, resolveAgentMainSessionKey } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type {
   CronAgentAdmissionDisposition,
   RunCronAgentTurnResult,
@@ -484,6 +484,14 @@ export function createGatewayHooksRequestHandler(params: {
               // cannot starve them. Aggregate capacity stays bounded by the lane
               // group that owns both lanes.
               lane: CommandLane.HookDispatch,
+              executionIdentity: {
+                ingress: {
+                  kind: "webhook",
+                  boundary: "gateway.hooks.agent",
+                  state: "present",
+                  ...(acceptedValue.mappingId ? { rawSourceRef: acceptedValue.mappingId } : {}),
+                },
+              },
               abortSignal: startupAbortController.signal,
               onExecutionStarted: () => {
                 // Existing runner-entry callbacks are the final owner-boundary fence:
