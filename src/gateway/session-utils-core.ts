@@ -14,7 +14,7 @@ import {
 } from "../agents/subagents/registry/subagent-run-liveness.js";
 import { stripInboundMetadata } from "../auto-reply/reply/strip-inbound-meta.js";
 import { isTerminalSessionStatus, type SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import { truncateUtf16Safe } from "../utils.js";
 import {
@@ -88,13 +88,16 @@ export function resolvePositiveNumber(value: number | null | undefined): number 
 export function deriveSessionUnread(
   entry?: Pick<
     SessionEntry,
-    "lastReadAt" | "markedUnreadAt" | "lastInteractionAt" | "lastActivityAt"
+    "createdAt" | "lastReadAt" | "markedUnreadAt" | "lastInteractionAt" | "lastActivityAt"
   >,
 ): boolean {
+  // Creation starts unread tracking for modern rows without lighting up legacy
+  // rows that predate durable creation provenance.
+  const unreadBaselineAt = entry?.lastReadAt ?? entry?.createdAt;
   return (
     entry?.markedUnreadAt !== undefined ||
-    (entry?.lastReadAt !== undefined &&
-      Math.max(entry.lastInteractionAt ?? 0, entry.lastActivityAt ?? 0) > entry.lastReadAt)
+    (unreadBaselineAt !== undefined &&
+      Math.max(entry?.lastInteractionAt ?? 0, entry?.lastActivityAt ?? 0) > unreadBaselineAt)
   );
 }
 
