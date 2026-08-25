@@ -4,7 +4,7 @@
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import type { SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   externalCliDiscoveryForProviderAuth,
   ensureAuthProfileStore,
@@ -13,10 +13,7 @@ import {
   resolveAuthProfileOrder,
 } from "./auth-profiles.js";
 import { isStoredCredentialCompatibleWithAuthProvider } from "./auth-profiles/order.js";
-import {
-  readClaudeCliCredentialsCached,
-  readCodexCliCredentialsCached,
-} from "./cli-credentials.js";
+import { readCodexCliCredentialsCached } from "./cli-credentials.js";
 import {
   resolveEnvApiKey,
   resolveProviderEntryApiKeyProfileReference,
@@ -149,16 +146,7 @@ export function resolveModelAuthLabel(params: {
     return "oauth (codex-cli)";
   }
   if (providerKey === "claude-cli") {
-    const auth = readClaudeCliCredentialsCached({
-      ttlMs: 5_000,
-      allowKeychainPrompt: false,
-    });
-    if (auth?.type === "api_key_helper") {
-      return "api-key-helper (claude-cli)";
-    }
-    if (auth) {
-      return "oauth (claude-cli)";
-    }
+    return "native (claude-cli)";
   }
 
   const customKey = resolveUsableCustomProviderApiKey({
