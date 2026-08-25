@@ -14,8 +14,8 @@ import {
 } from "../agents/plugin-text-transforms.js";
 import { unwrapSecretSentinelsForProviderEgress } from "../agents/provider-secret-egress.js";
 import type { ProviderSystemPromptContribution } from "../agents/system-prompt-contribution.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ModelProviderConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { providerUsageLabel } from "../infra/provider-usage.shared.js";
 import type { UsageProviderId } from "../infra/provider-usage.types.js";
 import { getCurrentPluginMetadataSnapshot } from "./current-plugin-metadata-snapshot.js";
@@ -890,6 +890,16 @@ export function resolveProviderModernModelRef(params: {
   context: ProviderModernModelPolicyContext;
 }) {
   return resolveProviderRuntimePlugin(params)?.isModernModelRef?.(params.context);
+}
+
+/** Returns provider-owned profile ids retired from generic credential resolution. */
+export function resolveProviderDeprecatedAuthProfileIds(params: {
+  provider: string;
+  config?: OpenClawConfig;
+  workspaceDir?: string;
+  env?: NodeJS.ProcessEnv;
+}): readonly string[] {
+  return resolveProviderRuntimePlugin(params)?.deprecatedProfileIds ?? [];
 }
 
 export function buildProviderMissingAuthMessageWithPlugin(params: {
