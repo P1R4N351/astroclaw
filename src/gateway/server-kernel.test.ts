@@ -10,8 +10,8 @@ import {
 } from "../plugins/runtime.js";
 import { getActiveGatewayRootWorkCount } from "../process/gateway-work-admission.js";
 import { getActiveSecretsRuntimeConfigSnapshot } from "../secrets/runtime-state.js";
-import { createOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { createChannelTestPluginBase, createTestRegistry } from "../test-utils/channel-plugins.js";
+import { createOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { getFreePort } from "../test-utils/ports.js";
 import { CLI_DEFAULT_OPERATOR_SCOPES } from "./method-scopes.js";
 import { dispatchGatewayRequestInProcess } from "./server-in-process-dispatch.js";
@@ -397,8 +397,6 @@ describe("createGatewayKernel", () => {
         "plugins.metadata.scan",
         "plugins.metadata.freeze",
         "config.snapshot.read.materialize",
-        "plugins.metadata.scan",
-        "plugins.metadata.freeze",
         "config.snapshot.read.observe",
         "config.auth",
         "config.auth.snapshot-validate",
@@ -412,8 +410,6 @@ describe("createGatewayKernel", () => {
         "config.auth.secrets-activate",
         "startup.maintenance",
         "plugins.bootstrap",
-        "plugins.metadata.scan",
-        "plugins.metadata.freeze",
         "runtime.config",
         "control-ui.root",
         "tls.runtime",
