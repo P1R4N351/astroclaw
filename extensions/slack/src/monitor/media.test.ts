@@ -1,13 +1,13 @@
 import { expectDefined } from "@astroclaw/normalization-core";
 // Slack tests cover media plugin behavior.
 import type { WebClient } from "@slack/web-api";
-import type { FetchLike, SavedMedia } from "astroclaw/plugin-sdk/media-runtime";
+import type { FetchLike, SavedMedia } from "openclaw/plugin-sdk/media-runtime";
 import {
   fetchWithSsrFGuard,
   type LookupFn,
   type SsrFPolicy,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/ssrf-runtime";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SlackFile } from "../types.js";
 import {
@@ -293,7 +293,7 @@ describe("resolveSlackMedia", () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse);
 
-    await resolveSlackMedia({
+    const result = await resolveSlackMedia({
       files: [
         {
           url_private: "https://files.slack.com/private.jpg",
@@ -306,6 +306,7 @@ describe("resolveSlackMedia", () => {
     });
 
     expectFetchCalledWithUrl(mockFetch, "https://files.slack.com/download.jpg");
+    expect(expectSlackMediaResult(result)[0]?.fileName).toBe("test.jpg");
   });
 
   it("preserves Authorization on same-origin redirects for private downloads", async () => {
@@ -937,8 +938,10 @@ describe("resolveSlackMedia", () => {
     const first = expectDefined(media[0], "first Slack media result");
     const second = expectDefined(media[1], "second Slack media result");
     expect(first.path).toBe("/tmp/a.jpg");
+    expect(first.fileName).toBe("a.jpg");
     expect(first.placeholder).toBe("[Slack file: a.jpg (image/jpeg, 12 bytes, fileId: FA)]");
     expect(second.path).toBe("/tmp/b.png");
+    expect(second.fileName).toBe("b.png");
     expect(second.placeholder).toBe("[Slack file: b.png (image/png, 34 bytes, fileId: FB)]");
   });
 
@@ -1475,6 +1478,7 @@ describe("resolveSlackAttachmentContent", () => {
         {
           path: "/tmp/forwarded.jpg",
           contentType: "image/jpeg",
+          fileName: "forwarded.jpg",
           placeholder: "[Forwarded image: forwarded.jpg]",
         },
       ],
