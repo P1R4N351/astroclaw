@@ -1,18 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import * as pluginRuntime from "../plugins/runtime.js";
 import { createPluginRecord } from "../plugins/status.test-helpers.js";
 import { readConfigMachineState } from "../state/config-machine-state.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
+import { setTestEnvValue } from "../test-utils/env.js";
+import { useMockHttp } from "../test-utils/mock-http.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/astroclaw-test-state.js";
-import { setTestEnvValue } from "../test-utils/env.js";
-import { useMockHttp } from "../test-utils/mock-http.js";
+} from "../test-utils/openclaw-test-state.js";
 import { VERSION } from "../version.js";
-import { buildTelemetryPayload, checkTelemetryUpdate } from "./telemetry.js";
+import {
+  buildTelemetryPayload,
+  checkTelemetryUpdate,
+  resolveTelemetryStatus,
+} from "./telemetry.js";
 
 const NOW = Date.parse("2026-08-23T12:00:00.000Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -86,6 +90,7 @@ describe("anonymous telemetry", () => {
       layout: "state-only",
       prefix: "openclaw-telemetry-",
       env: {
+        CI: undefined,
         DO_NOT_TRACK: undefined,
         OPENCLAW_NIX_MODE: undefined,
         OPENCLAW_NO_AUTO_UPDATE: undefined,
@@ -358,6 +363,35 @@ describe("anonymous telemetry", () => {
 
     expect(mockHttp.requests()).toHaveLength(0);
     expect(readConfigMachineState(TELEMETRY_STATE_KEY)).toBeUndefined();
+  });
+
+  it("never sends a request from an automated environment", async () => {
+    setTestEnvValue("CI", "true");
+
+    await expect(
+      checkTelemetryUpdate(createFeatureConfig(), {
+        surface: "gateway",
+        fetchImpl: globalThis.fetch,
+        nowMs: NOW,
+      }),
+    ).resolves.toBeNull();
+
+    expect(mockHttp.requests()).toHaveLength(0);
+    expect(readConfigMachineState(TELEMETRY_STATE_KEY)).toBeUndefined();
+    expect(resolveTelemetryStatus(createFeatureConfig()).reason).toBe("automated-environment");
+  });
+
+  it("still reports from an automated environment when an endpoint is configured for it", async () => {
+    const customEndpoint = "https://telemetry.example.invalid/api/latest-version";
+    setTestEnvValue("CI", "true");
+    setTestEnvValue("OPENCLAW_TELEMETRY_ENDPOINT", customEndpoint);
+    mockHttp.intercept({ url: customEndpoint, reply: { json: { version: "2026.8.24" } } });
+
+    await expect(
+      checkTelemetryUpdate({}, { surface: "gateway", fetchImpl: globalThis.fetch, nowMs: NOW }),
+    ).resolves.toEqual({ version: "2026.8.24" });
+
+    expect(mockHttp.requests()).toHaveLength(1);
   });
 
   it("never sends a request for Nix-managed installations", async () => {
