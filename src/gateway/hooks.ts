@@ -13,8 +13,8 @@ import {
   type PersistedSessionStoreOwner,
   resolvePersistedSessionStoreOwnerForKey,
 } from "../config/sessions/session-store-owner.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HookSessionMode } from "../config/types.hooks.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { readJsonBodyWithLimit, requestBodyErrorToText } from "../infra/http-body.js";
 import {
   normalizeAgentId,
@@ -306,6 +306,8 @@ export type HookAgentDispatchPayload = Omit<HookAgentPayload, "sessionKey"> & {
   sourcePath: string;
   allowUnsafeExternalContent?: boolean;
   externalContentSource?: HookExternalContentSource;
+  /** Configured ingress source attribution; never an authenticated principal. */
+  mappingId?: string;
 };
 
 const listHookChannelValues = () => ["last", ...listChannelPlugins().map((plugin) => plugin.id)];
