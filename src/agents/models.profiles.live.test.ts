@@ -4,10 +4,10 @@ import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { defaultApiRegistry } from "@openclaw/ai/internal/runtime";
 import { prepareModelForSimpleCompletion } from "@openclaw/ai/transports";
-import { type Api, completeSimple, type Model } from "astroclaw/plugin-sdk/llm";
+import { type Api, completeSimple, type Model } from "openclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { coerceSecretRef, type SecretInput } from "../config/types.secrets.js";
 import { parseLiveCsvFilter } from "../media-generation/live-test-helpers.js";
 import { withBundledPluginEnablementCompat } from "../plugins/bundled-compat.js";
@@ -25,17 +25,6 @@ import { extractEmbeddedAssistantText } from "./embedded-agent-utils.js";
 import { isRateLimitErrorMessage } from "./failover/classify.js";
 import { collectProviderApiKeys } from "./live-auth-keys.js";
 import { isModelNotFoundErrorMessage } from "./live-model-errors.js";
-import {
-  DEFAULT_SMALL_LIVE_MODEL_LIMIT,
-  isHighSignalLiveModelRef,
-  isPrioritizedHighSignalLiveModelRef,
-  isSmallLiveModelRef,
-  listPrioritizedSmallLiveModelRefs,
-  resolveHighSignalLiveModelLimit,
-  selectHighSignalLiveItems,
-  selectSmallLiveItems,
-  shouldExcludeProviderFromDefaultHighSignalLiveSweep,
-} from "./live-model-filter.js";
 import {
   isLiveProfileKeyModeEnabled,
   isLiveTestEnabled,
@@ -56,7 +45,18 @@ import {
 import { shouldSuppressBuiltInModelCore } from "./model-suppression.js";
 import { ensureOpenClawModelsJson } from "./models-config.js";
 import type { StreamFn } from "./runtime/index.js";
-import { appendPrioritizedDynamicLiveModels } from "./test-helpers/live-model-dynamic-candidates.js";
+import {
+  appendPrioritizedDynamicLiveModels,
+  DEFAULT_SMALL_LIVE_MODEL_LIMIT,
+  isHighSignalLiveModelRef,
+  isPrioritizedHighSignalLiveModelRef,
+  isSmallLiveModelRef,
+  listPrioritizedSmallLiveModelRefs,
+  resolveHighSignalLiveModelLimit,
+  selectHighSignalLiveItems,
+  selectSmallLiveItems,
+  shouldExcludeProviderFromDefaultHighSignalLiveSweep,
+} from "./test-helpers/live-model-dynamic-candidates.js";
 import {
   buildLiveModelFileProbeContext,
   buildLiveModelFileProbeRetryContext,
