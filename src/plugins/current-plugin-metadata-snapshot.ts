@@ -1,6 +1,6 @@
 /** Tracks the current plugin metadata snapshot for control-plane lookups. */
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import {
   currentPluginMetadataConfigIdentityCache,
@@ -173,6 +173,17 @@ export function setCurrentPluginMetadataSnapshot(
 ): void {
   activeTemporaryPluginMetadataSnapshotLease = undefined;
   publishCurrentPluginMetadataSnapshot(snapshot, options);
+}
+
+/** Publishes a prepared CLI snapshot without displacing a lifecycle owner. */
+export function adoptCurrentPluginMetadataSnapshotIfAbsent(
+  snapshot: PluginMetadataSnapshot,
+  options: CurrentPluginMetadataSnapshotOptions = {},
+): void {
+  if (getCurrentPluginMetadataSnapshotState().snapshot !== undefined) {
+    return;
+  }
+  setCurrentPluginMetadataSnapshot(snapshot, options);
 }
 
 function captureCurrentPluginMetadataSnapshotState(): CurrentPluginMetadataSnapshotState {
