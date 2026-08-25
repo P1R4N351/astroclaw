@@ -7,6 +7,7 @@ import {
 } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeOptionalTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import type { ReplyPayload } from "../../auto-reply/types.js";
+import { normalizeOutboundLocation } from "../../channels/location.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type { ChannelId } from "../../channels/plugins/types.public.js";
 import { resolveChannelThreadAddressing } from "../../channels/thread-addressing.js";
@@ -20,7 +21,7 @@ import {
   type RestartRecoveryTerminalDeliveryScope,
 } from "../../config/sessions/restart-recovery-receipt.js";
 import { getOwnedSessionTranscriptWriterFence } from "../../config/sessions/transcript-write-context.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { normalizeAccountId, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { readTrimmedStringAlias } from "../../utils/string-readers.js";
 import { createOutboundPayloadPlan, projectOutboundPayloadPlanForMirror } from "./payloads.js";
@@ -508,6 +509,7 @@ export async function mirrorDeliveredSourceReplyToTranscript(
       presentation: params.actionParams.presentation as ReplyPayload["presentation"],
       interactive: params.actionParams.interactive as ReplyPayload["interactive"],
       channelData: params.actionParams.channelData as ReplyPayload["channelData"],
+      location: normalizeOutboundLocation(params.actionParams.location),
     },
   ]);
   const mirror = projectOutboundPayloadPlanForMirror(plan);
