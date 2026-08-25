@@ -1,7 +1,7 @@
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
 /** Exercises provider runtime loading, ordering, and manifest-backed discovery paths. */
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModelProviderConfig, OpenClawConfig } from "../config/types.js";
 import { captureEnv, deleteTestEnvValue, setTestEnvValue } from "../test-utils/env.js";
@@ -622,6 +622,40 @@ describe("provider-runtime", () => {
     ).toEqual({
       fromActiveRegistry: true,
     });
+    expect(resolvePluginProvidersMock).not.toHaveBeenCalled();
+  });
+
+  it("does not activate provider runtime to inspect retired auth profiles", () => {
+    resolvePluginProvidersMock.mockReturnValue([
+      {
+        id: DEMO_PROVIDER_ID,
+        label: "Demo",
+        auth: [],
+        deprecatedProfileIds: ["demo:retired"],
+      },
+    ]);
+
+    expect(resolveProviderDeprecatedAuthProfileIds({ provider: DEMO_PROVIDER_ID })).toEqual([]);
+    expect(resolvePluginProvidersMock).not.toHaveBeenCalled();
+  });
+
+  it("honors retired auth profiles declared by an active provider", () => {
+    const provider: ProviderPlugin = {
+      id: DEMO_PROVIDER_ID,
+      label: "Demo",
+      auth: [],
+      deprecatedProfileIds: ["demo:retired"],
+    };
+    const registry = createEmptyPluginRegistry();
+    registry.providers.push({ pluginId: DEMO_PROVIDER_ID, provider, source: "test" });
+    setActivePluginRegistry(registry, "startup-registry", "gateway-bindable", "/tmp/workspace");
+
+    expect(
+      resolveProviderDeprecatedAuthProfileIds({
+        provider: DEMO_PROVIDER_ID,
+        workspaceDir: "/tmp/workspace",
+      }),
+    ).toEqual(["demo:retired"]);
     expect(resolvePluginProvidersMock).not.toHaveBeenCalled();
   });
 
