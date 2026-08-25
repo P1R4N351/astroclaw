@@ -4,7 +4,7 @@
 import { parseModelCatalogRef } from "@astroclaw/model-catalog-core/model-catalog-refs";
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   isCliRuntimeModelBackendForProvider,
   listCliRuntimeModelBackendBindings,
@@ -150,7 +150,9 @@ export function shouldPreferActiveRuntimeAliasAuthLabel(params: {
   return (
     selectedAuth === "unknown" ||
     (Boolean(selectedAuth?.startsWith("api-key")) &&
-      (activeAuth.startsWith("oauth") || activeAuth.startsWith("token")))
+      (activeAuth.startsWith("oauth") ||
+        activeAuth.startsWith("token") ||
+        activeAuth.startsWith("native")))
   );
 }
 
