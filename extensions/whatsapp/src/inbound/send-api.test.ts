@@ -1,17 +1,18 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { AnyMessageContent, MiscMessageGenerationOptions, WAMessage } from "baileys";
 import {
   createChannelPartialDeliveryError,
   isChannelPartialDeliveryError,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { listMessageReceiptPlatformIds } from "astroclaw/plugin-sdk/channel-outbound";
-import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { listMessageReceiptPlatformIds } from "openclaw/plugin-sdk/channel-outbound";
+import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
 // Whatsapp tests cover send api plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
-import type { AnyMessageContent, MiscMessageGenerationOptions, WAMessage } from "baileys";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prepareWhatsAppOutboundMedia } from "../outbound-media-contract.js";
+import { markdownToWhatsApp } from "../text-runtime.js";
 import { resolveWhatsAppOutboundMentions } from "./outbound-mentions.js";
 import { createWebSendApi } from "./send-api.js";
 import { normalizeWhatsAppSendResult, type WhatsAppSendResult } from "./send-result.js";
@@ -22,19 +23,19 @@ const imageOps = vi.hoisted(() => ({
   resizeToJpeg: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-activity-runtime", async () => {
+vi.mock("openclaw/plugin-sdk/channel-activity-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/channel-activity-runtime")
-  >("astroclaw/plugin-sdk/channel-activity-runtime");
+    typeof import("openclaw/plugin-sdk/channel-activity-runtime")
+  >("openclaw/plugin-sdk/channel-activity-runtime");
   return {
     ...actual,
     recordChannelActivity: (...args: unknown[]) => recordChannelActivity(...args),
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
-    "astroclaw/plugin-sdk/media-runtime",
+vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
+    "openclaw/plugin-sdk/media-runtime",
   );
   return {
     ...actual,
@@ -328,6 +329,35 @@ describe("createWebSendApi", () => {
       mentions: ["277038292303944@lid"],
     });
   });
+
+  it.each([
+    { messageText: "Run `notify @15551234567" },
+    { messageText: "Run `notify\n@15551234567" },
+    { messageText: "Run ``notify ` @15551234567" },
+    { messageText: "literal \\` ping @15551234567", nativeMention: true },
+    { messageText: "literal \\\\` inside @15551234567" },
+  ])(
+    "only sends native mentions for visible phone numbers outside inline code: $messageText",
+    async ({ messageText, nativeMention }) => {
+      api = createWebSendApi({
+        sock: { sendMessage, sendPresenceUpdate },
+        defaultAccountId: "main",
+        resolveOutboundMentions: ({ jid, text }) =>
+          resolveWhatsAppOutboundMentions({
+            chatJid: jid,
+            text,
+            participants: [{ id: "15551234567@s.whatsapp.net" }],
+          }),
+      });
+
+      await api.sendMessage("120363000000000000@g.us", markdownToWhatsApp(messageText));
+
+      expect(sendMessage).toHaveBeenCalledWith("120363000000000000@g.us", {
+        text: messageText,
+        ...(nativeMention ? { mentions: ["15551234567@s.whatsapp.net"] } : {}),
+      });
+    },
+  );
 
   it("supports image media with caption", async () => {
     const payload = Buffer.from("img");
