@@ -11,7 +11,7 @@ import {
   type AgentAvatarResolution,
   resolvePublicAgentAvatarSource,
 } from "../agents/identity-avatar.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   matchRootFileOpenFailure,
   openRootFileSync,
@@ -220,7 +220,7 @@ function normalizeAssistantMediaSource(source: string): string | null {
   if (!trimmed) {
     return null;
   }
-  if (trimmed.startsWith("file://")) {
+  if (/^file:/iu.test(trimmed)) {
     try {
       return safeFileURLToPath(trimmed);
     } catch {
