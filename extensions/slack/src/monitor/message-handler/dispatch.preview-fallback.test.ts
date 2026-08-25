@@ -1,6 +1,6 @@
-import type { GetReplyOptions, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import type { GetReplyOptions, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 // Slack tests cover dispatch.preview fallback plugin behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const FINAL_REPLY_TEXT = "final answer";
@@ -47,6 +47,7 @@ let mockedSlackStreamingMode: "off" | "partial" | "block" | "progress" = "partia
 let mockedSlackDraftMode: "replace" | "status_final" | "append" = "append";
 let mockedPinnedMainDmOwner: string | undefined;
 let capturedReplyOptions: GetReplyOptions | undefined;
+let capturedDispatchReplyFromConfig: unknown;
 let capturedStatusReactionOptions: { enabled?: boolean; initialEmoji?: string } | undefined;
 const statusReactionControllerMock = {
   setQueued: vi.fn(async () => {}),
@@ -349,6 +350,7 @@ function createPreparedSlackMessage(params?: {
   ackReactionPromise?: Promise<boolean> | null;
   relayIdentity?: { username?: string; iconUrl?: string; iconEmoji?: string };
   turnAdoptionLifecycle?: object;
+  dispatchReplyFromConfig?: unknown;
   eventScope?: {
     teamId: string;
     client: Record<string, unknown>;
@@ -380,6 +382,7 @@ function createPreparedSlackMessage(params?: {
       historyLimit: 0,
       channelHistories: new Map(),
       allowFrom: [],
+      dispatchReplyFromConfig: params?.dispatchReplyFromConfig,
       setSlackThreadStatus: params?.setSlackThreadStatus ?? (async () => undefined),
     },
     account: {
@@ -456,11 +459,11 @@ async function dispatchNativeProgressScenario(params: {
   );
 }
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
   resolveHumanDelayConfig: () => undefined,
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-feedback", () => ({
+vi.mock("astroclaw/plugin-sdk/channel-feedback", () => ({
   DEFAULT_TIMING: {
     doneHoldMs: 0,
     errorHoldMs: 0,
@@ -474,8 +477,8 @@ vi.mock("openclaw/plugin-sdk/channel-feedback", () => ({
   removeAckReactionAfterReply: () => {},
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     createChannelProgressDraftCompositor: (
@@ -812,14 +815,14 @@ vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/reply-history", () => ({
+vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
   clearHistoryEntriesIfEnabled: () => {},
   createChannelHistoryWindow: () => ({
     clear: () => {},
   }),
 }));
 
-vi.mock("openclaw/plugin-sdk/reply-payload", () => ({
+vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
   isReplyPayloadNonTerminalToolErrorWarning: () => false,
   buildTtsSupplementMediaPayload: (payload: {
     text?: string;
@@ -865,23 +868,24 @@ vi.mock("openclaw/plugin-sdk/reply-payload", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   danger: (message: string) => message,
   logVerbose: logVerboseMock,
   shouldLogVerbose: () => false,
 }));
 
-vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
   return { ...actual, getGlobalHookRunner: getGlobalHookRunnerMock };
 });
 
-vi.mock("openclaw/plugin-sdk/security-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/security-runtime", () => ({
   resolvePinnedMainDmOwnerFromAllowlist: () => mockedPinnedMainDmOwner,
 }));
 
-vi.mock("openclaw/plugin-sdk/string-coerce-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/string-coerce-runtime")>();
+vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/string-coerce-runtime")>();
   const normalizeMockLowercaseString = (value?: string) => value?.toLowerCase();
   const readMockOptionalString = (value?: string) => value;
   return {
@@ -987,14 +991,15 @@ vi.mock("../replies.js", () => ({
   resolveSlackThreadTs: () => mockedReplyThreadTs,
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
   type DispatchParams = Parameters<typeof actual.dispatchChannelInboundTurn>[0];
   return {
     ...actual,
     readAgentRunTerminalOutcome: () => mockedAgentRunTerminalOutcome,
     dispatchChannelInboundTurn: async (params: DispatchParams) => {
       capturedReplyOptions = params.replyOptions as typeof capturedReplyOptions;
+      capturedDispatchReplyFromConfig = params.dispatchReplyFromConfig;
       if (mockedReplyOptionEvents.length > 0) {
         for (const entry of mockedReplyOptionEvents) {
           if (entry.kind === "item") {
@@ -1149,6 +1154,7 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
     mockedSlackDraftMode = "append";
     mockedPinnedMainDmOwner = undefined;
     capturedReplyOptions = undefined;
+    capturedDispatchReplyFromConfig = undefined;
     capturedStatusReactionOptions = undefined;
     capturedTyping = undefined;
     mockedReplyThreadTs = THREAD_TS;
@@ -1189,6 +1195,14 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
     await dispatchPreparedSlackMessage(createPreparedSlackMessage({ turnAdoptionLifecycle }));
 
     expect(capturedReplyOptions?.turnAdoptionLifecycle).toBe(turnAdoptionLifecycle);
+  });
+
+  it("forwards the instance-bound reply dispatcher", async () => {
+    const dispatchReplyFromConfig = vi.fn();
+
+    await dispatchPreparedSlackMessage(createPreparedSlackMessage({ dispatchReplyFromConfig }));
+
+    expect(capturedDispatchReplyFromConfig).toBe(dispatchReplyFromConfig);
   });
 
   it("preserves provider previews for observer-only hooks", async () => {
