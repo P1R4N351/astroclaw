@@ -5,7 +5,7 @@ import path from "node:path";
 import {
   embeddedAgentLog,
   type HarnessContextEngine as ContextEngine,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   consumeCodexAppServerLiveThread,
@@ -2325,6 +2325,7 @@ function createFakeCodexClient(
             status: { type: "idle" },
             path: null,
             cwd: tempDir,
+            projectId: null,
             cliVersion: CODEX_APP_SERVER_VERSION,
             source: "unknown",
             agentNickname: null,
