@@ -1,8 +1,8 @@
-import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
-// Telegram tests cover delivery.resolve media retry plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import type { Message } from "grammy/types";
+import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
+// Telegram tests cover delivery.resolve media retry plugin behavior.
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveMedia } from "./delivery.resolve-media.js";
 import type { TelegramContext } from "./types.js";
@@ -31,7 +31,7 @@ const saveRemoteMedia = vi.fn(async (...args: unknown[]) => {
 });
 const rootRead = vi.fn();
 
-vi.mock("astroclaw/plugin-sdk/file-access-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/file-access-runtime", () => ({
   root: async (rootDir: string) => ({
     read: async (relativePath: string, options?: { maxBytes?: number }) =>
       await rootRead({
@@ -457,6 +457,7 @@ describe("resolveMedia original filename preservation", () => {
     });
     expectResolvedMediaFields(result, "document filename", {
       path: "/tmp/business-plan---uuid.pdf",
+      fileName: "business-plan.pdf",
     });
   });
 
