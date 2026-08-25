@@ -1,7 +1,7 @@
 // Covers gateway update runner scenarios.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { writePackageDistInventory } from "../../scripts/lib/package-dist-inventory.ts";
 import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../plugins/runtime-sidecar-paths.js";
@@ -1696,6 +1696,43 @@ describe("runGatewayUpdate", () => {
     expect(result.reason).toBe("build-failed");
     expect(calls).toContain("pnpm install");
     expect(calls).not.toContain("pnpm ui:build");
+    expect(calls).toContain(`git -C ${tempDir} reset --hard`);
+    expect(calls).toContain(`git -C ${tempDir} checkout --force main`);
+    expect(calls).toContain(`git -C ${tempDir} reset --hard abc123`);
+  });
+
+  it("rolls back and reports error when the final HEAD verification probe fails", async () => {
+    await setupGitCheckout({ packageManager: "pnpm@8.0.0" });
+    await setupUiIndex();
+    const stableTag = "v1.0.1-1";
+    const doctorNodePath = await resolveStableNodePath(process.execPath);
+    const { runner, calls } = createRunner({
+      ...buildStableTagResponses(stableTag),
+      [`git -C ${tempDir} rev-parse --abbrev-ref HEAD`]: { stdout: "main" },
+      "pnpm install": { stdout: "" },
+      "pnpm build": { stdout: "" },
+      "pnpm ui:build": { stdout: "" },
+      [`${doctorNodePath} ${path.join(tempDir, "openclaw.mjs")} doctor --non-interactive --fix`]: {
+        stdout: "",
+      },
+    });
+    let revParseHeadCount = 0;
+    const runCommand = async (argv: string[]) => {
+      const key = argv.join(" ");
+      if (key === `git -C ${tempDir} rev-parse HEAD`) {
+        revParseHeadCount += 1;
+        if (revParseHeadCount === 2) {
+          return toCommandResult({ code: 1, stderr: "fatal: not a valid object name HEAD" });
+        }
+      }
+      return runner(argv);
+    };
+
+    const result = await runWithCommand(runCommand, { channel: "stable" });
+
+    expect(result.status).toBe("error");
+    expect(result.reason).toBe("head-verification-failed");
+    expect(result.after).toBeUndefined();
     expect(calls).toContain(`git -C ${tempDir} reset --hard`);
     expect(calls).toContain(`git -C ${tempDir} checkout --force main`);
     expect(calls).toContain(`git -C ${tempDir} reset --hard abc123`);
