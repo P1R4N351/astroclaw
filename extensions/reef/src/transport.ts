@@ -1,8 +1,8 @@
-import { toStringifiedError as asError } from "astroclaw/plugin-sdk/error-runtime";
-import { buildTimeoutAbortSignal } from "astroclaw/plugin-sdk/extension-shared";
-import { redactSensitiveText } from "astroclaw/plugin-sdk/logging-core";
-import { readProviderJsonResponse } from "astroclaw/plugin-sdk/provider-http";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { toStringifiedError as asError } from "openclaw/plugin-sdk/error-runtime";
+import { buildTimeoutAbortSignal } from "openclaw/plugin-sdk/extension-shared";
+import { redactSensitiveText } from "openclaw/plugin-sdk/logging-core";
+import { readProviderJsonResponse } from "openclaw/plugin-sdk/provider-http";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import WebSocket from "ws";
 import { sha256Hex, signDeviceRequest, utf8 } from "../protocol/index.js";
 import type { Envelope, SignedReceipt } from "../protocol/index.js";
@@ -219,8 +219,8 @@ export class ReefTransportClient {
     }
     return { peer: friend.peer, status };
   }
-  listFriends(): Promise<{ friendships: RelayFriend[] }> {
-    return this.signed("GET", "/v1/friends");
+  listFriends(signal?: AbortSignal): Promise<{ friendships: RelayFriend[] }> {
+    return this.signed("GET", "/v1/friends", undefined, signal);
   }
   removeFriend(peer: string): Promise<void> {
     return this.signed("DELETE", `/v1/friends/${encodeURIComponent(peer)}`);
