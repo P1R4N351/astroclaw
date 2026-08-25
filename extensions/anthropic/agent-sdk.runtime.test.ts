@@ -9,7 +9,7 @@ import type {
   CliBackendExecuteContext,
   CliBackendLiveSessionCapability,
   CliBackendLiveSessionHandle,
-} from "astroclaw/plugin-sdk/cli-backend";
+} from "openclaw/plugin-sdk/cli-backend";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { executeClaudeAgentSdk } from "./agent-sdk.runtime.js";
 import { buildAnthropicCliBackend } from "./cli-backend.js";
@@ -53,6 +53,7 @@ function createContext(
     cwd: "/tmp/openclaw-workspace",
     env: {
       HOME: "/tmp/claude-login-home",
+      CLAUDE_CONFIG_DIR: "/tmp/claude-login-home/custom-config",
       PATH: "/usr/local/bin:/usr/bin",
       OPENCLAW_MCP_TOKEN: "test-grant-not-a-real-secret",
     },
