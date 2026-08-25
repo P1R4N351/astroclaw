@@ -36,7 +36,7 @@ import {
 } from "../agent-tools.before-tool-call.js";
 import { withGatewayToolCallerIdentity } from "./gateway-caller-context.js";
 type CreateMessageTool = typeof import("./message-tool-execution.js").createMessageTool;
-type CreateOpenClawTools = typeof import("../astroclaw-tools.js").createOpenClawTools;
+type CreateOpenClawTools = typeof import("../openclaw-tools.js").createOpenClawTools;
 type ResetPluginRuntimeStateForTest =
   typeof import("../../plugins/runtime.js").resetPluginRuntimeStateForTest;
 type SetActivePluginRegistry = typeof import("../../plugins/runtime.js").setActivePluginRegistry;
@@ -400,7 +400,7 @@ beforeAll(async () => {
     await import("../../plugins/runtime.js"));
   ({ createTestRegistry } = await import("../../test-utils/channel-plugins.js"));
   ({ createMessageTool } = await import("./message-tool-execution.js"));
-  ({ createOpenClawTools } = await import("../astroclaw-tools.js"));
+  ({ createOpenClawTools } = await import("../openclaw-tools.js"));
   ({ runMessageAction: actualRunMessageAction } = await vi.importActual(
     "../../infra/outbound/message-action-runner.js",
   ));
@@ -1172,6 +1172,21 @@ describe("message tool secret scoping", () => {
     expect(input?.sourceReplyDeliveryMode).toBe("message_tool_only");
     expect(input?.toolContext?.currentChannelProvider).toBe("webchat");
     expect(input?.params).toMatchObject({ action: "send", message: "hi" });
+  });
+
+  it("does not discover bundled plugins for an internal WebChat session", async () => {
+    const { getBundledChannelPlugin } = await import("../../channels/plugins/bundled.js");
+    const bundledPluginLookup = vi.mocked(getBundledChannelPlugin);
+    bundledPluginLookup.mockClear();
+
+    createMessageTool({
+      config: { agents: { entries: { main: { default: true } } } },
+      preparedMessageToolCatalog: EMPTY_PREPARED_MESSAGE_TOOL_CATALOG,
+      currentChannelProvider: "webchat",
+      agentSessionKey: "agent:main:webchat:dm:dashboard",
+    });
+
+    expect(bundledPluginLookup).not.toHaveBeenCalled();
   });
 
   it("keeps automatic WebChat final-answer guidance while selecting the tool-local sink", async () => {
