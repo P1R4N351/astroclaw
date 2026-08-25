@@ -1,6 +1,6 @@
 /** Tests command-turn context normalization and source/kind conversions. */
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   createCommandTurnContext,
   isAuthorizedTextSlashCommandTurn,
@@ -221,6 +221,32 @@ describe("resolveCommandTurnContext", () => {
         CommandTargetSessionKey: " legacy-target ",
       }),
     ).toBe("legacy-target");
+    expect(
+      resolveCommandTurnTargetSessionKey({
+        CommandTurn: createCommandTurnContext("text", {
+          authorized: true,
+          body: "/steer finish with a table",
+          commandName: "steer",
+        }),
+        CommandTargetSessionKey: " active-direct-session ",
+      }),
+    ).toBe("active-direct-session");
+    expect(
+      resolveCommandTurnTargetSessionKey({
+        CommandTurn: textTurn,
+        CommandTargetSessionKey: "must-not-retarget-status",
+      }),
+    ).toBeUndefined();
+    expect(
+      resolveCommandTurnTargetSessionKey({
+        CommandTurn: createCommandTurnContext("text", {
+          authorized: false,
+          body: "/steer denied",
+          commandName: "steer",
+        }),
+        CommandTargetSessionKey: "must-not-retarget-unauthorized",
+      }),
+    ).toBeUndefined();
     expect(isExplicitCommandTurn(undefined)).toBe(false);
   });
 });
