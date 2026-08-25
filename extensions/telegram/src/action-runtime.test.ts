@@ -1,12 +1,12 @@
 import os from "node:os";
 import path from "node:path";
-import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { captureEnv } from "astroclaw/plugin-sdk/test-env";
+import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { captureEnv } from "openclaw/plugin-sdk/test-env";
 // Telegram tests cover action runtime plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   handleTelegramAction as handleTelegramActionRuntime,
@@ -1069,7 +1069,7 @@ describe("handleTelegramAction", () => {
       createTestRegistry,
       readQueuedDeliveryEntriesForTest,
       setActivePluginRegistry,
-    } = await import("astroclaw/plugin-sdk/plugin-test-runtime");
+    } = await import("openclaw/plugin-sdk/plugin-test-runtime");
     const readDurableQueueEntries = () => readQueuedDeliveryEntriesForTest(stateDir);
     const sendText = vi
       .fn()
@@ -1960,19 +1960,35 @@ describe("handleTelegramAction", () => {
       expectedOptions: { mediaUrl: "https://example.com/image.jpg" },
     },
     {
-      name: "quoteText",
+      name: "quoteText preserving exact whitespace",
       params: {
         action: "sendMessage",
         to: "123456",
         content: "Replying now",
         replyToMessageId: 144,
-        quoteText: "The text you want to quote",
+        quoteText: "  The text you want to quote\n  ",
       },
       expectedTo: "123456",
       expectedContent: "Replying now",
       expectedOptions: {
         replyToMessageId: 144,
-        quoteText: "The text you want to quote",
+        quoteText: "  The text you want to quote\n  ",
+      },
+    },
+    {
+      name: "snake-case quoteText preserving exact whitespace",
+      params: {
+        action: "sendMessage",
+        to: "123456",
+        content: "Replying now",
+        replyToMessageId: 144,
+        quote_text: " \nThe text you want to quote  ",
+      },
+      expectedTo: "123456",
+      expectedContent: "Replying now",
+      expectedOptions: {
+        replyToMessageId: 144,
+        quoteText: " \nThe text you want to quote  ",
       },
     },
     {
