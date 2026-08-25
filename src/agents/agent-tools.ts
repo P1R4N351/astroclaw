@@ -11,8 +11,8 @@ import { HEARTBEAT_RESPONSE_TOOL_NAME } from "../auto-reply/heartbeat-tool-respo
 import { messageToolOwnsVisibleReply } from "../auto-reply/source-reply-delivery-mode.js";
 import type { ChatType } from "../channels/chat-type.js";
 import type { InboundEventKind } from "../channels/inbound-event/kind.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ModelCompatConfig } from "../config/types.models.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { GroupToolPolicyConfig } from "../config/types.tools.js";
 import type { DiagnosticTraceContext } from "../infra/diagnostic-trace-context.js";
 import { resolveEventSessionRoutingPolicy } from "../infra/event-session-routing.js";
@@ -42,8 +42,6 @@ import {
 } from "./agent-tools.ring-zero-context.js";
 import type { AnyAgentTool } from "./agent-tools.types.js";
 import { isApplyPatchAllowedForModel } from "./apply-patch-model-policy.js";
-import { resolveOpenClawPluginToolsForOptions } from "./astroclaw-plugin-tools.js";
-import { createOpenClawTools, filterToolsByClientCaps } from "./astroclaw-tools.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";
 import { resolveProcessToolScopeKey } from "./bash-process-scope.js";
 import type { ExecToolDefaults } from "./bash-tools.exec-types.js";
@@ -72,6 +70,8 @@ import {
 } from "./local-model-lean.js";
 import { createMemoryWriteProvenanceObserver } from "./memory-write-provenance.js";
 import type { ModelAuthMode } from "./model-auth.js";
+import { resolveOpenClawPluginToolsForOptions } from "./openclaw-plugin-tools.js";
+import { createOpenClawTools, filterToolsByClientCaps } from "./openclaw-tools.js";
 import type { PreparedModelRuntimeSnapshot } from "./prepared-model-runtime.js";
 import type { SandboxContext } from "./sandbox.js";
 import {
@@ -771,6 +771,19 @@ function createOpenClawCodingToolsInternal(options?: OpenClawCodingToolsOptions)
             allowHostBrowserControl: sandbox ? sandbox.browserAllowHostControl : true,
             agentSessionKey: options?.sessionKey,
             runId: options?.runId,
+            execSession: sessionPermissionPolicy
+              ? { permissionMode: sessionPermissionPolicy.mode }
+              : undefined,
+            execOverrides: {
+              host: options?.exec?.host ?? execConfig.host,
+              mode: effectiveExecPolicy.mode,
+              security: effectiveExecPolicy.security,
+              ask: effectiveExecPolicy.ask,
+              node: options?.exec?.node ?? execConfig.node,
+            },
+            approvalReviewerDeviceIds: options?.approvalReviewerDeviceId
+              ? [options.approvalReviewerDeviceId]
+              : undefined,
             runSessionKey: options?.runSessionKey,
             agentChannel: resolveGatewayMessageChannel(
               options?.messageChannel ?? options?.messageProvider,
