@@ -16,7 +16,7 @@ import {
 import { ensureSelectedAgentHarnessPlugin } from "../agents/harness/runtime-plugin.js";
 import { detectInferenceBackends } from "../commands/onboard-inference.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { withoutPluginInstallRecords } from "../plugins/installed-plugin-index-records.js";
 import { hasRetainedManagedNpmInstallMarker } from "../plugins/managed-npm-retention.js";
@@ -689,7 +689,12 @@ describe("detectSetupInference", () => {
       recommended: false,
     });
     expect(detection.setupComplete).toBe(false);
-    expect(detection.recommendedInstalls).toHaveLength(9);
+    expect(detection.recommendedInstalls.map((install) => install.id)).toEqual([
+      "ollama",
+      "lmstudio",
+      "claude-code",
+      "codex-cli",
+    ]);
     expect(detection.workspace.length).toBeGreaterThan(0);
     expect(resolveManifestProviderAuthChoices).toHaveBeenCalledWith(
       expect.objectContaining({ includeWorkspacePlugins: false }),
