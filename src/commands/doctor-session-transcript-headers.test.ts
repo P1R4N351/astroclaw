@@ -7,8 +7,9 @@ import {
   upsertSessionEntryCore,
 } from "../config/sessions/session-accessor.js";
 import { readTranscriptStorageRows } from "../config/sessions/session-accessor.sqlite-read.js";
+import { waitForSessionTranscriptIndexReconcile } from "../config/sessions/session-transcript-reconcile.js";
 import { CURRENT_SESSION_VERSION } from "../config/sessions/version.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   closeOpenClawAgentDatabasesForTest,
   openOpenClawAgentDatabase,
@@ -18,7 +19,7 @@ import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/astroclaw-test-state.js";
+} from "../test-utils/openclaw-test-state.js";
 
 const note = vi.hoisted(() => vi.fn());
 
@@ -61,6 +62,7 @@ describe("doctor SQLite session transcript header repair", () => {
   });
 
   afterEach(async () => {
+    await waitForSessionTranscriptIndexReconcile({ agentId: AGENT_ID, env: state.env });
     closeOpenClawAgentDatabasesForTest();
     closeOpenClawStateDatabaseForTest();
     await state.cleanup();
@@ -168,6 +170,7 @@ describe("doctor SQLite session transcript header repair", () => {
       { event_id: "user-1", parent_id: "model-1", seq: 2 },
       { event_id: "leaf-1", parent_id: "user-1", seq: 3 },
     ]);
+    await waitForSessionTranscriptIndexReconcile(databaseOptions);
     expect(
       database.db
         .prepare(
