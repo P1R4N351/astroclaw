@@ -1,6 +1,6 @@
 // Qa Lab tests cover scenario flow runner plugin behavior.
-import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { describe, expect, it } from "vitest";
 import { createQaBusState } from "./bus-state.js";
 import { QaSuiteScenarioSkipError } from "./errors.js";
@@ -231,10 +231,10 @@ function createPlanningEvidenceFixture(
     return {
       scenario,
       outboundText: `Built ${artifactFile}`,
-      failureMessage: "missing OpenClaw update_plan signal",
+      failureMessage: "missing OpenClaw progress_card signal",
       currentSummary: {
         eventCursor: 9,
-        successfulToolCallCounts: { update_plan: 1 },
+        successfulToolCallCounts: { progress_card: 1 },
       },
     };
   }
@@ -254,7 +254,7 @@ function runPlanningEvidenceFixture(
         { identity: "old-turn:plan", text: "Codex plan:\nQA_INTERNAL_PLAN_DO_NOT_SEND" },
         { identity: "old-turn:assistant", text: fixture.outboundText },
       ],
-      successfulToolCallCounts: { update_plan: 1 },
+      successfulToolCallCounts: { progress_card: 1 },
     },
     currentSummary,
   ];
