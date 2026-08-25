@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { prepareSystemAgentRunAdmission } from "../../agents/admitted-run-context.js";
 import { resolveDefaultModelForAgent } from "../../agents/model-selection-config.js";
 import { SessionManager } from "../../agents/sessions/index.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { CommandLane } from "../../process/lanes.js";
 import {
   buildSkillHistoryScanPrompt,
@@ -94,7 +94,6 @@ export async function runSkillHistoryScanReview(params: {
       timeoutMs: HISTORY_SCAN_TIMEOUT_MS,
       runId,
       toolsAllow: ["skill_workshop"],
-      disableMessageTool: true,
       disableTrajectory: true,
       skillWorkshopProposalOnly: true,
       skillWorkshopProposalEnv: params.env,
