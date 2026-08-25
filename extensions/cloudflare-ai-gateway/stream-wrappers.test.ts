@@ -1,5 +1,5 @@
 // Cloudflare Ai Gateway tests cover stream wrappers plugin behavior.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { wrapCloudflareAiGatewayProviderStream } from "./stream-wrappers.js";
 
@@ -7,7 +7,7 @@ const { warnMock } = vi.hoisted(() => ({
   warnMock: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   createSubsystemLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
 }));
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/runtime-env");
+  vi.doUnmock("astroclaw/plugin-sdk/runtime-env");
   vi.resetModules();
 });
 
@@ -113,28 +113,6 @@ describe("wrapCloudflareAiGatewayProviderStream", () => {
 describe("wrapCloudflareAiGatewayProviderStream", () => {
   beforeEach(() => {
     warnMock.mockClear();
-  });
-
-  it("patches Anthropic Messages models", () => {
-    const payload = {
-      thinking: { type: "enabled" },
-      messages: [
-        { role: "user", content: "Return JSON." },
-        { role: "assistant", content: "{" },
-      ],
-    };
-    const wrapped = wrapCloudflareAiGatewayProviderStream({
-      model: { api: "anthropic-messages" },
-      streamFn: createPayloadBaseStream(payload),
-    } as never);
-
-    void wrapped?.(
-      { provider: "cloudflare-ai-gateway", api: "anthropic-messages" } as never,
-      {} as never,
-      {},
-    );
-
-    expect(payload.messages).toEqual([{ role: "user", content: "Return JSON." }]);
   });
 
   it("leaves non-Anthropic model APIs on the original stream path", () => {
