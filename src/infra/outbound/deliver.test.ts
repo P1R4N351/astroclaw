@@ -23,16 +23,16 @@ import { createEmptyPluginRegistry } from "../../plugins/registry.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import type { PluginHookRegistration } from "../../plugins/types.js";
 import { createDeferredCore } from "../../shared/deferred.js";
-import { createOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { createOutboundTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { createInternalHookEventPayload } from "../../test-utils/internal-hook-event-payload.js";
+import { createOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
 import {
   onInternalDiagnosticEvent,
   resetDiagnosticEventsForTest,
   type DiagnosticEventPayload,
 } from "../diagnostic-events.js";
 import { retryAsync } from "../retry.js";
-import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../tmp-openclaw-dir.js";
 import { prepareOutboundPayloadBatch } from "./deliver-prepare.js";
 import { PlatformMessageNotDispatchedError } from "./deliver-types.js";
 import { createUnmodifiedPreparedOutboundBatch } from "./prepared-batch.js";
@@ -238,7 +238,7 @@ const matrixChunkConfig: OpenClawConfig = {
   channels: { matrix: { textChunkLimit: 4000 } } as OpenClawConfig["channels"],
 };
 
-const expectedPreferredTmpRoot = resolvePreferredAstroclawTmpDir();
+const expectedPreferredTmpRoot = resolvePreferredOpenClawTmpDir();
 
 type DeliverOutboundArgs = Parameters<DeliverModule["deliverOutboundPayloads"]>[0];
 type DeliverOutboundPayload = DeliverOutboundArgs["payloads"][number];
@@ -4987,7 +4987,7 @@ describe("deliverOutboundPayloads", () => {
     // same capability the live send resolves, so a fabricated localRoots here
     // would hide whether the two gates agree.
     const sourceDir = await fsPromises.realpath(
-      await fsPromises.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "deliver-spool-")),
+      await fsPromises.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "deliver-spool-")),
     );
     const openClawState = await createOpenClawTestState({
       layout: "state-only",
@@ -5889,7 +5889,12 @@ describe("deliverOutboundPayloads", () => {
     expect(pinOptions?.messageId).toBe("mx-1");
   });
 
-  it("preserves channelData-only payloads with empty text for sendPayload channels", async () => {
+  it.each([
+    { name: "empty text", text: " \n\t " },
+    { name: "a silent token", text: "NO_REPLY" },
+    { name: "a silent JSON action", text: '{"action":"NO_REPLY"}' },
+    { name: "a relay status placeholder", text: "No channel reply." },
+  ])("delivers channelData-only payloads with $name", async ({ text }) => {
     const sendPayload = vi.fn().mockResolvedValue({ channel: "line", messageId: "ln-1" });
     const sendText = vi.fn();
     const sendMedia = vi.fn();
@@ -5899,7 +5904,7 @@ describe("deliverOutboundPayloads", () => {
       cfg: {},
       channel: "line",
       to: "U123",
-      payloads: [{ text: " \n\t ", channelData: { mode: "flex" } }],
+      payloads: [{ text, channelData: { mode: "flex" } }],
     });
 
     expect(sendPayload).toHaveBeenCalledTimes(1);
