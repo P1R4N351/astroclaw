@@ -1,6 +1,6 @@
-import type { GetReplyOptions, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import type { GetReplyOptions, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 // Slack tests cover dispatch.preview fallback plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const FINAL_REPLY_TEXT = "final answer";
@@ -456,11 +456,11 @@ async function dispatchNativeProgressScenario(params: {
   );
 }
 
-vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
   resolveHumanDelayConfig: () => undefined,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-feedback", () => ({
+vi.mock("openclaw/plugin-sdk/channel-feedback", () => ({
   DEFAULT_TIMING: {
     doneHoldMs: 0,
     errorHoldMs: 0,
@@ -474,8 +474,8 @@ vi.mock("astroclaw/plugin-sdk/channel-feedback", () => ({
   removeAckReactionAfterReply: () => {},
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
+vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     createChannelProgressDraftCompositor: (
@@ -812,14 +812,14 @@ vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
+vi.mock("openclaw/plugin-sdk/reply-history", () => ({
   clearHistoryEntriesIfEnabled: () => {},
   createChannelHistoryWindow: () => ({
     clear: () => {},
   }),
 }));
 
-vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
+vi.mock("openclaw/plugin-sdk/reply-payload", () => ({
   isReplyPayloadNonTerminalToolErrorWarning: () => false,
   buildTtsSupplementMediaPayload: (payload: {
     text?: string;
@@ -865,24 +865,23 @@ vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   danger: (message: string) => message,
   logVerbose: logVerboseMock,
   shouldLogVerbose: () => false,
 }));
 
-vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
   return { ...actual, getGlobalHookRunner: getGlobalHookRunnerMock };
 });
 
-vi.mock("astroclaw/plugin-sdk/security-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/security-runtime", () => ({
   resolvePinnedMainDmOwnerFromAllowlist: () => mockedPinnedMainDmOwner,
 }));
 
-vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/string-coerce-runtime")>();
+vi.mock("openclaw/plugin-sdk/string-coerce-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/string-coerce-runtime")>();
   const normalizeMockLowercaseString = (value?: string) => value?.toLowerCase();
   const readMockOptionalString = (value?: string) => value;
   return {
@@ -988,8 +987,8 @@ vi.mock("../replies.js", () => ({
   resolveSlackThreadTs: () => mockedReplyThreadTs,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
+vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
   type DispatchParams = Parameters<typeof actual.dispatchChannelInboundTurn>[0];
   return {
     ...actual,
@@ -4402,6 +4401,36 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
     );
 
     expect(draftStream.update).toHaveBeenLastCalledWith("• Reading the Slack handler");
+  });
+
+  it("keeps one partial preview across reasoning and tool boundaries", async () => {
+    const draftStream = createDraftStreamStub();
+    createSlackDraftStreamMock.mockReturnValueOnce(draftStream);
+    mockedSlackStreamingMode = "partial";
+    mockedSlackDraftMode = "replace";
+    mockedDispatchSequence = [];
+    mockedReplyOptionEvents = [
+      { kind: "reasoning", text: "Checking the first path" },
+      { kind: "reasoning_end" },
+      { kind: "item", progressText: "tool one" },
+      { kind: "assistant_start" },
+      { kind: "reasoning", text: "Checking the second path" },
+      { kind: "reasoning_end" },
+      { kind: "item", progressText: "tool two" },
+      { kind: "assistant_start" },
+      { kind: "partial", text: "final answer" },
+    ];
+
+    await dispatchPreparedSlackMessage(
+      createPreparedSlackMessage({
+        accountConfig: {
+          streaming: { mode: "partial", progress: { label: false } },
+        },
+      }),
+    );
+
+    expect(draftStream.forceNewMessage).not.toHaveBeenCalled();
+    expect(draftStream.update).toHaveBeenLastCalledWith("final answer");
   });
 
   it("keeps preamble headlines and tool progress when commentary is disabled", async () => {
