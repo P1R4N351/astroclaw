@@ -2,8 +2,8 @@ import type { AuthProfileCredential, AuthProfileStore } from "../agents/auth-pro
 import type { ProviderSystemPromptContribution } from "../agents/system-prompt-contribution.js";
 import type { ReplyPayload } from "../auto-reply/reply-payload.js";
 import type { ThinkLevel } from "../auto-reply/thinking.shared.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ModelProviderConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { ModelRegistry } from "../llm/model-registry.js";
 import type { ProviderSystemPromptContributionContext } from "./provider-authentication.types.js";
 import type { ProviderRuntimeModel } from "./provider-runtime-model.types.js";
@@ -164,7 +164,10 @@ export type ProviderResolveUsageAuthContext = {
     providerIds?: string[];
     envDirect?: Array<string | undefined>;
   }) => Promise<string[]>;
-  resolveOAuthToken: (params?: { provider?: string }) => Promise<ProviderUsageAuthToken | null>;
+  resolveOAuthToken: (params?: {
+    provider?: string;
+    excludeProfileIds?: string[];
+  }) => Promise<ProviderUsageAuthToken | null>;
 };
 
 export type ProviderUsageAuthToken = {
