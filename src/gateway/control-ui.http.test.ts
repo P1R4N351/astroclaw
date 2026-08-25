@@ -12,11 +12,11 @@ import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { normalizeAssistantIdentity } from "../../ui/src/lib/assistant-identity.ts";
 import * as configIo from "../config/io.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { approveDevicePairing } from "../infra/device-pairing-approval.js";
 import { ensureDeviceToken } from "../infra/device-pairing-tokens.js";
 import { requestDevicePairing } from "../infra/device-pairing.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../plugins/runtime.js";
 import { AVATAR_MAX_DATA_URL_CHARS } from "../shared/avatar-limits.js";
@@ -415,7 +415,7 @@ describe("handleControlUiHttpRequest", () => {
     prefix: string;
     fn: (tmpRoot: string) => Promise<T>;
   }) {
-    const tmpRoot = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), params.prefix));
+    const tmpRoot = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), params.prefix));
     try {
       return await params.fn(tmpRoot);
     } finally {
@@ -1519,8 +1519,15 @@ describe("handleControlUiHttpRequest", () => {
           {
             root: { kind: "resolved", path: tmp },
             config: {
-              agents: { defaults: { workspace: tmp } },
-              ui: { assistant: { name: "</script><script>alert(1)//", avatar: "evil.png" } },
+              agents: {
+                defaults: { workspace: tmp },
+                list: [
+                  {
+                    id: "main",
+                    identity: { name: "</script><script>alert(1)//", avatar: "evil.png" },
+                  },
+                ],
+              },
             },
           },
         );
@@ -1714,12 +1721,19 @@ describe("handleControlUiHttpRequest", () => {
             config: {
               agents: {
                 defaults: { workspace: tmp },
-                list: [{ id: "roboclaw", default: true, workspace: tmp }],
+                list: [
+                  {
+                    id: "roboclaw",
+                    default: true,
+                    workspace: tmp,
+                    identity: {
+                      name: "</script><script>alert(1)//",
+                      avatar: "</script>.png",
+                    },
+                  },
+                ],
               },
-              ui: {
-                seamColor: "#1A2b3C",
-                assistant: { name: "</script><script>alert(1)//", avatar: "</script>.png" },
-              },
+              ui: { seamColor: "#1A2b3C" },
               gateway: {
                 cliAgents: { enabled: true },
                 controlUi: { environment: { label: "edge", color: "amber" } },
@@ -2065,8 +2079,10 @@ describe("handleControlUiHttpRequest", () => {
             authorization: "Bearer test-token",
           },
           config: {
-            agents: { defaults: { workspace: tmp } },
-            ui: { assistant: { avatar: "avatar.png" } },
+            agents: {
+              defaults: { workspace: tmp },
+              list: [{ id: "main", identity: { avatar: "avatar.png" } }],
+            },
           },
           rateLimiter,
         });
@@ -2651,8 +2667,10 @@ describe("handleControlUiHttpRequest", () => {
             basePath: "/openclaw",
             root: { kind: "resolved", path: tmp },
             config: {
-              agents: { defaults: { workspace: tmp } },
-              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+              agents: {
+                defaults: { workspace: tmp },
+                list: [{ id: "main", identity: { name: "Ops", avatar: "ops.png" } }],
+              },
             },
           },
         );
@@ -2683,8 +2701,10 @@ describe("handleControlUiHttpRequest", () => {
             basePath: "/__openclaw__",
             root: { kind: "resolved", path: tmp },
             config: {
-              agents: { defaults: { workspace: tmp } },
-              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+              agents: {
+                defaults: { workspace: tmp },
+                list: [{ id: "main", identity: { name: "Ops", avatar: "ops.png" } }],
+              },
             },
           },
         );
@@ -2717,8 +2737,10 @@ describe("handleControlUiHttpRequest", () => {
             // No basePath: simulates the default deployment from the issue report.
             root: { kind: "resolved", path: tmp },
             config: {
-              agents: { defaults: { workspace: tmp } },
-              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+              agents: {
+                defaults: { workspace: tmp },
+                list: [{ id: "main", identity: { name: "Ops", avatar: "ops.png" } }],
+              },
             },
           },
         );
@@ -2767,8 +2789,10 @@ describe("handleControlUiHttpRequest", () => {
             // and served the single-underscore endpoint.
             root: { kind: "resolved", path: tmp },
             config: {
-              agents: { defaults: { workspace: tmp } },
-              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+              agents: {
+                defaults: { workspace: tmp },
+                list: [{ id: "main", identity: { name: "Ops", avatar: "ops.png" } }],
+              },
             },
           },
         );
@@ -2803,8 +2827,10 @@ describe("handleControlUiHttpRequest", () => {
             basePath: "/openclaw",
             root: { kind: "resolved", path: tmp },
             config: {
-              agents: { defaults: { workspace: tmp } },
-              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+              agents: {
+                defaults: { workspace: tmp },
+                list: [{ id: "main", identity: { name: "Ops", avatar: "ops.png" } }],
+              },
             },
           },
         );
