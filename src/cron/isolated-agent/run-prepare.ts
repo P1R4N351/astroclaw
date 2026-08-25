@@ -8,7 +8,7 @@ import { resolveAgentModelPrimaryValue } from "../../config/model-input.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { resolveSessionWorkStartError } from "../../config/sessions/lifecycle.js";
 import type { AgentDefaultsConfig } from "../../config/types.agent-defaults.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { SourceDeliveryPlan } from "../../infra/outbound/source-delivery-plan.js";
 import type { PluginRegistry } from "../../plugins/registry-types.js";
 import { isCronSessionKey, parseAgentSessionKey } from "../../routing/session-key.js";
@@ -311,6 +311,7 @@ export async function prepareCronRunContext(params: {
     const persistSessionEntry = createPersistCronSessionEntry({
       cronSession,
       agentSessionKey,
+      createdActor: input.job.createdActor,
       persistSessionEntry: persistCronSessionRow,
     });
     const withRunSession: WithRunSession = (result) => ({
@@ -656,6 +657,7 @@ export async function prepareCronRunContext(params: {
       ? createCronRunContinuationSession({
           cronSession,
           runSessionKey,
+          createdActor: input.job.createdActor,
           thinkingLevel: requestedThinkLevel,
           toolsAllow: agentPayload?.toolsAllow,
           toolsAllowIsDefault: agentPayload?.toolsAllowIsDefault,
