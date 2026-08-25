@@ -6,7 +6,7 @@ import type { ChannelThreadingAdapter } from "../../channels/plugins/types.core.
 import { normalizeAnyChannelId } from "../../channels/registry.js";
 import { getLoadedChannelThreadingAdapter } from "../../channels/thread-addressing.js";
 import type { ReplyToMode } from "../../config/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/account-id.js";
 import {
   copyReplyPayloadMetadata,
@@ -146,7 +146,7 @@ function createReplyToModeFilter(
   opts: { allowExplicitReplyTagsWhenOff?: boolean } = {},
 ) {
   let hasThreaded = false;
-  return (payload: ReplyPayload): ReplyPayload => {
+  const apply = (payload: ReplyPayload, preview = false): ReplyPayload => {
     const isStatusNotice = isReplyPayloadStatusNotice(payload);
     if (!payload.replyToId) {
       return payload;
@@ -179,11 +179,15 @@ function createReplyToModeFilter(
     // threaded (so they appear in-context), but they must not consume the
     // "first" slot of the replyToMode=first|batched filter.  Skip advancing
     // hasThreaded so the real assistant reply still gets replyToId.
-    if (isSingleUseReplyToMode(mode) && !isStatusNotice) {
+    if (isSingleUseReplyToMode(mode) && !isStatusNotice && !preview) {
       hasThreaded = true;
     }
     return payload;
   };
+  // Dedupe must inspect the actual transport route without spending a first-reply slot.
+  return Object.assign((payload: ReplyPayload) => apply(payload), {
+    preview: (payload: ReplyPayload) => apply(payload, true),
+  });
 }
 
 /** Resolve whether implicit current-message replies are allowed under threading policy. */
