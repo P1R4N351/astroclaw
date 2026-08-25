@@ -1,5 +1,5 @@
 /** Type contracts for plugin-owned CLI backend integrations. */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { ContextEngineHostCapability } from "../context-engine/types.js";
 
 /** Static command adapter owned by a CLI backend plugin registration. */
@@ -62,6 +62,13 @@ export type CliBackendConfig = {
   serialize?: boolean;
   /** Opt in to bounded raw transcript reseed before compaction for safe session resets. */
   reseedFromRawTranscriptWhenUncompacted?: boolean;
+  /**
+   * Controls fresh recovery after a recoverable resumed-session failure.
+   *
+   * Undefined and `replace-binding` preserve the legacy clear-and-reseed behavior.
+   * `invalidated-only` retries fresh only when the failure proves the binding expired.
+   */
+  freshSessionRecovery?: "replace-binding" | "invalidated-only";
   /** Runtime reliability tuning for this backend's process lifecycle. */
   reliability?: {
     /** No-output watchdog tuning (fresh vs resumed runs). */
