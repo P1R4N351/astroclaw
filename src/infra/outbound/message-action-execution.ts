@@ -17,7 +17,7 @@ import type {
   ChannelPlugin,
   ChannelThreadingToolContext,
 } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { normalizeMessagePresentation } from "../../interactive/payload.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { readBooleanParam } from "../../plugin-sdk/boolean-param.js";
@@ -612,7 +612,9 @@ export async function executeMessagePlugin(
   // gateway or local dispatch to keep both execution modes on the same topic.
   const targetForThreading =
     normalizeOptionalString(params.to) ?? normalizeOptionalString(params.channelId) ?? "";
-  if (targetForThreading) {
+  // File downloads authorize caller-supplied resource scope. Ambient threading
+  // must not silently narrow a channel-only request to the current thread.
+  if (targetForThreading && action !== "download-file") {
     resolveAndApplyOutboundThreadId(params, {
       cfg,
       to: targetForThreading,
