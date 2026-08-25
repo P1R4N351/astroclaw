@@ -3,7 +3,7 @@ import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
 // Resolves Gateway-visible tools for MCP clients with short-lived schema caching.
 import { applyEmbeddedAttemptToolsAllow } from "../agents/embedded-agent-runner/run/attempt-tool-construction-plan.js";
 import { normalizeToolPolicyName } from "../agents/tool-policy.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { DirectoryCache } from "../infra/outbound/directory-cache.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import type { McpLoopbackRequestContext } from "./mcp-grant-store.js";
@@ -214,6 +214,8 @@ export class McpLoopbackToolCache {
       params.execSession?.execSecurity ?? "",
       params.execSession?.execAsk ?? "",
       params.execSession?.execNode ?? "",
+      params.execSession?.permissionMode ?? "",
+      params.execOverrides?.mode ?? "",
       params.execOverrides?.host ?? "",
       params.execOverrides?.security ?? "",
       params.execOverrides?.ask ?? "",
