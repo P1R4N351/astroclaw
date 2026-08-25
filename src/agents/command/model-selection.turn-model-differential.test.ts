@@ -2,7 +2,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   TURN_MODEL_DEFAULT_REF,
   TURN_MODEL_DIFFERENTIAL_FIXTURES,
@@ -20,6 +20,11 @@ vi.mock("../agent-scope.js", () => ({
   resolveAutoFallbackPrimaryProbe: () => undefined,
   resolveAgentConfig: () => undefined,
   resolveAgentEffectiveModelPrimary: () => undefined,
+}));
+vi.mock("../../auto-reply/thinking.js", () => ({
+  formatThinkingLevels: () => "",
+  isThinkingLevelSupported: () => true,
+  normalizeThinkLevel: (value: string | undefined) => value,
 }));
 vi.mock("../../channels/model-overrides.js", () => ({
   resolveChannelModelOverride: (params: {
@@ -47,6 +52,9 @@ vi.mock("../../channels/model-overrides.js", () => ({
       ? { channel, model, matchKey: matchKey ?? "*", matchSource: matchKey ? "exact" : "wildcard" }
       : null;
   },
+}));
+vi.mock("../../utils/message-channel.js", () => ({
+  isDeliverableMessageChannel: (value: string) => value !== "internal",
 }));
 
 vi.mock("../auth-profiles/order.js", () => ({
