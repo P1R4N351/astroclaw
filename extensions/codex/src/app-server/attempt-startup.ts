@@ -10,8 +10,8 @@ import {
   type CodexBundleMcpThreadConfig,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
   type resolveSandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
   CodexAppServerUnsafeSubscriptionError,
@@ -163,6 +163,7 @@ export async function startCodexAttemptThread(params: {
   finalConfigPatch?: Parameters<typeof startOrResumeThread>[0]["finalConfigPatch"];
   buildFinalConfigPatch?: Parameters<typeof startOrResumeThread>[0]["buildFinalConfigPatch"];
   nativeHookRelayGeneration?: string;
+  nativeHookRelayRequired?: boolean;
   bundleMcpThreadConfig: CodexBundleMcpThreadConfig;
   /** OpenClaw owns configured MCP dynamically for this scheduled turn. */
   configuredMcpOwnershipVersion?: 1;
@@ -471,6 +472,7 @@ export async function startCodexAttemptThread(params: {
                 finalConfigPatch: params.finalConfigPatch,
                 buildFinalConfigPatch: params.buildFinalConfigPatch,
                 nativeHookRelayGeneration: params.nativeHookRelayGeneration,
+                nativeHookRelayRequired: params.nativeHookRelayRequired,
                 nativeCodeModeEnabled: params.nativeToolSurfaceEnabled,
                 nativeProviderWebSearchSupport: params.nativeProviderWebSearchSupport,
                 nativeCodeModeOnlyEnabled: params.appServer.codeModeOnly,
