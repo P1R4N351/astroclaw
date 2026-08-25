@@ -1,15 +1,18 @@
 // Mattermost tests cover reply delivery plugin behavior.
 import path from "node:path";
-import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
-import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
-import type { ChunkMode } from "astroclaw/plugin-sdk/reply-runtime";
-import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
+import { createMessageReceiptFromOutboundResults } from "openclaw/plugin-sdk/channel-outbound";
+import type { ChunkMode } from "openclaw/plugin-sdk/reply-runtime";
+import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig, PluginRuntime } from "../../runtime-api.js";
 import { deliverMattermostReplyPayload } from "./reply-delivery.js";
 import type { MattermostSendResult } from "./send.js";
 
 type DeliverMattermostReplyPayloadParams = Parameters<typeof deliverMattermostReplyPayload>[0];
+type SendMattermostMessageOptions = Parameters<
+  DeliverMattermostReplyPayloadParams["sendMessage"]
+>[2];
 type ReplyDeliveryMarkdownTableMode = Parameters<
   DeliverMattermostReplyPayloadParams["core"]["channel"]["text"]["convertMarkdownTables"]
 >[1];
@@ -42,18 +45,24 @@ function createReplyDeliveryCore(): DeliverMattermostReplyPayloadParams["core"] 
 
 function createSendMessageMock() {
   let sendCount = 0;
-  return vi.fn(async (_to: string, content: string): Promise<MattermostSendResult> => {
-    const messageId = `post-${++sendCount}`;
-    return {
-      messageId,
-      channelId: "channel-1",
-      content: content.trim(),
-      receipt: createMessageReceiptFromOutboundResults({
-        results: [{ channel: "mattermost", messageId, channelId: "channel-1" }],
-        kind: "text",
-      }),
-    };
-  });
+  return vi.fn(
+    async (
+      _to: string,
+      content: string,
+      _opts: SendMattermostMessageOptions,
+    ): Promise<MattermostSendResult> => {
+      const messageId = `post-${++sendCount}`;
+      return {
+        messageId,
+        channelId: "channel-1",
+        content: content.trim(),
+        receipt: createMessageReceiptFromOutboundResults({
+          results: [{ channel: "mattermost", messageId, channelId: "channel-1" }],
+          kind: "text",
+        }),
+      };
+    },
+  );
 }
 
 describe("deliverMattermostReplyPayload", () => {
@@ -221,6 +230,9 @@ describe("deliverMattermostReplyPayload", () => {
           cfg,
           accountId: "default",
           mediaUrl,
+          // Local (non-http) media must require a successful upload so a
+          // failure surfaces instead of silently posting the caption alone.
+          requireMediaUpload: true,
           replyToId: "root-post",
           mediaLocalRoots: expect.arrayContaining([
             path.join(stateDir, "media"),
@@ -234,6 +246,29 @@ describe("deliverMattermostReplyPayload", () => {
     } finally {
       await openClawState.cleanup();
     }
+  });
+
+  it("does not require upload for remote (http) media captions", async () => {
+    const sendMessage = createSendMessageMock();
+    const cfg = {} satisfies OpenClawConfig;
+    const core = createReplyDeliveryCore();
+
+    await deliverMattermostReplyPayload({
+      core,
+      cfg,
+      payload: { text: "caption", mediaUrl: "https://example.com/photo.png" },
+      channelId: "town-square",
+      accountId: "default",
+      agentId: "agent-1",
+      replyToId: "root-post",
+      textLimit: 4000,
+      tableMode: "off",
+      sendMessage,
+    });
+
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    const options = sendMessage.mock.calls[0]?.[2] as { requireMediaUpload?: boolean };
+    expect(options.requireMediaUpload).toBeUndefined();
   });
 
   it("forwards replyToId for text-only chunked replies", async () => {
