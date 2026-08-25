@@ -14,7 +14,7 @@ import {
 import { shouldKeepSubagentRunChildLink } from "../agents/subagents/registry/subagent-run-liveness.js";
 import { tryResolveLegacyCompatibilityAgentId } from "../config/legacy.default-agent-owner.js";
 import type { SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withPinnedActivePluginRegistryWorkspaceDir } from "../plugins/runtime-workspace-state.js";
 import {
   isIncognitoSessionKey,
@@ -280,6 +280,7 @@ function filterSessionEntries(params: {
         entry.label,
         entry.subject,
         entry.sessionId,
+        entry.category,
         key,
       ];
       appendStoredSessionModelSearchFields(cheapFields, entry);
