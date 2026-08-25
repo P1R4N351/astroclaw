@@ -1,6 +1,6 @@
 // Doctor web fetch proxy tests cover explicit opt-in diagnostics without exposing proxy values.
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { noteWebFetchProxyDiagnostic } from "./doctor-web-fetch-proxy.js";
 
 function serviceWithEnv(environment?: Record<string, string>) {
@@ -58,6 +58,24 @@ describe("web_fetch proxy doctor diagnostic", () => {
 
     expect(diagnostic).toContain("proxy environment detected in the doctor process: http_proxy");
     expect(diagnostic).toContain("Direct TLS connectivity to docs.openclaw.ai:443 succeeded");
+  });
+
+  it("keeps Kubernetes process proxy diagnostics without inspecting a host service", async () => {
+    const service = serviceWithEnv({ HTTPS_PROXY: "http://service-proxy.example:8080" });
+    const diagnostic = await collectDiagnostic({
+      cfg: {},
+      env: {
+        HTTPS_PROXY: "http://pod-proxy.example:8080",
+        KUBERNETES_SERVICE_HOST: "10.96.0.1",
+        KUBERNETES_SERVICE_PORT: "443",
+      },
+      service,
+      probeDirectConnectivity: vi.fn(async () => "reachable" as const),
+    });
+
+    expect(diagnostic).toContain("proxy environment detected in the doctor process: HTTPS_PROXY");
+    expect(diagnostic).not.toContain("installed Gateway service");
+    expect(service.readCommand).not.toHaveBeenCalled();
   });
 
   it("reports both process and installed service proxy sources", async () => {
