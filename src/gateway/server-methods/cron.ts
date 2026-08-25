@@ -18,7 +18,7 @@ import {
   validateCronUpdateParams,
   validateWakeParams,
 } from "../../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveCronJobConfigRevision } from "../../cron/config-revision.js";
 import {
   assertValidCronAnnounceDelivery,
@@ -79,6 +79,7 @@ import {
 import { isCronInvalidRequestError } from "./cron-error-classification.js";
 import { listCronPageForCallerScope } from "./cron-list-caller-scope.js";
 import { cronRunLogPageFilters, filterCronRunLogJobsByAgent } from "./cron-run-log-filters.js";
+import { resolveOperatorSessionCreation } from "./session-creation-provenance.js";
 import type {
   GatewayClient,
   GatewayRequestContext,
@@ -848,6 +849,7 @@ export const cronHandlers: GatewayRequestHandlers = {
       return;
     }
     const callerScope = readCronCallerScope(client);
+    const createdActor = resolveOperatorSessionCreation(client, { allowTrustedHint: true }).actor;
     let captureRuntimeAuthority: (() => CronRuntimeAuthority | undefined) | undefined;
     try {
       captureRuntimeAuthority = resolveCronCreatorAuthorityCapture(callerScope);
@@ -908,6 +910,7 @@ export const cronHandlers: GatewayRequestHandlers = {
     try {
       result = await context.cron.add(jobCreate, {
         enabledExplicit,
+        ...(createdActor ? { createdActor } : {}),
         ...(commitGuard ? { commitGuard } : {}),
         ...(captureRuntimeAuthority ? { captureRuntimeAuthority } : {}),
         matchesExisting: (job) =>
