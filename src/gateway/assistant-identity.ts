@@ -1,5 +1,5 @@
 // Gateway assistant identity resolver.
-// Combines UI, agent config, and workspace identity files for Control UI display.
+// Combines agent config and workspace identity files for Control UI display.
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { listAgentEntries } from "../agents/agent-scope-config.js";
@@ -7,7 +7,7 @@ import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolveAgentIdentity } from "../agents/identity.js";
 import { loadAgentIdentity } from "../commands/agents.config.js";
 import { tryResolveLegacyCompatibilityAgentId } from "../config/legacy.default-agent-owner.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import {
   AVATAR_MAX_DATA_URL_CHARS,
@@ -32,7 +32,7 @@ type AssistantIdentity = {
   emoji?: string;
 };
 
-type AssistantIdentityNameSource = "config" | "agent" | "workspace" | "default";
+type AssistantIdentityNameSource = "agent" | "workspace" | "default";
 type ResolvedAssistantIdentity = AssistantIdentity & {
   agentId: string;
   nameSource: AssistantIdentityNameSource;
@@ -111,46 +111,25 @@ export function resolveAssistantIdentity(params: {
   const presentationAgentId =
     params.agentId ?? compatibilityAgentId ?? listAgentEntries(params.cfg)[0]?.id ?? "main";
   const agentId = normalizeAgentId(presentationAgentId);
-  const isDefaultAgent =
-    compatibilityAgentId !== undefined && agentId === normalizeAgentId(compatibilityAgentId);
   const workspaceDir = params.workspaceDir ?? resolveAgentWorkspaceDir(params.cfg, agentId);
-  const configAssistant = params.cfg.ui?.assistant;
   const agentIdentity = resolveAgentIdentity(params.cfg, agentId);
   const fileIdentity = workspaceDir ? loadAgentIdentity(workspaceDir) : null;
 
-  const uiName = normalizeIdentityValue("name", configAssistant?.name);
   const agentName = normalizeIdentityValue("name", agentIdentity?.name);
   const fileName = normalizeIdentityValue("name", fileIdentity?.name);
-  let resolvedName: [string, AssistantIdentityNameSource] | undefined;
-  if (isDefaultAgent) {
-    resolvedName = uiName
-      ? [uiName, "config"]
-      : agentName
-        ? [agentName, "agent"]
-        : fileName
-          ? [fileName, "workspace"]
-          : undefined;
-  } else {
-    resolvedName = agentName
-      ? [agentName, "agent"]
-      : fileName
-        ? [fileName, "workspace"]
-        : uiName
-          ? [uiName, "config"]
-          : undefined;
-  }
+  const resolvedName: [string, AssistantIdentityNameSource] | undefined = agentName
+    ? [agentName, "agent"]
+    : fileName
+      ? [fileName, "workspace"]
+      : undefined;
   const [name, nameSource] = resolvedName ?? [DEFAULT_ASSISTANT_IDENTITY.name, "default"];
 
-  const uiAvatar = normalizeAvatarValue(configAssistant?.avatar);
-  const agentAvatarCandidates = [
+  const avatarCandidates = [
     normalizeAvatarValue(agentIdentity?.avatar),
     normalizeAvatarValue(agentIdentity?.emoji),
     normalizeAvatarValue(fileIdentity?.avatar),
     normalizeAvatarValue(fileIdentity?.emoji),
   ];
-  const avatarCandidates = isDefaultAgent
-    ? [uiAvatar, ...agentAvatarCandidates]
-    : [...agentAvatarCandidates, uiAvatar];
   const avatar = avatarCandidates.find(Boolean) ?? DEFAULT_ASSISTANT_IDENTITY.avatar;
 
   const emojiCandidates = [
