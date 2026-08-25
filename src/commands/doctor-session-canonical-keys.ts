@@ -20,7 +20,7 @@ import { resolveSqliteTranscriptArchiveDirectory } from "../config/sessions/sess
 import { setCanonicalSqliteSessionMainKey } from "../config/sessions/session-canonical-key.js";
 import { serializeJsonlLines } from "../config/sessions/transcript-jsonl.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   openOpenClawAgentDatabase,
   type OpenClawAgentDatabase,
@@ -292,6 +292,7 @@ function applyCanonicalDestinationArtifacts(params: {
     params.database,
     [params.winner.sessionKey],
     params.winner.canonicalKey,
+    { includeParticipants: false },
   );
 }
 
