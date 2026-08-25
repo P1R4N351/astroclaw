@@ -21,7 +21,7 @@ import { resolveManualCompactionCliTarget } from "../../agents/session-runtime-c
 import { resolveSessionAuthProfileOverrideSource } from "../../config/sessions/auth-profile-override-provenance.js";
 import { resolveSessionStorePathCore } from "../../config/sessions/paths.js";
 import { resolveSessionStorePathForScope } from "../../config/sessions/session-store-path.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { logVerbose } from "../../globals.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import type { CommandHandler, CommandHandlerResult } from "./commands-types.js";
@@ -287,7 +287,9 @@ export const handleCompactCommand: CommandHandler = async (params) => {
   if (failure) {
     return failure;
   }
-  const result = await runtime.compactEmbeddedAgentSession({
+  const replyOperation = params.opts?.replyOperation;
+  replyOperation?.setPhase("preflight_compacting");
+  const compaction = runtime.compactEmbeddedAgentSession({
     abortSignal: params.opts?.abortSignal,
     contextEngineAgentId: sessionAgentId,
     sessionId,
@@ -342,6 +344,7 @@ export const handleCompactCommand: CommandHandler = async (params) => {
       senderIsOwner: params.command.senderIsOwner,
     }),
   });
+  const result = await compaction.finally(() => replyOperation?.setPhase("running"));
   failure = authorityFailure();
   if (failure) {
     return failure;
