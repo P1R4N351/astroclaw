@@ -45,7 +45,7 @@ import {
   type SessionCreatedVia,
 } from "../config/sessions/session-entry-provenance.js";
 import { projectCanonicalSessionEntryShape } from "../config/sessions/store-entry-shape.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeExecTarget } from "../infra/exec-approvals.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
 import {
@@ -122,18 +122,16 @@ export function resolveSessionPatchModelSelection(params: {
 
 function normalizeExecSecurity(raw: string): "deny" | "allowlist" | "full" | undefined {
   const normalized = normalizeOptionalLowercaseString(raw);
-  if (normalized === "deny" || normalized === "allowlist" || normalized === "full") {
-    return normalized;
-  }
-  return undefined;
+  return normalized === "deny" || normalized === "allowlist" || normalized === "full"
+    ? normalized
+    : undefined;
 }
 
 function normalizeExecAsk(raw: string): "off" | "on-miss" | "always" | undefined {
   const normalized = normalizeOptionalLowercaseString(raw);
-  if (normalized === "off" || normalized === "on-miss" || normalized === "always") {
-    return normalized;
-  }
-  return undefined;
+  return normalized === "off" || normalized === "on-miss" || normalized === "always"
+    ? normalized
+    : undefined;
 }
 
 function normalizeSessionToolOverrides(
@@ -554,12 +552,14 @@ export async function projectSessionsPatchEntry(params: {
   }
 
   if ("execNode" in patch) {
-    const raw = patch.execNode;
-    if (raw === null) {
+    if (patch.execNode === null) {
       delete next.execNode;
       delete next.execCwd;
-    } else if (raw !== undefined) {
-      const trimmed = normalizeOptionalString(raw) ?? "";
+      if (next.execHost === "node") {
+        delete next.execHost;
+      }
+    } else if (patch.execNode !== undefined) {
+      const trimmed = normalizeOptionalString(patch.execNode) ?? "";
       if (!trimmed) {
         return invalid("invalid execNode: empty");
       }
