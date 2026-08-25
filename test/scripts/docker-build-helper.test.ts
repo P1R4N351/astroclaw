@@ -508,7 +508,7 @@ fi
     expect(runner).toContain('-v "$SCENARIO_ROOT:$SCENARIO_ROOT"');
     expect(runner).toContain("scripts/docker/sandbox/Dockerfile.browser");
     expect(runner).toContain("remove_prefixed_containers");
-    expect(scenario).toContain('from "astroclaw/plugin-sdk/agent-harness-runtime"');
+    expect(scenario).toContain('from "openclaw/plugin-sdk/agent-harness-runtime"');
     expect(scenario).toContain("Promise.all([");
     expect(scenario).toContain('"sandbox", "list", "--browser", "--json"');
     expect(scenario).toContain('"sandbox", "recreate", "--browser", "--session"');
@@ -2733,16 +2733,20 @@ docker_e2e_docker_run_cmd run demo
     expect(script).not.toContain("/tmp/openclaw-channel-add.log");
   });
 
-  it("keeps real-TTY onboarding drivers aligned with the first-agent prompt", () => {
+  it("keeps real-TTY onboarding drivers aligned with the guided prompt sequence", () => {
     expectOrderedScriptFragments(readFileSync(RELEASE_TYPED_ONBOARDING_SCENARIO_PATH, "utf8"), [
       'wait_for_log "Continue?"',
       "send $'y\\r'",
+      'wait_for_log "Help make OpenClaw better?"',
+      "send $'\\r'",
       'wait_for_log "What should we call your first agent?"',
       "send $'\\r'",
       'wait_for_log "to search"',
       "send $'ollama\\r'",
     ]);
     expectOrderedScriptFragments(readFileSync(ONBOARD_SCENARIO_PATH, "utf8"), [
+      'wait_for_log "Help make OpenClaw better?"',
+      "send $'\\r'",
       'wait_for_log "What should we call your first agent?"',
       "send $'\\r'",
       'wait_for_log "How should I set things up?"',
