@@ -5,7 +5,7 @@ import type { SourceReplyDeliveryMode } from "../../auto-reply/get-reply-options
 import type { ChatType } from "../../channels/chat-type.js";
 import type { SubagentDelegationMode } from "../../config/types.agent-defaults.js";
 import type { MemoryCitationsMode } from "../../config/types.memory.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { PreparedMemoryPromptSection } from "../../plugins/memory-state.js";
 import type { AgentPromptSurfaceKind } from "../../plugins/types.js";
 import type { ActiveProcessSessionReference } from "../bash-process-references.js";
@@ -31,7 +31,6 @@ export function buildEmbeddedSystemPrompt(params: {
   ownerDisplay?: "raw" | "hash";
   ownerDisplaySecret?: string;
   reasoningTagHint: boolean;
-  heartbeatPrompt?: string;
   skillsPrompt?: string;
   codeModeActive?: boolean;
   docsPath?: string;
@@ -108,7 +107,6 @@ export function buildEmbeddedSystemPrompt(params: {
     ownerDisplay: params.ownerDisplay,
     ownerDisplaySecret: params.ownerDisplaySecret,
     reasoningTagHint: params.reasoningTagHint,
-    heartbeatPrompt: params.heartbeatPrompt,
     skillsPrompt: params.skillsPrompt,
     codeModeActive: params.codeModeActive,
     docsPath: params.docsPath,
