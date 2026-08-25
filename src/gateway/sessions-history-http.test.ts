@@ -3,8 +3,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { HEARTBEAT_PROMPT } from "../auto-reply/heartbeat.js";
 import { replaceTranscriptEvents } from "../config/sessions/session-accessor.js";
@@ -235,16 +235,11 @@ async function appendVisibleAssistantMessage(params: {
   text: string;
   storePath: string;
 }) {
-  const appended = await appendExactAssistantMessageToSessionTranscript({
+  return await appendTranscriptMessage({
     sessionKey: params.sessionKey,
     storePath: params.storePath,
     message: makeTranscriptAssistantMessage({ text: params.text }),
   });
-  expect(appended.ok).toBe(true);
-  if (!appended.ok) {
-    throw new Error(`append failed: ${appended.reason}`);
-  }
-  return appended.messageId;
 }
 
 async function fetchSessionHistory(
