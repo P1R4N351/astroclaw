@@ -1,5 +1,5 @@
 import { messageToolOwnsVisibleReply } from "../../auto-reply/source-reply-delivery-mode.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { HookContext } from "../agent-tools.before-tool-call.js";
 import {
   CODE_MODE_EXEC_TOOL_NAME,
@@ -73,7 +73,6 @@ export function createAgentHarnessToolSurfaceRuntimeCore(params: {
   sessionKey?: string;
   scheduledToolPolicy?: ScheduledToolPolicyContext;
   sourceReplyDeliveryMode?: string;
-  skillWorkshopProposalOnly?: boolean;
   toolsAllow?: readonly string[];
 }): AgentHarnessToolSurfaceRuntime {
   const forceDirectMessageTool = messageToolOwnsVisibleReply(params);
@@ -91,7 +90,6 @@ export function createAgentHarnessToolSurfaceRuntimeCore(params: {
     toolsEnabled: params.modelToolsEnabled,
     disableTools: params.disableTools,
     isRawModelRun: params.isRawModelRun === true,
-    skillWorkshopProposalOnly: params.skillWorkshopProposalOnly,
     toolsAllow: params.toolsAllow,
   });
   const toolSearchCatalogRef =
