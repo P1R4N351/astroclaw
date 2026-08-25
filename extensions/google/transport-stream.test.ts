@@ -4,9 +4,9 @@ import os from "node:os";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import type { Model, ProviderContext } from "astroclaw/plugin-sdk/llm";
-import { withProviderAcceptanceObserver } from "astroclaw/plugin-sdk/provider-transport-runtime";
+import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import type { Model, ProviderContext } from "openclaw/plugin-sdk/llm";
+import { withProviderAcceptanceObserver } from "openclaw/plugin-sdk/provider-transport-runtime";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetGoogleVertexAdcState } from "./google-oauth.test-support.js";
 
@@ -29,7 +29,7 @@ const {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/provider-transport-runtime", async (importOriginal) => ({
+vi.mock("openclaw/plugin-sdk/provider-transport-runtime", async (importOriginal) => ({
   ...(await importOriginal()),
   buildGuardedModelFetch: buildGuardedModelFetchMock,
 }));
@@ -186,6 +186,7 @@ async function useGoogleAuthorizedUserCredentials(
 async function useGoogleAuthLibraryCredentials(label: string, token?: string): Promise<void> {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), `openclaw-google-vertex-${label}-`));
   vi.stubEnv("GOOGLE_APPLICATION_CREDENTIALS", "");
+  vi.stubEnv("CLOUDSDK_CONFIG", "");
   vi.stubEnv("HOME", path.join(tempDir, "home"));
   vi.stubEnv("APPDATA", "");
   if (token !== undefined) {
@@ -475,7 +476,7 @@ describe("google transport stream", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("astroclaw/plugin-sdk/provider-transport-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/provider-transport-runtime");
     vi.doUnmock("google-auth-library");
     vi.resetModules();
   });
@@ -906,7 +907,7 @@ describe("google transport stream", () => {
       if (provider === "google-vertex") {
         vi.stubEnv("GOOGLE_CLOUD_PROJECT", "vertex-project");
         vi.stubEnv("GOOGLE_CLOUD_LOCATION", "global");
-        googleAuthGetAccessTokenMock.mockResolvedValueOnce("ya29.vertex-token");
+        await useGoogleAuthLibraryCredentials("blocked", "ya29.vertex-token");
       }
 
       const result =
@@ -933,7 +934,7 @@ describe("google transport stream", () => {
       if (provider === "google-vertex") {
         vi.stubEnv("GOOGLE_CLOUD_PROJECT", "vertex-project");
         vi.stubEnv("GOOGLE_CLOUD_LOCATION", "global");
-        googleAuthGetAccessTokenMock.mockResolvedValueOnce("ya29.vertex-token");
+        await useGoogleAuthLibraryCredentials("unfinished", "ya29.vertex-token");
       }
 
       const result =
@@ -2020,12 +2021,9 @@ describe("google transport stream", () => {
   );
 
   it("strips redundant google provider prefixes from Google Vertex model paths", async () => {
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), "openclaw-google-vertex-prefix-"));
-    vi.stubEnv("HOME", path.join(tempDir, "home"));
-    vi.stubEnv("APPDATA", "");
     vi.stubEnv("GOOGLE_CLOUD_PROJECT", "vertex-project");
     vi.stubEnv("GOOGLE_CLOUD_LOCATION", "us-central1");
-    googleAuthGetAccessTokenMock.mockResolvedValueOnce("ya29.transport-token");
+    await useGoogleAuthLibraryCredentials("prefix", "ya29.transport-token");
     const tokenFetchMock = vi.fn();
     mockGoogleTextResponse();
 
