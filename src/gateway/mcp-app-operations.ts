@@ -22,7 +22,7 @@ import {
   getMcpAppViewLeaseForSession,
   type McpAppViewLease,
 } from "../agents/mcp-ui-resource.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { logWarn } from "../logger.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
@@ -178,6 +178,20 @@ export async function withMcpAppActiveView<T>(
   }
 }
 
+async function withMcpAppResourceAuthority<T>(
+  active: McpAppActiveView,
+  operation: () => Promise<T>,
+): Promise<T> {
+  return await withMcpAppActiveView(active, "read", async () => {
+    await requireMcpAppInteraction(active.view);
+    const result = await operation();
+    // Resource results may contain protected data. Recheck after upstream work
+    // so a grant revoked in flight cannot disclose the completed response.
+    await requireMcpAppInteraction(active.view);
+    return result;
+  });
+}
+
 export async function executeMcpAppOperation(
   active: McpAppActiveView,
   operation: McpAppOperation,
@@ -227,7 +241,7 @@ export async function executeMcpAppOperation(
         return result;
       });
     case "resources/list":
-      return await withMcpAppActiveView(active, "read", async () => {
+      return await withMcpAppResourceAuthority(active, async () => {
         if (!runtime.listResources) {
           throw new Error("MCP resources/list is unavailable");
         }
@@ -237,7 +251,7 @@ export async function executeMcpAppOperation(
         return Array.isArray(resources) ? { resources } : resources;
       });
     case "resources/templates/list":
-      return await withMcpAppActiveView(active, "read", async () => {
+      return await withMcpAppResourceAuthority(active, async () => {
         if (!runtime.listResourceTemplates) {
           throw new Error("MCP resources/templates/list is unavailable");
         }
@@ -247,7 +261,7 @@ export async function executeMcpAppOperation(
         );
       });
     case "resources/read":
-      return await withMcpAppActiveView(active, "read", async () => {
+      return await withMcpAppResourceAuthority(active, async () => {
         if (!runtime.readResource) {
           throw new Error("MCP resources/read is unavailable");
         }
