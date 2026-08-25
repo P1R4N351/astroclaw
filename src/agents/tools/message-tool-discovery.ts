@@ -20,10 +20,10 @@ import {
 } from "../../channels/plugins/message-action-discovery.js";
 import type { ChannelMessageCapability } from "../../channels/plugins/message-capabilities.js";
 import type { ChannelMessageActionName } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveAllowedMessageActions } from "../../infra/outbound/outbound-policy.js";
 import { normalizeAccountId, parseSessionDeliveryRoute } from "../../routing/session-key.js";
-import { normalizeMessageChannel } from "../../utils/message-channel.js";
+import { INTERNAL_MESSAGE_CHANNEL, normalizeMessageChannel } from "../../utils/message-channel.js";
 import { listAllChannelSupportedActions, listChannelSupportedActions } from "../channel-tools.js";
 import {
   appendMessageToolReadHint,
@@ -92,7 +92,7 @@ function inferDeliveryFromSessionKey(
     return null;
   }
   const channel = normalizeMessageChannel(route.channel);
-  if (!channel) {
+  if (!channel || channel === INTERNAL_MESSAGE_CHANNEL) {
     return null;
   }
   const accountId = route.accountId ? resolveAgentAccountId(route.accountId) : undefined;
@@ -115,15 +115,12 @@ export function resolveEffectiveCurrentChannelContext(options?: MessageToolCurre
 } {
   const currentChannelProvider = options?.currentChannelProvider;
   const currentChannelId = options?.currentChannelId;
-  const sessionDelivery = inferDeliveryFromSessionKey(options?.agentSessionKey);
-  const sessionDeliveryChannel = normalizeMessageChannel(sessionDelivery?.channel);
-  const preferSessionDeliveryContext =
-    normalizeMessageChannel(currentChannelProvider) === "webchat" &&
-    sessionDeliveryChannel !== undefined &&
-    sessionDeliveryChannel !== "webchat" &&
-    Boolean(sessionDelivery?.to);
+  const sessionDelivery =
+    normalizeMessageChannel(currentChannelProvider) === INTERNAL_MESSAGE_CHANNEL
+      ? inferDeliveryFromSessionKey(options?.agentSessionKey)
+      : null;
 
-  if (!preferSessionDeliveryContext) {
+  if (!sessionDelivery?.to) {
     return {
       currentChannelProvider,
       currentChannelId,
@@ -132,12 +129,12 @@ export function resolveEffectiveCurrentChannelContext(options?: MessageToolCurre
     };
   }
   return {
-    accountId: sessionDelivery?.accountId,
-    currentChannelProvider: sessionDeliveryChannel,
-    currentChannelId: sessionDelivery?.to,
-    currentChatType: sessionDelivery?.chatType,
-    currentMessagingTarget: sessionDelivery?.to,
-    currentThreadTs: sessionDelivery?.threadId,
+    accountId: sessionDelivery.accountId,
+    currentChannelProvider: sessionDelivery.channel,
+    currentChannelId: sessionDelivery.to,
+    currentChatType: sessionDelivery.chatType,
+    currentMessagingTarget: sessionDelivery.to,
+    currentThreadTs: sessionDelivery.threadId,
   };
 }
 
