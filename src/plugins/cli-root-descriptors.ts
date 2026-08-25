@@ -1,6 +1,6 @@
 /** Resolves root CLI help from process-stable manifests before plugin code loads. */
 import { collectUniqueCommandDescriptors } from "../cli/program/command-descriptor-utils.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginCliLoaderOptions } from "./cli-registry-loader.js";
 import { normalizePluginsConfig, resolveMemorySlotDecision } from "./config-state.js";
 import { isInstalledPluginEnabled } from "./installed-plugin-index.js";
@@ -25,6 +25,7 @@ export async function getPluginCliCommandDescriptors(
   env?: NodeJS.ProcessEnv,
   loaderOptions?: PluginCliLoaderOptions,
 ): Promise<OpenClawPluginCliRootCommandDescriptor[]> {
+  const descriptorGroups: OpenClawPluginCliRootCommandDescriptor[][] = [];
   try {
     const context = resolvePluginRuntimeLoadContext({ config: cfg, env, logger: quietLogger });
     const snapshot = context.metadataSnapshot;
@@ -32,7 +33,6 @@ export async function getPluginCliCommandDescriptors(
       return [];
     }
     const legacyExternalPluginIds: string[] = [];
-    const descriptorGroups: OpenClawPluginCliRootCommandDescriptor[][] = [];
     const seenPluginIds = new Set<string>();
     let selectedMemoryPluginId: string | null = null;
     const memorySlot = context.config.plugins?.slots?.memory;
@@ -91,6 +91,6 @@ export async function getPluginCliCommandDescriptors(
     }
     return collectUniqueCommandDescriptors(descriptorGroups);
   } catch {
-    return [];
+    return collectUniqueCommandDescriptors(descriptorGroups);
   }
 }
