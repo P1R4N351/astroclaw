@@ -15,7 +15,7 @@ import type { ConfigWriteOptions } from "../config/io.js";
 import { containsConfigIncludeDirective } from "../config/io.read-helpers.js";
 import { createMergePatch, applyMergePatch } from "../config/merge-patch.js";
 import { ConfigMutationConflictError } from "../config/mutate.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { readHookInstalls } from "../hooks/installs.js";
 import { updateNpmInstalledHookPacks } from "../hooks/update.js";
@@ -588,7 +588,8 @@ async function runPluginUpdateCommandUnlocked(params: RunPluginUpdateCommandPara
 
     const outcomeSummary = logPluginUpdateOutcomes({
       outcomes: [...pluginResult.outcomes, ...hookResult.outcomes],
-      log: (message) => defaultRuntime.log(message),
+      log: defaultRuntime.log,
+      error: defaultRuntime.error,
     });
     if (outcomeSummary.hasErrors) {
       defaultRuntime.exit(1);
