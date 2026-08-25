@@ -1,5 +1,5 @@
 import type { managedWorktrees } from "../agents/worktrees/service.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveWorkerPlacementSessionTarget } from "./server-worker-placement-session-target.js";
 import type * as sessionUtils from "./session-utils.js";
 import { resolveDevicePlacementEligibility } from "./worker-environments/device-placement-eligibility.js";
@@ -64,17 +64,17 @@ export function createGatewayWorkerPlacementMoveDestinationResolver(params: {
           `worker profile ${moveTarget.profileId} does not support ${executionMode} placement; select a compatible worker provider`,
         );
       }
-      return { executionMode, ...destination.value };
-    }
-    const eligibility = await resolveDevicePlacementEligibility({
-      environmentService: params.environments,
-      deviceId: moveTarget.deviceId,
-      runtimeId: runtime,
-      requirement: devicePlacement,
-      config,
-    });
-    if (!eligibility.ok) {
-      throw new Error(eligibility.error);
+    } else {
+      const eligibility = await resolveDevicePlacementEligibility({
+        environmentService: params.environments,
+        deviceId: moveTarget.deviceId,
+        runtimeId: runtime,
+        requirement: devicePlacement,
+        config,
+      });
+      if (!eligibility.ok) {
+        throw new Error(eligibility.error);
+      }
     }
     return { executionMode, ...destination.value, ...(devicePlacement ? { devicePlacement } : {}) };
   };
