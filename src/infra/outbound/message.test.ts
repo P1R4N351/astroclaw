@@ -1,6 +1,6 @@
 // Covers outbound message send/poll orchestration, target resolution, durable
 // capability checks, gateway fallback, dry runs, and payload planning.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../../channels/plugins/types.public.js";
 
@@ -408,6 +408,7 @@ describe("sendMessage", () => {
       name: string;
       content: string;
       mediaUrl?: string;
+      mediaUrls?: string[];
       expectedPayloads: Array<{
         text: string;
         mediaUrl: string | null;
@@ -431,6 +432,33 @@ describe("sendMessage", () => {
         expectedMirror: {
           text: "Here",
           mediaUrls: ["https://example.com/a.png", "https://example.com/b.png"],
+        },
+      },
+      {
+        name: "explicit attachments and extracted MEDIA directives",
+        content: "Here\nMEDIA:https://example.com/a.png\nMEDIA:https://example.com/b.png",
+        mediaUrl: "https://example.com/primary.png",
+        mediaUrls: ["https://example.com/explicit.png", "https://example.com/a.png"],
+        expectedPayloads: [
+          {
+            text: "Here",
+            mediaUrl: null,
+            mediaUrls: [
+              "https://example.com/explicit.png",
+              "https://example.com/a.png",
+              "https://example.com/primary.png",
+              "https://example.com/b.png",
+            ],
+          },
+        ],
+        expectedMirror: {
+          text: "Here",
+          mediaUrls: [
+            "https://example.com/explicit.png",
+            "https://example.com/a.png",
+            "https://example.com/primary.png",
+            "https://example.com/b.png",
+          ],
         },
       },
       {
@@ -478,6 +506,7 @@ describe("sendMessage", () => {
         to: "123456",
         content: entry.content,
         ...(entry.mediaUrl ? { mediaUrl: entry.mediaUrl } : {}),
+        ...(entry.mediaUrls ? { mediaUrls: entry.mediaUrls } : {}),
         mirror: {
           sessionKey: "agent:main:forum:dm:123456",
         },
