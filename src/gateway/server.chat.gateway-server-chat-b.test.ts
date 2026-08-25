@@ -28,7 +28,7 @@ import {
 } from "../config/sessions/session-accessor.js";
 import { waitForSessionTranscriptIndexReconcile } from "../config/sessions/session-transcript-reconcile.js";
 import type { AgentModelConfig } from "../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { rotateAgentEventLifecycleGeneration } from "../infra/agent-events.js";
 import { onDiagnosticEvent, type DiagnosticPayloadLargeEvent } from "../infra/diagnostic-events.js";
 import { ExecApprovalsMigrationRequiredError } from "../infra/exec-approvals-migration-gate.js";
@@ -44,8 +44,8 @@ import {
 import { buildPersistedUserTurnMessage } from "../sessions/user-turn-transcript.js";
 import { recordAgentProvenance } from "../state/agent-provenance.js";
 import { openOpenClawAgentDatabase } from "../state/openclaw-agent-db.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { captureEnv, setTestEnvValue } from "../test-utils/env.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { assertPluginMetadataSnapshotConsistency } from "./plugin-metadata.test-helpers.js";
 import {
@@ -6607,6 +6607,10 @@ describe("gateway server chat", () => {
       const hidden = await fetchChatMessage(ws, makeMainMessageParams("msg-hidden-assistant"));
       expect(hidden.ok).toBe(false);
       expect(hidden.unavailableReason).toBe("not_found");
+
+      const announce = await fetchChatMessage(ws, makeMainMessageParams("msg-announce"));
+      expect(announce.ok).toBe(false);
+      expect(announce.unavailableReason).toBe("not_found");
 
       const visible = await fetchChatMessage(ws, makeMainMessageParams("msg-visible-assistant"));
       expect(visible.ok).toBe(true);
