@@ -48,7 +48,7 @@ import {
   hasSessionActiveAutoModelFallback,
   hasSessionAutoModelFallbackProvenance,
 } from "../config/sessions/model-override-provenance.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { readRecentSessionUsageFromTranscript } from "../gateway/session-transcript-readers.js";
 import { formatDurationCompact } from "../infra/format-time/format-duration.ts";
 import { formatTimeAgo } from "../infra/format-time/format-relative.ts";
@@ -124,7 +124,14 @@ type StatusArgs = {
   now?: number;
 };
 
-type NormalizedAuthMode = "api-key" | "oauth" | "token" | "aws-sdk" | "mixed" | "unknown";
+type NormalizedAuthMode =
+  | "api-key"
+  | "oauth"
+  | "token"
+  | "aws-sdk"
+  | "native"
+  | "mixed"
+  | "unknown";
 
 function normalizeAuthMode(value?: string): NormalizedAuthMode | undefined {
   const normalized = normalizeOptionalLowercaseString(value);
@@ -142,6 +149,9 @@ function normalizeAuthMode(value?: string): NormalizedAuthMode | undefined {
   }
   if (normalized === "aws-sdk" || normalized.startsWith("aws-sdk ")) {
     return "aws-sdk";
+  }
+  if (normalized === "native" || normalized.startsWith("native ")) {
+    return "native";
   }
   if (normalized === "mixed" || normalized.startsWith("mixed ")) {
     return "mixed";
