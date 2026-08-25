@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { withEnvAsync } from "../../test-utils/env.js";
 
 vi.mock("../../config/config.js", () => {
@@ -583,12 +583,13 @@ describe("sessions.usage", () => {
     });
   });
 
-  it("keeps global session entries in requested-agent usage lookups", async () => {
+  it("keeps legacy global session entries in explicitly scoped agent usage lookups", async () => {
     const config: OpenClawConfig = {
       agents: {
-        list: [{ id: "main", default: true }, { id: "opus" }],
+        ownership: "explicit",
+        list: [{ id: "main" }, { id: "opus" }],
       },
-      session: { scope: "global" },
+      session: {},
     };
 
     await withUsageState(async (writeSessionFile) => {
