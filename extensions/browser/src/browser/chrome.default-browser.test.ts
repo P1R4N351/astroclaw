@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
   return mockNodeBuiltinModule(
     () => vi.importActual<typeof import("node:child_process")>("node:child_process"),
     {
@@ -11,7 +11,7 @@ vi.mock("node:child_process", async () => {
   );
 });
 vi.mock("node:fs", async () => {
-  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
   const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
   const accessSync = vi.fn();
   const existsSync = vi.fn();
@@ -25,7 +25,7 @@ vi.mock("node:fs", async () => {
   );
 });
 vi.mock("node:os", async () => {
-  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
   const homedir = vi.fn();
   return mockNodeBuiltinModule(
     () => vi.importActual<typeof import("node:os")>("node:os"),
@@ -230,6 +230,52 @@ describe("browser default executable detection", () => {
     );
 
     expect(exe?.path).toContain("Google Chrome.app/Contents/MacOS/Google Chrome");
+  });
+
+  it("preserves vendor-first macOS browser discovery across system and user applications", () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+
+    expect(
+      resolveBrowserExecutableForPlatform(
+        {} as Parameters<typeof resolveBrowserExecutableForPlatform>[0],
+        "darwin",
+      ),
+    ).toBeNull();
+    expect(
+      vi
+        .mocked(fs.existsSync)
+        .mock.calls.map(([candidate]) => String(candidate))
+        .filter((candidate) => candidate.includes(".app/Contents/MacOS/")),
+    ).toEqual([
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/Users/test/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+      "/Users/test/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+      "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+      "/Users/test/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+      "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      "/Users/test/Applications/Chromium.app/Contents/MacOS/Chromium",
+      "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+      "/Users/test/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+    ]);
+  });
+
+  it.each([
+    ["chrome", "Google Chrome"],
+    ["brave", "Brave Browser"],
+    ["edge", "Microsoft Edge"],
+    ["chromium", "Chromium"],
+    ["canary", "Google Chrome Canary"],
+  ])("preserves the %s kind for a user-installed macOS browser", (kind, appName) => {
+    const expectedPath = `/Users/test/Applications/${appName}.app/Contents/MacOS/${appName}`;
+    vi.mocked(fs.existsSync).mockImplementation((candidate) => String(candidate) === expectedPath);
+
+    expect(
+      resolveBrowserExecutableForPlatform(
+        {} as Parameters<typeof resolveBrowserExecutableForPlatform>[0],
+        "darwin",
+      ),
+    ).toEqual({ kind, path: expectedPath });
   });
 
   it("resolves an Opera default-browser launcher to the directly owned binary on Windows", () => {
