@@ -1,7 +1,7 @@
 /** Authorized single-run, tree, and admin subagent kill orchestration. */
 import { resolveSubagentLabel } from "../../../auto-reply/reply/subagents-utils.js";
 import type { SessionEntry } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { SUBAGENT_KILL_TASK_ERROR } from "../../../tasks/detached-task-runtime-contract.js";
 import {
   killLatestSubagentRun,
@@ -273,14 +273,27 @@ export async function killSubagentRunAdmin(params: {
   cfg: OpenClawConfig;
   sessionKey: string;
   agentId?: string;
+  expectedRunId?: string;
+  expectedGeneration?: number;
+  expectedOwnerKey?: string;
 }) {
   const targetSessionKey = params.sessionKey.trim();
   if (!targetSessionKey) {
-    return { found: false as const, killed: false };
+    return { found: false as const, killed: false as const };
   }
   const entry = getLatestOwnedSubagentRun(targetSessionKey, params.agentId, params.cfg);
   if (!entry) {
-    return { found: false as const, killed: false };
+    return { found: false as const, killed: false as const };
+  }
+  if (params.expectedRunId?.trim() && entry.runId !== params.expectedRunId.trim()) {
+    return { found: false as const, killed: false as const };
+  }
+  if (
+    (params.expectedGeneration !== undefined && entry.generation !== params.expectedGeneration) ||
+    (params.expectedOwnerKey?.trim() &&
+      entry.requesterSessionKey !== params.expectedOwnerKey.trim())
+  ) {
+    return { found: false as const, killed: false as const };
   }
 
   const killCache = new Map<string, Record<string, SessionEntry>>();
@@ -288,6 +301,8 @@ export async function killSubagentRunAdmin(params: {
     cfg: params.cfg,
     entry,
     cache: killCache,
+    expectedRunId: params.expectedRunId?.trim() || undefined,
+    expectedGeneration: params.expectedGeneration,
   });
   const stopResult = stopped.result;
   if (stopResult.error) {
