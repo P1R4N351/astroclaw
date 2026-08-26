@@ -12,7 +12,8 @@ import { resolveOpenClawStateSqlitePath } from "../state/openclaw-state-db.paths
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/astroclaw-test-state.js";
+} from "../test-utils/openclaw-test-state.js";
+import { resolveWorkspaceStateIdentity } from "./workspace-state-identity.js";
 import {
   clearExpiredWorkspaceStateForVanishedWorkspace,
   deleteWorkspaceState,
@@ -20,7 +21,6 @@ import {
   prepareWorkspaceStateDeletion,
   readWorkspaceStateSnapshot,
   replaceWorkspaceAttestation,
-  resolveWorkspaceStateIdentity,
   WORKSPACE_LEGACY_STATE_MIGRATION_KIND,
 } from "./workspace-state-store.js";
 
