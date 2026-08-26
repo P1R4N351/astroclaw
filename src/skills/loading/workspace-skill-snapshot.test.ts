@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { withEnv, withPathResolutionEnv } from "../../test-utils/env.js";
 import { createFixtureSuite } from "../../test-utils/fixture-suite.js";
 import { createTempHomeEnv, type TempHomeEnv } from "../../test-utils/temp-home.js";
@@ -18,7 +18,7 @@ import {
 import { buildSkillSnapshot } from "./workspace-skill-prompt.js";
 
 vi.mock("./plugin-skills.js", () => ({
-  resolvePluginSkillDirs: () => [],
+  resolvePluginSkillRoots: () => [],
 }));
 
 const fixtureSuite = createFixtureSuite("openclaw-skills-snapshot-suite-");
