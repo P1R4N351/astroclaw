@@ -21,13 +21,14 @@ import { dispatchChannelMessageAction } from "../../channels/plugins/message-act
 import type { ChannelPlugin } from "../../channels/plugins/types.public.js";
 import { resolveChannelThreadAddressing } from "../../channels/thread-addressing.js";
 import type { InternalChannelThreadingToolContext } from "../../channels/threading-tool-context-internal.js";
+import { isChannelPartialDeliveryError } from "../../channels/turn/delivery-result.js";
 import { createOutboundSendDeps } from "../../cli/deps.js";
 import {
   getRuntimeConfigSnapshot,
   getRuntimeConfigSourceSnapshot,
   selectApplicableRuntimeConfig,
 } from "../../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveOutboundChannelPlugin } from "../../infra/outbound/channel-resolution.js";
 import { resolveMessageChannelSelection } from "../../infra/outbound/channel-selection.js";
 import { OutboundDeliveryError } from "../../infra/outbound/deliver-types.js";
@@ -840,12 +841,29 @@ function createGatewayInflightUnavailableFailure(params: {
   channel: string;
   err: unknown;
 }): InflightResult {
+  // A channel partial-delivery error carries the receipt of the part that was
+  // already delivered (e.g. a caption sent before the media upload failed).
+  // Preserve it on the structured error and mark the result non-retryable so
+  // the agent does not resend an already-visible message; `String(err)` alone
+  // would drop the receipt and invite a duplicate delivery on retry.
+  const partialDelivery = isChannelPartialDeliveryError(params.err)
+    ? params.err.deliveryResult
+    : undefined;
+  // A recovery-owned OutboundDeliveryError means the delivery was queued for
+  // retry by the recovery layer (not lost); surface that as a structured detail
+  // so the agent does not treat it as an ordinary retryable failure.
+  const queuedDelivery =
+    !partialDelivery &&
+    params.err instanceof OutboundDeliveryError &&
+    params.err.recoveryOwnedRetry === true;
   const error = errorShape(
     ErrorCodes.UNAVAILABLE,
     String(params.err),
-    params.err instanceof OutboundDeliveryError && params.err.recoveryOwnedRetry === true
-      ? { details: { code: GatewayErrorDetailCodes.OUTBOUND_DELIVERY_QUEUED } }
-      : undefined,
+    partialDelivery
+      ? { details: { partialDelivery }, retryable: false }
+      : queuedDelivery
+        ? { details: { code: GatewayErrorDetailCodes.OUTBOUND_DELIVERY_QUEUED } }
+        : undefined,
   );
   return createGatewayInflightResult({
     ...params,
