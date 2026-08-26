@@ -5,7 +5,7 @@ import {
 } from "../../gateway/session-store-key.js";
 import { isIncognitoSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { resolveIncognitoOpenClawAgentSqlitePath } from "../../state/openclaw-agent-db.js";
-import type { OpenClawConfig } from "../types.astroclaw.js";
+import type { OpenClawConfig } from "../types.openclaw.js";
 import { resolveAgentMainSessionKey } from "./main-session.js";
 import { resolveSessionStorePathCore } from "./paths.js";
 import { clearPluginOwnedSessionState } from "./plugin-host-cleanup.js";
@@ -403,7 +403,7 @@ export function openSessionEntryReadView(
         clone: false,
         sessionKey,
       })?.entry,
-    entries: () => listSessionEntryRows({ ...scope, clone: false }),
+    entries: () => listSessionEntriesReadOnly({ ...scope, clone: false }),
   };
 }
 
