@@ -1,8 +1,9 @@
 // Slack tests cover plugin routes plugin behavior.
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/core";
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig, OpenClawPluginApi } from "../runtime-api.js";
 import { registerSlackPluginHttpRoutes } from "./plugin-routes.js";
 import { registerSlackHttpHandler } from "./registry.js";
 
