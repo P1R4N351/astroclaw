@@ -6,17 +6,75 @@ import {
 import { AgentSelectionRequiredError, listAgentIds } from "../agents/agent-scope.js";
 import { tryResolveLegacyCompatibilityAgentId } from "../config/legacy.default-agent-owner.js";
 import { resolvePersistedSessionStoreOwnerForKey } from "../config/sessions/session-store-owner.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   normalizeAgentId,
   normalizeAgentIdStrict,
   normalizeMainKey,
   parseAgentSessionKey,
 } from "../routing/session-key.js";
+import { resolveSessionSubscriptionKeys } from "./session-subscription-keys.js";
 
 type RequestedSessionAgentIdResolution =
   | { ok: true; agentId: string }
   | { ok: false; error: ErrorShape };
+
+/** Public identity, private routing identity, then raw-global compatibility owner. */
+export type SessionEventAgentScope = readonly [
+  eventAgentId: string | undefined,
+  routingAgentId: string | undefined,
+  compatibilityOwnerAgentId: string | undefined,
+];
+
+/** Resolves public event identity separately from private session routing ownership. */
+export function resolveSessionEventAgentScope(
+  cfg: OpenClawConfig,
+  key: string,
+  explicitAgentId?: string,
+  publishQualifiedAgent = false,
+): SessionEventAgentScope | null {
+  const parsed = parseAgentSessionKey(key.trim());
+  const keyAgentId = parsed?.agentId ? normalizeAgentId(parsed.agentId) : undefined;
+  const explicit = explicitAgentId === undefined ? null : normalizeAgentIdStrict(explicitAgentId);
+  if (explicit !== null && !explicit.ok) {
+    return null;
+  }
+  if (explicit?.value && keyAgentId && explicit.value !== keyAgentId) {
+    return null;
+  }
+  const persistedOwner = resolvePersistedSessionStoreOwnerForKey(cfg, key);
+  const compatibilityOwnerAgentId = keyAgentId
+    ? undefined
+    : tryResolveSessionCompatibilityOwnerAgentId(cfg, key);
+  const eventAgentId =
+    explicit?.value ??
+    (publishQualifiedAgent && keyAgentId && listAgentIds(cfg).includes(keyAgentId)
+      ? keyAgentId
+      : undefined);
+  const routingAgentId =
+    explicit?.value ??
+    keyAgentId ??
+    compatibilityOwnerAgentId ??
+    (persistedOwner.kind === "retired" ? persistedOwner.agentId : undefined);
+  return [eventAgentId, routingAgentId, compatibilityOwnerAgentId];
+}
+
+/** Binds a retired unqualified owner to its private sharing scope. */
+export function resolvePrivateSessionEventBroadcastScope(
+  key: string | undefined,
+  [eventAgentId, routingAgentId, compatibilityOwnerAgentId]: SessionEventAgentScope,
+) {
+  return key &&
+    !parseAgentSessionKey(key) &&
+    !eventAgentId &&
+    routingAgentId &&
+    !compatibilityOwnerAgentId
+    ? {
+        agentId: routingAgentId,
+        sessionKeys: resolveSessionSubscriptionKeys(key, routingAgentId),
+      }
+    : undefined;
+}
 
 /** Resolves only stable implicit ownership for unscoped session rows and active runs. */
 export function tryResolveSessionCompatibilityOwnerAgentId(
