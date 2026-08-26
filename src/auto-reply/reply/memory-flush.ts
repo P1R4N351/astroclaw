@@ -12,7 +12,7 @@ import {
   resolveMergedModelProviderModels,
 } from "../../config/model-provider-config.js";
 import { resolveFreshSessionTotalTokens, type SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 
 export function resolveMemoryFlushContextWindowTokens(params: {
   modelId?: string;
@@ -40,6 +40,23 @@ function resolvePositiveTokenCount(value: number | undefined): number | undefine
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? Math.floor(value)
     : undefined;
+}
+
+/** Resolves the maintenance threshold owned by the selected memory provider. */
+export function resolveMemoryFlushThreshold(params: {
+  contextWindowTokens: number;
+  reserveTokensFloor: number;
+  softThresholdTokens: number;
+  minimumThresholdTokens?: number;
+}): number {
+  const contextWindow = Math.max(1, Math.floor(params.contextWindowTokens));
+  const reserveTokens = Math.max(0, Math.floor(params.reserveTokensFloor));
+  const softThreshold = Math.max(0, Math.floor(params.softThresholdTokens));
+  return Math.max(
+    0,
+    contextWindow - reserveTokens - softThreshold,
+    Math.floor(params.minimumThresholdTokens ?? 0),
+  );
 }
 
 export function resolveResponsesServerCompactionThreshold(params: {
@@ -122,19 +139,8 @@ function resolveMemoryFlushGateState<
     return null;
   }
 
-  const contextWindow = Math.max(1, Math.floor(params.contextWindowTokens));
-  const reserveTokens = Math.max(0, Math.floor(params.reserveTokensFloor));
-  const softThreshold = Math.max(0, Math.floor(params.softThresholdTokens));
-  const threshold = Math.max(
-    0,
-    contextWindow - reserveTokens - softThreshold,
-    Math.floor(params.minimumThresholdTokens ?? 0),
-  );
-  if (threshold <= 0) {
-    return null;
-  }
-
-  return { entry: params.entry, totalTokens, threshold };
+  const threshold = resolveMemoryFlushThreshold(params);
+  return threshold > 0 ? { entry: params.entry, totalTokens, threshold } : null;
 }
 
 export function shouldRunMemoryFlush(params: {
