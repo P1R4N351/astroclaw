@@ -7,7 +7,7 @@ import {
   type MainSessionRecoveryOwnerLease,
 } from "../../agents/main-session-recovery/main-session-recovery-store.js";
 import { mergeSessionEntry, type SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { getAgentEventLifecycleGeneration } from "../../infra/agent-events.js";
 import { normalizeDeliveryContext } from "../../utils/delivery-context.shared.js";
 import { discardPreparedInboundMedia, type OffloadedRef } from "../chat-attachments.js";
@@ -93,10 +93,10 @@ function replayAgentTurnIfCached(params: {
   return true;
 }
 
-export function createAgentTurnService({
-  context,
-  isWebchatConnect,
-}: Pick<GatewayRequestHandlerOptions, "context" | "isWebchatConnect">) {
+export function createAgentTurnService(
+  { context, isWebchatConnect }: Pick<GatewayRequestHandlerOptions, "context" | "isWebchatConnect">,
+  assertContextCurrent?: () => void,
+) {
   const startTurn = async ({
     preflight,
     principal,
@@ -590,6 +590,7 @@ export function createAgentTurnService({
       // This captures ambient root admission synchronously, then settles the final
       // frame on the existing detached chain after the router returns its acceptance.
       startAgentRunExecution({
+        assertContextCurrent,
         prepared: preparedDispatch,
         mainRestartRecoveryOwnerLease,
         request,
