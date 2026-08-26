@@ -1,9 +1,9 @@
 // Memory Core tests cover index plugin behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { OpenClawPluginApi, OpenClawPluginCommandDefinition } from "astroclaw/plugin-sdk/core";
-import type { MemoryPluginRuntime } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
-import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawPluginApi, OpenClawPluginCommandDefinition } from "openclaw/plugin-sdk/core";
+import type { MemoryPluginRuntime } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createPluginRuntimeMock } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMemoryFlushPlan } from "./src/flush-plan.js";
 import { buildMemoryPromptSection } from "./src/memory-tool-contract.js";
@@ -346,11 +346,14 @@ describe("memory-core plugin runtime registration", () => {
 
     const ownerTool = intentFactory({ config: {}, senderIsOwner: true }) as {
       name?: string;
+      description?: string;
       parameters?: {
         properties?: Record<string, { default?: string }>;
       };
     };
     expect(ownerTool).toMatchObject({ name: "intent" });
+    expect(ownerTool.description).toContain("Use scheduled tasks for time-based reminders");
+    expect(ownerTool.description).not.toMatch(/\b(?:cron|automations)\b/u);
     expect(ownerTool.parameters?.properties?.scope?.default).toBe("channel");
     expect(ownerTool.parameters?.properties?.senderScope?.default).toBe("sender");
     expect(warn).toHaveBeenCalledTimes(1);
