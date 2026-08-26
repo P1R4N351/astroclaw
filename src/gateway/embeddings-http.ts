@@ -6,11 +6,12 @@ import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
+import { z } from "zod";
 import { resolveAgentDir } from "../agents/agent-scope.js";
 import { resolveMemorySearchConfig } from "../agents/memory-search.js";
 import { createConfiguredProviderLocalServiceAcquirer } from "../agents/provider-local-service.js";
 import { getRuntimeConfig } from "../config/io.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { logWarn } from "../logger.js";
 import { getMemoryEmbeddingProvider } from "../plugins/memory-embedding-provider-runtime.js";
@@ -40,13 +41,13 @@ type OpenAiEmbeddingsHttpOptions = {
   rateLimiter?: AuthRateLimiter;
 };
 
-type EmbeddingsRequest = {
-  model?: unknown;
-  input?: unknown;
-  encoding_format?: unknown;
-  dimensions?: unknown;
-  user?: unknown;
-};
+const EmbeddingsRequestSchema = z.object({
+  model: z.string().optional(),
+  input: z.union([z.string(), z.array(z.string())]).optional(),
+  encoding_format: z.enum(["float", "base64"]).optional(),
+  dimensions: z.number().int().positive().optional(),
+  user: z.string().optional(),
+});
 
 const DEFAULT_EMBEDDINGS_BODY_BYTES = 5 * 1024 * 1024;
 const MAX_EMBEDDING_INPUTS = 128;
@@ -172,10 +173,6 @@ export async function drainRetainedOpenAiEmbeddingProviders(): Promise<void> {
   if (closeFailed) {
     throw firstError;
   }
-}
-
-function coerceRequest(value: unknown): EmbeddingsRequest {
-  return value && typeof value === "object" ? (value as EmbeddingsRequest) : {};
 }
 
 function resolveInputTexts(input: unknown): string[] | null {
@@ -331,7 +328,18 @@ export async function handleOpenAiEmbeddingsHttpRequest(
     return true;
   }
 
-  const payload = coerceRequest(handled.body);
+  const parsed = EmbeddingsRequestSchema.safeParse(handled.body);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    sendJson(res, 400, {
+      error: {
+        message: issue ? `${issue.path.join(".")}: ${issue.message}` : "Invalid request body",
+        type: "invalid_request_error",
+      },
+    });
+    return true;
+  }
+  const payload = parsed.data;
   const requestModel = normalizeOptionalString(payload.model) ?? "";
   if (!requestModel) {
     sendJson(res, 400, {
@@ -425,10 +433,7 @@ export async function handleOpenAiEmbeddingsHttpRequest(
           memorySearch: memorySearch
             ? {
                 ...memorySearch,
-                outputDimensionality:
-                  typeof payload.dimensions === "number" && payload.dimensions > 0
-                    ? Math.floor(payload.dimensions)
-                    : memorySearch.outputDimensionality,
+                outputDimensionality: payload.dimensions ?? memorySearch.outputDimensionality,
               }
             : undefined,
         }),
