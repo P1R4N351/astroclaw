@@ -4,7 +4,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../test/helpers/promise.js";
 import type { CliDeps } from "../cli/deps.types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const { cancelAllMock, getRuntimeConfigMock, stopAllMock } = vi.hoisted(() => ({
   cancelAllMock: vi.fn<() => Promise<void>>(),
@@ -24,6 +24,7 @@ vi.mock("./cron-exit-watchers.js", async (importOriginal) => ({
     cancel: vi.fn(),
     cancelAll: cancelAllMock,
     activeJobIds: () => [],
+    updateHandlers: vi.fn(),
   }),
 }));
 
