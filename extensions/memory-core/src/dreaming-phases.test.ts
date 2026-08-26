@@ -3,16 +3,16 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { RequestScopedSubagentRuntimeError } from "astroclaw/plugin-sdk/error-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { RequestScopedSubagentRuntimeError } from "openclaw/plugin-sdk/error-runtime";
 import {
   listMemoryArtifactProvenance,
   resolveMemoryDreamingPluginConfig,
   resolveSessionTranscriptsDirForAgent,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { clearRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { clearRuntimeConfigSnapshot } from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   filterRecallEntriesWithinLookback,
@@ -20,6 +20,7 @@ import {
   runDreamingSweepPhases,
   seedHistoricalDailyMemorySignals,
 } from "./dreaming-phases.js";
+import { forgetMemoryEntries } from "./memory-forget.js";
 import { previewRemHarness } from "./rem-harness.js";
 import { writeSessionIngestionState } from "./session-ingestion.js";
 import {
@@ -34,7 +35,7 @@ import {
   shortTermTestState as shortTermTesting,
 } from "./test-helpers.js";
 
-vi.mock("astroclaw/plugin-sdk/memory-core-host-runtime-core", { spy: true });
+vi.mock("openclaw/plugin-sdk/memory-core-host-runtime-core", { spy: true });
 
 const { createTempWorkspace } = createMemoryCoreTestHarness();
 const DREAMING_TEST_BASE_TIME = new Date("2026-04-05T10:00:00.000Z");
@@ -174,6 +175,7 @@ async function seedDreamingSessionTranscript(params: {
   sessionId: string;
   sessionKey?: string;
   spawnedBy?: string;
+  hookExternalContentSource?: "gmail" | "webhook";
 }): Promise<void> {
   const agentId = params.agentId ?? "main";
   const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId);
@@ -196,6 +198,9 @@ async function seedDreamingSessionTranscript(params: {
       sessionId: params.sessionId,
       updatedAt,
       ...(params.spawnedBy ? { spawnedBy: params.spawnedBy } : {}),
+      ...(params.hookExternalContentSource
+        ? { hookExternalContentSource: params.hookExternalContentSource }
+        : {}),
     },
   });
   for (const message of params.messages) {
@@ -220,6 +225,9 @@ async function seedDreamingSessionTranscript(params: {
       sessionId: params.sessionId,
       updatedAt,
       ...(params.spawnedBy ? { spawnedBy: params.spawnedBy } : {}),
+      ...(params.hookExternalContentSource
+        ? { hookExternalContentSource: params.hookExternalContentSource }
+        : {}),
     },
   });
 }
@@ -1293,6 +1301,117 @@ describe("memory-core dreaming phases", () => {
     const snippets = ranked.map((candidate) => candidate.snippet);
     expectIncludesSubstring(snippets, "Move backups to S3 Glacier.");
     expectIncludesSubstring(snippets, "Set retention to 365 days.");
+  });
+
+  it("records policy exclusions and keeps forgotten sessions excluded after policy removal and resweeps", async () => {
+    const workspaceDir = await createDreamingWorkspace();
+    setDreamingTestEnv(path.join(workspaceDir, ".state"));
+    await seedDreamingSessionTranscript({
+      sessionId: "gmail-session",
+      hookExternalContentSource: "gmail",
+      messages: [
+        {
+          role: "user",
+          timestamp: "2026-04-05T18:01:00.000Z",
+          content: "Never retain this imported Gmail claim.",
+        },
+      ],
+    });
+    await seedDreamingSessionTranscript({
+      sessionId: "trusted-session",
+      messages: [
+        {
+          role: "user",
+          timestamp: "2026-04-05T18:02:00.000Z",
+          content: "Keep this trusted interactive claim.",
+        },
+      ],
+    });
+
+    const excludedConfig: OpenClawConfig = {
+      agents: { list: [{ id: "main", workspace: workspaceDir }] },
+      plugins: {
+        entries: {
+          "memory-core": {
+            config: {
+              memoryPolicy: { excludeSessions: { hookExternalContentSources: ["gmail"] } },
+              dreaming: {
+                enabled: true,
+                phases: { light: { enabled: true, limit: 20, lookbackDays: 7 } },
+              },
+            },
+          },
+        },
+      },
+    };
+    const excludedHarness = createHarness(excludedConfig, workspaceDir);
+    const corpusPath = path.join(
+      workspaceDir,
+      "memory",
+      ".dreams",
+      "session-corpus",
+      "2026-04-05.txt",
+    );
+
+    try {
+      await withDreamingTestClock(async () => {
+        await triggerLightDreaming(excludedHarness.beforeAgentReply, workspaceDir, 5);
+      });
+      const excludedState = await dreamingTestState.readSessionIngestionState(workspaceDir);
+      expect(excludedState.files["main:sessions/main/gmail-session"]).toMatchObject({
+        contentHash: "",
+        lineCount: 0,
+        excludedReason: "hookExternalContentSource:gmail",
+      });
+      expect(excludedState.seenMessages).not.toHaveProperty("main:sessions/main/gmail-session");
+      expect(await fs.readFile(corpusPath, "utf-8")).toContain(
+        "Keep this trusted interactive claim.",
+      );
+      expect(await fs.readFile(corpusPath, "utf-8")).not.toContain(
+        "Never retain this imported Gmail claim.",
+      );
+
+      const admittedHarness = createDefaultStorageLightDreamingHarness(workspaceDir, {
+        includeMainAgent: true,
+      });
+      await withDreamingTestClock(async () => {
+        await triggerLightDreaming(admittedHarness.beforeAgentReply, workspaceDir, 6);
+      });
+      const admittedState = await dreamingTestState.readSessionIngestionState(workspaceDir);
+      expect(admittedState.files["main:sessions/main/gmail-session"]).not.toHaveProperty(
+        "excludedReason",
+      );
+      expect(await fs.readFile(corpusPath, "utf-8")).toContain(
+        "Never retain this imported Gmail claim.",
+      );
+
+      await forgetMemoryEntries({
+        cfg: excludedConfig,
+        agentId: "main",
+        sessionIds: ["gmail-session"],
+      });
+      expect(await fs.readFile(corpusPath, "utf-8")).not.toContain(
+        "Never retain this imported Gmail claim.",
+      );
+      await withDreamingTestClock(async () => {
+        await triggerLightDreaming(admittedHarness.beforeAgentReply, workspaceDir, 7);
+      });
+      const forgottenState = await dreamingTestState.readSessionIngestionState(workspaceDir);
+      expect(forgottenState.files["main:sessions/main/gmail-session"]).toMatchObject({
+        contentHash: "",
+        lineCount: 0,
+        excludedReason: "forgotten",
+      });
+      expect(forgottenState.seenMessages).not.toHaveProperty("main:sessions/main/gmail-session");
+      expect(await fs.readFile(corpusPath, "utf-8")).not.toContain(
+        "Never retain this imported Gmail claim.",
+      );
+      expect(await fs.readFile(corpusPath, "utf-8")).toContain(
+        "Keep this trusted interactive claim.",
+      );
+    } finally {
+      restoreDreamingTestEnv();
+    }
   });
 
   it("redacts sensitive session content before writing session corpus", async () => {
