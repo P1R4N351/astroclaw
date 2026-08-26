@@ -1,11 +1,11 @@
 // Determines whether a channel is configured from bootstrap and plugin state.
 import { getBootstrapChannelPlugin } from "../channels/plugins/bootstrap-registry.js";
-import { hasBundledChannelConfiguredState } from "../channels/plugins/configured-state.js";
+import { hasBundledChannelPackageState } from "../channels/plugins/package-state-probes.js";
 import {
   hasMeaningfulChannelConfigShallow,
   resolveChannelConfigRecord,
 } from "./channel-configured-shared.js";
-import type { OpenClawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 /** Resolves whether a channel has enough config, env, or plugin state to be considered setup. */
 export function isChannelConfigured(
@@ -19,7 +19,7 @@ export function isChannelConfigured(
     return true;
   }
   // Bundled channels can expose configured state through env vars or persisted credential files.
-  if (hasBundledChannelConfiguredState({ channelId, cfg, env })) {
+  if (hasBundledChannelPackageState({ metadataKey: "configuredState", channelId, cfg, env })) {
     return true;
   }
   // Bootstrap plugins cover channels that are available before full plugin registry loading.
