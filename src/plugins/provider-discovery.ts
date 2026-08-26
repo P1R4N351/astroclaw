@@ -1,7 +1,7 @@
 /** Control-plane provider discovery helpers that keep runtime imports lazy until catalog hooks run. */
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ModelProviderConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
 import type { PluginMetadataRegistryView } from "./plugin-metadata-snapshot.types.js";
 import {
@@ -146,6 +146,7 @@ export function normalizePluginDiscoveryResult(params: {
 
 export async function runProviderCatalog(params: {
   provider: ProviderPlugin;
+  providerIds?: readonly string[];
   config: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
@@ -175,10 +176,19 @@ export async function runProviderCatalog(params: {
     agentDir: params.agentDir,
     workspaceDir: params.workspaceDir,
     env: params.env,
+    ...(params.providerIds !== undefined ? { providerIds: params.providerIds } : {}),
     resolveProviderApiKey: params.resolveProviderApiKey,
     resolveProviderAuth: params.resolveProviderAuth,
   });
   for (const outcome of copyProviderCatalogOutcomes(result)) {
+    if (
+      params.providerIds !== undefined &&
+      !params.providerIds.some(
+        (providerId) => normalizeProviderId(providerId) === normalizeProviderId(outcome.provider),
+      )
+    ) {
+      continue;
+    }
     params.reportCatalogOutcome?.(outcome);
   }
   return result;
