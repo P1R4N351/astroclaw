@@ -18,7 +18,7 @@ import { resolveCommandSecretRefsViaGateway } from "../../cli/command-secret-gat
 import { getScopedChannelsCommandSecretTargets } from "../../cli/command-secret-targets.js";
 import { resolveMessageSecretScope } from "../../cli/message-secret-scope.js";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import * as messageActionTurnCapability from "../../gateway/message-action-turn-capability.js";
 import { createAbortError } from "../../infra/abort-signal.js";
 import { sha256Base64UrlPrefix } from "../../infra/crypto-digest.js";
@@ -228,6 +228,7 @@ type MessageToolOptions = {
   hasRepliedRef?: { value: boolean };
   sameChannelThreadRequired?: boolean;
   sandboxRoot?: string;
+  sandboxContainerWorkdir?: string;
   requireExplicitTarget?: boolean;
   sourceReplyDeliveryMode?: SourceReplyDeliveryMode;
   /** Process-local completion authority: send only to the current source route. */
@@ -666,6 +667,7 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
           executionIdentityToken,
           agentId: resolvedAgentId,
           sandboxRoot: options?.sandboxRoot,
+          sandboxContainerWorkdir: options?.sandboxContainerWorkdir,
           sourceReplyDeliveryMode: sourceReplySinkDeliveryMode,
           // Only an admitted channel source can arm terminal restart reconciliation.
           // Source-less scheduled and ambient sends remain ordinary message actions.
