@@ -8,9 +8,9 @@ import type {
   WorkboardNotification,
   WorkboardRunAttempt,
 } from "@openclaw/workboard-contract";
-import { isFutureDateTimestampMs } from "openclaw/plugin-sdk/number-runtime";
-import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { isFutureDateTimestampMs } from "astroclaw/plugin-sdk/number-runtime";
+import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   assertCanMutateClaimedCard,
   cardBoardId,
@@ -143,7 +143,6 @@ export class WorkboardWorkflowStore extends WorkboardPromoteStore {
             guarded.status === "backlog" || guarded.status === "todo" || guarded.status === "ready"
               ? "running"
               : guarded.status,
-          agentId: guarded.agentId ?? ownerId,
           ...(options.adoptWorkspaceAccess && !guarded.metadata?.automation?.workspaceAccess
             ? { workspaceAccess: options.adoptWorkspaceAccess }
             : {}),
