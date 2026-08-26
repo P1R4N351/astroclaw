@@ -3,7 +3,7 @@
  * Defines defaults, approval follow-up payloads, elevated policy defaults, and
  * tool result details consumed across exec hosts and process controls.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { EventSessionRoutingPolicy } from "../infra/event-session-routing.js";
 import type {
   ExecApprovalDecision,
@@ -55,6 +55,8 @@ export type ExecToolDefaults = {
   approvalFollowupMode?: "agent" | "direct";
   approvalRunningNoticeMs?: number;
   sandbox?: BashSandboxConfig;
+  /** Immutable session policy that forbids execution outside its provisioned sandbox. */
+  sandboxRequired?: boolean;
   elevated?: ExecElevatedDefaults;
   allowBackground?: boolean;
   /** Final run-local availability of the process continuation tool. */
