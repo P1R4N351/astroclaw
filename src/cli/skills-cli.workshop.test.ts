@@ -3,10 +3,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { GatewayTransportError } from "../gateway/transport-error.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/astroclaw-test-state.js";
+} from "../test-utils/openclaw-test-state.js";
 import { createTrackedTempDirs } from "../test-utils/tracked-temp-dirs.js";
 import { registerSkillsCli } from "./skills-cli.js";
 
@@ -50,10 +51,21 @@ vi.mock("../runtime.js", () => ({
 
 vi.mock("../gateway/call.js", () => ({
   callGateway: vi.fn(async () => {
-    throw Object.assign(new Error("gateway unavailable"), { kind: "closed", code: 1006 });
+    throw new GatewayTransportError({
+      kind: "closed",
+      code: 1006,
+      reason: "abnormal closure",
+      message: "gateway closed (1006): abnormal closure",
+      connectionDetails: {
+        url: "ws://127.0.0.1:18789",
+        urlSource: "local loopback",
+        message: "",
+      },
+    });
   }),
-  isGatewayCredentialsRequiredError: () => false,
-  isGatewayTransportError: () => true,
+  isGatewayCredentialsRequiredError: (error: unknown) =>
+    error instanceof Error && error.name === "GatewayCredentialsRequiredError",
+  isImplicitLocalGatewayTarget: async () => !process.env.OPENCLAW_GATEWAY_URL,
 }));
 
 vi.mock("../infra/gateway-lock.js", () => ({
