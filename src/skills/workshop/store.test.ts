@@ -8,7 +8,7 @@ import {
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/astroclaw-test-state.js";
+} from "../../test-utils/openclaw-test-state.js";
 import { createSkillProposalEvent } from "./plugin-hooks.js";
 import { listSkillProposalEvents, listSkillProposals, proposeCreateSkill } from "./service.js";
 import { parseSkillProposalEvaluation } from "./store-record.js";
@@ -72,7 +72,6 @@ describe("Skill Workshop SQLite store", () => {
     const existing = new DatabaseSync(databasePath);
     existing.exec(`
       DROP TABLE skill_workshop_proposal_events;
-      DROP TABLE skill_workshop_proposal_origin_runs;
       DROP TABLE skill_workshop_proposal_rollbacks;
       DROP TABLE skill_workshop_proposals;
       DROP TABLE skill_workshop_collection_reviews;
