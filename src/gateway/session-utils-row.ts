@@ -35,7 +35,7 @@ import {
   type SessionEntry,
 } from "../config/sessions.js";
 import { sessionEntryForkedFromParent } from "../config/sessions/session-entry-lineage.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { projectPluginSessionExtensionsSync } from "../plugins/host-hook-state.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
 import { classifySessionKind } from "../sessions/classify-session-kind.js";
@@ -598,6 +598,7 @@ export function buildGatewaySessionRow(params: {
     pinnedAt: entry?.pinnedAt,
     unread: deriveSessionUnread(entry),
     lastReadAt: entry?.lastReadAt,
+    markedUnreadAt: entry?.markedUnreadAt,
     agentStatus,
     observerDigest: observerDigest
       ? {
