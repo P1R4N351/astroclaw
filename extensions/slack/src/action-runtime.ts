@@ -1,12 +1,22 @@
 // Slack plugin module implements action runtime behavior.
-import { normalizeAccountId } from "astroclaw/plugin-sdk/account-resolution";
-import type { AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
-import { readBooleanParam } from "astroclaw/plugin-sdk/boolean-param";
-import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
-import { resolveOpenProviderRuntimeGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeAccountId } from "openclaw/plugin-sdk/account-resolution";
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import { readBooleanParam } from "openclaw/plugin-sdk/boolean-param";
+import {
+  createActionGate,
+  imageResultFromFile,
+  jsonResult,
+  readPositiveIntegerParam,
+  readReactionParams,
+  readStringParam,
+  withNormalizedTimestamp,
+} from "openclaw/plugin-sdk/channel-actions";
+import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
+import { resolveOpenProviderRuntimeGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { ResolvedSlackAccount } from "./accounts.js";
 import {
   resolveSlackAutoThreadId,
@@ -22,16 +32,6 @@ import { resolveSlackChannelConfig } from "./monitor/channel-config.js";
 import { isSlackChannelAllowedByPolicy } from "./monitor/policy.js";
 import { hasSlackNativeDataBlock } from "./native-data-blocks.js";
 import type { SlackReplyDeliveryMessage } from "./reply-blocks.js";
-import {
-  createActionGate,
-  imageResultFromFile,
-  jsonResult,
-  readPositiveIntegerParam,
-  readReactionParams,
-  readStringParam,
-  type OpenClawConfig,
-  withNormalizedTimestamp,
-} from "./runtime-api.js";
 import { formatSlackTarget } from "./target-parsing.js";
 import { parseSlackTarget, resolveSlackChannelId, slackContextTargetsMatch } from "./targets.js";
 
