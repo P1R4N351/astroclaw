@@ -1,5 +1,5 @@
 // Defines task control runtime contracts exposed to command surfaces.
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { DetachedTaskTerminalState } from "./detached-task-runtime-contract.js";
 
 type KillSubagentTargetState =
@@ -11,6 +11,9 @@ type CancelAcpSessionAdmin = (params: {
   cfg: OpenClawConfig;
   sessionKey: string;
   reason: string;
+  expectedRunId?: string;
+  expectedInstanceId?: string;
+  expectedOwnerKey?: string;
 }) => Promise<void>;
 
 type KillSubagentRunAdminResult =
@@ -28,6 +31,9 @@ type KillSubagentRunAdminResult =
 type KillSubagentRunAdmin = (params: {
   cfg: OpenClawConfig;
   sessionKey: string;
+  expectedRunId?: string;
+  expectedGeneration?: number;
+  expectedOwnerKey?: string;
 }) => Promise<KillSubagentRunAdminResult>;
 
 export type TaskRegistryControlRuntime = {
