@@ -40,7 +40,7 @@ import {
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import { ensureAgentWorkspace } from "../agents/workspace.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessageWithCode } from "../infra/errors.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import type { PluginRegistry } from "../plugins/registry-types.js";
@@ -306,7 +306,7 @@ function createHeadlessDeadlineScope(params: {
     params.wallClockMs,
   );
   return {
-    deadline: Date.now() + params.wallClockMs,
+    deadline: performance.now() + params.wallClockMs,
     signal: controller.signal,
     cleanup: () => {
       clearTimeout(timer);
@@ -452,7 +452,7 @@ function createCronCodeModeRunner(deps: CronTriggerEvaluatorDeps) {
           tools: runtime.tools,
           hookContext: { ...runtime.hookContext, runId },
         });
-        const remainingWallClockMs = evaluationScope.deadline - Date.now();
+        const remainingWallClockMs = Math.ceil(evaluationScope.deadline - performance.now());
         if (remainingWallClockMs <= 0) {
           throw new CodeModeHeadlessTimeoutError(`${params.label} timed out`);
         }
