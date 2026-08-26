@@ -6,7 +6,7 @@
  */
 import { existsSync } from "node:fs";
 import path from "node:path";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { enablePluginInConfig } from "../plugins/enable.js";
 import { loadInstalledPluginIndexInstallRecords } from "../plugins/installed-plugin-index-records.js";
@@ -20,6 +20,8 @@ type RuntimePluginInstallDescriptor = {
   label: string;
   npmSpec: string;
   warningLabel: string;
+  /** Keep this official runtime package on the same release cohort as OpenClaw. */
+  versionBoundToOpenClaw?: boolean;
 };
 
 /** Result returned after ensuring a runtime plugin for a selected model. */
@@ -139,6 +141,7 @@ async function ensureRuntimePluginForModelSelection(params: {
         defaultChoice: "npm",
       },
       trustedSourceLinkedOfficialInstall: true,
+      ...(params.descriptor.versionBoundToOpenClaw ? { versionBoundToOpenClaw: true } : {}),
     },
     prompter: params.prompter,
     runtime: params.runtime,
