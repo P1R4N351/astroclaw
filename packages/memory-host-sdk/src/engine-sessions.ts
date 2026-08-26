@@ -24,8 +24,10 @@ export {
   type SessionTranscriptCorpusOptions,
 } from "./host/session-files.js";
 export {
+  isCronRunSessionKey,
+  isDreamingNarrativeSessionStoreKey,
   isSessionArchiveArtifactName,
   isUsageCountedSessionTranscriptFileName,
   parseSqliteSessionFileMarker,
   parseUsageCountedSessionIdFromFileName,
-} from "./host/astroclaw-runtime-session.js";
+} from "./host/openclaw-runtime-session.js";
