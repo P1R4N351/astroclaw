@@ -8,7 +8,7 @@ import { note } from "../../packages/terminal-core/src/note.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
 import { patchSessionEntryCore } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { heartbeatTaskDeclarationKey, isHeartbeatTaskCronJob } from "../cron/heartbeat-task.js";
 import { cronSchedulingInputsEqual } from "../cron/schedule-identity.js";
 import {
@@ -28,7 +28,8 @@ import { getCronStoreKysely } from "../cron/store/schema.js";
 import type { CronJob } from "../cron/types.js";
 import type { HealthFinding } from "../flows/health-checks.js";
 import { formatErrorMessage as errorMessage } from "../infra/errors.js";
-import { resolveHeartbeatAgents, resolveHeartbeatSession } from "../infra/heartbeat-runner.js";
+import { resolveHeartbeatAgents } from "../infra/heartbeat-config.js";
+import { resolveHeartbeatSession } from "../infra/heartbeat-runner-session.js";
 import { executeSqliteQuerySync } from "../infra/kysely-sync.js";
 import {
   openOpenClawStateDatabase,
