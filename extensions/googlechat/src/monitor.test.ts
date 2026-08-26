@@ -3,11 +3,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { recordChannelBotPairLoopAndCheckSuppression } from "astroclaw/plugin-sdk/channel-inbound";
-import { MediaFetchError } from "astroclaw/plugin-sdk/media-runtime";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-test-runtime";
+import { MediaFetchError } from "astroclaw/plugin-sdk/media-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedGoogleChatAccount } from "./accounts.js";
 import {
