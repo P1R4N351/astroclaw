@@ -509,7 +509,7 @@ fi
     expect(runner).toContain('-v "$SCENARIO_ROOT:$SCENARIO_ROOT"');
     expect(runner).toContain("scripts/docker/sandbox/Dockerfile.browser");
     expect(runner).toContain("remove_prefixed_containers");
-    expect(scenario).toContain('from "astroclaw/plugin-sdk/agent-harness-runtime"');
+    expect(scenario).toContain('from "openclaw/plugin-sdk/agent-harness-runtime"');
     expect(scenario).toContain("Promise.all([");
     expect(scenario).toContain('"sandbox", "list", "--browser", "--json"');
     expect(scenario).toContain('"sandbox", "recreate", "--browser", "--session"');
@@ -3767,7 +3767,6 @@ grep -Fxq preserved "$TMPDIR/caller-fd"
         timeout: "90",
         json: true,
         sourceReplyDeliveryMode: "message_tool_only",
-        senderIsOwner: true,
         allowModelOverride: true,
         cleanupBundleMcpOnRunEnd: true,
         cleanupCliLiveSessionOnRunEnd: true,
