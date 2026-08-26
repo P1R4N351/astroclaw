@@ -20,8 +20,8 @@ import {
 } from "../config/resolution-facts.js";
 import { captureConfigOverrideApplier } from "../config/runtime-overrides.js";
 import { resolveSystemMainSessionTarget } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayAuthConfig } from "../config/types.gateway.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isSecretRef } from "../config/types.secrets.js";
 import { getActiveCronJobCount } from "../cron/active-jobs.js";
 import {
@@ -271,7 +271,7 @@ export async function prepareGatewayServerBootstrap(input: {
     trustedProxyDeviceAutoApprove.scopes?.some((scope) => scope.trim() === ADMIN_SCOPE)
   ) {
     log.warn(
-      "SECURITY WARNING: gateway.auth.trustedProxy.deviceAutoApprove.scopes includes operator.admin; every proxy-authenticated user can auto-approve a new browser device with full admin, and requests without scopes receive full admin automatically. Remove operator.admin to require manual approval until per-identity roles are available.",
+      "SECURITY WARNING: gateway.auth.trustedProxy.deviceAutoApprove.scopes includes operator.admin; every proxy-authenticated user can auto-approve a new browser device with full admin, and requests without scopes receive full admin automatically. Remove operator.admin and grant admin per identity via gateway.auth.identityScopes instead.",
     );
   }
   const resolvedStartupAuthOverride = startupAuthOverride
