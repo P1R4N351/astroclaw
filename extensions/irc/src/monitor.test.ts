@@ -6,7 +6,7 @@ import path from "node:path";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-test-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { createIrcIngressMonitor } from "./irc-ingress.js";
 import { monitorIrcProvider } from "./monitor.js";
