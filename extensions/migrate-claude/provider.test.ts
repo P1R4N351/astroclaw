@@ -2,12 +2,12 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { redactMigrationPlan } from "openclaw/plugin-sdk/migration";
+import { redactMigrationPlan } from "astroclaw/plugin-sdk/migration";
 import {
-  resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir,
   tempWorkspace,
   type TempWorkspace,
-} from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveHomePath } from "./helpers.js";
 import { buildMemoryItems } from "./memory.js";
@@ -31,7 +31,7 @@ function planItemById(
 describe("Claude migration provider", () => {
   beforeEach(async () => {
     testWorkspace = await tempWorkspace({
-      rootDir: resolvePreferredOpenClawTmpDir(),
+      rootDir: resolvePreferredAstroclawTmpDir(),
       prefix: "openclaw-migrate-claude-",
     });
   });
@@ -58,6 +58,15 @@ describe("Claude migration provider", () => {
       } else {
         process.env.OPENCLAW_HOME = previous;
       }
+    }
+  });
+
+  it("keeps literal $ patterns in home when expanding tildes", () => {
+    const spy = vi.spyOn(os, "homedir").mockReturnValue("/home/$&user");
+    try {
+      expect(resolveHomePath("~/.claude")).toBe(path.resolve("/home/$&user/.claude"));
+    } finally {
+      spy.mockRestore();
     }
   });
 
