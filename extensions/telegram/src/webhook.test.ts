@@ -5,11 +5,11 @@ import { createServer, request, type IncomingMessage } from "node:http";
 import os from "node:os";
 import nodePath from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { DEFAULT_INGRESS_ADOPTION_STALL_MS } from "astroclaw/plugin-sdk/channel-outbound";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-test-runtime";
+import { DEFAULT_INGRESS_ADOPTION_STALL_MS } from "astroclaw/plugin-sdk/channel-outbound";
 // Telegram tests cover webhook plugin behavior.
 import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { WEBHOOK_RATE_LIMIT_DEFAULTS } from "astroclaw/plugin-sdk/webhook-ingress";
