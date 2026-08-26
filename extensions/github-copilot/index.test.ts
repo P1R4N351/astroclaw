@@ -7,17 +7,17 @@ import {
   clearRuntimeAuthProfileStoreSnapshots,
   ensureAuthProfileStore,
   saveAuthProfileStore,
-} from "openclaw/plugin-sdk/agent-runtime";
-import { MAX_DATE_TIMESTAMP_MS, MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import { MAX_DATE_TIMESTAMP_MS, MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import type {
   OpenClawConfig,
   OpenClawPluginApi,
   ProviderAuthResult,
   ProviderCatalogResult,
   UnifiedModelCatalogEntry,
-} from "openclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
-import type { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+import type { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { runGitHubCopilotDeviceFlow } from "./login.js";
@@ -36,9 +36,9 @@ function requireAuthMethod<T>(methods: readonly T[], index: number): T {
   return expectDefined(methods[index], `GitHub Copilot auth method ${index}`);
 }
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/ssrf-runtime")>(
-    "openclaw/plugin-sdk/ssrf-runtime",
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>(
+    "astroclaw/plugin-sdk/ssrf-runtime",
   );
   return {
     ...actual,
@@ -345,12 +345,19 @@ describe("github-copilot plugin", () => {
       },
     ];
 
-    expect(provider.buildReplayPolicy?.({ modelId: "claude-haiku-4.5" } as never)).toEqual({
+    expect(
+      provider.buildReplayPolicy?.({
+        modelId: "claude-haiku-4.5",
+        modelApi: "anthropic-messages",
+      } as never),
+    ).toMatchObject({
       dropThinkingBlocks: true,
+      validateAnthropicTurns: true,
     });
     expect(
       provider.sanitizeReplayHistory?.({
         modelId: "claude-haiku-4.5",
+        modelApi: "anthropic-messages",
         messages,
       } as never),
     ).toEqual([
@@ -362,6 +369,7 @@ describe("github-copilot plugin", () => {
     expect(
       provider.sanitizeReplayHistory?.({
         modelId: "gpt-5.4",
+        modelApi: "openai-responses",
         messages,
       } as never),
     ).toBe(messages);
