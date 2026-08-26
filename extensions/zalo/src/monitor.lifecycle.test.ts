@@ -2,11 +2,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-test-runtime";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import {
   createEmptyPluginRegistry,
   createRuntimeEnv,
