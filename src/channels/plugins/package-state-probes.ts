@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { isBundledSourceOverlayPath } from "../../plugins/bundled-source-overlays.js";
@@ -209,7 +209,7 @@ function resolveChannelPackageStateChecker(params: {
     return null;
   }
 
-  if (metadata.env) {
+  if (metadata.env && (!metadata.specifier || !metadata.exportName)) {
     return ({ env }) => {
       const allOf = metadata.env?.allOf ?? [];
       const anyOf = metadata.env?.anyOf ?? [];
@@ -306,8 +306,23 @@ export function hasBundledChannelPackageState(params: {
   if (!entry) {
     return false;
   }
-  const checker = resolveChannelPackageStateChecker({
+  return hasChannelPackageState({
     entry,
+    metadataKey: params.metadataKey,
+    cfg: params.cfg,
+    env: params.env,
+  });
+}
+
+/** Evaluates the exact channel package owner already selected and trusted by its caller. */
+export function hasChannelPackageState(params: {
+  entry: PluginChannelCatalogEntry;
+  metadataKey: ChannelPackageStateMetadataKey;
+  cfg: OpenClawConfig;
+  env?: NodeJS.ProcessEnv;
+}): boolean {
+  const checker = resolveChannelPackageStateChecker({
+    entry: params.entry,
     metadataKey: params.metadataKey,
   });
   return checker ? checker({ cfg: params.cfg, env: params.env }) : false;
