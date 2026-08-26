@@ -53,8 +53,8 @@ import type {
 import { resolveLegacyInheritedAuthDir } from "../agents/legacy-inherited-auth-dir.js";
 import { splitTrailingAuthProfile } from "../agents/model-ref-profile.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { AuthProfileConfig } from "../config/types.auth.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { coerceSecretRef } from "../config/types.secrets.js";
 import { loadJsonFileThroughSymlink } from "../infra/json-file.js";
 import { readLegacyMigrationReceipt } from "../infra/state-migrations.receipts.js";
@@ -905,9 +905,8 @@ export async function maybeMigrateAuthProfileJsonStoresToSqlite(params: {
   let resumeWarning: string | undefined;
   try {
     resumedChanges = resumePendingAuthProfileMigrationArchives(env);
-  } catch {
-    resumeWarning =
-      "Could not finalize an interrupted auth profile archive; legacy sources were left for recovery.";
+  } catch (err) {
+    resumeWarning = `Could not finalize an interrupted auth profile archive; legacy sources were left for recovery: ${String(err)}`;
   }
   const candidates = listAuthProfileSqliteMigrationCandidates(params.cfg, env);
   const configStore = coerceLegacyConfigAuthProfileStore(params.cfg);
