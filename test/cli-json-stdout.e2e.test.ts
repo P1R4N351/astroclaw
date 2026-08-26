@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { withTempHome } from "openclaw/plugin-sdk/test-env";
+import { withTempHome } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import { OPENCLAW_STATE_SCHEMA_SQL } from "../src/state/openclaw-state-schema.js";
 
@@ -780,6 +780,30 @@ describe("cli json stdout contract", () => {
       { prefix: "openclaw-models-plain-stdout-e2e-" },
     );
   });
+
+  it.each(["--plain", "--json"])(
+    "keeps human auth-list output on stdout when provider value is %s",
+    async (provider) => {
+      await withTempHome(
+        async (tempHome) => {
+          const result = runBuiltCli(tempHome, ["models", "auth", "list", "--provider", provider], {
+            CI: "1",
+            NO_COLOR: "1",
+            OPENCLAW_CONFIG_PATH: path.join(tempHome, "missing-openclaw.json"),
+            OPENCLAW_STATE_DIR: path.join(tempHome, "isolated-state"),
+          });
+
+          expect(result.status, result.stderr).toBe(0);
+          expect(result.stdout).toContain("Agent: main\n");
+          expect(result.stdout).toContain(`Provider: ${provider}\n`);
+          expect(result.stdout).toContain("Profiles: (none)\n");
+          expect(result.stderr).not.toContain("Agent: main");
+          expect(result.stderr).not.toContain(`Provider: ${provider}`);
+        },
+        { prefix: "openclaw-models-output-option-value-e2e-" },
+      );
+    },
+  );
 
   it("preserves model catalog refresh success payloads and persisted rows", async () => {
     await withTempHome(
