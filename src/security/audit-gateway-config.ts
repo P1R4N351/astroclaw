@@ -7,8 +7,8 @@ import {
 } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { hasUnresolvedConfigPath } from "../config/resolution-facts.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayAuthConfig } from "../config/types.gateway.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveGatewayAuth } from "../gateway/auth-resolve.js";
 import { resolveGatewayAuthTokenSourceConflict } from "../gateway/auth-token-source-conflict.js";
 import { createGatewayCredentialPlan } from "../gateway/credential-planner.js";
@@ -373,7 +373,7 @@ export function collectGatewayConfigFindings(
           detail:
             "gateway.auth.trustedProxy.deviceAutoApprove.scopes includes operator.admin, so every proxy-authenticated user can auto-approve a new browser device with full admin; requests without scopes receive full admin automatically.",
           remediation:
-            "Remove operator.admin and approve admin access manually, or use per-identity roles when they become available.",
+            "Remove operator.admin and approve admin access manually, or grant admin per identity via gateway.auth.identityScopes.",
         });
       }
     }
