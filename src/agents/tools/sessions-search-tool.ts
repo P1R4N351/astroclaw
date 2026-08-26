@@ -1,7 +1,7 @@
 /** Full-text search over visible session transcripts. */
 import { Type } from "typebox";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { jsonUtf8Bytes } from "../../infra/json-utf8-bytes.js";
 import { redactToolPayloadText } from "../../logging/redact.js";
 import {
@@ -35,6 +35,7 @@ import {
 import {
   createAgentToAgentPolicy,
   createSessionVisibilityRowChecker,
+  formatSessionToolAccessDenial,
   resolveDisplaySessionKey,
   resolveEffectiveSessionToolsVisibility,
   resolveSandboxedSessionToolContext,
@@ -482,7 +483,13 @@ export function createSessionsSearchTool(opts?: {
           callGateway: gatewayCall,
         });
         if (!access.allowed) {
-          return jsonResult({ status: access.status, error: access.error });
+          return jsonResult({
+            status: access.status,
+            error: formatSessionToolAccessDenial(access, {
+              action: "search",
+              targetSessionKey: key,
+            }),
+          });
         }
         if (access.expectedSessionId) {
           sessionTarget.expectedSessionId = access.expectedSessionId;
