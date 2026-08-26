@@ -10,7 +10,7 @@ import {
   supportsAutomaticThreadBindingSpawn,
 } from "../../channels/thread-bindings-policy.js";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveSnakeCaseParamKey } from "../../param-key.js";
 import { parseAgentSessionKey } from "../../routing/session-key.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
@@ -610,6 +610,7 @@ export function createSessionsSpawnTool(
             agentMemberRoleIds: opts?.agentMemberRoleIds,
             requesterAgentIdOverride: opts?.requesterAgentIdOverride,
             workspaceDir: opts?.workspaceDir,
+            sessionPermissionPolicy: opts?.sessionPermissionPolicy,
             inheritedToolAllowlist: opts?.inheritedToolAllowlist,
             inheritedToolDenylist: opts?.inheritedToolDenylist,
             requesterRunId: opts?.requesterRunId,
