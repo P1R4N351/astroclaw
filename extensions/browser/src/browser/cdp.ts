@@ -5,9 +5,9 @@ import type { lookup as dnsLookupCb } from "node:dns";
  * Provides screenshots, target creation, JavaScript evaluation, ARIA/role
  * snapshots, DOM text, and selector lookup on top of the CDP socket helpers.
  */
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
-import { resolveIntegerOption } from "astroclaw/plugin-sdk/number-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import { resolveIntegerOption } from "openclaw/plugin-sdk/number-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 import {
   prepareCdpPageSession,
@@ -99,15 +99,19 @@ export async function captureScreenshot(opts: {
   format?: "png" | "jpeg";
   quality?: number; // jpeg only (0..100)
   timeoutMs?: number;
+  /** Effective launch mode recorded on the owned Chrome process, when known. */
+  headless?: boolean;
 }): Promise<Buffer> {
   return await withCdpSocket(
     opts.wsUrl,
     async (send) => {
       await send("Page.enable");
 
-      // Background surface captures can stall until CDP times out; activate to force a frame.
-      // Ignore protocol rejection so browsers that already capture correctly still proceed.
-      await send("Page.bringToFront").catch(() => {});
+      // Headless background tabs need activation to produce a frame. Preserve
+      // focus only when the launched process is authoritatively known headed.
+      if (opts.headless !== false) {
+        await send("Page.bringToFront").catch(() => {});
+      }
 
       // For full-page captures, temporarily expand the viewport to the content
       // size so the entire page is within the viewport bounds.  We save the
