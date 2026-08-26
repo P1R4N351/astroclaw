@@ -2,7 +2,7 @@
 // session lifecycle persistence, and subscriber registry behavior.
 
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import {
@@ -3571,6 +3571,49 @@ describe("agent event handler", () => {
     );
     expect(requireMockArg(broadcastToConnIds, 0, 3, "sessions changed options")).toEqual({
       dropIfSlow: true,
+    });
+  });
+
+  it("tombstones cleared agent status and observer digest in lifecycle snapshots", async () => {
+    vi.mocked(loadGatewaySessionRow).mockReturnValue({
+      key: "session-finished",
+      kind: "direct",
+      updatedAt: 1_700,
+      status: "done",
+    });
+    const { broadcastToConnIds, sessionEventSubscribers, handler } = createHarness({
+      resolveSessionKeyForRun: () => "session-finished",
+    });
+    sessionEventSubscribers.subscribe("conn-session");
+    registerAgentRunContext("run-finished", {
+      sessionKey: "session-finished",
+      verboseLevel: "off",
+    });
+
+    emitAgentEvent(
+      handler,
+      "run-finished",
+      "lifecycle",
+      { phase: "end", endedAt: 1_700 },
+      { seq: 2, ts: 1_800 },
+    );
+
+    await waitForFast(() => {
+      expect(
+        broadcastToConnIds.mock.calls.filter(([event]) => event === "sessions.changed"),
+      ).toHaveLength(1);
+    });
+    const payload = requireRecord(
+      // oxlint-disable-next-line unicorn/prefer-structured-clone -- verify the gateway JSON wire shape
+      JSON.parse(
+        JSON.stringify(requireMockArg(broadcastToConnIds, 0, 1, "sessions changed payload")),
+      ),
+      "serialized sessions changed payload",
+    );
+    expectRecordFields(payload, { agentStatus: null, observerDigest: null });
+    expectRecordFields(requireRecord(payload.session, "nested session"), {
+      agentStatus: null,
+      observerDigest: null,
     });
   });
 
