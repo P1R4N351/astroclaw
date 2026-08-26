@@ -27,7 +27,7 @@ import {
   type SessionScope,
 } from "../config/sessions.js";
 import { canonicalSessionKeyMigrationRequiredError } from "../config/sessions/session-canonical-key.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
 import { isAcpSessionKey } from "../sessions/session-key-utils.js";
 import { listAgentProvenance } from "../state/agent-provenance.js";
@@ -185,11 +185,11 @@ export function loadGatewaySessionEntryReadOnly(
 }
 
 /** Returns the one canonical entry and the exact persisted key that owns it. */
-export function resolveCanonicalSessionStoreMatchFromStoreKeys(
-  store: Record<string, SessionEntry>,
+export function resolveCanonicalSessionStoreMatchFromStoreKeys<TEntry extends SessionEntry>(
+  store: Record<string, TEntry>,
   storeKeys: string[],
-): { key: string; entry: SessionEntry } | undefined {
-  let selected: { key: string; entry: SessionEntry } | undefined;
+): { key: string; entry: TEntry } | undefined {
+  let selected: { key: string; entry: TEntry } | undefined;
   for (const key of storeKeys) {
     const entry = store[key];
     if (!entry) {
