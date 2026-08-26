@@ -3,7 +3,7 @@
 // public plugin-sdk dts graph (check-plugin-sdk-exports guards this).
 import type { NodePluginToolDescriptor } from "../../../packages/gateway-protocol/src/schema/nodes.js";
 import type { AgentWaitResult } from "../../agents/run-wait.types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { OperatorScope } from "../../gateway/operator-scopes.js";
 import type { PluginRuntimeCore, RuntimeLogger } from "./types-core.js";
 
@@ -202,6 +202,7 @@ export type PluginRuntime = PluginRuntimeCore & {
 export type CreatePluginRuntimeOptions = {
   dispatchReplyFromConfig?: PluginRuntime["channel"]["reply"]["dispatchReplyFromConfig"];
   gateway?: PluginRuntime["gateway"];
+  hooks?: PluginRuntime["hooks"];
   subagent?: PluginRuntime["subagent"];
   nodes?: PluginRuntime["nodes"];
   allowGatewaySubagentBinding?: boolean;
