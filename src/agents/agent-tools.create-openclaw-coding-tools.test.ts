@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { replaceSessionEntry } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import * as windowsEncoding from "../infra/windows-encoding.js";
 import { readMemoryArtifactProvenance } from "../memory/memory-artifact-provenance.js";
 import {
@@ -26,7 +26,7 @@ import {
 import { createMockPluginRegistry } from "../plugins/hooks.test-fixtures.js";
 import "./test-helpers/fast-bash-tools.js";
 import "./test-helpers/fast-coding-tools.js";
-import "./test-helpers/fast-astroclaw-tools.js";
+import "./test-helpers/fast-openclaw-tools.js";
 import { isPluginToolAllowed } from "../plugins/tool-grant-allowlist.js";
 import { wrapToolWithBeforeToolCallHook } from "./agent-tools.before-tool-call.js";
 import { createOpenClawCodingTools } from "./agent-tools.js";
@@ -37,8 +37,6 @@ import {
   wrapReadToolWithSkillContent,
 } from "./agent-tools.read.js";
 import { runWithAgentRingZeroTools } from "./agent-tools.ring-zero-context.js";
-import * as openClawPluginTools from "./astroclaw-plugin-tools.js";
-import { createOpenClawTools } from "./astroclaw-tools.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";
 import { resolveConversationCapabilityProfile } from "./conversation-capability-profile.js";
 import {
@@ -46,6 +44,8 @@ import {
   runWithCronCreatorAuthorityCapability,
   runWithCronCreatorAuthorityCapabilityResolver,
 } from "./cron-creator-authority-context.js";
+import * as openClawPluginTools from "./openclaw-plugin-tools.js";
+import { createOpenClawTools } from "./openclaw-tools.js";
 import { expectReadWriteEditTools } from "./test-helpers/agent-tools-fs-helpers.js";
 import { createAgentToolsSandboxContext } from "./test-helpers/agent-tools-sandbox-context.js";
 import { stubTool } from "./test-helpers/fast-tool-stubs.js";
@@ -2479,13 +2479,16 @@ describe("createOpenClawCodingTools", () => {
     }
   });
 
-  it("records ordinary write, edit, and apply_patch memory provenance from turn taint", async () => {
+  it("records turn taint and source-session lineage for memory writes, edits, and patches", async () => {
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-memory-write-taint-"));
     let tainted = false;
     try {
       const tools = createOpenClawCodingTools({
         workspaceDir,
         config: { tools: { fs: { workspaceOnly: true } } },
+        sessionId: "source-session",
+        sessionKey: "agent:main:policy-session",
+        runSessionKey: "agent:main:durable-session",
         senderIsOwner: true,
         isTurnTainted: () => tainted,
       });
@@ -2518,8 +2521,16 @@ describe("createOpenClawCodingTools", () => {
           ),
         ),
       ).resolves.toEqual([
-        expect.objectContaining({ originClass: "untrusted" }),
-        expect.objectContaining({ originClass: "untrusted" }),
+        expect.objectContaining({
+          originClass: "untrusted",
+          sessionId: "source-session",
+          sessionKey: "agent:main:durable-session",
+        }),
+        expect.objectContaining({
+          originClass: "untrusted",
+          sessionId: "source-session",
+          sessionKey: "agent:main:durable-session",
+        }),
       ]);
       await expect(
         applyPatch("patch-existing-memory", {
