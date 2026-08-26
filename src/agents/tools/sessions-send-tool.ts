@@ -16,7 +16,7 @@ import { parseSessionThreadInfo } from "../../config/sessions/thread-info.js";
 import { runWithoutOwnedSessionTranscriptWrites } from "../../config/sessions/transcript-write-context.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import type { AgentRouteBinding } from "../../config/types.agents.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import {
@@ -81,7 +81,9 @@ import { runWithScopedSessionAccess } from "./scoped-session-access.js";
 import {
   createSessionVisibilityRowChecker,
   createAgentToAgentPolicy,
+  formatSessionToolAccessDenial,
   isExpectedSessionLookupMiss,
+  recordSessionToolActionFact,
   resolveDisplaySessionKey,
   resolveEffectiveSessionToolsVisibility,
   resolveSessionReference,
@@ -918,7 +920,10 @@ export function createSessionsSendTool(opts?: {
         return jsonResult({
           runId: crypto.randomUUID(),
           status: access.status,
-          error: access.error,
+          error: formatSessionToolAccessDenial(access, {
+            action: "send",
+            targetSessionKey: unresolvedDisplayKey,
+          }),
           sessionKey: unresolvedDisplayKey,
         });
       }
@@ -1149,6 +1154,12 @@ export function createSessionsSendTool(opts?: {
             if (!start.ok) {
               return start.result;
             }
+            recordSessionToolActionFact({
+              operation: "send",
+              fact: "committed",
+              targetAgentId,
+              targetSessionKey: start.a2aSessionKey ?? resolvedKey,
+            });
             recordSessionsSendParticipant({
               cfg,
               requesterAgentId,
@@ -1179,6 +1190,12 @@ export function createSessionsSendTool(opts?: {
           if (!start.ok) {
             return start.result;
           }
+          recordSessionToolActionFact({
+            operation: "send",
+            fact: "committed",
+            targetAgentId,
+            targetSessionKey: start.a2aSessionKey ?? resolvedKey,
+          });
           recordSessionsSendParticipant({
             cfg,
             requesterAgentId,
