@@ -20,7 +20,7 @@ import {
   type SessionEntry,
   type SessionScope,
 } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { isVitestRuntimeEnv } from "../../infra/env.js";
 import {
   isModelSelectionLocked,
@@ -247,6 +247,7 @@ export function initFastReplySessionState(params: {
           createdVia: existingEntry.createdVia,
           createdActor: existingEntry.createdActor,
           createdAt: existingEntry.createdAt,
+          ...(existingEntry.sandbox === "required" ? { sandbox: "required" as const } : {}),
           spawnDepth: existingEntry.spawnDepth,
           subagentRole: existingEntry.subagentRole,
           subagentControlScope: existingEntry.subagentControlScope,
