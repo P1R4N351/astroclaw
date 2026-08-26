@@ -1,15 +1,27 @@
+import { asDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import type { CronConfig } from "../../config/types.cron.js";
-import { resolveCronDeliveryPlan, resolveFailureDestination } from "../delivery-plan.js";
+import { resolveCronDeliveryPlan } from "../delivery-plan.js";
 import { type CronRetryOn, resolveCronExecutionRetryHint } from "../retry-hint.js";
+import { createCronStreamSourceIdentity } from "../stream-schedule.js";
 import type {
-  CronDeliveryStatus,
-  CronFailureNotificationDelivery,
   CronJob,
+  CronDeliveryTrace,
+  CronResolvedDeliveryState,
   CronRunErrorClassification,
   CronRunStatus,
 } from "../types.js";
-import { DEFAULT_ERROR_BACKOFF_SCHEDULE_MS, errorBackoffMs, isJobEnabled } from "./jobs.js";
-import type { CronServiceState, CronSystemEventEnqueueResult } from "./state.js";
+import { autoDisableCronJob } from "./auto-disable.js";
+import {
+  DEFAULT_ERROR_BACKOFF_SCHEDULE_MS,
+  errorBackoffMs,
+  isJobEnabled,
+} from "./jobs-scheduling.js";
+import type {
+  CronServiceState,
+  CronSystemEventEnqueueResult,
+  DeferredCronNotifications,
+} from "./state.js";
+import type { CronTriggerEvalOutcome } from "./timer-execution-timeout.js";
 import { HEARTBEAT_SKIP_DISABLED } from "./timer-execution-timeout.js";
 
 /** Default max retries for cron jobs on transient errors (#24355). */
@@ -35,25 +47,99 @@ type QueuedSystemEventHandle = {
   remove?: () => boolean | void;
 };
 
+/** Rejects outcome-generated schedule timestamps before they can persist or arm a timer. */
+export function resolveNextRunAtMsOrDisable(params: {
+  state: CronServiceState;
+  job: CronJob;
+  candidate: unknown;
+  deferredNotifications?: DeferredCronNotifications;
+}): number | undefined {
+  const nextRunAtMs = asDateTimestampMs(params.candidate);
+  if (nextRunAtMs !== undefined && nextRunAtMs > 0) {
+    return nextRunAtMs;
+  }
+  autoDisableCronJob({
+    state: params.state,
+    job: params.job,
+    reason: "schedule-errors",
+    atMs: params.state.deps.nowMs(),
+    consecutiveErrors: 1,
+    deferredNotifications: params.deferredNotifications,
+  });
+  return undefined;
+}
+
+/** Persists non-busy trigger evaluation state without touching payload-run history. */
+export function applyTriggerEvaluationState(
+  job: CronJob,
+  triggerEval: CronTriggerEvalOutcome,
+  evaluatedAtMs: number,
+): void {
+  if (triggerEval.busy) {
+    return;
+  }
+  job.state.lastTriggerEvalAtMs = evaluatedAtMs;
+  job.state.triggerEvalCount = (job.state.triggerEvalCount ?? 0) + 1;
+  if (triggerEval.stateChanged) {
+    job.state.triggerState = triggerEval.state;
+  }
+  if (triggerEval.fired) {
+    job.state.lastTriggerFireAtMs = evaluatedAtMs;
+  }
+}
+
+/** Persists fired/error trigger metadata and disarms successful once triggers. */
+export function applyTriggerRunResult(
+  job: CronJob,
+  result: { status: CronRunStatus; endedAt: number; triggerEval?: CronTriggerEvalOutcome },
+  opts?: { scheduleOwnership?: "current" | "stale"; triggerOwnership?: "current" | "stale" },
+): void {
+  if (!result.triggerEval || opts?.triggerOwnership === "stale") {
+    return;
+  }
+  // Failed payloads keep the old state so the next evaluation re-detects the event.
+  const persistedEval =
+    result.status === "ok"
+      ? result.triggerEval
+      : { ...result.triggerEval, stateChanged: false, state: undefined };
+  applyTriggerEvaluationState(job, persistedEval, result.endedAt);
+  if (
+    opts?.scheduleOwnership !== "stale" &&
+    result.triggerEval.fired &&
+    job.trigger?.once === true &&
+    result.status === "ok"
+  ) {
+    if (job.schedule.kind === "stream") {
+      job.state.streamSourceIdentity = createCronStreamSourceIdentity();
+    }
+    job.enabled = false;
+    job.state.nextRunAtMs = undefined;
+  }
+}
+
 export function resolveCronNextRunWithLowerBound(params: {
   state: CronServiceState;
   job: CronJob;
   naturalNext: number | undefined;
   lowerBoundMs: number;
-  context: "completion" | "error_backoff";
+  deferredNotifications?: DeferredCronNotifications;
 }): number | undefined {
   if (params.naturalNext === undefined) {
     params.state.deps.log.warn(
       {
         jobId: params.job.id,
         jobName: params.job.name,
-        context: params.context,
       },
       "cron: next run unresolved; clearing schedule to avoid a refire loop",
     );
     return undefined;
   }
-  return Math.max(params.naturalNext, params.lowerBoundMs);
+  return resolveNextRunAtMsOrDisable({
+    state: params.state,
+    job: params.job,
+    candidate: Math.max(params.naturalNext, params.lowerBoundMs),
+    deferredNotifications: params.deferredNotifications,
+  });
 }
 
 export function resolveTransientCronRetryDecision(params: {
@@ -206,33 +292,21 @@ export function isScheduledTerminalOneShotRetry(
 export function resolveDeliveryState(params: {
   job: CronJob;
   runStatus: CronRunStatus;
+  delivery?: CronDeliveryTrace;
   delivered?: boolean;
   deliveryAttempted?: boolean;
   error?: string;
-  globalFailureDestination?: CronConfig["failureAlert"];
-}): {
-  delivered?: boolean;
-  status: CronDeliveryStatus;
-  error?: string;
-  failureNotification: CronFailureNotificationDelivery;
-} {
+}): CronResolvedDeliveryState {
   const primaryDeliveryPlan = resolveCronDeliveryPlan(params.job);
   const primaryDeliveryRequested = primaryDeliveryPlan.requested;
-  // Failure destinations can receive alerts even when the primary delivery
-  // path was disabled or failed before direct delivery produced an ack.
-  const alternateFailureNotificationRequested =
-    params.runStatus === "error" &&
-    params.job.delivery?.bestEffort !== true &&
-    resolveFailureDestination(params.job, params.globalFailureDestination) !== null;
+  const noFailureNotification = { status: "not-requested" as const };
   if (!primaryDeliveryRequested) {
     if (primaryDeliveryPlan.mode === "webhook") {
       if (params.delivered === true) {
         return {
           delivered: true,
           status: "delivered",
-          failureNotification: {
-            status: alternateFailureNotificationRequested ? "unknown" : "not-requested",
-          },
+          failureNotification: noFailureNotification,
         };
       }
       if (params.deliveryAttempted === true) {
@@ -240,50 +314,31 @@ export function resolveDeliveryState(params: {
           delivered: false,
           status: "not-delivered",
           error: params.error,
-          failureNotification: {
-            status: alternateFailureNotificationRequested ? "unknown" : "not-requested",
-          },
+          failureNotification: noFailureNotification,
         };
       }
     }
     return {
       status: "not-requested",
-      failureNotification: {
-        status: alternateFailureNotificationRequested ? "unknown" : "not-requested",
-      },
+      failureNotification: noFailureNotification,
     };
   }
-  if (params.runStatus === "error") {
-    const failureNotification: CronFailureNotificationDelivery =
-      alternateFailureNotificationRequested ? { status: "unknown" } : { status: "delivered" };
-    if (params.delivered === true) {
+  if (
+    params.runStatus === "error" &&
+    !(params.delivered === true && params.delivery?.delivered === true)
+  ) {
+    if (params.delivered !== undefined) {
       return {
         delivered: false,
         status: "not-delivered",
         error: params.error,
-        failureNotification: alternateFailureNotificationRequested
-          ? failureNotification
-          : { delivered: true, status: "delivered" },
-      };
-    }
-    if (params.delivered === false) {
-      return {
-        delivered: false,
-        status: "not-delivered",
-        error: params.error,
-        failureNotification: alternateFailureNotificationRequested
-          ? failureNotification
-          : {
-              delivered: false,
-              status: "not-delivered",
-              ...(params.error ? { error: params.error } : {}),
-            },
+        failureNotification: noFailureNotification,
       };
     }
     return {
       status: "unknown",
       error: params.error,
-      failureNotification: { status: "unknown" },
+      failureNotification: noFailureNotification,
     };
   }
   if (params.delivered === true) {
