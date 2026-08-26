@@ -43,6 +43,7 @@ const agentRuntimeMocks = vi.hoisted(() => ({
   resolveApiKeyForProfile: vi.fn(),
   resolveAuthProfileOrder: vi.fn(),
   resolveDefaultAgentDir: vi.fn(() => "/agent"),
+  resolveAgentWorkspaceDir: vi.fn(() => "/agent/workspace"),
   resolvePersistedAuthProfileOwnerAgentDir: vi.fn(),
   resolveProviderIdForAuth: vi.fn((provider: string, _lookup?: { config?: unknown }) => provider),
   resolveSessionAgentIds: vi.fn(() => ({ defaultAgentId: "main", sessionAgentId: "main" })),
@@ -2584,7 +2585,7 @@ describe("codex conversation binding", () => {
     });
   });
 
-  it("moves bounded visible session history while clamping source-owned conversation permissions", async () => {
+  it("moves session history while clamping rootless inherited cwd to the agent workspace", async () => {
     const source = {
       agentId: "main",
       sessionId: "source-session",
@@ -2598,8 +2599,7 @@ describe("codex conversation binding", () => {
       entry: {
         sessionId: source.sessionId,
         updatedAt: Date.now(),
-        permissionMode: "full",
-        sessionRoot: tempDir,
+        permissionMode: "workspace",
       },
     });
     await upsertSessionEntry({
@@ -2641,7 +2641,7 @@ describe("codex conversation binding", () => {
       binding: {
         threadId: source.threadId,
         clientId: "source-client",
-        cwd: tempDir,
+        cwd: path.join(tempDir, "..", "outside-rootless-session"),
         model: "gpt-5.5",
         modelProvider: "openai",
         approvalPolicy: "never",
@@ -2706,7 +2706,6 @@ describe("codex conversation binding", () => {
       bindingId: "binding-source-transfer",
       workspaceDir: tempDir,
       source,
-      start: { id: "start-source-transfer" },
     };
 
     await expect(
@@ -2722,8 +2721,8 @@ describe("codex conversation binding", () => {
       "turn/start",
     ]);
     expect(requests[0]?.params).toMatchObject({
-      cwd: tempDir,
-      runtimeWorkspaceRoots: [tempDir],
+      cwd: "/agent/workspace",
+      runtimeWorkspaceRoots: ["/agent/workspace"],
       sandbox: "workspace-write",
       approvalPolicy: "on-request",
       approvalsReviewer: "auto_review",
@@ -2731,8 +2730,8 @@ describe("codex conversation binding", () => {
       config: { apps: { _default: { enabled: false } }, "features.apps": false },
     });
     expect(requests[2]?.params).toMatchObject({
-      cwd: tempDir,
-      runtimeWorkspaceRoots: [tempDir],
+      cwd: "/agent/workspace",
+      runtimeWorkspaceRoots: ["/agent/workspace"],
       sandboxPolicy: { type: "workspaceWrite" },
       approvalPolicy: "on-request",
       approvalsReviewer: "auto_review",
@@ -3231,7 +3230,7 @@ describe("codex conversation binding", () => {
         },
       },
       sessionKey: "agent:main:session-1",
-      workspaceDir: tempDir,
+      workspaceDir: "/agent/workspace",
     });
     expect(turnStartParams).toEqual([]);
   });
