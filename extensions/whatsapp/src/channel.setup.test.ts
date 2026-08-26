@@ -1,3 +1,4 @@
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Whatsapp tests cover channel.setup plugin behavior.
 import { createQueuedWizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/routing";
@@ -6,7 +7,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WHATSAPP_AUTH_UNSTABLE_CODE } from "./auth-store.js";
 import { whatsappSetupPlugin } from "./channel.setup.js";
 import { checkWhatsAppHeartbeatReady } from "./heartbeat.js";
-import type { OpenClawConfig } from "./runtime-api.js";
 import { finalizeWhatsAppSetup } from "./setup-finalize.js";
 import {
   createWhatsAppAllowlistModeInput,
