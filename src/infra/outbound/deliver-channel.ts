@@ -13,7 +13,7 @@ import type {
   ChannelOutboundPayloadContext,
   ChannelOutboundTargetRef,
 } from "../../channels/plugins/types.adapters.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { PluginRegistry } from "../../plugins/registry-types.js";
 import { withPluginRuntimeRegistryScope } from "../../plugins/runtime/gateway-request-scope.js";
@@ -402,11 +402,12 @@ function createPluginHandler(
       ? (payload) => outbound.shouldSkipPlainTextSanitization!({ payload })
       : undefined,
     resolveEffectiveTextChunkLimit: outbound?.resolveEffectiveTextChunkLimit
-      ? (fallbackLimit) =>
+      ? ({ fallbackLimit, formatting }) =>
           outbound.resolveEffectiveTextChunkLimit!({
             cfg: params.cfg,
             accountId: params.accountId ?? undefined,
             fallbackLimit,
+            formatting,
           })
       : undefined,
     sendPayload:
