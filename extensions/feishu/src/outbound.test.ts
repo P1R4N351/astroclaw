@@ -5,16 +5,16 @@ import path from "node:path";
 import {
   createChannelPartialDeliveryError,
   isChannelPartialDeliveryError,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-outbound";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
 import {
   adaptMessagePresentationForChannel,
   renderMessagePresentationFallbackText,
   type MessagePresentation,
   type MessagePresentationAction,
-} from "astroclaw/plugin-sdk/interactive-runtime";
+} from "openclaw/plugin-sdk/interactive-runtime";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ClawdbotConfig } from "../runtime-api.js";
+import type { ClawdbotConfig, ReplyPayload } from "../runtime-api.js";
 import {
   FEISHU_SELECTED_SECRET_ENV,
   FEISHU_SIBLING_SECRET_ENV,
@@ -57,7 +57,7 @@ const resolvePinnedHostnameWithPolicyMock = vi.hoisted(() =>
   }),
 );
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
@@ -227,7 +227,7 @@ afterAll(() => {
   vi.doUnmock("./client.js");
   vi.doUnmock("./drive.js");
   vi.doUnmock("./comment-reaction.js");
-  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
@@ -2011,6 +2011,59 @@ describe("feishuOutbound.sendPayload native cards", () => {
     );
     expectFeishuResult(result, "reply_msg");
   });
+
+  it.each(["direct", "core-rendered"] as const)(
+    "preserves select command guidance for %s document-comment delivery",
+    async (deliveryPath) => {
+      const presentation: MessagePresentation = {
+        blocks: [
+          {
+            type: "select",
+            placeholder: "Choose deployment",
+            options: [
+              {
+                label: "Deploy",
+                action: { type: "command", command: "/deploy staging" },
+              },
+            ],
+          },
+        ],
+      };
+      const originalPayload = { presentation };
+      let payload: ReplyPayload = originalPayload;
+      if (deliveryPath === "core-rendered") {
+        const rendered = await feishuOutbound.renderPresentation?.({
+          payload: originalPayload,
+          presentation,
+          ctx: {
+            cfg: emptyConfig,
+            to: "comment:docx:doxcn123:7623358762119646411",
+            text: "",
+            accountId: "main",
+            payload: originalPayload,
+          },
+        });
+        if (!rendered) {
+          throw new Error("expected Feishu-rendered select presentation");
+        }
+        const { presentation: _presentation, ...coreRenderedPayload } = rendered;
+        payload = coreRenderedPayload;
+      }
+
+      const result = await feishuOutbound.sendPayload?.({
+        cfg: emptyConfig,
+        to: "comment:docx:doxcn123:7623358762119646411",
+        text: "",
+        accountId: "main",
+        payload,
+      });
+
+      expect(commentThreadParams()?.content).toBe(
+        "Choose deployment:\n- Deploy: `/deploy staging`\n\n> Interactive buttons are unavailable in Feishu document comments. You can type the command shown above manually.",
+      );
+      expectFeishuResult(result, "reply_msg");
+    },
+  );
 
   it("keeps TTS supplements on the document-comment delivery path", async () => {
     await feishuOutbound.sendPayload?.({
