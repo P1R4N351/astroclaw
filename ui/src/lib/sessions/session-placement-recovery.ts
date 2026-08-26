@@ -1,4 +1,7 @@
-import { SessionToolOverridesSchema } from "@astroclaw/gateway-protocol";
+import {
+  SessionPermissionModeSchema,
+  SessionToolOverridesSchema,
+} from "@astroclaw/gateway-protocol";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { hasNonEmptyString as isNonEmptyString } from "@astroclaw/normalization-core/string-coerce";
 import { Value } from "typebox/value";
@@ -54,6 +57,7 @@ const PLACEMENT_CREATE_FIELDS = new Set<string>([
   "worktree",
   "incognito",
   "visibility",
+  "permissionMode",
   "toolOverrides",
   ...PLACEMENT_CREATE_STRING_FIELDS,
 ]);
@@ -75,6 +79,8 @@ export function parseSessionPlacementCreateParams(
     record.worktree !== true ||
     (record.incognito !== undefined && record.incognito !== true) ||
     (record.visibility !== undefined && record.visibility !== "draft") ||
+    (record.permissionMode !== undefined &&
+      !Value.Check(SessionPermissionModeSchema, record.permissionMode)) ||
     (record.toolOverrides !== undefined &&
       !Value.Check(SessionToolOverridesSchema, record.toolOverrides)) ||
     (record.projectId !== undefined && record.cwd !== undefined) ||
