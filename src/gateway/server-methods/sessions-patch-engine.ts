@@ -18,7 +18,7 @@ import { disableCronJobsBoundToSessions } from "../../cron/job-session-bindings.
 import { formatErrorMessage } from "../../infra/errors.js";
 import { resolveMissingAgentHarnessSessionError } from "../../sessions/agent-harness-session-key.js";
 import { runExclusiveSessionLifecycleMutation } from "../../sessions/session-lifecycle-admission.js";
-import { authorizeGatewaySessionCreation } from "../operator-role-policy.js";
+import { authorizeGatewaySessionCreation, resolveCreatorSandbox } from "../operator-role-policy.js";
 import { ADMIN_SCOPE } from "../operator-scopes.js";
 import { ensureSessionGroupRegistered } from "../session-groups.js";
 import { triggerSessionPatchHook } from "../session-patch-hooks.js";
@@ -35,6 +35,7 @@ import {
 import { projectSessionsPatchEntry } from "../sessions-patch.js";
 import { gatewayClientSessionCreator } from "./gateway-client-identity.js";
 import { emitSessionsChanged } from "./session-change-event.js";
+import { resolveOperatorSessionCreation } from "./session-creation-provenance.js";
 import {
   prepareSessionPatchArchive,
   type SessionPatchArchivePreparation,
@@ -132,6 +133,9 @@ async function executeSessionPatchMutations(params: {
 }): Promise<MutationCoreResult> {
   const { client } = params;
   const cfg = params.context.getRuntimeConfig();
+  const operatorCreation = resolveOperatorSessionCreation(client);
+  const sandbox = resolveCreatorSandbox(cfg, operatorCreation);
+  const creation = { ...operatorCreation, ...(sandbox ? { sandbox } : {}) };
   const archiveActor = gatewayClientSessionCreator(client);
   const callerScopes = Array.isArray(client?.connect?.scopes) ? client.connect.scopes : [];
   const callerCanManageCron = client === null || callerScopes.includes(ADMIN_SCOPE);
@@ -432,6 +436,7 @@ async function executeSessionPatchMutations(params: {
                         }
                         const projected = await projectSessionsPatchEntry({
                           cfg,
+                          creation,
                           existingEntry,
                           isLabelInUse: (label) => labelOwners.isLabelInUse(label, candidateKeys),
                           storeKey: primaryKey,
