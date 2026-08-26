@@ -1,7 +1,7 @@
 /** Resolves media attachments available to the current agent turn. */
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { AcpTurnAttachment as AgentTurnAttachment } from "../../acp/control-plane/manager.types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { logVerbose } from "../../globals.js";
 import type { MediaAttachment } from "../../media-understanding/types.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
@@ -38,6 +38,15 @@ function hasInboundHistoryMedia(ctx: MsgContext): boolean {
   return (
     Array.isArray(ctx.InboundHistory) &&
     ctx.InboundHistory.some((entry) => Array.isArray(entry.media) && entry.media.length > 0)
+  );
+}
+
+/** Current-turn image indexes already represented by media-understanding text. */
+export function collectDescribedImageAttachmentIndexes(ctx: MsgContext): Set<number> {
+  return new Set(
+    ctx.MediaUnderstanding?.filter((output) => output.kind === "image.description").map(
+      (output) => output.attachmentIndex,
+    ) ?? [],
   );
 }
 
@@ -141,16 +150,21 @@ export async function resolveAgentTurnAttachments(params: {
     }
   };
 
+  const describedImageIndexes = collectDescribedImageAttachmentIndexes(params.ctx);
   let currentImageResolved = false;
-  const hasCurrentMedia = currentAttachments.length > 0;
   const hasCurrentImageCandidate = currentAttachments.some(runtime.isImageAttachment);
   for (const attachment of currentAttachments) {
+    if (describedImageIndexes.has(attachment.index) && runtime.isImageAttachment(attachment)) {
+      // A described image satisfies this turn without rehydrating it or reviving image history.
+      currentImageResolved = true;
+      continue;
+    }
     currentImageResolved = (await resolveImageAttachment(attachment)) || currentImageResolved;
   }
   if (
     includeRecentHistoryImages &&
     !currentImageResolved &&
-    (!hasCurrentMedia || hasCurrentImageCandidate)
+    (currentAttachments.length === 0 || hasCurrentImageCandidate)
   ) {
     // History images are only used when the current turn did not already provide an image.
     for (const attachment of historyAttachments) {
