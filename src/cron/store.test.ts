@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Cron store tests cover persisted scheduled job state and run metadata.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadLegacyCronQuarantineForMigration } from "../commands/doctor/cron/legacy-quarantine-migration.js";
 import {
@@ -693,24 +693,27 @@ describe("cron store", () => {
     );
   });
 
-  it("round-trips agent-turn external content provenance through SQLite", async () => {
-    const store = await makeStorePath();
-    const payload = makeStore("hook-job", true);
-    expectDefined(payload.jobs[0], "payload.jobs[0] test invariant").sessionTarget = "isolated";
-    expectDefined(payload.jobs[0], "payload.jobs[0] test invariant").payload = {
-      kind: "agentTurn",
-      message: "Summarize hook payload",
-      externalContentSource: "webhook",
-    };
+  it.each(["email", "webhook"] as const)(
+    "round-trips %s agent-turn external content provenance through SQLite",
+    async (externalContentSource) => {
+      const store = await makeStorePath();
+      const payload = makeStore("hook-job", true);
+      expectDefined(payload.jobs[0], "payload.jobs[0] test invariant").sessionTarget = "isolated";
+      expectDefined(payload.jobs[0], "payload.jobs[0] test invariant").payload = {
+        kind: "agentTurn",
+        message: "Summarize hook payload",
+        externalContentSource,
+      };
 
-    await saveCronStore(store.storePath, payload);
+      await saveCronStore(store.storePath, payload);
 
-    expect((await loadCronStore(store.storePath)).jobs[0]?.payload).toMatchObject({
-      kind: "agentTurn",
-      message: "Summarize hook payload",
-      externalContentSource: "webhook",
-    });
-  });
+      expect((await loadCronStore(store.storePath)).jobs[0]?.payload).toMatchObject({
+        kind: "agentTurn",
+        message: "Summarize hook payload",
+        externalContentSource,
+      });
+    },
+  );
 
   it("round-trips the toolsAllow default-cap flag through SQLite", async () => {
     // The flag must survive a gateway restart: without it, a CLI-resolved run
