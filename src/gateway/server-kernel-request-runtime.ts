@@ -1,5 +1,5 @@
 import { getRuntimeConfig } from "../config/io.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
 import { createGatewayChatMetadataLifecycle } from "./server-chat-metadata-lifecycle.js";
 import type { startGatewayCoreRuntime } from "./server-core-runtime.js";
@@ -33,6 +33,7 @@ export async function prepareGatewayKernelRequestRuntime(params: {
     getPortalService,
     terminalLaunchPolicy,
     execApprovalManager,
+    questionManager,
     cancelRunBoundApprovals,
     forwardPluginApprovalRequest,
     pluginApprovalIosPushDelivery,
@@ -132,6 +133,7 @@ export async function prepareGatewayKernelRequestRuntime(params: {
       resolveTerminalLaunchPolicy: terminalLaunchPolicy.resolve,
       isTerminalEnabled: terminalLaunchPolicy.isEnabled,
       execApprovalManager,
+      questionManager,
       cancelRunBoundApprovals,
       forwardPluginApprovalRequest,
       pluginApprovalIosPushDelivery,
