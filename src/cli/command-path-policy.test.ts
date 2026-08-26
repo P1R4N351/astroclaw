@@ -1,5 +1,5 @@
 // Command path policy tests cover allowed CLI command path shapes and lazy imports.
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CliCommandCatalogEntry, CliCommandPathPolicy } from "./command-catalog.js";
 import {
@@ -303,6 +303,46 @@ describe("command-path-policy", () => {
       loadPlugins: "never",
       networkProxy: "bypass",
     });
+  });
+
+  it("loads only sandbox backend owner plugins for runtime commands", () => {
+    const sandboxPolicy = resolveCliCommandPathPolicy(["sandbox"]);
+    expectLoadPluginsResolver(sandboxPolicy);
+    expect(sandboxPolicy.pluginRegistry).toEqual({ scope: "sandbox-backends" });
+
+    for (const commandPath of [
+      ["sandbox", "list"],
+      ["sandbox", "recreate"],
+      ["sandbox", "explain"],
+    ]) {
+      expect(resolveCliCommandPathPolicy(commandPath).pluginRegistry).toEqual({
+        scope: "sandbox-backends",
+      });
+      expect(
+        sandboxPolicy.loadPlugins({
+          argv: ["node", "openclaw", ...commandPath],
+          commandPath,
+          jsonOutputMode: false,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it.each([
+    ["list", ["--browser"]],
+    ["recreate", ["--browser", "--all"]],
+    ["recreate", ["--all", "--browser"]],
+  ])("keeps browser-only sandbox %s independent of plugin activation", (subcommand, flags) => {
+    const policy = resolveCliCommandPathPolicy(["sandbox", subcommand]);
+    expectLoadPluginsResolver(policy);
+
+    expect(
+      policy.loadPlugins({
+        argv: ["node", "openclaw", "sandbox", subcommand, ...flags],
+        commandPath: ["sandbox", subcommand],
+        jsonOutputMode: false,
+      }),
+    ).toBe(false);
   });
 
   it("resolves mixed startup-only rules", () => {
