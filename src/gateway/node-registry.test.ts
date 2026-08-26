@@ -19,7 +19,7 @@ import {
   NODE_WORKER_WORKSPACE_EXEC_COMMAND,
 } from "../infra/node-commands.js";
 import { NODE_WORKER_SUPERVISOR_PROTOCOL_FEATURE } from "../infra/node-runner-inventory.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { resetLogger, setLoggerOverride } from "../logging/logger.js";
 import { createDiagnosticLogRecordCapture } from "../logging/test-helpers/diagnostic-log-capture.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
@@ -2112,6 +2112,44 @@ describe("gateway/node-registry", () => {
     });
   });
 
+  it("rejects streamed input at the hard deadline before its timer callback runs", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const registry = createNodeRegistry();
+    try {
+      const { frames, invoke, invokeId } = startStreamingNodeInvoke(registry, {
+        timeoutMs: 100,
+        idleTimeoutMs: 1_000,
+        onProgress: () => {},
+      });
+
+      vi.setSystemTime(1_099);
+      registry.sendInvokeInput(invokeId, { kind: "data", data: "before" });
+
+      vi.setSystemTime(1_100);
+      expect(() => registry.sendInvokeInput(invokeId, { kind: "data", data: "expired" })).toThrow(
+        "node invoke is not pending",
+      );
+      await expect(invoke).resolves.toEqual({
+        ok: false,
+        error: { code: "TIMEOUT", message: "node invoke timed out" },
+      });
+      const inputFrames = frames
+        .map((frame) => JSON.parse(frame) as { event?: string; payload?: { payloadJSON?: string } })
+        .filter((frame) => frame.event === "node.invoke.input");
+      expect(inputFrames).toHaveLength(1);
+      expect(inputFrames[0]?.payload?.payloadJSON).toBe(
+        JSON.stringify({ kind: "data", data: "before" }),
+      );
+      expectSingleNodeInvokeCancellation(frames, invokeId);
+      await vi.runOnlyPendingTimersAsync();
+      expectSingleNodeInvokeCancellation(frames, invokeId);
+    } finally {
+      registry.unregister("conn-1");
+      vi.useRealTimers();
+    }
+  });
+
   it("rejects streamed progress after the hard deadline before its timer callback runs", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
@@ -3086,7 +3124,7 @@ describe("gateway/node-registry", () => {
     setLoggerOverride({
       level: "warn",
       consoleLevel: "silent",
-      file: path.join(resolvePreferredAstroclawTmpDir(), `node-event-send-${process.pid}.log`),
+      file: path.join(resolvePreferredOpenClawTmpDir(), `node-event-send-${process.pid}.log`),
     });
     const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     const registry = createTestNodeRegistry();
