@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { replaceSessionEntry } from "../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import type { AgentSandboxConfig } from "../../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveSandboxWorkspaceAuthority } from "./workspace-authority.js";
 
 const SAFE_WORKBOARD_TOOLS = ["exec", "process", "read", "write", "edit", "apply_patch"];
@@ -52,6 +52,30 @@ describe("resolveSandboxWorkspaceAuthority", () => {
     });
 
     expect(result).toEqual({ sandboxed: true, workspaceAccess: "ro" });
+  });
+
+  it("caps role-required access and rejects principal-shared worker authority", async () => {
+    const sessionKey = "agent:main:guest-worker";
+    const storePath = createSessionStorePath("openclaw-required-workspace-authority");
+    await replaceSessionEntry(
+      { sessionKey, storePath },
+      {
+        sessionId: "guest-worker",
+        updatedAt: Date.now(),
+        sandbox: "required",
+        createdActor: { type: "human", id: "guest-principal" },
+      },
+    );
+    const config = configWithSandbox({ mode: "off", scope: "session", workspaceAccess: "rw" });
+    config.session = { store: storePath };
+
+    expect(resolveSandboxWorkspaceAuthority({ config, agentId: "main", sessionKey })).toMatchObject(
+      {
+        sandboxed: true,
+        workspaceAccess: "ro",
+        confinementError: expect.stringContaining("not exclusive"),
+      },
+    );
   });
 
   it("rejects Docker and shell escape configurations", () => {
