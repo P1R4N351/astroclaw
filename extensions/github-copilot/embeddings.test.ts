@@ -11,7 +11,7 @@ vi.mock("./auth.js", () => ({
   resolveFirstGithubToken: resolveFirstGithubTokenMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/secret-input-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/secret-input-runtime", () => ({
   resolveConfiguredSecretInputString: resolveConfiguredSecretInputStringMock,
 }));
 
@@ -20,7 +20,7 @@ vi.mock("./runtime-auth.js", () => ({
   resolveCopilotRuntimeAuth: resolveCopilotRuntimeAuthMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: fetchWithSsrFGuardMock,
 }));
 
@@ -28,9 +28,9 @@ import { githubCopilotMemoryEmbeddingProviderAdapter } from "./embeddings.js";
 
 afterAll(() => {
   vi.doUnmock("./auth.js");
-  vi.doUnmock("astroclaw/plugin-sdk/secret-input-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/secret-input-runtime");
   vi.doUnmock("./runtime-auth.js");
-  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
@@ -170,6 +170,46 @@ describe("githubCopilotMemoryEmbeddingProviderAdapter", () => {
     expect(result.provider?.model).toBe("text-embedding-3-small");
     expect(firstCopilotRuntimeAuthRequest().githubToken).toBe("test-token-placeholder");
   });
+
+  it.each([
+    { label: "enterprise", profileDomain: "acme.ghe.com" },
+    { label: "public", profileDomain: "github.com" },
+  ])(
+    "preserves the selected $label OAuth account's domain for embedding auth",
+    async (testCase) => {
+      resolveFirstGithubTokenMock.mockResolvedValueOnce({
+        githubToken: "durable-github-token",
+        githubDomain: testCase.profileDomain,
+        hasProfile: true,
+      });
+      mockDiscoveryResponse({
+        ok: true,
+        json: buildModelsResponse([
+          { id: "text-embedding-3-small", supported_endpoints: ["/v1/embeddings"] },
+        ]),
+      });
+
+      await githubCopilotMemoryEmbeddingProviderAdapter.create({
+        ...defaultCreateOptions(),
+        config: {
+          models: {
+            providers: {
+              "github-copilot": {
+                baseUrl: "https://api.githubcopilot.com",
+                models: [],
+                params: { githubDomain: "other.ghe.com" },
+              },
+            },
+          },
+        },
+      });
+
+      expect(firstCopilotRuntimeAuthRequest()).toMatchObject({
+        githubToken: "durable-github-token",
+        githubDomain: testCase.profileDomain,
+      });
+    },
+  );
 
   it("matches embedding-capable models when supported_endpoints is missing or malformed", async () => {
     mockDiscoveryResponse({
