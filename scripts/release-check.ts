@@ -21,10 +21,6 @@ import { pathToFileURL } from "node:url";
 import { expectDefined } from "../packages/normalization-core/src/expect.js";
 import { COMPLETION_SKIP_PLUGIN_COMMANDS_ENV } from "../src/cli/completion-runtime.ts";
 import { escapeRegExp } from "../src/shared/regexp.js";
-import {
-  collectInstalledPackageErrors,
-  normalizeInstalledBinaryVersion,
-} from "./astroclaw-npm-postpublish-verify.ts";
 import { checkCliBootstrapExternalImports } from "./check-cli-bootstrap-imports.mts";
 import {
   collectBundledExtensionManifestErrors,
@@ -47,7 +43,6 @@ import {
 import { collectBundledPluginPackageDependencySpecs } from "./lib/plugin-package-dependencies.mts";
 import {
   listPluginSdkDistArtifacts,
-  listPackagedPrivatePluginSdkRuntimeArtifacts,
   listUnpackagedPrivatePluginSdkDistArtifacts,
 } from "./lib/plugin-sdk-entries.mts";
 import {
@@ -55,6 +50,10 @@ import {
   WORKSPACE_TEMPLATE_PACK_PATHS,
 } from "./lib/workspace-bootstrap-smoke.mts";
 import { resolveNpmRunner } from "./npm-runner.mts";
+import {
+  collectInstalledPackageErrors,
+  normalizeInstalledBinaryVersion,
+} from "./openclaw-npm-postpublish-verify.ts";
 import { resolvePnpmRunner } from "./pnpm-runner.mts";
 import { listStaticExtensionAssetOutputs } from "./runtime-postbuild.mts";
 import { sparkleBuildFloorsFromShortVersion, type SparkleBuildFloors } from "./sparkle-build.ts";
@@ -86,7 +85,6 @@ const requiredPathGroups = [
   ["dist/index.js", "dist/index.mjs"],
   ["dist/entry.js", "dist/entry.mjs"],
   ...listPluginSdkDistArtifacts(),
-  ...listPackagedPrivatePluginSdkRuntimeArtifacts(),
   ...listBundledPluginPackArtifacts(),
   ...listStaticExtensionAssetOutputs().filter((relativePath: string) => {
     const match = /^dist\/extensions\/([^/]+)\//u.exec(relativePath);
