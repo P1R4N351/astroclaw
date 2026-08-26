@@ -1,24 +1,24 @@
-import { formatLocationText } from "astroclaw/plugin-sdk/channel-inbound";
+// Telegram helper module supports helpers behavior.
+import type { Chat, Message } from "grammy/types";
+import { formatLocationText } from "openclaw/plugin-sdk/channel-inbound";
 import {
   resolveCommandAuthorization,
   type CommandAuthorization,
-} from "astroclaw/plugin-sdk/command-auth-native";
+} from "openclaw/plugin-sdk/command-auth-native";
 import type {
   OpenClawConfig,
   DmPolicy,
   TelegramDirectConfig,
   TelegramGroupConfig,
   TelegramTopicConfig,
-} from "astroclaw/plugin-sdk/config-contracts";
-import { readChannelAllowFromStore } from "astroclaw/plugin-sdk/conversation-runtime";
+} from "openclaw/plugin-sdk/config-contracts";
+import { readChannelAllowFromStore } from "openclaw/plugin-sdk/conversation-runtime";
 import {
   asDateTimestampMs,
   parseStrictPositiveInteger,
   resolveExpiresAtMsFromDurationMs,
-} from "astroclaw/plugin-sdk/number-runtime";
-import { normalizeAccountId } from "astroclaw/plugin-sdk/routing";
-// Telegram helper module supports helpers behavior.
-import type { Chat, Message } from "grammy/types";
+} from "openclaw/plugin-sdk/number-runtime";
+import { normalizeAccountId } from "openclaw/plugin-sdk/routing";
 import { expandTelegramAllowFromWithAccessGroups } from "../access-groups.js";
 import {
   firstDefined,
@@ -94,6 +94,22 @@ function cacheTelegramForumFlag(chatId: string | number, isForum: boolean, nowMs
     expiresAtMs,
     isForum,
   });
+}
+
+export function getCachedTelegramForumFlag(
+  chatId: string | number,
+  nowMs?: number,
+): boolean | undefined {
+  const cacheKey = String(chatId);
+  const cached = telegramForumFlagByChatId.get(cacheKey);
+  if (!cached) {
+    return undefined;
+  }
+  const effectiveNow = nowMs ?? Date.now();
+  if (cached.expiresAtMs <= effectiveNow) {
+    return undefined;
+  }
+  return cached.isForum;
 }
 
 function hadUnsafeTelegramText(raw: unknown, sanitized: string): boolean {
