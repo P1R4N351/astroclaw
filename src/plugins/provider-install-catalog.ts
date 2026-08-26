@@ -18,6 +18,7 @@ import {
   resolveOfficialExternalPluginInstall,
   type OfficialExternalProviderAuthChoice,
 } from "./official-external-plugin-catalog.js";
+import { normalizePluginInstallDefaultChoice } from "./plugin-install-default-choice.js";
 import type { PluginOrigin } from "./plugin-origin.types.js";
 import { loadPluginRegistrySnapshot, type PluginRegistryRecord } from "./plugin-registry.js";
 import {
@@ -35,7 +36,7 @@ export type ProviderInstallCatalogEntry = ProviderAuthChoiceMetadata & {
 };
 
 type ProviderInstallCatalogParams = {
-  config?: import("../config/types.astroclaw.js").OpenClawConfig;
+  config?: import("../config/types.openclaw.js").OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   includeUntrustedWorkspacePlugins?: boolean;
@@ -74,10 +75,6 @@ const INSTALL_ORIGIN_PRIORITY: Readonly<Record<PluginOrigin, number>> = {
 
 function isPreferredOrigin(candidate: PluginOrigin, current: PluginOrigin | undefined): boolean {
   return !current || INSTALL_ORIGIN_PRIORITY[candidate] < INSTALL_ORIGIN_PRIORITY[current];
-}
-
-function normalizeDefaultChoice(value: unknown): PluginPackageInstall["defaultChoice"] | undefined {
-  return value === "clawhub" || value === "npm" || value === "local" ? value : undefined;
 }
 
 function resolveInstallInfoFromInstallRecord(
@@ -130,7 +127,7 @@ function resolveInstallInfoFromPackageSource(params: {
   if (!clawhubSpec && !npmSpec && !localPath) {
     return null;
   }
-  const defaultChoice = normalizeDefaultChoice(source?.defaultChoice);
+  const defaultChoice = normalizePluginInstallDefaultChoice(source?.defaultChoice);
   const expectedIntegrity = normalizeOptionalString(npm?.expectedIntegrity);
   return {
     ...(clawhubSpec ? { clawhubSpec } : {}),
@@ -173,7 +170,7 @@ function resolveInstallInfoFromProviderIndex(
     return null;
   }
   const defaultChoice =
-    normalizeDefaultChoice(install.defaultChoice) ?? (clawhubSpec ? "clawhub" : "npm");
+    normalizePluginInstallDefaultChoice(install.defaultChoice) ?? (clawhubSpec ? "clawhub" : "npm");
   return {
     ...(clawhubSpec ? { clawhubSpec } : {}),
     ...(npmSpec ? { npmSpec } : {}),
