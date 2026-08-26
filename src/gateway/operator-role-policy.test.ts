@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import { ensureProfileForEmail, setUserProfileRole } from "../state/user-profiles.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import {
   authorizeGatewaySessionCreation,
   invalidateOperatorRolePolicy,
+  resolveCreatorSandbox,
   resolveOperatorRolePolicy,
   resolveOperatorRolePolicyForProfile,
 } from "./operator-role-policy.js";
@@ -92,6 +93,39 @@ describe("operator role policy", () => {
       expect(resolveOperatorRolePolicyForProfile(profile.id, cfg)).toEqual(
         cfg.gateway?.roles?.definitions.maintainer,
       );
+    });
+  });
+
+  it("requires sandboxing only for the trusted human creator's resolved role", async () => {
+    await withOpenClawTestState({ scenario: "minimal" }, async () => {
+      const profile = ensureProfileForEmail("role-sandbox-creator@example.com");
+      const cfg = roleConfig();
+      const guest = cfg.gateway?.roles?.definitions.guest;
+      if (!guest) {
+        throw new Error("missing guest role");
+      }
+      guest.sandbox = "required";
+
+      expect(resolveCreatorSandbox(cfg, { actor: { type: "human", id: profile.id } })).toBe(
+        "required",
+      );
+      expect(
+        resolveCreatorSandbox(cfg, { actor: { type: "agent", id: profile.id } }),
+      ).toBeUndefined();
+      expect(
+        resolveCreatorSandbox(cfg, { actor: { type: "system", id: profile.id } }),
+      ).toBeUndefined();
+      expect(resolveCreatorSandbox(cfg, { actor: { type: "human" } })).toBeUndefined();
+      expect(
+        resolveCreatorSandbox({}, { actor: { type: "human", id: profile.id } }),
+      ).toBeUndefined();
+
+      setUserProfileRole(profile.id, "maintainer");
+      invalidateOperatorRolePolicy(profile.id);
+
+      expect(
+        resolveCreatorSandbox(cfg, { actor: { type: "human", id: profile.id } }),
+      ).toBeUndefined();
     });
   });
 
