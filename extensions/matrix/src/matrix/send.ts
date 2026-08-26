@@ -2,9 +2,9 @@
 import {
   createMessageReceiptFromOutboundResults,
   type MessageReceiptPartKind,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
-import type { PollInput } from "../runtime-api.js";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import type { PollInput } from "astroclaw/plugin-sdk/poll-runtime";
 import type { CoreConfig } from "../types.js";
 import {
   createMatrixPlannedEvents,
