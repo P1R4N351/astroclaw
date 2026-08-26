@@ -10,12 +10,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { isPidAlive, prepareOomScoreAdjustedSpawn } from "openclaw/plugin-sdk/process-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+import { isPidAlive, prepareOomScoreAdjustedSpawn } from "astroclaw/plugin-sdk/process-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 import { ensurePortAvailable } from "../infra/ports.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { redactToolPayloadText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { CONFIG_DIR } from "../utils.js";
@@ -1037,7 +1037,7 @@ export async function launchOpenClawChrome(
       HOME: os.homedir(),
     };
     if (process.platform === "linux") {
-      const chromiumStateDir = path.join(resolvePreferredOpenClawTmpDir(), ".chromium");
+      const chromiumStateDir = path.join(resolvePreferredAstroclawTmpDir(), ".chromium");
       env.XDG_CONFIG_HOME ??= chromiumStateDir;
       env.XDG_CACHE_HOME ??= chromiumStateDir;
     }
@@ -1351,8 +1351,10 @@ export async function isChromeCdpOwnedByPid(
 }
 
 async function requestGracefulChromeClose(
-  running: RunningChrome,
+  running: Pick<RunningChrome, "pid" | "cdpPort">,
   timeoutMs: number,
+  ssrfPolicy?: SsrFPolicy,
+  ownsCurrentProcess?: () => boolean,
 ): Promise<boolean> {
   const commandTimeoutMs = Math.max(
     1,
@@ -1363,6 +1365,7 @@ async function requestGracefulChromeClose(
     const endpoint = await getChromeWebSocketEndpoint(
       cdpUrlForPort(running.cdpPort),
       Math.min(commandTimeoutMs, CHROME_STOP_PROBE_TIMEOUT_MS),
+      ssrfPolicy,
     );
     if (!endpoint) {
       return false;
@@ -1373,7 +1376,10 @@ async function requestGracefulChromeClose(
         // The fixed port can be rebound while this handle remains retained.
         // Never ask a replacement browser to close on behalf of the old child.
         const processInfo = await send("SystemInfo.getProcessInfo");
-        if (!cdpProcessListOwnsBrowser(processInfo, running.pid)) {
+        if (
+          !cdpProcessListOwnsBrowser(processInfo, running.pid) ||
+          (ownsCurrentProcess && !ownsCurrentProcess())
+        ) {
           return;
         }
         commandSent = true;
@@ -1393,6 +1399,59 @@ async function requestGracefulChromeClose(
     // command was sent, still give it time to flush the profile and exit.
     return commandSent;
   }
+}
+
+/** Stop only the exact managed Chrome owned by this profile across runtimes. */
+export async function stopOwnedOpenClawChrome(
+  resolved: ResolvedBrowserConfig,
+  profile: ResolvedBrowserProfile,
+  timeoutMs = CHROME_STOP_TIMEOUT_MS,
+): Promise<boolean> {
+  if (!profile.cdpIsLoopback || profile.attachOnly || profile.driver !== "openclaw") {
+    return false;
+  }
+
+  let exe: BrowserExecutable | null;
+  try {
+    exe = resolveBrowserExecutable(resolved, profile);
+  } catch {
+    return false;
+  }
+  if (!exe) {
+    return false;
+  }
+
+  const userDataDir = resolveOpenClawUserDataDir(profile.name);
+  const pid = readCurrentHostSingletonPid(userDataDir);
+  if (pid == null) {
+    return false;
+  }
+  const identity = readOwnedManagedChromeIdentity({ pid, exe, profile, userDataDir });
+  if (!identity) {
+    return false;
+  }
+
+  // Browser runtimes do not share child handles; revalidate the exact process
+  // before either CDP close or signal-based cleanup can affect a replacement.
+  const gracefulCloseRequested = await requestGracefulChromeClose(
+    { pid, cdpPort: profile.cdpPort },
+    timeoutMs,
+    resolved.ssrfPolicy,
+    () => {
+      const current = readOwnedManagedChromeIdentity({ pid, exe, profile, userDataDir });
+      return current !== null && sameManagedChromeIdentity(identity, current);
+    },
+  );
+  const stoppedGracefully = gracefulCloseRequested && (await waitForPidExit(pid, timeoutMs));
+  if (
+    !stoppedGracefully &&
+    isPidAlive(pid) &&
+    !(await terminateOwnedStaleChromeProcess({ identity, exe, profile, userDataDir }, timeoutMs))
+  ) {
+    return false;
+  }
+  clearRecoveredChromeSingletonArtifacts(userDataDir, pid);
+  return true;
 }
 
 /** Stop a managed Chrome process and wait for shutdown. */
