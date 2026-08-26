@@ -7,8 +7,8 @@ import type {
   ChannelOutboundAdapter,
   ChannelOutboundTargetRef,
 } from "../../channels/plugins/types.adapters.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ReplyToMode } from "../../config/types.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { ReplyPayloadDeliveryPin } from "../../interactive/payload.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import type { DeliveryQueueCompletionRetention } from "../delivery-queue-sqlite.js";
@@ -97,7 +97,10 @@ export type ChannelHandler = {
   }) => { threadId: string | number } | null | undefined;
   buildTargetRef: (overrides?: { threadId?: string | number | null }) => ChannelOutboundTargetRef;
   shouldSkipPlainTextSanitization?: (payload: ReplyPayload) => boolean;
-  resolveEffectiveTextChunkLimit?: (fallbackLimit?: number) => number | undefined;
+  resolveEffectiveTextChunkLimit?: (params: {
+    fallbackLimit?: number;
+    formatting?: OutboundDeliveryFormattingOptions;
+  }) => number | undefined;
   sendPayload?: (
     payload: ReplyPayload,
     overrides?: OutboundMessageSendOverrides,
