@@ -7,7 +7,7 @@ import type { AgentWaitResult } from "../agents/run-wait.types.js";
 import type { AmbientEnvTriggerPolicy } from "../channels/config-presence.js";
 import { allowsProcessHomeSessionScan } from "../config/paths.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizePluginsConfig } from "../plugins/config-state.js";
 import { extractPluginInstallRecordsFromInstalledPluginIndex } from "../plugins/installed-plugin-index-install-records.js";
 import { activatePluginRegistry } from "../plugins/loader-shared.js";
@@ -488,7 +488,7 @@ export function createGatewayNodesRuntime(
 }
 
 function createGatewayPluginRuntimeBindings(
-  resolveGatewayContext: GatewayContextResolver,
+  resolveGatewayContext: GatewayContextResolver | undefined,
   overridePolicies: PluginSubagentOverridePolicies,
 ): {
   runtime: Pick<PluginRuntime, "gateway" | "nodes" | "subagent"> &
@@ -497,7 +497,9 @@ function createGatewayPluginRuntimeBindings(
 } {
   let active = true;
   const lifetime = new AbortController();
-  const resolveBoundGatewayContext = () => (active ? resolveGatewayContext() : undefined);
+  const resolveBoundGatewayContext = resolveGatewayContext
+    ? () => (active ? resolveGatewayContext() : undefined)
+    : undefined;
   return {
     retire: () => {
       lifetime.abort(new Error("Plugin Gateway runtime retired; duplex invocation cancelled."));
@@ -510,14 +512,14 @@ function createGatewayPluginRuntimeBindings(
         const sessionWorkerPlacementContext = getInProcessGatewayRequestContext(
           resolveBoundGatewayContext,
         );
-        return await withPluginRuntimeGatewayContextResolver(
-          resolveBoundGatewayContext,
-          async () =>
-            await dispatchReplyFromConfig({
-              ...params,
-              ...(sessionWorkerPlacementContext ? { sessionWorkerPlacementContext } : {}),
-            }),
-        );
+        const run = async () =>
+          await dispatchReplyFromConfig({
+            ...params,
+            ...(sessionWorkerPlacementContext ? { sessionWorkerPlacementContext } : {}),
+          });
+        return resolveBoundGatewayContext
+          ? await withPluginRuntimeGatewayContextResolver(resolveBoundGatewayContext, run)
+          : await run();
       },
       gateway: {
         isAvailable: async () => hasInProcessGatewayContext(resolveBoundGatewayContext),
@@ -644,7 +646,7 @@ export function loadGatewayPlugins(params: {
   const beforeLoad = performance.now();
   const loaderStatsBefore = getPluginModuleLoaderStats();
   const gatewayRuntimeBindings = createGatewayPluginRuntimeBindings(
-    params.resolveGatewayContext ?? (() => undefined),
+    params.resolveGatewayContext,
     resolvePluginSubagentOverridePolicies(resolvedConfig),
   );
   const pluginRegistry = loadAndActivateRootPluginRegistry({
