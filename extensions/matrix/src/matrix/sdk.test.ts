@@ -4,17 +4,17 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { useAutoCleanupTempDirTracker } from "astroclaw/plugin-sdk/test-env";
-// Matrix tests cover sdk plugin behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { CryptoEvent } from "matrix-js-sdk/lib/crypto-api/CryptoEvent.js";
 import type { DecryptionFailureCode as DecryptionFailureCodeValue } from "matrix-js-sdk/lib/crypto-api/index.js";
 import { MatrixError } from "matrix-js-sdk/lib/http-api/errors.js";
 import { type MatrixEvent, MsgType } from "matrix-js-sdk/lib/matrix.js";
 import { EventStatus } from "matrix-js-sdk/lib/models/event-status.js";
 import { SyncApi, SyncState } from "matrix-js-sdk/lib/sync.js";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { useAutoCleanupTempDirTracker } from "openclaw/plugin-sdk/test-env";
+// Matrix tests cover sdk plugin behavior.
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installMatrixTestRuntime } from "../test-runtime.js";
 import type { CoreConfig } from "../types.js";
@@ -1855,12 +1855,12 @@ describe("MatrixClient request hardening", () => {
     };
     const originalVersion = manifest.version;
     const syncStop = matrixJsClient.classicSyncStop;
-    manifest.version = "41.9.1";
+    manifest.version = "42.2.1";
     try {
       const client = new MatrixClient("https://matrix.example.org", "token");
 
       await expect(client.quiesceSync()).rejects.toThrow(
-        "Matrix sync quiesce requires matrix-js-sdk 41.9.0; found 41.9.1",
+        "Matrix sync quiesce requires matrix-js-sdk 42.2.0; found 42.2.1",
       );
       expect(syncStop).not.toHaveBeenCalled();
       expect(matrixJsClient.stopClient).not.toHaveBeenCalled();
