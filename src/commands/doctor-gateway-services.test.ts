@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 // Doctor gateway service tests cover service audit diagnostics and duplicate gateway service reporting.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -618,6 +618,75 @@ describe("maybeRepairGatewayServiceConfig", () => {
     expect(runtimeMessages.map((message) => String(message)).join("\n")).not.toContain("not found");
     expect(runtimeMessages.map((message) => String(message)).join("\n")).toContain(
       "Using /home/test/.nvm/versions/node/v22.22.3/bin/node",
+    );
+  });
+
+  it("preserves a supported Bun runtime when repairing the Gateway service", async () => {
+    const bunPath = "/home/test/.bun/bin/bun";
+    const bunCommand = {
+      programArguments: [bunPath, "/usr/local/bin/openclaw", "gateway", "--port", "18789"],
+      environment: {},
+    };
+    mocks.readCommand.mockResolvedValue(bunCommand);
+    mocks.buildGatewayInstallPlan.mockResolvedValue(bunCommand);
+    mocks.auditGatewayServiceConfig.mockResolvedValue({
+      ok: false,
+      issues: [
+        {
+          code: "gateway-path-nonminimal",
+          message: "Gateway PATH should be regenerated",
+          level: "recommended",
+        },
+      ],
+    });
+
+    await runRepair({ gateway: {} });
+
+    for (const [options] of mocks.buildGatewayInstallPlan.mock.calls) {
+      expect(options).toEqual(expect.objectContaining({ runtime: "bun", runtimePath: bunPath }));
+    }
+    expect(mocks.install).toHaveBeenCalledWith(
+      expect.objectContaining({ programArguments: bunCommand.programArguments }),
+    );
+  });
+
+  it("migrates an unsupported Bun Gateway service to supported system Node", async () => {
+    const bunPath = "/home/test/.bun/bin/bun";
+    const systemNodePath = "/usr/bin/node";
+    mocks.readCommand.mockResolvedValue({
+      programArguments: [bunPath, "/usr/local/bin/openclaw", "gateway", "--port", "18789"],
+      environment: {},
+    });
+    mocks.buildGatewayInstallPlan.mockImplementation(async ({ runtimePath }) => ({
+      programArguments: [runtimePath, "/usr/local/bin/openclaw", "gateway", "--port", "18789"],
+      environment: {},
+    }));
+    mocks.auditGatewayServiceConfig.mockResolvedValue({
+      ok: false,
+      issues: [
+        {
+          code: "gateway-runtime-bun",
+          message: "Bun runtime is unsupported",
+          level: "recommended",
+        },
+      ],
+    });
+    mocks.needsNodeRuntimeMigration.mockReturnValue(true);
+    mocks.resolveSystemNodeInfo.mockResolvedValue({
+      path: systemNodePath,
+      version: "24.15.0",
+      supported: true,
+    });
+
+    await runRepair({ gateway: {} });
+
+    expect(mocks.buildGatewayInstallPlan).toHaveBeenCalledWith(
+      expect.objectContaining({ runtime: "node", runtimePath: systemNodePath }),
+    );
+    expect(mocks.install).toHaveBeenCalledWith(
+      expect.objectContaining({
+        programArguments: [systemNodePath, "/usr/local/bin/openclaw", "gateway", "--port", "18789"],
+      }),
     );
   });
 
