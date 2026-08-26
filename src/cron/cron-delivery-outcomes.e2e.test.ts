@@ -8,7 +8,7 @@ import {
 } from "../gateway/server-cron-notifications.js";
 import { getActiveGatewayRootWorkCount } from "../process/gateway-work-admission.js";
 import { resetTaskRegistryForTests } from "../tasks/task-runtime.test-helpers.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { runCronCommandJob } from "./command-runner.js";
 import { resolveCronDeliveryPreviews } from "./delivery-preview.js";
 import { CronService } from "./service.js";
@@ -432,13 +432,13 @@ describe.sequential("cron delivery outcomes", () => {
           await vi.waitFor(() =>
             expect(enqueueSystemEvent).toHaveBeenCalledWith(
               expect.stringContaining('Automation "fallback owner" failed 1 times'),
-              { agentId: "work", sessionKey },
+              { agentId: "work", sessionKey, contextKey: `cron:${job.id}:failure-alert` },
             ),
           );
           expect(requestHeartbeat).toHaveBeenCalledWith({
-            source: "cron",
+            source: "notifications-event",
             intent: "immediate",
-            reason: `cron:${job.id}:failure-alert`,
+            reason: "wake",
             agentId: "work",
             sessionKey,
           });
