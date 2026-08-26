@@ -1,6 +1,6 @@
 // Skill discovery status helpers summarize installed, workspace, and bundled skills.
 import path from "node:path";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { evaluateEntryRequirementsForCurrentPlatform } from "../../shared/entry-status.js";
 import type { RequirementConfigCheck, Requirements } from "../../shared/requirements.js";
 import { CONFIG_DIR } from "../../utils.js";
@@ -369,7 +369,6 @@ export function buildWorkspaceSkillStatus(
         agentSkillFilter: "ignore",
         managedSkillsDir,
         bundledSkillsDir: bundledContext.dir,
-        includeArchived: true,
       }),
     {
       canExec: opts?.eligibility?.nodeSkills?.canExec,
