@@ -83,7 +83,7 @@ function createGuardedSource(
 const SAME_CHANNEL_SDK_GUARDS: GuardedSource[] = [
   ...["discord", "slack", "telegram", "imessage", "whatsapp", "signal"].flatMap((pluginId) => {
     const relativePaths =
-      pluginId === "signal" ? ["src/shared.ts", "src/runtime-api.ts"] : ["src/shared.ts"];
+      pluginId === "signal" ? ["src/shared.ts", "runtime-api.ts"] : ["src/shared.ts"];
     return relativePaths.map((relativePath) =>
       createGuardedSource(pluginId, relativePath, [
         new RegExp(`["']openclaw/plugin-sdk/${pluginId}["']`),
@@ -542,10 +542,10 @@ function expectNoCrossPluginSdkFacadeImports(file: string, imports: string[]): v
     return;
   }
   for (const specifier of imports) {
-    if (!specifier.startsWith("astroclaw/plugin-sdk/")) {
+    if (!specifier.startsWith("openclaw/plugin-sdk/")) {
       continue;
     }
-    const targetSubpath = specifier.slice("astroclaw/plugin-sdk/".length);
+    const targetSubpath = specifier.slice("openclaw/plugin-sdk/".length);
     const targetExtensionId =
       BUNDLED_EXTENSION_IDS.find(
         (extensionId) =>
@@ -623,10 +623,10 @@ describe("channel import guardrails", () => {
   it("keeps bundled extension source files off root and compat plugin-sdk imports", () => {
     expect(
       collectExtensionForbiddenImportMatches([
-        `"astroclaw/plugin-sdk"`,
-        `'astroclaw/plugin-sdk'`,
-        `"astroclaw/plugin-sdk/compat"`,
-        `'astroclaw/plugin-sdk/compat'`,
+        `"openclaw/plugin-sdk"`,
+        `'openclaw/plugin-sdk'`,
+        `"openclaw/plugin-sdk/compat"`,
+        `'openclaw/plugin-sdk/compat'`,
       ]),
     ).toEqual([]);
   });
