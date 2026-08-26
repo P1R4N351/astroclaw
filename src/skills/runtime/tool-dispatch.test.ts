@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { replaceSessionEntry } from "../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { GATEWAY_OWNER_ONLY_CORE_TOOLS } from "../../security/dangerous-tools.js";
 import { resolveSkillDispatchTools, type SkillToolDispatchDependencies } from "./tool-dispatch.js";
 
@@ -55,6 +55,7 @@ describe("resolveSkillDispatchTools", () => {
     expect(tools.map((tool) => tool.name)).toEqual(["read", "cron"]);
     expect(args?.cronCreatorToolAllowlist).toEqual([{ name: "read" }, { name: "automations" }]);
     expect(args?.nativeChannelId).toBe("native-room-1");
+    expect(args?.sessionConfigSource).toBe("runtime");
   });
 
   it("passes unrestricted skill-dispatch tool surfaces to cron jobs", () => {
