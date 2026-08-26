@@ -16,7 +16,7 @@ import type {
   SessionAcpMeta,
   SessionEntry,
 } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { AcpRuntimeError } from "../runtime/errors.js";
 import { getAcpRuntimeBackend, requireAcpRuntimeBackend } from "../runtime/registry.js";
 import {
@@ -140,6 +140,8 @@ export type AcpStartupIdentityReconcileResult = {
 };
 
 export type ActiveTurnState = {
+  requestId: string;
+  instanceId: string;
   runtime: AcpRuntime;
   handle: AcpRuntimeHandle;
   abortController: AbortController;
