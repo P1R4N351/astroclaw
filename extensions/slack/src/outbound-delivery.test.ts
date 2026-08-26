@@ -1,5 +1,5 @@
 // Slack tests cover outbound delivery plugin behavior.
-import { sendDurableMessageBatch } from "astroclaw/plugin-sdk/channel-outbound";
+import { sendDurableMessageBatch } from "openclaw/plugin-sdk/channel-outbound";
 import {
   addTestHook,
   createEmptyPluginRegistry,
@@ -10,10 +10,10 @@ import {
   resetGlobalHookRunner,
   setActivePluginRegistry,
   type PluginHookRegistration,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
+} from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { slackOutbound } from "./outbound-adapter.js";
-import type { OpenClawConfig } from "./runtime-api.js";
 
 const sendMessageSlackMock = vi.hoisted(() => vi.fn());
 
