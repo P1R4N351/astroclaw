@@ -1,8 +1,8 @@
 // Webhooks tests cover http plugin behavior.
 import { EventEmitter } from "node:events";
 import type { IncomingMessage } from "node:http";
-import { createRuntimeTaskFlow } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { createMockServerResponse } from "openclaw/plugin-sdk/test-env";
+import { createRuntimeTaskFlow } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { createMockServerResponse } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../runtime-api.js";
 import { createTaskFlowWebhookRequestHandler, type TaskFlowWebhookTarget } from "./http.js";
@@ -235,7 +235,6 @@ describe("createTaskFlowWebhookRequestHandler", () => {
         action: "run_task",
         flowId: flow.flowId,
         runtime: "acp",
-        childSessionKey: "agent:main:subagent:child",
         task: "Inspect the next message batch",
         status: "running",
         startedAt: 10,
@@ -248,7 +247,7 @@ describe("createTaskFlowWebhookRequestHandler", () => {
     expect(parsed.ok).toBe(true);
     expect(parsed.result.created).toBe(true);
     expect(parsed.result.task.parentFlowId).toBe(flow.flowId);
-    expect(parsed.result.task.childSessionKey).toBe("agent:main:subagent:child");
+    expect(parsed.result.task.childSessionKey).toBeUndefined();
     expect(parsed.result.task.runtime).toBe("acp");
     expect(parsed.result.task.ownerKey).toBeUndefined();
     expect(parsed.result.task.requesterSessionKey).toBeUndefined();
@@ -362,7 +361,6 @@ describe("createTaskFlowWebhookRequestHandler", () => {
         action: "run_task",
         flowId: flow.flowId,
         runtime: "acp",
-        childSessionKey: "agent:main:subagent:child",
         runId: "retry-me",
         task: "Inspect the next message batch",
       },
@@ -375,7 +373,6 @@ describe("createTaskFlowWebhookRequestHandler", () => {
         action: "run_task",
         flowId: flow.flowId,
         runtime: "acp",
-        childSessionKey: "agent:main:subagent:child",
         runId: "retry-me",
         task: "Inspect the next message batch",
       },
