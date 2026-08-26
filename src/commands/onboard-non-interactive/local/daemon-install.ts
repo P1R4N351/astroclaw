@@ -4,7 +4,7 @@
  * It validates daemon runtime options, resolves gateway auth inputs, and then
  * delegates the platform-specific service install.
  */
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { resolveGatewayService } from "../../../daemon/service.js";
 import { isSystemdUserServiceAvailable } from "../../../daemon/systemd.js";
 import { formatErrorMessage } from "../../../infra/errors.js";
@@ -48,7 +48,7 @@ export async function installGatewayDaemonNonInteractive(params: {
   }
 
   if (!isGatewayDaemonRuntime(daemonRuntimeRaw)) {
-    runtime.error('Invalid --daemon-runtime. Use "node"; Bun lacks the required node:sqlite API.');
+    runtime.error('Invalid --daemon-runtime. Use "node" or "bun".');
     runtime.exit(1);
     return { installed: false };
   }
