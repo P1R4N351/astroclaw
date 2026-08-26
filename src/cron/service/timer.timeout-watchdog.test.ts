@@ -1,5 +1,5 @@
 // Integration regressions for cron execution timeouts and setup watchdogs.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import {
   createIsolatedRegressionJob,
@@ -830,6 +830,7 @@ describe("cron service timer regressions", () => {
         accountId: undefined,
         threadId: undefined,
         inheritSessionThread: false,
+        onDeliveryAttempt: expect.any(Function),
       });
     } finally {
       vi.useRealTimers();
