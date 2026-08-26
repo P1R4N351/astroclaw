@@ -31,7 +31,7 @@ import {
 } from "../config/sessions/session-accessor.js";
 import { clearSessionStoreCacheForTest } from "../config/sessions/store-writer-state.js";
 import type { InternalSessionEntry as SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { emitAgentEvent, onAgentEvent, resetAgentEventsForTest } from "../infra/agent-events.js";
 import { buildOutboundBaseSessionKey } from "../infra/outbound/base-session-key.js";
 import { loadEnabledClaudeBundleCommands } from "../plugins/bundle-commands.js";
@@ -862,6 +862,7 @@ describe("agentCommand", () => {
             agentId: "main",
             runId: "public-ingress-run",
             allowModelOverride: false,
+            senderIsOwner: true,
             mainRestartRecoveryAdmitted: true,
             mainRestartRecoveryAttempt: 1,
             mainRestartRecoveryOwnerLease: {
@@ -890,6 +891,9 @@ describe("agentCommand", () => {
         expect(prepare).toHaveBeenCalledWith(
           expect.objectContaining({ admission: undefined, runId: "public-ingress-run" }),
         );
+        expect(
+          vi.mocked(attemptExecutionRuntime.runAgentAttempt).mock.calls.at(-1)?.[0].opts,
+        ).toMatchObject({ senderIsOwner: false });
       } finally {
         prepare.mockRestore();
         if (priorDescriptor) {
