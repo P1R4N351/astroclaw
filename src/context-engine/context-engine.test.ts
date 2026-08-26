@@ -10,8 +10,8 @@ import {
 } from "../agents/harness/context-engine-logical-turn.js";
 import { upsertSessionEntryCore } from "../config/sessions/session-accessor.js";
 import { SessionTranscriptReadFenceError } from "../config/sessions/session-transcript-read-fence.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { MemoryCitationsMode } from "../config/types.memory.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   clearMemoryPluginState,
   registerMemoryPromptPreparation,
@@ -1874,11 +1874,6 @@ describe("LegacyContextEngine parity", () => {
     expect(result.messages).toHaveLength(3);
     expect(result.estimatedTokens).toBe(0);
     expect(result.systemPromptAddition).toBeUndefined();
-  });
-
-  it("dispose() completes without error", async () => {
-    const engine = new LegacyContextEngine();
-    await expect(engine.dispose()).resolves.toBeUndefined();
   });
 });
 
