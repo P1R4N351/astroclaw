@@ -3,7 +3,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { testing as cliBackendsTesting } from "../../agents/cli-backends.test-support.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import {
   createChannelTestPluginBase,
@@ -128,7 +128,8 @@ vi.mock("../../agents/provider-model-normalization.runtime.js", () => ({
     normalizeProviderModelIdWithRuntimeMock(params),
 }));
 
-vi.mock("../../plugins/current-plugin-metadata-snapshot.js", () => ({
+vi.mock("../../plugins/current-plugin-metadata-snapshot.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../plugins/current-plugin-metadata-snapshot.js")>()),
   getCurrentPluginMetadataSnapshot: pluginMetadataMocks.getCurrent,
 }));
 
