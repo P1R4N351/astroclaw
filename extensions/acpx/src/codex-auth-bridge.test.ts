@@ -4,10 +4,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import {
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   tempWorkspace,
   type TempWorkspace,
-} from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OPENCLAW_CODEX_CONFIG_ARG } from "./codex-adapter.js";
 import { prepareAcpxCodexAuthConfig } from "./codex-auth-bridge.js";
@@ -24,7 +24,7 @@ const previousEnv = {
 
 beforeEach(async () => {
   testWorkspace = await tempWorkspace({
-    rootDir: resolvePreferredAstroclawTmpDir(),
+    rootDir: resolvePreferredOpenClawTmpDir(),
     prefix: "openclaw-acpx-codex-auth-",
   });
 });
@@ -244,7 +244,7 @@ describe("prepareAcpxCodexAuthConfig", () => {
     });
 
     const wrapper = await fs.readFile(generated.wrapperPath, "utf8");
-    expect(wrapper).toContain('"@agentclientprotocol/claude-agent-acp@0.69.0"');
+    expect(wrapper).toContain('"@agentclientprotocol/claude-agent-acp@0.70.0"');
     expect(wrapper).toContain('"--", "claude-agent-acp"');
     expect(wrapper).not.toContain("@agentclientprotocol/claude-agent-acp@^0.31.0");
     expect(wrapper).not.toContain("@agentclientprotocol/claude-agent-acp@0.31.0");
