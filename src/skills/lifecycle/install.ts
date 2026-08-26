@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveBrewExecutable as defaultResolveBrewExecutable } from "../../infra/brew.js";
 import { isContainerEnvironment as defaultIsContainerEnvironment } from "../../infra/container-environment.js";
 import { formatErrorMessage } from "../../infra/errors.js";
@@ -91,6 +91,7 @@ function normalizeSkillInstallSpec(spec: SkillInstallSpec): SkillInstallSpecMeta
     ...(spec.package ? { package: spec.package } : {}),
     ...(spec.module ? { module: spec.module } : {}),
     ...(spec.url ? { url: spec.url } : {}),
+    ...(spec.sha256 ? { sha256: spec.sha256 } : {}),
     ...(spec.archive ? { archive: spec.archive } : {}),
     ...(spec.extract !== undefined ? { extract: spec.extract } : {}),
     ...(spec.stripComponents !== undefined ? { stripComponents: spec.stripComponents } : {}),
