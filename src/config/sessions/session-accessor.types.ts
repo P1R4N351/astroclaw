@@ -1,5 +1,5 @@
 import type { SessionTranscriptUpdate } from "../../sessions/transcript-events.js";
-import type { OpenClawConfig } from "../types.astroclaw.js";
+import type { OpenClawConfig } from "../types.openclaw.js";
 import type {
   DeleteSessionEntryLifecycleParams,
   DeleteSessionEntryLifecycleResult,
@@ -710,6 +710,7 @@ export type SessionMessageCutMutationParams = {
   creation?: {
     via: import("./session-entry-provenance.js").SessionCreatedVia;
     actor?: import("./session-entry-provenance.js").SessionCreatedActor;
+    sandbox?: "required";
   };
   entryId: string;
   env?: NodeJS.ProcessEnv;
