@@ -4,7 +4,7 @@
  * Prepares workspace layout, backend handle, filesystem bridge, browser bridge, and registry state for one run.
  */
 import fs from "node:fs/promises";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   ensureBrowserControlAuth,
   resolveBrowserControlAuth,
@@ -319,6 +319,7 @@ async function resolveProvisionedSandboxContext(
 
   const sandboxContext: SandboxContext = {
     enabled: true,
+    ...(runtime.sandboxRequired ? { required: true } : {}),
     backendId: backend.id,
     sessionKey: rawSessionKey,
     workspaceDir,
