@@ -26,7 +26,6 @@ import {
 } from "./tui-formatters.js";
 import { readTuiSessionUserMessage } from "./tui-session-events.js";
 import {
-  clearTuiSessionModeOverrides,
   sessionInfoUiEquals,
   type SessionInfoDefaults,
   type SessionInfoEntry,
@@ -114,11 +113,8 @@ export function createSessionActions(context: SessionActionContext) {
     submit.clearPendingSubmit(state);
     setActivityStatus("idle");
     state.currentSessionId = null;
-    state.sessionInfo.displayName = undefined;
-    clearTuiSessionModeOverrides(state.sessionInfo);
-    // Session keys can move backwards in updatedAt ordering; drop previous session freshness
-    // so refresh data for the newly selected session isn't rejected as stale.
-    state.sessionInfo.updatedAt = null;
+    state.sessionInfo = {};
+    lastSessionDefaults = null;
     state.historyLoaded = false;
     // Live prompt identities belong to the old selection, not its pending successor.
     chatLog.clearAll();
@@ -458,9 +454,12 @@ export function createSessionActions(context: SessionActionContext) {
     // History rebuilds mutate shared UI state after multiple awaits. Only the
     // latest request may render, or a slow reload can replace a newer selection.
     const generation = ++historyLoadGeneration;
+    const sessionGeneration = state.sessionGeneration ?? 0;
     const selection = captureSessionSelection();
     const isCurrentLoad = () =>
-      generation === historyLoadGeneration && isCurrentSessionSelection(selection);
+      generation === historyLoadGeneration &&
+      (state.sessionGeneration ?? 0) === sessionGeneration &&
+      isCurrentSessionSelection(selection);
     try {
       const history = await client.loadHistory({
         sessionKey: selection.sessionKey,
