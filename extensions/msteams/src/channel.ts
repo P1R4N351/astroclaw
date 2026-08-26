@@ -1,30 +1,32 @@
 // Msteams plugin module implements channel behavior.
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-adapter-runtime";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageToolDiscovery,
-} from "openclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+} from "astroclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
 import {
   createAccountStatusSink,
   createChannelMessageAdapterFromOutbound,
   createRuntimeOutboundDelegates,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
 import {
   createAllowlistProviderGroupPolicyWarningCollector,
   createConditionalWarningCollector,
-} from "openclaw/plugin-sdk/channel-policy";
+} from "astroclaw/plugin-sdk/channel-policy";
+import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "openclaw/plugin-sdk/directory-runtime";
-import { normalizeMessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
-import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
-import { createComputedAccountStatusAdapter } from "openclaw/plugin-sdk/status-helpers";
+} from "astroclaw/plugin-sdk/directory-runtime";
+import { normalizeMessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
+import { createLazyRuntimeNamedExport } from "astroclaw/plugin-sdk/lazy-runtime";
+import { createComputedAccountStatusAdapter } from "astroclaw/plugin-sdk/status-helpers";
 import {
   normalizeOptionalString,
   normalizeStringEntries,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { Type } from "typebox";
 import { msteamsDirectoryContractPlugin } from "../directory-contract-api.js";
 import type {
@@ -45,7 +47,11 @@ import {
   msteamsContextTargetsMatch,
   resolveMSTeamsAutoThreadId,
 } from "./action-threading.js";
-import { msTeamsApprovalAuth } from "./approval-auth.js";
+import {
+  isMSTeamsNativeApprovalClientEnabled,
+  msTeamsApprovalCapability,
+  shouldSuppressLocalMSTeamsExecApprovalPrompt,
+} from "./approval-native.js";
 import { resolveMSTeamsAccount, type ResolvedMSTeamsAccount } from "./channel-config.js";
 import { msteamsSetupPlugin } from "./channel.setup.js";
 import { collectMSTeamsMutableAllowlistWarnings } from "./doctor.js";
@@ -371,6 +377,8 @@ const msteamsChannelOutbound: ChannelOutboundAdapter = {
   resolveEffectiveTextChunkLimit: ({ fallbackLimit }) =>
     typeof fallbackLimit === "number" && fallbackLimit > 0 ? Math.min(fallbackLimit, 4000) : 4000,
   pollMaxOptions: 12,
+  shouldSuppressLocalPayloadPrompt: ({ cfg, accountId, payload, hint }) =>
+    shouldSuppressLocalMSTeamsExecApprovalPrompt({ cfg, accountId, payload, hint }),
   deliveryCapabilities: {
     durableFinal: {
       text: true,
@@ -426,7 +434,7 @@ export const msteamsPlugin: ChannelPlugin<ResolvedMSTeamsAccount, ProbeMSTeamsRe
       groups: {
         resolveToolPolicy: resolveMSTeamsGroupToolPolicy,
       },
-      approvalCapability: msTeamsApprovalAuth,
+      approvalCapability: msTeamsApprovalCapability,
       doctor: {
         dmAllowFromMode: "topOnly",
         groupModel: "hybrid",
@@ -1068,6 +1076,16 @@ export const msteamsPlugin: ChannelPlugin<ResolvedMSTeamsAccount, ProbeMSTeamsRe
           });
           statusSink({ port });
           ctx.log?.info(`starting provider (port ${port})`);
+          if (isMSTeamsNativeApprovalClientEnabled({ cfg: ctx.cfg, accountId: ctx.accountId })) {
+            registerChannelRuntimeContext({
+              channelRuntime: ctx.channelRuntime,
+              channelId: "msteams",
+              accountId: ctx.accountId,
+              capability: CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY,
+              context: {},
+              abortSignal: ctx.abortSignal,
+            });
+          }
           return monitorMSTeamsProvider({
             cfg: ctx.cfg,
             runtime: ctx.runtime,
