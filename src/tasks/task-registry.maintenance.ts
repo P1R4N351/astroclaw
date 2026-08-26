@@ -18,7 +18,7 @@ import {
   listSessionEntriesReadOnly,
   type SessionEntrySummary,
 } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isCronJobActive } from "../cron/active-jobs.js";
 import { resolveCronTaskRecordTimestamp } from "../cron/task-run-detail.js";
 import { getAgentRunContext } from "../infra/agent-run-registry.js";
@@ -53,6 +53,7 @@ import {
   resolveTaskForLookupToken,
   setTaskCleanupAfterById,
 } from "./runtime-internal.js";
+import { runTaskFlowRegistryMaintenance } from "./task-flow-registry.maintenance.js";
 import {
   configureTaskAuditTaskProvider,
   listTaskAuditFindings,
@@ -1013,7 +1014,10 @@ function startScheduledSweep() {
     sweepInProgress = false;
   };
   void runWithGatewayIndependentRootWorkAdmission(async () => {
+    // Flow retention reads linked task activity, so reconcile the task owner first.
+    // Reversing this order can preserve phantom active work for another sweep.
     await sweepTaskRegistry();
+    await runTaskFlowRegistryMaintenance();
   }).then(clearSweepInProgress, clearSweepInProgress);
 }
 
