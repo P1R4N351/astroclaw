@@ -4,8 +4,8 @@
  * Defines text/media/payload/poll contexts, presentation capabilities, and send results.
  */
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ReplyToMode } from "../../config/types.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { ChannelApprovalKind } from "../../infra/approval-types.js";
 import type { OutboundDeliveryResult } from "../../infra/outbound/deliver-types.js";
 import type { OutboundDeliveryFormattingOptions } from "../../infra/outbound/formatting.js";
@@ -210,6 +210,7 @@ export type ChannelOutboundAdapter = {
     cfg: OpenClawConfig;
     accountId?: string | null;
     fallbackLimit?: number;
+    formatting?: OutboundDeliveryFormattingOptions;
   }) => number | undefined;
   shouldSuppressLocalPayloadPrompt?: (params: {
     cfg: OpenClawConfig;
