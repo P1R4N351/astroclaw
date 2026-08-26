@@ -18,7 +18,7 @@ import { migrateLegacyMainSessionKeys } from "../config/sessions/legacy-main-ses
 import { resolveSqliteTargetFromSessionStorePath } from "../config/sessions/session-sqlite-target.js";
 import { isPerAgentSessionStoreConfig } from "../config/sessions/session-store-config.js";
 import { resolveSessionStoreTargets } from "../config/sessions/targets.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   createPluginStateKeyedStore,
@@ -191,6 +191,8 @@ function describeStateSchemaMigration(migration: OpenClawStateDatabaseSchemaMigr
       return "cloud worker placements → execution-mode claims";
     case "agent-databases-relative-paths-v9":
       return "agent database registry paths → state-relative storage";
+    case "state-table-retirement-v10":
+      return "retired shared-state tables → removed tables and indexes";
     case "operator-approvals-system-agent":
       return "operator approvals → OpenClaw system changes";
     case "session-watch-cursor-provenance-v4":
