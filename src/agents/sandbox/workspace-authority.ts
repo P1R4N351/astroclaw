@@ -1,6 +1,6 @@
 // Resolves whether one sandboxed session is confined to its writable workspace.
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { normalizeExecTarget } from "../../infra/exec-approvals.js";
 import { resolveEffectiveSessionToolsVisibility } from "../../plugin-sdk/session-visibility.js";
 import { resolveAgentConfig } from "../agent-scope.js";
@@ -161,7 +161,7 @@ export function resolveSandboxWorkspaceAuthority(params: {
   let confinementError: string | undefined;
   if (backend !== "docker" && backend !== "podman") {
     confinementError = "target sandbox backend does not provide local workspace confinement.";
-  } else if (sandbox.scope !== "session") {
+  } else if (runtime.sandboxRequired || sandbox.scope !== "session") {
     confinementError = "target sandbox is not exclusive to this worker session.";
   } else if (
     sandbox.docker.dangerouslyAllowExternalBindSources === true ||
@@ -233,7 +233,7 @@ export function resolveSandboxWorkspaceAuthority(params: {
   }
   return {
     sandboxed: true,
-    workspaceAccess: sandbox.workspaceAccess,
+    workspaceAccess: runtime.sandboxRequired ? runtime.workspaceAccess : sandbox.workspaceAccess,
     ...(confinementError ? { confinementError } : {}),
   };
 }
