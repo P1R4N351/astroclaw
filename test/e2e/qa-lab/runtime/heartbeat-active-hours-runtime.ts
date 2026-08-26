@@ -3,7 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { OpenClawConfig } from "../../../../src/config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../../src/config/types.openclaw.js";
 import { formatErrorMessage } from "../../../../src/infra/errors.js";
 import { isWithinActiveHours } from "../../../../src/infra/heartbeat-active-hours.js";
 import { startHeartbeatRunner } from "../../../../src/infra/heartbeat-runner.js";
@@ -148,7 +148,6 @@ export async function runHeartbeatActiveHoursRuntime(options: HeartbeatRuntimeOp
         ? { status: "ran", durationMs: 1 }
         : { status: "skipped", reason: "quiet-hours" };
     },
-    stableSchedulerSeed: "qa-heartbeat-active-hours",
   });
   try {
     await pokeScheduledHeartbeat({
