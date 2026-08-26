@@ -7,14 +7,14 @@ import path from "node:path";
 import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
 import { createInboundDebouncer } from "astroclaw/plugin-sdk/channel-inbound-debounce";
 import {
+  closeOpenClawStateDatabaseForTest,
+  createChannelIngressQueueForTests,
+} from "astroclaw/plugin-sdk/channel-ingress-test-runtime";
+import {
   createMessageReceiptFromOutboundResults,
   DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS,
 } from "astroclaw/plugin-sdk/channel-outbound";
 import { createTestInboundDebounceFlush } from "astroclaw/plugin-sdk/channel-test-helpers";
-import {
-  closeOpenClawStateDatabaseForTest,
-  createChannelIngressQueueForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocketServer } from "ws";
 import type { MattermostPost } from "./client.js";
