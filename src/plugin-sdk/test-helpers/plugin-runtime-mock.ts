@@ -12,7 +12,7 @@ import {
 } from "../../channels/ack-reactions.js";
 import { createChannelReplyPipeline } from "../../channels/message/reply-pipeline.js";
 import { resolveSessionEntryResetFreshness } from "../../config/sessions/entry-freshness.js";
-import type { ConfigFileSnapshot } from "../../config/types.astroclaw.js";
+import type { ConfigFileSnapshot } from "../../config/types.openclaw.js";
 import { createChannelRuntimeContextRegistry } from "../../plugins/runtime/channel-runtime-contexts.js";
 import { resolveAgentCatalogCreateTarget } from "../../plugins/runtime/runtime-agent-session-catalog.js";
 import type { PluginRuntime } from "../../plugins/runtime/types.js";
@@ -565,6 +565,7 @@ export function createPluginRuntimeMock(overrides: DeepPartial<PluginRuntime> = 
           { id: "high", label: "high" },
         ],
       })),
+      runCommandFromIngress: vi.fn<PluginRuntime["agent"]["runCommandFromIngress"]>(),
       runEmbeddedAgent: runEmbeddedAgentMock,
       resolveAgentTimeoutMs: vi.fn<PluginRuntime["agent"]["resolveAgentTimeoutMs"]>(() => 30_000),
       ensureAgentWorkspace: vi
