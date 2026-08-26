@@ -5,7 +5,7 @@ import path from "node:path";
 import {
   clearConfigCache,
   clearRuntimeConfigSnapshot,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { markInboundContextLabel } from "../../../../src/auto-reply/reply/inbound-context-marker.js";
 import { encodeSessionArchiveContent } from "../../../../src/config/sessions/archive-compression.js";
@@ -26,7 +26,6 @@ import {
   parseCanonicalSessionSyncTargetFromPath,
   resolveSessionIdentityForTranscriptFile,
   resolveSessionFileForSyncTarget,
-  sessionPathForFile,
   statSessionEntrySync,
   type SessionFileEntry,
 } from "./session-files.js";
@@ -751,28 +750,6 @@ describe("listSessionTranscriptCorpusEntriesForAgent", () => {
     clearConfigCache();
 
     await expect(listSessionFilesForAgent("ops")).resolves.toEqual([]);
-  });
-});
-
-describe("sessionPathForFile", () => {
-  it("includes the owning agent id when the transcript lives under an agent sessions dir", () => {
-    const absPath = path.join(
-      tmpDir,
-      "agents",
-      "main",
-      "sessions",
-      "deleted-session.jsonl.deleted.2026-02-16T22-27-33.000Z",
-    );
-
-    expect(sessionPathForFile(absPath)).toBe(
-      "sessions/main/deleted-session.jsonl.deleted.2026-02-16T22-27-33.000Z",
-    );
-  });
-
-  it("keeps the legacy basename-only path when the agent owner cannot be derived", () => {
-    expect(sessionPathForFile(path.join(tmpDir, "loose-session.jsonl"))).toBe(
-      "sessions/loose-session.jsonl",
-    );
   });
 });
 
