@@ -43,6 +43,7 @@ export {
   getSandboxBackendManager,
   getSandboxBackendWorkdirResolver,
   isToolAllowed,
+  prepareSshSandboxExec,
   registerSandboxBackend,
   requireSandboxBackendFactory,
   resolveSandboxRuntimeStatus,
@@ -59,7 +60,7 @@ export {
   type PluginCommandRunOptions,
   type PluginCommandRunResult,
 } from "./run-command.js";
-export { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+export { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 export {
   tempWorkspace,
   tempWorkspaceSync,
