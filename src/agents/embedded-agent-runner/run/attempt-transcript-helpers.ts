@@ -1,14 +1,14 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveSessionStorePathCore } from "../../../config/sessions/paths.js";
 import {
+  findTranscriptEvent,
   loadSessionEntry,
-  loadTranscriptEvents,
   resolveSessionTranscriptRuntimeTarget,
   updateSessionEntry,
 } from "../../../config/sessions/session-accessor.js";
 import { resolveQuotaSuspensionEntryMaintenance } from "../../../config/sessions/store-maintenance.js";
 import type { SessionEntry as ConfigSessionEntry } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { isTranscriptOnlyOpenClawAssistantMessage } from "../../../shared/transcript-only-openclaw-assistant.js";
 import { sanitizeCompactionReplayMessages } from "../../compaction-replay.js";
 import type { AgentMessage } from "../../runtime/index.js";
@@ -181,13 +181,12 @@ export async function resolveExistingAttemptTranscriptState(params: {
   let hasBootstrapTranscriptState = false;
   if (storePath && sessionKey) {
     try {
-      const sqliteEvents = await loadTranscriptEvents({
-        agentId,
-        sessionId,
-        sessionKey,
-        storePath,
-      });
-      hasBootstrapTranscriptState = sqliteEvents.some(isTranscriptMessageEvent);
+      hasBootstrapTranscriptState = Boolean(
+        await findTranscriptEvent(
+          { agentId, sessionId, sessionKey, storePath },
+          isTranscriptMessageEvent,
+        ),
+      );
     } catch {
       hasBootstrapTranscriptState = false;
     }
