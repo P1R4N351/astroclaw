@@ -1,5 +1,4 @@
 // Memory host dreaming helpers record and load memory dreaming artifacts.
-import path from "node:path";
 import { parseBoolean } from "@astroclaw/normalization-core/boolean-coercion";
 import {
   parseStrictNonNegativeInteger,
@@ -7,7 +6,6 @@ import {
 } from "@astroclaw/normalization-core/number-coercion";
 import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
-  lowercasePreservingWhitespace,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
@@ -18,7 +16,8 @@ import {
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import { resolveWorkspaceStateIdentity } from "../agents/workspace-state-store.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const DEFAULT_MEMORY_DREAMING_ENABLED = true;
 const DEFAULT_MEMORY_DREAMING_TIMEZONE = undefined;
@@ -290,8 +289,7 @@ function resolveExecutionConfig(
 }
 
 function normalizePathForComparison(input: string): string {
-  const normalized = path.resolve(input);
-  return process.platform === "win32" ? lowercasePreservingWhitespace(normalized) : normalized;
+  return resolveWorkspaceStateIdentity(input).workspacePath;
 }
 
 function formatLocalIsoDay(epochMs: number): string {
