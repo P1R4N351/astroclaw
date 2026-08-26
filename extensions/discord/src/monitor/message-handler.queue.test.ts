@@ -5,15 +5,15 @@ import os from "node:os";
 import path from "node:path";
 import { fanInChannelIngressLifecycles } from "astroclaw/plugin-sdk/channel-ingress-runtime";
 import {
+  closeOpenClawStateDatabaseForTest,
+  createChannelIngressQueueForTests,
+} from "astroclaw/plugin-sdk/channel-ingress-test-runtime";
+import {
   type ChannelIngressQueue,
   DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS,
 } from "astroclaw/plugin-sdk/channel-outbound";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import {
-  closeOpenClawStateDatabaseForTest,
-  createChannelIngressQueueForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import type { APIMessage } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildDiscordInboundJob } from "./inbound-job.js";
