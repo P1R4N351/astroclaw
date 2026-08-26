@@ -14,7 +14,7 @@ import {
 } from "../../../packages/gateway-protocol/src/client-info.js";
 import { ErrorCodes } from "../../../packages/gateway-protocol/src/schema/error-codes.js";
 import { getRuntimeConfig, resolveGatewayPort } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   createAgentRuntimeExecutionLineageHandoff,
   readAgentRuntimeExecutionLineage,
@@ -231,6 +231,7 @@ const AGENT_RUNTIME_IDENTITY_METHODS = new Set<string>([
   "cron.remove",
   "cron.run",
   "cron.runs",
+  "secrets.store.delete",
 ]);
 
 const OPTIONAL_LOCAL_AGENT_RUNTIME_IDENTITY_METHODS = new Set<string>(["node.invoke"]);
