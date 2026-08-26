@@ -3,16 +3,16 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { App } from "@slack/bolt";
-import { expectChannelInboundContextContract as expectInboundContextContract } from "astroclaw/plugin-sdk/channel-contract-testing";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { expectChannelInboundContextContract as expectInboundContextContract } from "openclaw/plugin-sdk/channel-contract-testing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   registerSessionBindingAdapter,
   unregisterSessionBindingAdapter,
   type SessionBindingAdapter,
   type SessionBindingRecord,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { resolveAgentRoute, resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
-import { upsertSessionEntry, type SessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { resolveAgentRoute, resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
+import { upsertSessionEntry, type SessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import { registerSlackInstallationState } from "../../installation-identity-state.js";
@@ -55,9 +55,9 @@ vi.mock("../conversation.runtime.js", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/media-understanding-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/media-understanding-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/media-understanding-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/media-understanding-runtime")>();
   return {
     ...actual,
     createChannelPreflightAudio: (
@@ -71,8 +71,8 @@ vi.mock("astroclaw/plugin-sdk/media-understanding-runtime", async (importOrigina
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
+vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     logVerbose: (...args: unknown[]) => logVerboseMock(...args),
@@ -80,8 +80,8 @@ vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/system-event-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/system-event-runtime")>();
+vi.mock("openclaw/plugin-sdk/system-event-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/system-event-runtime")>();
   return {
     ...actual,
     enqueueRoutedSystemEvent: (
@@ -2096,6 +2096,62 @@ Second paragraph should still reach the agent after Slack's preview cutoff.`;
     expect(prepared.ctxPayload.RawBody).toContain(
       "photo.jpg (image/jpeg, 6543 bytes, fileId: FPHOTO)",
     );
+  });
+
+  it("keeps a failed file recoverable when a sibling download reaches the agent", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(
+      async (input: RequestInfo | URL) =>
+        new Response(Buffer.from("image contents"), {
+          status: 200,
+          headers: {
+            "content-type": "image/png",
+            ...(typeof input === "string" && input.includes("original-name.png")
+              ? { "content-disposition": 'attachment; filename="server-renamed.png"' }
+              : {}),
+          },
+        }),
+    ) as typeof fetch;
+    let downloadedPaths: string[] = [];
+
+    try {
+      const prepared = await prepareWithDefaultCtx(
+        createSlackMessage({
+          text: "Please inspect both attachments",
+          files: [
+            {
+              id: "F11",
+              name: "available.png",
+              mimetype: "image/png",
+              url_private_download: "https://files.slack.com/available.png",
+            },
+            {
+              name: "original-name.png",
+              mimetype: "image/png",
+              url_private_download: "https://files.slack.com/original-name.png",
+            },
+            { name: "original-name.png", mimetype: "image/png" },
+            { id: "F1", name: "missing-contract.pdf", mimetype: "application/pdf" },
+          ],
+        }),
+      );
+
+      assertPrepared(prepared);
+      downloadedPaths =
+        prepared.ctxPayload.media?.flatMap((media) => (media.path ? [media.path] : [])) ?? [];
+      expect(prepared.ctxPayload.media).toHaveLength(2);
+      expect(prepared.ctxPayload.RawBody).toContain("available.png (image/png, fileId: F11)");
+      expect(prepared.ctxPayload.RawBody).toContain("server-renamed.png (image/png)");
+      expect(prepared.ctxPayload.RawBody?.match(/original-name\.png/g)).toHaveLength(1);
+      expect(prepared.ctxPayload.BodyForAgent).toContain(
+        "missing-contract.pdf (application/pdf, fileId: F1)",
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+      await Promise.all(
+        downloadedPaths.map((downloadedPath) => fs.rm(downloadedPath, { force: true })),
+      );
+    }
   });
 
   it("delivers forwarded file-only messages with metadata when media download fails", async () => {
@@ -5112,7 +5168,7 @@ describe("slack implicit mention policy", () => {
   }) {
     const { storePath } = storeFixture.makeTmpStorePath();
     vi.spyOn(
-      await import("astroclaw/plugin-sdk/session-store-runtime"),
+      await import("openclaw/plugin-sdk/session-store-runtime"),
       "resolveStorePath",
     ).mockReturnValue(storePath);
     return await prepareSlackMessage({
