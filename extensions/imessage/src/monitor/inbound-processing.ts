@@ -15,27 +15,27 @@ import {
   toInboundMediaFactsWithMetadata,
   type ChannelInboundMediaInput,
   type MediaPlaceholderTextFact,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 import {
   createChannelIngressResolver,
   defineStableChannelIngressIdentity,
   type ChannelIngressIdentityDescriptor,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
 import {
   buildChannelGroupsScopeTree,
   resolveChannelGroupPolicy,
   resolveScopeRequireMention,
-} from "astroclaw/plugin-sdk/channel-policy";
-import { hasControlCommand } from "astroclaw/plugin-sdk/command-auth-native";
-import type { DmPolicy, GroupPolicy, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveChannelContextVisibilityMode } from "astroclaw/plugin-sdk/context-visibility-runtime";
-import type { ConfiguredBindingRouteResult } from "astroclaw/plugin-sdk/conversation-runtime";
-import { createChannelHistoryWindow, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
-import type { FinalizedMsgContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { sanitizeTerminalText } from "astroclaw/plugin-sdk/text-chunking";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/channel-policy";
+import { hasControlCommand } from "openclaw/plugin-sdk/command-auth-native";
+import type { DmPolicy, GroupPolicy, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveChannelContextVisibilityMode } from "openclaw/plugin-sdk/context-visibility-runtime";
+import type { ConfiguredBindingRouteResult } from "openclaw/plugin-sdk/conversation-runtime";
+import { createChannelHistoryWindow, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import type { FinalizedMsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { sanitizeTerminalText } from "openclaw/plugin-sdk/text-chunking";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { resolveIMessageDirectChatService } from "../chat-context.js";
 import { resolveIMessageConversationRoute } from "../conversation-route.js";
 import {
@@ -183,7 +183,9 @@ function describeReplyContext(message: IMessagePayload): IMessageReplyContext | 
   if (!body) {
     return null;
   }
-  const id = normalizeReplyField(message.reply_to_id);
+  const id =
+    normalizeReplyField(message.thread_originator_guid) ??
+    normalizeReplyField(message.reply_to_guid);
   const sender = normalizeReplyField(message.reply_to_sender);
   return { body, id, sender };
 }
