@@ -3,8 +3,8 @@ import type {
   UnifiedModelCatalogKind,
 } from "@astroclaw/model-catalog-core/model-catalog-types";
 import type { ModelCatalogEntry } from "../agents/model-catalog.types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { ModelProviderConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { ProviderCatalogOutcome } from "./provider-catalog-outcome.js";
 
 export type { ProviderCatalogOutcome } from "./provider-catalog-outcome.js";
@@ -16,6 +16,8 @@ export type ProviderCatalogContext = {
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
+  /** Normalized provider identities selected for this catalog owner; absent means the full catalog. */
+  providerIds?: readonly string[];
   resolveProviderApiKey: (providerId?: string) => {
     apiKey: string | undefined;
     discoveryApiKey?: string;
