@@ -1,6 +1,9 @@
 // Captures plugin registrations for controlled registry assembly.
-import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import {
+  normalizeStringEntries,
+  normalizeUniqueStringEntries,
+} from "@astroclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   AgentToolResultMiddleware,
   AgentToolResultMiddlewareOptions,
@@ -202,7 +205,7 @@ export function createCapturedPluginRegistration(params?: {
               return normalized;
             })
             .filter((descriptor) => descriptor.name && descriptor.description);
-          const commands = normalizeStringEntries([
+          const commands = normalizeUniqueStringEntries([
             ...(opts?.commands ?? []),
             ...descriptors.map((descriptor) => descriptor.name),
           ]);
