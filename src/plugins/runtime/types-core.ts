@@ -41,10 +41,10 @@ type DeepReadonly<T> = T extends (...args: never[]) => unknown
 type RuntimeConfigAfterWrite = import("../../config/config.js").ConfigWriteAfterWrite;
 type RuntimeConfigReplaceResult = import("../../config/mutate.js").ConfigReplaceResult;
 type RuntimeProviderListParams = {
-  config?: import("../../config/types.astroclaw.js").OpenClawConfig;
+  config?: import("../../config/types.openclaw.js").OpenClawConfig;
 };
 type RuntimeConfigMutationContext = {
-  snapshot: import("../../config/types.astroclaw.js").ConfigFileSnapshot;
+  snapshot: import("../../config/types.openclaw.js").ConfigFileSnapshot;
   previousHash: string | null;
 };
 type RuntimeMutateConfigFileParams<T = void> = {
@@ -53,12 +53,12 @@ type RuntimeMutateConfigFileParams<T = void> = {
   afterWrite: RuntimeConfigAfterWrite;
   writeOptions?: RuntimeWriteConfigOptions;
   mutate: (
-    draft: import("../../config/types.astroclaw.js").OpenClawConfig,
+    draft: import("../../config/types.openclaw.js").OpenClawConfig,
     context: RuntimeConfigMutationContext,
   ) => Promise<T | void> | T | void;
 };
 type RuntimeReplaceConfigFileParams = {
-  nextConfig: import("../../config/types.astroclaw.js").OpenClawConfig;
+  nextConfig: import("../../config/types.openclaw.js").OpenClawConfig;
   baseHash?: string;
   afterWrite: RuntimeConfigAfterWrite;
   writeOptions?: RuntimeWriteConfigOptions;
@@ -92,7 +92,7 @@ type RuntimeCreateSessionEntryFinalPatch = {
   pluginExtensions: RuntimeSessionPluginExtensions;
 };
 type RuntimeCreateSessionEntryBaseParams = {
-  cfg: import("../../config/types.astroclaw.js").OpenClawConfig;
+  cfg: import("../../config/types.openclaw.js").OpenClawConfig;
   key: string;
   agentId?: string;
   label?: string;
@@ -312,7 +312,7 @@ export type PluginRuntimeCore = {
   version: string;
   config: {
     /** Current process runtime config snapshot. Prefer config passed into the active call path. */
-    current: () => DeepReadonly<import("../../config/types.astroclaw.js").OpenClawConfig>;
+    current: () => DeepReadonly<import("../../config/types.openclaw.js").OpenClawConfig>;
     /**
      * Persist a focused config mutation. Callers must choose the post-write
      * behavior explicitly so the gateway can hot-reload, restart, or defer.
@@ -339,7 +339,7 @@ export type PluginRuntimeCore = {
     /** Resolve an allowed catalog create target through canonical agent model/runtime policy. */
     resolveSessionCatalogCreateTarget: typeof import("./runtime-agent-session-catalog.js").resolveAgentCatalogCreateTarget;
     resolveThinkingDefault: (params: {
-      cfg: import("../../config/types.astroclaw.js").OpenClawConfig;
+      cfg: import("../../config/types.openclaw.js").OpenClawConfig;
       provider: string;
       model: string;
       catalog?: import("../../agents/model-catalog.types.js").ModelCatalogEntry[];
@@ -350,6 +350,11 @@ export type PluginRuntimeCore = {
     resolveThinkingPolicy: (
       params: PluginRuntimeThinkingPolicyRequest,
     ) => PluginRuntimeThinkingPolicy;
+    /** Admit a turn for this exact trusted channel plugin and its authenticated sender. */
+    runCommandFromIngress: (
+      opts: import("../../agents/command/types.js").AgentCommandIngressOpts,
+      runtime: import("../../runtime.js").RuntimeEnv,
+    ) => ReturnType<typeof import("../../agents/agent-command.js").agentCommandFromIngress>;
     runEmbeddedAgent: RuntimeRunEmbeddedAgent;
     resolveAgentTimeoutMs: typeof import("../../agents/timeout.js").resolveAgentTimeoutMs;
     /**
@@ -517,19 +522,19 @@ export type PluginRuntimeCore = {
     /** Resolve auth for a model. Only provider/model, optional cfg, and workspaceDir are used. */
     getApiKeyForModel: (params: {
       model: import("openclaw/plugin-sdk/llm").Model<import("openclaw/plugin-sdk/llm").Api>;
-      cfg?: import("../../config/types.astroclaw.js").OpenClawConfig;
+      cfg?: import("../../config/types.openclaw.js").OpenClawConfig;
       workspaceDir?: string;
     }) => Promise<import("../../agents/model-auth-runtime-shared.js").ResolvedProviderAuth>;
     /** Resolve request-ready auth for a model, including provider runtime exchanges. */
     getRuntimeAuthForModel: (params: {
       model: import("openclaw/plugin-sdk/llm").Model<import("openclaw/plugin-sdk/llm").Api>;
-      cfg?: import("../../config/types.astroclaw.js").OpenClawConfig;
+      cfg?: import("../../config/types.openclaw.js").OpenClawConfig;
       workspaceDir?: string;
     }) => Promise<import("./model-auth-types.js").ResolvedProviderRuntimeAuth>;
     /** Resolve auth for a provider by name. Only provider, optional cfg, and workspaceDir are used. */
     resolveApiKeyForProvider: (params: {
       provider: string;
-      cfg?: import("../../config/types.astroclaw.js").OpenClawConfig;
+      cfg?: import("../../config/types.openclaw.js").OpenClawConfig;
       workspaceDir?: string;
     }) => Promise<import("../../agents/model-auth-runtime-shared.js").ResolvedProviderAuth>;
   };
