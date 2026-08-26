@@ -1,8 +1,9 @@
 // image_generate tool tests cover provider/model selection, edit inputs,
 // background task handling, media saving, and duplicate-generation guards.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { MAX_IMAGE_BYTES } from "@astroclaw/media-core/constants";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 
 const taskRuntimeInternalMocks = vi.hoisted(() => {
   const mocks = {
@@ -2405,7 +2406,21 @@ describe("createImageGenerateTool", () => {
     });
   });
 
-  it("ignores non-finite mediaMaxMb when loading reference images", async () => {
+  it("rejects oversized inline references at the canonical image cap before generation", async () => {
+    stubImageGenerationProviders();
+    const generateImage = vi.spyOn(imageGenerationRuntime, "generateImage");
+    const tool = createToolWithPrimaryImageModel("google/gemini-3-pro-image-preview");
+
+    await expect(
+      tool.execute("call-oversized-inline-reference", {
+        prompt: "Use this reference.",
+        image: `data:image/png;base64,${Buffer.alloc(MAX_IMAGE_BYTES + 1).toString("base64")}`,
+      }),
+    ).rejects.toThrow("Invalid data URL: payload exceeds size limit.");
+    expect(generateImage).not.toHaveBeenCalled();
+  });
+
+  it("uses the canonical image cap when mediaMaxMb is non-finite", async () => {
     stubImageGenerationProviders();
     stubEditedImageFlow({ width: 3200, height: 1800 });
     const tool = requireImageGenerateTool(
@@ -2432,7 +2447,7 @@ describe("createImageGenerateTool", () => {
     expect(typeof mockCallArg(webMedia.loadWebMedia, 0, "loadWebMedia", 0)).toBe("string");
     expect(mockCallArg(webMedia.loadWebMedia, 0, "loadWebMedia", 1)).toHaveProperty(
       "maxBytes",
-      undefined,
+      MAX_IMAGE_BYTES,
     );
   });
 
