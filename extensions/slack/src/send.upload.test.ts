@@ -100,8 +100,10 @@ vi.mock("astroclaw/plugin-sdk/fetch-runtime", async () => {
   };
 });
 
-vi.mock("./runtime-api.js", async () => {
-  const actual = await vi.importActual<typeof import("./runtime-api.js")>("./runtime-api.js");
+vi.mock("astroclaw/plugin-sdk/outbound-media", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/outbound-media")>(
+    "astroclaw/plugin-sdk/outbound-media",
+  );
   const mockedLoadOutboundMediaFromUrl =
     loadOutboundMediaFromUrlMock as unknown as typeof actual.loadOutboundMediaFromUrl;
   return {
