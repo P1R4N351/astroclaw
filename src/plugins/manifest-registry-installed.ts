@@ -2,13 +2,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import {
+  normalizeOptionalString,
+  readStringValue,
+} from "@astroclaw/normalization-core/string-coerce";
 import { normalizeOptionalTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 import {
   resolveChannelSetupFieldCliAttributeName,
   type ChannelSetupFieldMetadata,
 } from "../channels/plugins/setup-contract.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { tryReadJsonSync } from "../infra/json-files.js";
 import { pruneMapToMaxSize } from "../infra/map-size.js";
 import { recordPluginCandidateInstallOwner } from "./candidate-install-owner.js";
@@ -400,12 +403,15 @@ function normalizePersistedPackageChannel(value: unknown): PluginPackageChannel 
     "docsLabel",
     "blurb",
     "systemImage",
-    "selectionDocsPrefix",
   ] as const) {
     const normalized = normalizeOptionalString(value[key]);
     if (normalized) {
       channel[key] = normalized;
     }
+  }
+  const selectionDocsPrefix = readStringValue(value.selectionDocsPrefix);
+  if (selectionDocsPrefix !== undefined) {
+    channel.selectionDocsPrefix = selectionDocsPrefix;
   }
   if (typeof value.order === "number" && Number.isFinite(value.order)) {
     channel.order = value.order;
