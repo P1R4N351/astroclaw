@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withConsoleSubsystemsSuppressed } from "../logging/console.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type {
@@ -78,6 +78,7 @@ export async function tryCandidate(params: {
       workspace: params.workspace,
       surface: "cli",
       runtime: params.runtime,
+      ...(params.collectFailure ? {} : { prompter: params.prompter }),
     }),
   );
   progress.stop(result.ok ? t("wizard.guided.testPassed") : t("wizard.guided.testFailed"));
@@ -248,6 +249,7 @@ export async function runManualStage(params: {
         workspace: params.workspace,
         surface: "cli",
         runtime: params.runtime,
+        prompter: params.prompter,
       }),
     );
     progress.stop(result.ok ? t("wizard.guided.testPassed") : t("wizard.guided.testFailed"));
