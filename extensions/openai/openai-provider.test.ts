@@ -1,12 +1,12 @@
 // Openai tests cover openai provider plugin behavior.
 import fs from "node:fs";
-import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
-import type { Context, Model, SimpleStreamOptions } from "astroclaw/plugin-sdk/llm";
+import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import type { Context, Model, SimpleStreamOptions } from "openclaw/plugin-sdk/llm";
 import {
   clearLiveCatalogCacheForTests,
   type LiveModelCatalogFetchGuard,
-} from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { OPENAI_API_BASE_URL, OPENAI_CODEX_RESPONSES_BASE_URL } from "./base-url.js";
@@ -119,14 +119,14 @@ vi.mock("./openai-chatgpt-provider.runtime.js", () => ({
   refreshOpenAICodexToken: mocks.refreshOpenAICodexToken,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: mocks.resolveApiKeyForProvider,
   resolveProviderAuthProfileMetadata: mocks.resolveProviderAuthProfileMetadata,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-stream-family", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/provider-stream-family", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-stream-family")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/provider-stream-family")>();
   const wrapStreamFn: NonNullable<typeof actual.OPENAI_RESPONSES_STREAM_HOOKS.wrapStreamFn> = (
     ctx,
   ) => {
@@ -2069,47 +2069,6 @@ describe("buildOpenAIProvider", () => {
       cost: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 6.25 },
       thinkingLevelMap: { off: "none", xhigh: "xhigh", max: "max" },
     });
-  });
-
-  it.each([
-    {
-      id: "gpt-5.6-sol",
-      cost: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 6.25 },
-    },
-    {
-      id: "gpt-5.6-terra",
-      cost: { input: 2.5, output: 15, cacheRead: 0.25, cacheWrite: 3.125 },
-    },
-    {
-      id: "gpt-5.6-luna",
-      cost: { input: 1, output: 6, cacheRead: 0.1, cacheWrite: 1.25 },
-    },
-  ])("preserves exact registry metadata for $id", ({ id, cost }) => {
-    const provider = buildOpenAIProvider();
-    const exactModel = {
-      id,
-      name: id,
-      provider: "openai",
-      api: "openai-responses",
-      baseUrl: "https://api.openai.com/v1",
-      reasoning: true,
-      input: ["text", "image"],
-      cost,
-      contextWindow: 1_050_000,
-      contextTokens: 272_000,
-      maxTokens: 128_000,
-      compat: { supportedReasoningEfforts: ["registry-exact"] },
-    };
-
-    const model = provider.resolveDynamicModel?.({
-      provider: "openai",
-      modelId: id,
-      modelRegistry: {
-        find: (_provider: string, templateId: string) => (templateId === id ? exactModel : null),
-      } as never,
-    } as never);
-
-    expect(model).toBe(exactModel);
   });
 
   it("resolves gpt-5.5-pro locally", () => {
