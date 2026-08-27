@@ -13,7 +13,7 @@ import {
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { SessionToolOverrides } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { logWarn } from "../logger.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { runTasksWithConcurrency } from "../utils/run-with-concurrency.js";
@@ -40,7 +40,6 @@ import {
   loadSessionMcpConfig,
   resolveSessionMcpConfigSummary,
 } from "./agent-bundle-mcp-runtime-config.js";
-import { resolveSessionMcpRuntimeIdleTtlMs } from "./agent-bundle-mcp-runtime-shared.js";
 import type {
   McpCatalogTool,
   McpRequestOptions,
@@ -1141,7 +1140,6 @@ export const testing = {
   },
   setBundleMcpCatalogListTimeoutMsForTest,
   setBundleMcpDisposeTimeoutMsForTest,
-  resolveSessionMcpRuntimeIdleTtlMs,
   mergeMcpToolCatalogs,
 };
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
