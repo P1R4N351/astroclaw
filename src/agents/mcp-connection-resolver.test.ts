@@ -4,7 +4,7 @@ import http from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { buildGatewayReloadPlan } from "../gateway/config-reload-plan.js";
 import { createGatewayCronReconciliation } from "../gateway/server-cron-reconciled.js";
 import { createGatewayReloadHandlers } from "../gateway/server-reload-handlers.js";
@@ -331,7 +331,6 @@ describe("mcp connection resolver helpers", () => {
           storePath: "/tmp/openclaw-mcp-gateway-reload-proof-cron",
           cronEnabled: false,
           reconcileExitWatchers: async () => {},
-          stopExitWatchers: () => {},
           reconcileStreamWatchers: async () => {},
           stopStreamWatchers: async () => {},
           reconcileHeartbeatJobs: async () => {},
