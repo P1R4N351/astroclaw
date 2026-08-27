@@ -1,5 +1,5 @@
 /** Tests CLI runner integration with context-engine lifecycle hooks. */
-import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContextEngine } from "../context-engine/types.js";
 import { createTestAdmittedRunContext } from "./admitted-run-context.test-support.js";
@@ -131,7 +131,6 @@ function buildPreparedContext(contextEngine: ContextEngine): PreparedCliRunConte
     systemPrompt: "You are a helpful assistant.",
     systemPromptReport: {} as PreparedCliRunContext["systemPromptReport"],
     claudeSkillsPluginArgs: [],
-    bootstrapPromptWarningLines: [],
     authEpochVersion: 2,
   };
 }
