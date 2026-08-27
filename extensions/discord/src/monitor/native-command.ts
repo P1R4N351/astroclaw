@@ -1,9 +1,11 @@
-import { loadPreparedModelCatalog, resolveAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
-import { resolveNativeCommandSessionTargets } from "astroclaw/plugin-sdk/command-auth-native";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { buildPairingReply } from "astroclaw/plugin-sdk/conversation-runtime";
-import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
-import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
+// Discord plugin module implements native command behavior.
+import { ApplicationCommandOptionType } from "discord-api-types/v10";
+import { loadPreparedModelCatalog, resolveAgentDir } from "openclaw/plugin-sdk/agent-runtime";
+import { resolveNativeCommandSessionTargets } from "openclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { buildPairingReply } from "openclaw/plugin-sdk/conversation-runtime";
+import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
+import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
 import {
   buildCommandTextFromArgs,
   findCommandByNativeName,
@@ -12,17 +14,15 @@ import {
   serializeCommandArgs,
   type ChatCommandDefinition,
   type NativeCommandSpec,
-} from "astroclaw/plugin-sdk/native-command-registry";
+} from "openclaw/plugin-sdk/native-command-registry";
 import type {
   PluginCommandCatalogDecision,
   PluginCommandNativeCandidate,
-} from "astroclaw/plugin-sdk/plugin-command-runtime";
-import { resolveChunkMode, resolveTextChunkLimit } from "astroclaw/plugin-sdk/reply-chunking";
-import { getRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { createSubsystemLogger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { resolveOpenProviderRuntimeGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";
-// Discord plugin module implements native command behavior.
-import { ApplicationCommandOptionType } from "discord-api-types/v10";
+} from "openclaw/plugin-sdk/plugin-command-runtime";
+import { resolveChunkMode, resolveTextChunkLimit } from "openclaw/plugin-sdk/reply-chunking";
+import { getRuntimeConfigSnapshot } from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { createSubsystemLogger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { resolveOpenProviderRuntimeGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";
 import {
   resolveDiscordAccountAllowFrom,
   resolveDiscordAccountDmPolicy,
@@ -47,6 +47,10 @@ import { resolveDiscordDmCommandAccess } from "./dm-command-auth.js";
 import { handleDiscordDmCommandDecision } from "./dm-command-decision.js";
 import { dispatchDiscordNativeAgentReply } from "./native-command-agent-reply.js";
 import {
+  buildDiscordCommandArgMenu,
+  createDiscordCommandArgFallbackButton as createDiscordCommandArgFallbackButtonUi,
+} from "./native-command-arg-ui.js";
+import {
   resolveDiscordGuildNativeCommandAuthorized,
   resolveDiscordNativeAutocompleteAuthorized,
   resolveDiscordNativeCommandChannelAccessContext,
@@ -59,6 +63,15 @@ import {
 import { buildDiscordNativeCommandContext } from "./native-command-context.js";
 import type { DispatchDiscordCommandInteractionResult } from "./native-command-dispatch.js";
 import {
+  createDiscordModelPickerFallbackButton as createDiscordModelPickerFallbackButtonUi,
+  createDiscordModelPickerFallbackSelect as createDiscordModelPickerFallbackSelectUi,
+} from "./native-command-model-picker-interaction.js";
+import {
+  replyWithDiscordModelPickerProviders,
+  resolveDiscordNativeChoiceContext,
+  shouldOpenDiscordModelPickerFromCommand,
+} from "./native-command-model-picker-ui.js";
+import {
   DISCORD_EMPTY_VISIBLE_REPLY_WARNING,
   deliverDiscordInteractionReply,
   hasRenderableReplyPayload,
@@ -66,17 +79,10 @@ import {
   settleDiscordInteractionWithoutVisibleReply,
 } from "./native-command-reply.js";
 import { maybeDeliverDiscordDirectStatus } from "./native-command-status.js";
-import {
-  buildDiscordCommandArgMenu,
-  createDiscordCommandArgFallbackButton as createDiscordCommandArgFallbackButtonUi,
-  createDiscordModelPickerFallbackButton as createDiscordModelPickerFallbackButtonUi,
-  createDiscordModelPickerFallbackSelect as createDiscordModelPickerFallbackSelectUi,
-  replyWithDiscordModelPickerProviders,
-  resolveDiscordNativeChoiceContext,
-  shouldOpenDiscordModelPickerFromCommand,
-  type DiscordCommandArgContext,
-  type DiscordModelPickerContext,
-} from "./native-command-ui.js";
+import type {
+  DiscordCommandArgContext,
+  DiscordModelPickerContext,
+} from "./native-command-ui.types.js";
 import { createNativeCommandDefinition, readDiscordCommandArgs } from "./native-command.args.js";
 import {
   buildDiscordCommandOptions,
