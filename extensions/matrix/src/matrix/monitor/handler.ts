@@ -1,15 +1,15 @@
-import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
 import {
   createChannelInboundEnvelopeBuilder,
   hasFinalInboundReplyDispatch,
   resolveInboundReplyDispatchCounts,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { resolveChannelContextVisibilityMode } from "openclaw/plugin-sdk/context-visibility-runtime";
-import { KeyedAsyncQueue } from "openclaw/plugin-sdk/keyed-async-queue";
-import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
-import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { resolveChannelContextVisibilityMode } from "astroclaw/plugin-sdk/context-visibility-runtime";
+import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/keyed-async-queue";
+import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
+import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
 import { isPollEventType } from "../poll-types.js";
 import type { LocationMessageEventContent } from "../sdk.js";
 import { normalizeMatrixUserId } from "./allowlist.js";
@@ -58,7 +58,6 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
     streaming,
     previewToolProgressEnabled,
     blockStreamingEnabled,
-    textLimit,
     historyLimit,
     startupMs,
     startupGraceMs,
@@ -118,7 +117,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
   return async (roomId: string, event: MatrixRawEvent) => {
     const eventId = typeof event.event_id === "string" ? event.event_id.trim() : "";
     let inboundReplayClaim:
-      | import("openclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle
+      | import("astroclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle
       | undefined;
     let draftControllerRef: Awaited<ReturnType<typeof createMatrixDraftController>> | undefined;
     try {
@@ -355,11 +354,6 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         replyTarget,
         sharedDmContextNotice,
       } = inboundContext;
-      const tableMode = core.channel.text.resolveMarkdownTableMode({
-        cfg,
-        channel: "matrix",
-        accountId: _route.accountId,
-      });
       const mediaLocalRoots = getAgentScopedMediaLocalRoots(cfg, _route.agentId);
       const { onModelSelected, ...prefixOptions } = createReplyPrefixOptions({
         cfg,
@@ -428,13 +422,11 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         client,
         roomId,
         runtime,
-        textLimit,
         replyToMode,
         threadTarget,
         replyToEventId: replyToEventId ?? undefined,
         accountId: _route.accountId,
         mediaLocalRoots,
-        tableMode,
         logVerboseMessage,
       });
       const { deliverReply, onReplyError, turnDispatcherOptions } = replyDispatcher;
