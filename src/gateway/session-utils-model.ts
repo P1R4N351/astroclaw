@@ -42,7 +42,7 @@ import { tryResolveLegacyCompatibilityAgentId } from "../config/legacy.default-a
 import { resolveAgentMainSessionKey, type SessionEntry } from "../config/sessions.js";
 import { projectPublicSessionEntry } from "../config/sessions/session-entry-projection.js";
 import { resolveSqliteTargetFromSessionStorePath } from "../config/sessions/session-sqlite-target.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { LEGACY_IMPLICIT_AGENT_ID, normalizeAgentId } from "../routing/session-key.js";
 import type { GatewayModelCatalogSnapshot } from "./server-model-catalog.types.js";
 import {
@@ -179,34 +179,11 @@ export function resolveGatewayModelThinkingProfile(params: {
       sessionKey: params.sessionKey,
     });
   const thinkingPolicyProvider = params.thinkingPolicyProvider ?? params.provider;
-  if (!params.rowContext) {
-    return {
-      thinkingLevels: listGatewayThinkingLevelOptions({
-        provider: thinkingPolicyProvider,
-        model: params.model,
-        modelCatalog: params.modelCatalog,
-        agentRuntime,
-        configuredReasoning: params.configuredReasoning,
-        providerPolicySource: params.providerPolicySource,
-      }),
-      thinkingDefault: resolveGatewaySessionThinkingDefault({
-        cfg: params.cfg,
-        provider: params.provider,
-        thinkingPolicyProvider,
-        model: params.model,
-        agentId: params.agentId,
-        modelCatalog: params.modelCatalog,
-        agentRuntime,
-        configuredReasoning: params.configuredReasoning,
-        providerPolicySource: params.providerPolicySource,
-      }),
-    };
-  }
   const key = `${normalizeAgentId(params.agentId)}\0${agentRuntime}\0${normalizeLowercaseStringOrEmpty(thinkingPolicyProvider)}\0${String(params.configuredReasoning)}\0${params.providerPolicySource ?? "active-or-bundled"}\0${createSessionRowModelCacheKey(
     params.provider,
     params.model,
   )}`;
-  const cached = params.rowContext.thinkingMetadataByModelRef.get(key);
+  const cached = params.rowContext?.thinkingMetadataByModelRef.get(key);
   if (cached) {
     return cached;
   }
@@ -231,7 +208,7 @@ export function resolveGatewayModelThinkingProfile(params: {
       providerPolicySource: params.providerPolicySource,
     }),
   };
-  params.rowContext.thinkingMetadataByModelRef.set(key, metadata);
+  params.rowContext?.thinkingMetadataByModelRef.set(key, metadata);
   return metadata;
 }
 
