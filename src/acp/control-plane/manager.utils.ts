@@ -4,7 +4,7 @@ import {
   resolveMainSessionKey,
 } from "../../config/sessions/main-session.js";
 import type { SessionAcpMeta } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { toErrorObject } from "../../infra/errors.js";
 import {
   normalizeAgentId,
@@ -113,8 +113,6 @@ export function createUnsupportedControlError(params: {
     `ACP backend "${params.backend}" does not support ${params.control}.`,
   );
 }
-
-export const DEFAULT_ACP_RUNTIME_IDLE_TTL_MS = 0;
 
 export function hasLegacyAcpIdentityProjection(meta: SessionAcpMeta): boolean {
   const raw = meta as Record<string, unknown>;
