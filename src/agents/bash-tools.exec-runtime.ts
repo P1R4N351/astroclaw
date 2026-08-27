@@ -52,12 +52,7 @@ import {
 } from "./bash-tools.exec-output.js";
 import type { ExecToolDetails } from "./bash-tools.exec-types.js";
 import type { BashSandboxConfig } from "./bash-tools.shared.js";
-import {
-  buildDockerExecArgs,
-  chunkString,
-  clampWithDefault,
-  readEnvInt,
-} from "./bash-tools.shared.js";
+import { chunkString, clampWithDefault, readEnvInt } from "./bash-tools.shared.js";
 import { buildCursorPositionResponse, stripDsrRequests } from "./pty-dsr.js";
 import type { AgentToolResult } from "./runtime/index.js";
 import { createSessionSlug } from "./session-slug.js";
@@ -255,9 +250,23 @@ export function resolveExecTarget(params: {
   requestedTarget?: ExecTarget | null;
   elevatedRequested: boolean;
   sandboxAvailable: boolean;
+  sandboxRequired?: boolean;
 }) {
-  const configuredTarget = params.configuredTarget ?? "auto";
+  const sandboxRequired = params.sandboxRequired === true;
+  if (sandboxRequired && !params.sandboxAvailable) {
+    throw new Error("This session requires a sandbox, but its sandbox runtime is unavailable.");
+  }
+  if (sandboxRequired && params.elevatedRequested) {
+    throw new Error("Elevated execution is unavailable because this session requires a sandbox.");
+  }
+  // Session isolation outranks every agent, session, and request-scoped host preference.
+  const configuredTarget = sandboxRequired ? "auto" : (params.configuredTarget ?? "auto");
   const requestedTarget = params.requestedTarget ?? null;
+  if (sandboxRequired && (requestedTarget === "gateway" || requestedTarget === "node")) {
+    throw new Error(
+      `exec host not allowed (requested ${renderExecTargetLabel(requestedTarget)}; this session requires a sandbox).`,
+    );
+  }
   if (
     requestedTarget &&
     !isRequestedExecTargetAllowed({
@@ -830,20 +839,33 @@ export async function runExecProcess(opts: {
       // Finalization can release remote process/session resources. Keep the
       // background-work blocker until that owner transition has settled.
       session.finalizing = false;
-      const shouldNotify = !session.exited;
-      if (shouldNotify) {
-        markExited(
-          session,
-          finalOutcome.exitCode,
-          finalOutcome.exitSignal,
-          finalOutcome.status,
-          finalOutcome.exitReason,
-          finalOutcome.noOutputTimedOut,
-        );
-      }
-      opts.onSettledBeforeNotify?.(finalOutcome);
-      if (shouldNotify) {
-        maybeNotifyOnExit(session, finalOutcome.status);
+      try {
+        const shouldNotify = !session.exited;
+        if (shouldNotify) {
+          markExited(
+            session,
+            finalOutcome.exitCode,
+            finalOutcome.exitSignal,
+            finalOutcome.status,
+            finalOutcome.exitReason,
+            finalOutcome.noOutputTimedOut,
+          );
+        }
+        opts.onSettledBeforeNotify?.(finalOutcome);
+        if (shouldNotify) {
+          maybeNotifyOnExit(session, finalOutcome.status);
+        }
+      } finally {
+        // Notifications need start-time routing, but completed logs must not
+        // retain it, including when a task callback or notification throws.
+        delete session.sessionKey;
+        delete session.agentId;
+        delete session.mainKey;
+        delete session.sessionScope;
+        delete session.eventRouting;
+        delete session.notifyDeliveryContext;
+        delete session.notifyOnExit;
+        delete session.notifyOnExitEmptySuccess;
       }
     }
     return finalOutcome;
@@ -851,32 +873,24 @@ export async function runExecProcess(opts: {
 
   const prepareSpawnSpec = async () => {
     if (opts.sandbox) {
-      const backendExecSpec = await opts.sandbox.buildExecSpec?.({
+      if (!opts.sandbox.buildExecSpec) {
+        throw new Error("sandbox backend does not provide buildExecSpec");
+      }
+      const backendExecSpec = await opts.sandbox.buildExecSpec({
         command: execCommand,
         workdir: opts.containerWorkdir ?? opts.sandbox.containerWorkdir,
         env: shellRuntimeEnv,
         usePty: opts.usePty,
       });
-      sandboxFinalizeToken = backendExecSpec?.finalizeToken;
+      sandboxFinalizeToken = backendExecSpec.finalizeToken;
       // Cleanup ownership transfers only after buildExecSpec resolves: moving this earlier can
       // double-finalize backend failures, while removing it leaks the registered exec session.
       sandboxPrepared = true;
       return {
         mode: "child" as const,
-        argv: backendExecSpec?.argv ?? [
-          "docker",
-          ...buildDockerExecArgs({
-            containerName: opts.sandbox.containerName,
-            command: execCommand,
-            workdir: opts.containerWorkdir ?? opts.sandbox.containerWorkdir,
-            env: shellRuntimeEnv,
-            tty: opts.usePty,
-          }),
-        ],
-        env: backendExecSpec?.env ?? process.env,
-        stdinMode:
-          backendExecSpec?.stdinMode ??
-          (opts.usePty ? ("pipe-open" as const) : ("pipe-closed" as const)),
+        argv: backendExecSpec.argv,
+        env: backendExecSpec.env,
+        stdinMode: backendExecSpec.stdinMode,
       };
     }
     const { shell, args: shellArgs } = getShellConfig();
