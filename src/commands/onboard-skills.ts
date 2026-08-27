@@ -6,7 +6,7 @@
  */
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveBrewExecutable } from "../infra/brew.js";
 import { isContainerEnvironment } from "../infra/container-environment.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -120,7 +120,7 @@ function resolveDefaultNodeManager(
   config: OpenClawConfig,
   requested: NodeManagerChoice | undefined,
   runtime: RuntimeEnv,
-): NodeManagerChoice {
+) {
   if (requested !== undefined) {
     if (!isNodeManagerChoice(requested)) {
       runtime.error('Invalid --node-manager. Use "npm", "pnpm", or "bun".');
@@ -129,8 +129,7 @@ function resolveDefaultNodeManager(
     }
     return requested;
   }
-  const existing = config.skills?.install?.nodeManager;
-  return existing === "npm" || existing === "pnpm" || existing === "bun" ? existing : "npm";
+  return config.skills?.install?.nodeManager ?? "npm";
 }
 
 /** Runs the interactive skills setup step and returns the updated config. */
