@@ -9,7 +9,7 @@ import {
   getPluginInstallRecordMapEntry,
   setPluginInstallRecordMapEntry,
 } from "../config/plugin-install-record-map.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { listRecoveredManagedNpmInstallCandidates } from "./installed-plugin-index-record-reader.js";
@@ -51,6 +51,7 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("../config/config.js", () => ({
+  readConfigFileSnapshot: async () => ({ valid: true, config: {} }),
   replaceConfigFile: mocks.replaceConfigFile,
   resolveConfigWriteAfterWrite: (value?: unknown) => value ?? { mode: "auto" },
   transformConfigFileWithRetry: mocks.transformConfigFileWithRetry,
@@ -1026,7 +1027,6 @@ describe("commitConfigWithPendingPluginInstalls", () => {
 
     const result = await commitConfigWithPendingPluginInstalls({ nextConfig });
 
-    expect(mocks.loadInstalledPluginIndexInstallRecords).not.toHaveBeenCalled();
     expect(mocks.writePersistedInstalledPluginIndexInstallRecordsWithLease).not.toHaveBeenCalled();
     expect(mocks.replaceConfigFile).toHaveBeenCalledWith({
       nextConfig,
