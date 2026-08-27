@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import * as bundledHealthChecks from "../flows/bundled-health-checks.js";
 import { CORE_HEALTH_CHECKS } from "../flows/doctor-core-checks.js";
 import { clearHealthChecksForTest, registerHealthCheck } from "../flows/health-check-registry.js";
@@ -451,12 +451,13 @@ describe("runDoctorLintCli", () => {
     });
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     try {
-      const exitCode = await runDoctorLintCli(runtime, {
-        json: true,
-        onlyIds: [CRABBOX_CLOUD_WORKER_PROFILE_CHECK_ID],
-      });
-
-      expect(exitCode).toBe(1);
+      for (let run = 0; run < 2; run++) {
+        const exitCode = await runDoctorLintCli(runtime, {
+          json: true,
+          onlyIds: [CRABBOX_CLOUD_WORKER_PROFILE_CHECK_ID],
+        });
+        expect(exitCode).toBe(1);
+      }
       const payload = JSON.parse(String(stdout.mock.calls.at(-1)?.[0]));
       expect(payload).toMatchObject({
         ok: false,
