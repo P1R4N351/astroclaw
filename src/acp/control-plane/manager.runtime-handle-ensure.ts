@@ -10,7 +10,7 @@ import {
 } from "@astroclaw/acp-core/runtime/session-identity";
 import type { AcpRuntime, AcpRuntimeHandle } from "@astroclaw/acp-core/runtime/types";
 import { resolveRuntimeConfigCacheKey } from "../../config/runtime-snapshot.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { logVerbose } from "../../globals.js";
 import { toAcpRuntimeError, withAcpRuntimeErrorBoundary } from "../runtime/errors.js";
 import type { ManagerRuntimeHandleCache } from "./manager.runtime-handle-cache.js";
@@ -35,7 +35,6 @@ export async function ensureManagerRuntimeHandle(params: {
   selectedBackend?: string;
   deps: Pick<AcpSessionManagerDeps, "requireRuntimeBackend">;
   runtimeHandles: ManagerRuntimeHandleCache;
-  enforceConcurrentSessionLimit: (params: { cfg: OpenClawConfig; sessionKey: string }) => void;
   writeSessionMeta: WriteManagerSessionMeta;
 }): Promise<{ runtime: AcpRuntime; handle: AcpRuntimeHandle; meta: SessionAcpMeta }> {
   const agent =
@@ -87,11 +86,6 @@ export async function ensureManagerRuntimeHandle(params: {
       reason: "runtime-handle-replaced",
     });
   }
-
-  params.enforceConcurrentSessionLimit({
-    cfg: params.cfg,
-    sessionKey: params.sessionKey,
-  });
 
   const backend = params.deps.requireRuntimeBackend(configuredBackend || undefined);
   const runtime = backend.runtime;
