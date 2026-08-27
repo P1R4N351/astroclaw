@@ -24,6 +24,7 @@ import { createAgent } from "../../agents/agent-create.js";
 import {
   findOverlappingWorkspaceAgentIds,
   formatSharedAuthStoreOwnerDeleteError,
+  isInheritedAuthStoreOwner,
   isSharedAuthStoreOwner,
 } from "../../agents/agent-delete-safety.js";
 import {
@@ -57,7 +58,6 @@ import {
   sanitizeAgentIdentityLine,
 } from "../../agents/identity-file.js";
 import { resolveAgentIdentity } from "../../agents/identity.js";
-import { resolveLegacyInheritedAuthAgentId } from "../../agents/legacy-inherited-auth-dir.js";
 import {
   prepareLegacyWorkspaceStateReset,
   removeLegacyWorkspaceStateForReset,
@@ -81,8 +81,8 @@ import {
 } from "../../config/config.js";
 import { purgeAgentSessionStoreEntries } from "../../config/sessions.js";
 import { resolveSessionTranscriptsDirForAgent } from "../../config/sessions/paths.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { IdentityConfig } from "../../config/types.base.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { isMissingPathError } from "../../infra/errors.js";
 import { withAgentExecApprovalsRemoved } from "../../infra/exec-approvals.js";
 import { root, FsSafeError, type ReadResult } from "../../infra/fs-safe.js";
@@ -1076,8 +1076,7 @@ export const agentsHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    if (agentId === normalizeAgentId(resolveLegacyInheritedAuthAgentId(cfg))) {
-      // H2-2 owns credential relocation; deleting this directory first destroys the shared store.
+    if (isInheritedAuthStoreOwner(cfg, agentId)) {
       respond(
         false,
         undefined,
@@ -1104,7 +1103,7 @@ export const agentsHandlers: GatewayRequestHandlers = {
         if (agentId === tryResolveSoleAgentId(lockedConfig)) {
           throw new AgentConfigPreconditionError(`agent "${agentId}" is the only configured agent`);
         }
-        if (agentId === normalizeAgentId(resolveLegacyInheritedAuthAgentId(lockedConfig))) {
+        if (isInheritedAuthStoreOwner(lockedConfig, agentId)) {
           throw new AgentConfigPreconditionError(
             `agent "${agentId}" owns agents.defaults.authInheritance.agentId; relocate credentials and re-point it first`,
           );
