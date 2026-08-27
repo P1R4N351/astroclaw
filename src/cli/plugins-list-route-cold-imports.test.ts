@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   createColdPluginFixture,
   isColdPluginRuntimeLoaded,
@@ -46,6 +46,10 @@ vi.mock("./plugins-cli.js", () => {
 vi.mock("../plugins/loader-module-runtime.js", () => {
   testState.loadedModules.add("plugin-module-runtime");
   return {};
+});
+
+vi.mock("../plugins/capability-consent.js", () => {
+  throw new Error("metadata inventory must not load the capability consent mutation owner");
 });
 
 import { tryRouteCli } from "./route.js";
