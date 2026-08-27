@@ -1,8 +1,8 @@
 // Memory Core tests cover embeddings plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { EmbeddingProviderAdapter } from "openclaw/plugin-sdk/embedding-providers";
-import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import type { MemoryEmbeddingProviderAdapter } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { EmbeddingProviderAdapter } from "astroclaw/plugin-sdk/embedding-providers";
+import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { MemoryEmbeddingProviderAdapter } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createEmbeddingProvider,
@@ -18,7 +18,7 @@ const mockEmbeddingRegistry = vi.hoisted(() => ({
   acquireLocalService: vi.fn(async () => undefined),
 }));
 
-vi.mock("openclaw/plugin-sdk/memory-core-host-engine-embeddings", () => ({
+vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-embeddings", () => ({
   DEFAULT_LOCAL_MODEL: "nomic-embed-text",
   createLocalEmbeddingProvider: async () => {
     throw new Error("local embedding provider is not used by these tests");
