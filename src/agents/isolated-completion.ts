@@ -9,9 +9,9 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { ThinkLevel } from "../auto-reply/thinking.js";
 import { getRuntimeConfig } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withTempWorkspace } from "../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import type { AssistantMessage } from "../llm/types.js";
 import { withPluginRuntimeGenerationScope } from "../plugins/runtime/generation-scope.js";
 import { prepareSystemAgentRunAdmission } from "./admitted-run-context.js";
@@ -460,7 +460,7 @@ export async function runIsolatedCompletion(
         },
       ],
     },
-    { catalogMode: "static" },
+    { catalogMode: "static", abortSignal: request.abortSignal },
   );
   const pluginRegistry = lease.snapshot.pluginRegistry;
   try {
