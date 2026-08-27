@@ -2,7 +2,7 @@ import type {
   AgentMessage,
   AnyAgentTool,
   SandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   resolveAttemptFsWorkspaceOnly,
   resolveAttemptSpawnWorkspaceDir,
@@ -11,7 +11,7 @@ import {
   runAgentHarnessAfterCompactionHook,
   runAgentHarnessBeforeCompactionHook,
   clearActiveEmbeddedRun,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import { registerCopilotActiveRun } from "./attempt-active-run.js";
 import { deferBackgroundCompactionCleanup } from "./attempt-cleanup.js";
 import {
@@ -474,6 +474,7 @@ export async function runCopilotExecution(context: {
         abortActiveSession,
         bridge,
         canAcceptSteering: () => initialSdkUserValidated,
+        startedAtMs: input.startedAtMs,
         input,
         isAborted: () => aborted,
         isSettled: () => settled,
