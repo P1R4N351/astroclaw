@@ -4,7 +4,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPluginMetadataSnapshot } from "../config/plugin-auto-enable.test-helpers.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const mocks = vi.hoisted(() => ({
   buildManifestBuiltInModelSuppressionResolver: vi.fn(),
@@ -72,7 +72,7 @@ describe("model suppression", () => {
     });
   });
 
-  it("does not run deprecated runtime suppression hooks", () => {
+  it("returns false when no manifest suppression applies", () => {
     const resolver = vi.fn().mockReturnValueOnce(undefined);
     mocks.buildManifestBuiltInModelSuppressionResolver.mockReturnValueOnce(resolver);
 
