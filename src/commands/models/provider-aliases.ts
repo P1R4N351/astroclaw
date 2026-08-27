@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   loadPluginManifestRegistryCore,
   type PluginManifestRecord,
@@ -118,14 +118,6 @@ export function createModelCatalogProviderAliasCanonicalizer(params: ProviderAli
       return canonicalProvider === ref.provider ? ref : { ...ref, provider: canonicalProvider };
     },
   };
-}
-
-/** Canonicalizes a provider id through manifest model-catalog aliases. */
-export function canonicalizeModelCatalogProviderAlias(
-  provider: string,
-  params: ProviderAliasSource,
-): string {
-  return createModelCatalogProviderAliasCanonicalizer(params).provider(provider);
 }
 
 /** Canonicalizes the provider field on a model reference. */
