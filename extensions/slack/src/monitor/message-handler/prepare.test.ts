@@ -3,16 +3,16 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { App } from "@slack/bolt";
-import { expectChannelInboundContextContract as expectInboundContextContract } from "openclaw/plugin-sdk/channel-contract-testing";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { expectChannelInboundContextContract as expectInboundContextContract } from "astroclaw/plugin-sdk/channel-contract-testing";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   registerSessionBindingAdapter,
   unregisterSessionBindingAdapter,
   type SessionBindingAdapter,
   type SessionBindingRecord,
-} from "openclaw/plugin-sdk/conversation-runtime";
-import { resolveAgentRoute, resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
-import { upsertSessionEntry, type SessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+import { resolveAgentRoute, resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+import { upsertSessionEntry, type SessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import { registerSlackInstallationState } from "../../installation-identity-state.js";
@@ -55,9 +55,9 @@ vi.mock("../conversation.runtime.js", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/media-understanding-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/media-understanding-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/media-understanding-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/media-understanding-runtime")>();
   return {
     ...actual,
     createChannelPreflightAudio: (
@@ -71,8 +71,8 @@ vi.mock("openclaw/plugin-sdk/media-understanding-runtime", async (importOriginal
   };
 });
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     logVerbose: (...args: unknown[]) => logVerboseMock(...args),
@@ -80,8 +80,8 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/system-event-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/system-event-runtime")>();
+vi.mock("astroclaw/plugin-sdk/system-event-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/system-event-runtime")>();
   return {
     ...actual,
     enqueueRoutedSystemEvent: (
@@ -1956,7 +1956,7 @@ describe("slack prepareSlackMessage inbound contract", () => {
       );
 
       assertPrepared(prepared);
-      expect(prepared.ctxPayload.RawBody).toBe("caption\n\n[slack forwarded image unavailable]");
+      expect(prepared.ctxPayload.RawBody).toBe("caption\n\n[slack attachment unavailable]");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -2100,17 +2100,18 @@ Second paragraph should still reach the agent after Slack's preview cutoff.`;
 
   it("keeps a failed file recoverable when a sibling download reaches the agent", async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = vi.fn(
-      async (input: RequestInfo | URL) =>
-        new Response(Buffer.from("image contents"), {
-          status: 200,
-          headers: {
-            "content-type": "image/png",
-            ...(typeof input === "string" && input.includes("original-name.png")
-              ? { "content-disposition": 'attachment; filename="server-renamed.png"' }
-              : {}),
-          },
-        }),
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) =>
+      typeof input === "string" && input.includes("missing-contract.pdf")
+        ? new Response("Not Found", { status: 404 })
+        : new Response(Buffer.from("image contents"), {
+            status: 200,
+            headers: {
+              "content-type": "image/png",
+              ...(typeof input === "string" && input.includes("original-name.png")
+                ? { "content-disposition": 'attachment; filename="server-renamed.png"' }
+                : {}),
+            },
+          }),
     ) as typeof fetch;
     let downloadedPaths: string[] = [];
 
@@ -2131,7 +2132,12 @@ Second paragraph should still reach the agent after Slack's preview cutoff.`;
               url_private_download: "https://files.slack.com/original-name.png",
             },
             { name: "original-name.png", mimetype: "image/png" },
-            { id: "F1", name: "missing-contract.pdf", mimetype: "application/pdf" },
+            {
+              id: "F1",
+              name: "missing-contract.pdf",
+              mimetype: "application/pdf",
+              url_private_download: "https://files.slack.com/missing-contract.pdf",
+            },
           ],
         }),
       );
@@ -2144,13 +2150,52 @@ Second paragraph should still reach the agent after Slack's preview cutoff.`;
       expect(prepared.ctxPayload.RawBody).toContain("server-renamed.png (image/png)");
       expect(prepared.ctxPayload.RawBody?.match(/original-name\.png/g)).toHaveLength(1);
       expect(prepared.ctxPayload.BodyForAgent).toContain(
-        "missing-contract.pdf (application/pdf, fileId: F1)",
+        "missing-contract.pdf (application/pdf, fileId: F1) unavailable (",
       );
+      expect(prepared.ctxPayload.BodyForAgent).toContain("HTTP 404");
+      expect(prepared.ctxPayload.BodyForAgent).toContain("[slack 2 attachments unavailable]");
     } finally {
       globalThis.fetch = originalFetch;
       await Promise.all(
         downloadedPaths.map((downloadedPath) => fs.rm(downloadedPath, { force: true })),
       );
+    }
+  });
+
+  it("keeps the ninth file visible to the agent without downloading past the cap", async () => {
+    const originalFetch = globalThis.fetch;
+    const mockFetch = vi.fn(
+      async () =>
+        new Response(Buffer.from("image contents"), {
+          status: 200,
+          headers: { "content-type": "image/png" },
+        }),
+    );
+    globalThis.fetch = mockFetch as typeof fetch;
+    let downloadedPaths: string[] = [];
+    try {
+      const prepared = await prepareWithDefaultCtx(
+        createSlackMessage({
+          text: "Inspect these files",
+          files: Array.from({ length: 9 }, (_, index) => ({
+            id: `FCAP${index}`,
+            name: `image-${index}.png`,
+            mimetype: "image/png",
+            url_private_download: `https://files.slack.com/image-${index}.png`,
+          })),
+        }),
+      );
+      assertPrepared(prepared);
+      downloadedPaths =
+        prepared.ctxPayload.media?.flatMap((media) => (media.path ? [media.path] : [])) ?? [];
+      expect(mockFetch).toHaveBeenCalledTimes(8);
+      expect(prepared.ctxPayload.media).toHaveLength(8);
+      expect(prepared.ctxPayload.BodyForAgent).toContain(
+        "image-8.png (image/png, fileId: FCAP8) unavailable (omitted: 8-file limit)",
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+      await Promise.all(downloadedPaths.map((filePath) => fs.rm(filePath, { force: true })));
     }
   });
 
@@ -2170,7 +2215,7 @@ Second paragraph should still reach the agent after Slack's preview cutoff.`;
 
     assertPrepared(prepared);
     expect(prepared.ctxPayload.RawBody).toContain(
-      "[Slack file: forwarded-report.pdf (fileId: FFORWARD)]",
+      "[Slack file: forwarded-report.pdf (fileId: FFORWARD) unavailable (no private download URL)]",
     );
   });
 
@@ -2196,7 +2241,7 @@ Second paragraph should still reach the agent after Slack's preview cutoff.`;
 
     assertPrepared(prepared);
     expect(prepared.ctxPayload.RawBody).toContain(
-      "[Slack file: direct-report.pdf (fileId: FDIRECT), shared-report.pdf (fileId: FSHARED), forwarded-report.pdf (fileId: FFORWARD)]",
+      "[Slack file: direct-report.pdf (fileId: FDIRECT) unavailable (no private download URL), shared-report.pdf (fileId: FSHARED) unavailable (no private download URL), forwarded-report.pdf (fileId: FFORWARD) unavailable (no private download URL)]",
     );
   });
 
@@ -2209,7 +2254,9 @@ Second paragraph should still reach the agent after Slack's preview cutoff.`;
     );
 
     assertPrepared(prepared);
-    expect(prepared.ctxPayload.RawBody).toContain("[Slack file: file]");
+    expect(prepared.ctxPayload.RawBody).toContain(
+      "[Slack file: file unavailable (no private download URL)]",
+    );
   });
 
   it("extracts attachment text for bot messages with empty text when allowBots is true (#27616)", async () => {
@@ -5168,7 +5215,7 @@ describe("slack implicit mention policy", () => {
   }) {
     const { storePath } = storeFixture.makeTmpStorePath();
     vi.spyOn(
-      await import("openclaw/plugin-sdk/session-store-runtime"),
+      await import("astroclaw/plugin-sdk/session-store-runtime"),
       "resolveStorePath",
     ).mockReturnValue(storePath);
     return await prepareSlackMessage({
