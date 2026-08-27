@@ -10,9 +10,9 @@ import {
   type CodexBundleMcpThreadConfig,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
   type resolveSandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
-import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
   CodexAppServerUnsafeSubscriptionError,
@@ -30,6 +30,7 @@ import { ensureCodexAppServerClientRuntime } from "./client-runtime.js";
 import {
   isCodexAppServerBrokenPipeError,
   isCodexAppServerConnectionClosedError,
+  isCodexAppServerOverloadError,
   isCodexAppServerRequestTimeoutError,
   type CodexAppServerClient,
 } from "./client.js";
@@ -689,7 +690,7 @@ export async function startCodexAttemptThread(params: {
       releaseSharedClientLease,
     };
   } catch (error) {
-    if (params.signal.aborted || shouldClearSharedClientAfterStartupAbandon(error)) {
+    if (params.signal.aborted || isCodexAppServerStartupError(error)) {
       releaseSharedClientLease?.();
       releaseSharedClientLease = undefined;
       await closeCodexStartupClientBestEffort(startupClientForAbandonedRequestCleanup);
@@ -713,19 +714,16 @@ export async function startCodexAttemptThread(params: {
   }
 }
 
-function shouldClearSharedClientAfterStartupAbandon(error: unknown): boolean {
-  return isCodexAppServerStartupError(error);
-}
-
 function shouldClearSharedClientAfterStartupRace(error: unknown): boolean {
-  return (
-    shouldClearSharedClientAfterStartupAbandon(error) || isCodexAppServerRequestTimeoutError(error)
-  );
+  return isCodexAppServerStartupError(error) || isCodexAppServerRequestTimeoutError(error);
 }
 
 function shouldClearSharedClientAfterStartupFailure(params: {
   error: unknown;
   spawnedBy: EmbeddedRunAttemptParams["spawnedBy"];
 }): boolean {
+  if (isCodexAppServerOverloadError(params.error)) {
+    return false;
+  }
   return isCodexAppServerBrokenPipeError(params.error) || !params.spawnedBy;
 }
