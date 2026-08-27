@@ -1,27 +1,27 @@
-import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
 import {
   createChannelInboundEnvelopeBuilder,
   formatInboundMediaUnavailableText,
-} from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
 import type {
   ChannelIngressContextBinding,
   ResolvedChannelMessageIngress,
-} from "openclaw/plugin-sdk/channel-ingress-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-runtime";
 import {
   bindIngressLifecycleToReplyOptions,
   waitUntilAbort,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import type { GetReplyOptions, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
-import { retryAsync } from "openclaw/plugin-sdk/retry-runtime";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
-import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { GetReplyOptions, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import { retryAsync } from "astroclaw/plugin-sdk/retry-runtime";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
 import {
   asFiniteNumber,
   asNullableRecord as asRecord,
   readStringField as readString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import type { OpenClawConfig } from "../../runtime-api.js";
 import { createLoggerBackedRuntime } from "../../runtime-api.js";
 import { getTlonRuntime } from "../runtime.js";
@@ -589,10 +589,6 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
 
     const dispatchStartTime = Date.now();
 
-    const responsePrefix = core.channel.reply.resolveEffectiveMessagesConfig(
-      cfg,
-      route.agentId,
-    ).responsePrefix;
     const humanDelay = resolveHumanDelayConfig(cfg, route.agentId);
     const deliveryTarget = isGroup ? groupChannel : senderShip;
 
@@ -637,6 +633,7 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
       cfg,
       route: { agentId: route.agentId, dmScope: route.dmScope, sessionKey: route.sessionKey },
       ctxPayload,
+      replyPipeline: {},
       delivery: {
         preparePayload: prepareReplyPayload,
         durable: deliveryTarget
@@ -687,7 +684,6 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
         },
       },
       dispatcherOptions: {
-        responsePrefix,
         humanDelay,
       },
       ...(turnAdoptionLifecycle || promptMedia.media.length > 0 ? { replyOptions } : {}),
