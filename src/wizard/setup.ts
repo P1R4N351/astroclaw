@@ -9,7 +9,7 @@ import { hasResolvedRosterBeforeMigrations } from "../config/agent-roster-proven
 import { ConfigMutationConflictError } from "../config/config.js";
 import { createMergePatch, applyMergePatch } from "../config/merge-patch.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveGatewayProbeAuthSafeWithSecretInputs } from "../gateway/probe-auth.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {
@@ -462,9 +462,7 @@ async function runSetupWizardOnce(
     const { logConfigUpdated } = await loadConfigLoggingModule();
     let nextConfig = await promptRemoteGatewayConfig(remoteSeedConfig, prompter, {
       secretInputMode: opts.secretInputMode,
-      ...(opts.remoteUrl !== undefined && storedRemoteUrl
-        ? { edgeAuthOriginUrl: storedRemoteUrl }
-        : {}),
+      ...(opts.remoteUrl !== undefined ? { remoteOriginUrl: storedRemoteUrl } : {}),
     });
     nextConfig = opts.skipBootstrap ? applySkipBootstrapConfig(nextConfig) : nextConfig;
     nextConfig = onboardHelpers.applyWizardMetadata(nextConfig, { command: "onboard", mode });
