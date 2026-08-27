@@ -1,7 +1,7 @@
 // Resolves persisted session model metadata without loading Gateway projections.
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
 import {
   inferUniqueProviderFromConfiguredModels,
@@ -14,7 +14,14 @@ import {
 
 type SessionModelEntry =
   | SessionEntry
-  | Pick<SessionEntry, "model" | "modelProvider" | "modelOverride" | "providerOverride">;
+  | Pick<
+      SessionEntry,
+      | "model"
+      | "modelProvider"
+      | "modelOverride"
+      | "providerOverride"
+      | "modelOverrideRouteResolution"
+    >;
 
 export function resolveSessionModelRef(
   cfg: OpenClawConfig,
@@ -27,11 +34,17 @@ export function resolveSessionModelRef(
     modelOverride: entry?.modelOverride,
   });
   if (normalizedOverride.providerOverride && normalizedOverride.modelOverride) {
+    // Resolved overrides were canonicalized by their producer. Re-running plugin hooks here
+    // can cold-load provider runtime and transform the same persisted identity twice.
+    const allowPluginNormalization =
+      entry?.modelOverrideRouteResolution === "resolved"
+        ? false
+        : options?.allowPluginNormalization;
     return resolvePersistedSelectedModelRef({
       defaultProvider: normalizedOverride.providerOverride,
       overrideProvider: normalizedOverride.providerOverride,
       overrideModel: normalizedOverride.modelOverride,
-      allowPluginNormalization: options?.allowPluginNormalization,
+      allowPluginNormalization,
     })!;
   }
   const runtimeProvider = normalizeOptionalString(entry?.modelProvider);
