@@ -36,9 +36,12 @@ vi.mock("./send.outbound.js", () => ({
 }));
 
 const loadOutboundMediaFromUrlMock = vi.hoisted(() => vi.fn());
-vi.mock("./runtime-api.js", () => ({
-  loadOutboundMediaFromUrl: loadOutboundMediaFromUrlMock,
-}));
+vi.mock("astroclaw/plugin-sdk/outbound-media", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/outbound-media")>(
+    "astroclaw/plugin-sdk/outbound-media",
+  );
+  return { ...actual, loadOutboundMediaFromUrl: loadOutboundMediaFromUrlMock };
+});
 
 let registerDiscordComponentEntries: typeof import("./components-registry.js").registerDiscordComponentEntries;
 let editDiscordComponentMessage: typeof import("./send.components.js").editDiscordComponentMessage;
