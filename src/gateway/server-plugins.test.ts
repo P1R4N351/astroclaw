@@ -3,7 +3,7 @@
 import os from "node:os";
 import path from "node:path";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { createTerminalTool } from "../agents/tools/terminal-tool.js";
 import {
@@ -59,9 +59,15 @@ vi.mock("../plugins/loader.js", () => ({
   loadOpenClawPlugins,
 }));
 
-vi.mock("../plugins/runtime/load-context.js", () => ({
-  createPluginRuntimeLoaderLogger: () => pluginRuntimeLoaderLogger,
-}));
+vi.mock("../plugins/runtime/load-context.js", async (importOriginal) => {
+  const { buildPluginRuntimeLoadOptions, setPluginRuntimeLoadContext } =
+    await importOriginal<typeof import("../plugins/runtime/load-context.js")>();
+  return {
+    buildPluginRuntimeLoadOptions,
+    setPluginRuntimeLoadContext,
+    createPluginRuntimeLoaderLogger: () => pluginRuntimeLoaderLogger,
+  };
+});
 
 vi.mock("../plugins/plugin-lookup-table.js", () => ({
   loadPluginLookUpTable,
