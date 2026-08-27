@@ -1,5 +1,5 @@
 import type { SessionToolOverrides } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 /**
  * Public native agent harness contracts and capability shapes.
  */
@@ -151,7 +151,7 @@ type AgentHarnessIsolatedCompletionParams = {
   auth: import("../model-auth-runtime-shared.js").ResolvedProviderAuth;
   /** Non-reversible proof of the prepared credential owner when available. */
   sourceAuthFingerprint?: string;
-  config: import("../../config/types.astroclaw.js").OpenClawConfig;
+  config: import("../../config/types.openclaw.js").OpenClawConfig;
   agentId: string;
   agentDir: string;
   workspaceDir: string;
@@ -195,7 +195,7 @@ export type AgentHarnessAuthBindingFingerprintParams = {
   authProfileId: string;
   authProfileStore: import("../auth-profiles/types.js").AuthProfileStore;
   agentDir: string;
-  config?: import("../../config/types.astroclaw.js").OpenClawConfig;
+  config?: import("../../config/types.openclaw.js").OpenClawConfig;
 };
 /**
  * @deprecated Use {@link AgentHarnessSideQuestionParamsV2}. This compatibility
@@ -208,7 +208,7 @@ export type AgentHarnessSideQuestionParams = {
   sandbox?: import("../sandbox/types.js").SandboxContext | null;
   /** Prepared plugin/model generation that owns this side execution. */
   preparedModelRuntime?: import("../prepared-model-runtime.types.js").PreparedModelRuntimeSnapshot;
-  cfg: import("../../config/types.astroclaw.js").OpenClawConfig;
+  cfg: import("../../config/types.openclaw.js").OpenClawConfig;
   agentDir: string;
   provider: string;
   model: string;
@@ -424,8 +424,30 @@ type AgentHarnessCompactionCapability = {
   compact?(params: AgentHarnessCompactParams): Promise<AgentHarnessCompactResult | undefined>;
 };
 
+export type AgentHarnessSessionDeletionParams = {
+  agentId: string;
+  sessionKey: string;
+  sessionId: string;
+  lifecycleRevision?: string;
+  /** Revalidate the captured registry, harness, and operation before each side effect. */
+  assertCurrent: () => void;
+};
+
+export type AgentHarnessSessionDeletionMutation = {
+  /** Synchronously remove only the prepared owner's state at the session commit edge. */
+  commit: () => void;
+  /** Restore only that removal when the authoritative session transaction rolls back. */
+  rollback: () => void;
+};
+
 type AgentHarnessSessionLifecycleCapability = {
   reset?(params: AgentHarnessResetParams): Promise<void> | void;
+  /** Prepare outside the session writer; release native resources after its commit completes. */
+  withSessionDeletion?<T>(
+    this: void,
+    params: AgentHarnessSessionDeletionParams,
+    run: (mutation: AgentHarnessSessionDeletionMutation) => Promise<T>,
+  ): Promise<T>;
   dispose?(): Promise<void> | void;
 };
 
