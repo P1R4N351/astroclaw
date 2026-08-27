@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import type { RunEmbeddedAgentParams } from "./embedded-agent-runner/run/params.js";
 import type { EmbeddedAgentRunResult } from "./embedded-agent-runner/types.js";
@@ -23,6 +23,7 @@ type SessionPlacementSandboxParams = {
 };
 
 export type SessionPlacementAdmissionProvider = {
+  recoverTerminalTurn?: (session: { sessionId: string; sessionKey?: string }) => string | undefined;
   executeLocalTurn: <T>(claim: LocalTurnPlacementClaim, runLocal: () => Promise<T>) => Promise<T>;
   executeTurn: (
     claim: LocalTurnPlacementClaim,
@@ -119,4 +120,12 @@ export async function resolveSessionPlacementSandbox(
   params: SessionPlacementSandboxParams,
 ): Promise<SandboxContext | null> {
   return (await state.provider?.resolveSandbox?.(params)) ?? null;
+}
+
+/** The current placement owner alone can settle a proven terminal worker turn. */
+export function recoverTerminalSessionPlacementTurn(session: {
+  sessionId: string;
+  sessionKey?: string;
+}): string | undefined {
+  return state.provider?.recoverTerminalTurn?.(session);
 }
