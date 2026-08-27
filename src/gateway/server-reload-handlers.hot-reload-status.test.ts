@@ -6,7 +6,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { getRuntimeAuthProfileStoreCredentialsRevision } from "../agents/auth-profiles/runtime-snapshots.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { GatewayPluginReloadResult } from "./server-reload-handlers.js";
 import { startManagedGatewayConfigReloader } from "./server-reload-handlers.js";
 
@@ -83,7 +83,6 @@ describe("startManagedGatewayConfigReloader hotReloadStatus plumbing", () => {
           storePath: "/tmp/cron.json",
           cronEnabled: false,
           reconcileExitWatchers: vi.fn(async () => {}),
-          stopExitWatchers: vi.fn(),
           reconcileStreamWatchers: vi.fn(async () => {}),
           stopStreamWatchers: vi.fn(async () => {}),
           reconcileHeartbeatJobs: vi.fn(async () => {}),
