@@ -3,7 +3,7 @@ import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { activateContextEngineRegistrations } from "../context-engine/registry.js";
 import { resolveRealpathOrAbsolute } from "../infra/boundary-path.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
@@ -39,7 +39,7 @@ import type { PluginRecord, PluginRegistry } from "./registry.js";
 import {
   captureActivePluginRegistrySnapshot,
   commitStagedPluginRegistry,
-  restoreActivePluginRegistrySnapshot,
+  rollbackStagedPluginRegistry,
   stageActivePluginRegistry,
 } from "./runtime.js";
 import { validateJsonSchemaValue } from "./schema-validator.js";
@@ -374,7 +374,7 @@ export function activatePluginRegistry(
     activateContextEngineRegistrations(registry);
     commitStagedPluginRegistry(activeSnapshot.activeRegistry, registry);
   } catch (error) {
-    restoreActivePluginRegistrySnapshot(activeSnapshot);
+    rollbackStagedPluginRegistry(activeSnapshot);
     if (previousHookRegistry) {
       initializeGlobalHookRunner(previousHookRegistry);
     } else {
