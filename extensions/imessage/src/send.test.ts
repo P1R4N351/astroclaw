@@ -2,9 +2,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
-import { sanitizeForPlainText } from "astroclaw/plugin-sdk/channel-outbound";
-import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
+import { sanitizeForPlainText } from "openclaw/plugin-sdk/channel-outbound";
+import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IMessageRpcClient } from "./client.js";
 import {
@@ -16,7 +16,7 @@ import { loadFreshIMessageReplyCacheForTest } from "./test-support/runtime.js";
 
 type ApprovalReactionsModule = typeof import("./approval-reactions.js");
 type ClientModule = typeof import("./client.js");
-type ErrorRuntimeModule = typeof import("astroclaw/plugin-sdk/error-runtime");
+type ErrorRuntimeModule = typeof import("openclaw/plugin-sdk/error-runtime");
 type PersistedEchoCacheModule = typeof import("./monitor/persisted-echo-cache.js");
 type ReplyCacheModule = typeof import("./monitor-reply-cache.js");
 type SendModule = typeof import("./send.js");
@@ -33,7 +33,7 @@ async function loadFreshSendModule(): Promise<void> {
   ({ findLatestIMessageEntryForChat, rememberIMessageReplyCache } =
     await loadFreshIMessageReplyCacheForTest());
   ({ IMessageRpcRequestError } = await import("./client.js"));
-  ({ PlatformMessageNotDispatchedError } = await import("astroclaw/plugin-sdk/error-runtime"));
+  ({ PlatformMessageNotDispatchedError } = await import("openclaw/plugin-sdk/error-runtime"));
   ({
     clearIMessageApprovalReactionTargetsForTest,
     resolveIMessageApprovalReactionTargetWithPersistence,
@@ -639,6 +639,17 @@ describe("sendMessageIMessage receipts", () => {
         }
       }
 
+      const dunderReferenceRequestIndex = countNativeRequests();
+      await sendMessageIMessage(
+        "chat_id:10",
+        [
+          "[Class][docs] and [Type][docs] **done**",
+          "",
+          "[docs]: https://docs.python.org/3/library/stdtypes.html#instance.__class__",
+        ].join("\n"),
+        { config: cfg },
+      );
+
       const oversizedYaml = [
         "```yaml",
         ...Array.from({ length: 6 }, (_, index) =>
@@ -678,7 +689,7 @@ describe("sendMessageIMessage receipts", () => {
           );
       const requests = readRequests();
       const expectedFixedRequestCount =
-        1 + disguisedCases.length + 1 + channelContractRequestCount + embeddedRequestCount;
+        1 + disguisedCases.length + 1 + channelContractRequestCount + embeddedRequestCount + 1;
       expect(fixedRequestCount).toBe(expectedFixedRequestCount);
       const monitorRequests = requests.slice(
         expectedFixedRequestCount,
@@ -735,10 +746,27 @@ describe("sendMessageIMessage receipts", () => {
           (boldRange?.start ?? 0) + (boldRange?.length ?? 0),
         ),
       ).toBe("😀 styled");
+      expect(requests[dunderReferenceRequestIndex]?.params).toMatchObject({
+        text: [
+          "Class (https://docs.python.org/3/library/stdtypes.html#instance.__class__)",
+          "and Type (https://docs.python.org/3/library/stdtypes.html#instance.__class__)",
+          "done",
+        ].join(" "),
+        formatting: [{ start: 153, length: 4, styles: ["bold"] }],
+      });
 
       const { imessageActionsRuntime } = await import("./actions.runtime.js");
       const actionOptions = { cliPath, chatGuid: "iMessage;+;chat0000" };
       const fencedYaml = ["```yaml", ...roles.map((role) => `${role}:`), "```"].join("\n");
+      await imessageActionsRuntime.sendRichMessage({
+        chatGuid: actionOptions.chatGuid,
+        text: [
+          "[Class][obj.__class__] **done**",
+          "",
+          "[obj.__class__]: https://example.org/python",
+        ].join("\n"),
+        options: actionOptions,
+      });
       await imessageActionsRuntime.sendRichMessage({
         chatGuid: actionOptions.chatGuid,
         text: [
@@ -862,8 +890,9 @@ describe("sendMessageIMessage receipts", () => {
           .map((line) => JSON.parse(line) as string[]);
       const actionValue = (args: string[], flag: string) => args[args.indexOf(flag) + 1] ?? "";
       const actions = readActions();
-      expect(actions).toHaveLength(6);
+      expect(actions).toHaveLength(7);
       const [
+        dunderReferenceAction,
         replyAction,
         effectAction,
         attachmentAction,
@@ -872,6 +901,7 @@ describe("sendMessageIMessage receipts", () => {
         pollAction,
       ] = actions;
       if (
+        !dunderReferenceAction ||
         !replyAction ||
         !effectAction ||
         !attachmentAction ||
@@ -879,8 +909,14 @@ describe("sendMessageIMessage receipts", () => {
         !editAction ||
         !pollAction
       ) {
-        throw new Error("Expected all six native iMessage action subprocesses");
+        throw new Error("Expected all seven native iMessage action subprocesses");
       }
+      expect(actionValue(dunderReferenceAction, "--text")).toBe(
+        "Class (https://example.org/python) done",
+      );
+      expect(JSON.parse(actionValue(dunderReferenceAction, "--format"))).toEqual([
+        { start: 35, length: 4, styles: ["bold"] },
+      ]);
       expect(replyAction).toContain("--reply-to");
       expect(actionValue(replyAction, "--reply-to")).toBe("reply-message-guid");
       expect(actionValue(effectAction, "--effect")).toBe("com.apple.MobileSMS.expressivesend.loud");
