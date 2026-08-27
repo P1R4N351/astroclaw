@@ -7,13 +7,13 @@ import {
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { CHANNEL_IDS } from "../channels/ids.js";
 import { parseConfigSetPath, parseConfigSetValue } from "../cli/config-cli-path.js";
+import { isKernelOwnedChannelConfigKey } from "../config/channel-config-keys.js";
 import {
   collectChannelSchemaMetadataCore,
   collectPluginSchemaMetadataCore,
 } from "../config/channel-config-metadata.js";
 import { REDACTED_SENTINEL, redactConfigObject } from "../config/redact-snapshot.js";
 import { getRuntimeConfigSnapshot } from "../config/runtime-snapshot.js";
-import { isKernelOwnedChannelConfigKey } from "../config/schema.hints.js";
 import {
   buildConfigSchemaCore,
   classifyConfigSchemaPathSegment,
@@ -21,7 +21,7 @@ import {
 } from "../config/schema.js";
 import { findWildcardHintMatch } from "../config/schema.shared.js";
 import { isSensitiveConfigPath } from "../config/sensitive-paths.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { ChannelsSchema } from "../config/zod-schema.channels-config.js";
 import { getCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
