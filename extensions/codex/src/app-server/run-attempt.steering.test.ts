@@ -1,11 +1,11 @@
 // Codex tests cover run attempt.steering plugin behavior.
 import path from "node:path";
-import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "openclaw/plugin-sdk/provider-model-shared";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "astroclaw/plugin-sdk/provider-model-shared";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   readSessionTranscriptEvents,
-} from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/session-transcript-runtime";
 import { describe, expect, it, vi } from "vitest";
 import type { CodexSteeringQueueOptions } from "./attempt-steering.js";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
@@ -32,8 +32,9 @@ const activeRunRegistrationMocks = vi.hoisted(() => ({
   cancelQuestionError: undefined as Error | undefined,
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     cancelPendingAgentQuestionForSession: async (
@@ -149,6 +150,27 @@ describe("runCodexAppServerAttempt steering", () => {
       method: "turn/interrupt",
       params: { threadId: "thread-1", turnId: "turn-1" },
     });
+  });
+
+  it("threads the core run start time onto the active-turn handle", async () => {
+    const { waitForMethod, completeTurn } = createStartedThreadHarness();
+    const startedAtMs = 1_750_000_000_000;
+    const params = { ...createSteeringParams(), startedAtMs };
+    activeRunRegistrationMocks.setActiveEmbeddedRun.mockClear();
+    const run = runCodexAppServerAttempt(params);
+    await waitForMethod("turn/start");
+
+    let handle: { startedAtMs?: number } | undefined;
+    await vi.waitFor(() => {
+      handle = activeRunRegistrationMocks.setActiveEmbeddedRun.mock.calls.findLast(
+        (call) => call[0] === params.sessionId,
+      )?.[1] as typeof handle;
+      expect(handle).toBeDefined();
+    }, fastWait);
+    expect(handle?.startedAtMs).toBe(startedAtMs);
+
+    await completeTurn({ threadId: "thread-1", turnId: "turn-1" });
+    await run;
   });
 
   it("exposes pending-question cancellation for queued image fallback", async () => {
