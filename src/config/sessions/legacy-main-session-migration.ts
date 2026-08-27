@@ -14,7 +14,7 @@ import { withExistingOpenClawStateDatabaseReadOnly } from "../../state/openclaw-
 import type { DB as OpenClawStateKyselyDatabase } from "../../state/openclaw-state-db.generated.js";
 import { runOpenClawStateWriteTransaction } from "../../state/openclaw-state-db.js";
 import { resolveStateDir } from "../paths.js";
-import type { OpenClawConfig } from "../types.astroclaw.js";
+import type { OpenClawConfig } from "../types.openclaw.js";
 import {
   readClaimsFromStore,
   storeHasLegacyAgentSessionKey,
@@ -187,6 +187,7 @@ function resolvePhysicalStores(params: {
       });
       const physical: PhysicalStore = {
         databaseAgentId: normalizeAgentId(resolved.agentId ?? target.agentId),
+        ownerStorePath: target.storePath,
         path: resolved.path,
       };
       resolvePhysicalPathIdentity(physical.path);
@@ -514,6 +515,7 @@ async function migrateLegacyMainSessionKeysInternal(params: {
     isSameOpenClawAgentDatabasePath(store.path, destinationResolved.path),
   ) ?? {
     databaseAgentId: normalizeAgentId(destinationResolved.agentId ?? ownerAgentId),
+    ownerStorePath: destinationLogical,
     path: destinationResolved.path,
   };
 
