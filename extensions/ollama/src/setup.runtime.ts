@@ -1,23 +1,23 @@
 // Ollama setup runtime handles plugin onboarding behavior.
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
-import type { ProviderAuthMethod } from "openclaw/plugin-sdk/plugin-entry";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import type { ProviderAuthMethod } from "astroclaw/plugin-sdk/plugin-entry";
 import type {
   OpenClawConfig,
   SecretInput,
   SecretInputMode,
-} from "openclaw/plugin-sdk/provider-auth";
+} from "astroclaw/plugin-sdk/provider-auth";
 import {
   ensureApiKeyFromOptionEnvOrPrompt,
   isNonSecretApiKeyMarker,
   normalizeApiKeyInput,
   normalizeOptionalSecretInput,
   validateApiKeyInput,
-} from "openclaw/plugin-sdk/provider-auth";
-import { readProviderJsonResponse } from "openclaw/plugin-sdk/provider-http";
-import { applyAgentDefaultModelPrimary } from "openclaw/plugin-sdk/provider-onboard";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
-import { WizardCancelledError, type WizardPrompter } from "openclaw/plugin-sdk/setup";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { readProviderJsonResponse } from "astroclaw/plugin-sdk/provider-http";
+import { applyAgentDefaultModelPrimary } from "astroclaw/plugin-sdk/provider-onboard";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+import { WizardCancelledError, type WizardPrompter } from "astroclaw/plugin-sdk/setup";
+import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   OLLAMA_CLOUD_BASE_URL,
   OLLAMA_CLOUD_DEFAULT_MODELS,
@@ -33,6 +33,7 @@ import {
   enrichOllamaModelsWithContext,
   fetchOllamaModels,
   isOllamaCloudModel,
+  isOllamaEmbeddingOnlyModel,
   queryOllamaModelShowInfo,
   resolveOllamaApiBase,
   type OllamaModelWithContext,
@@ -276,6 +277,7 @@ async function promptAndConfigureHostBackedOllama(params: {
   const baseUrl = await promptForOllamaBaseUrl(params.prompter, params.env);
   let discovery = await discoverOllamaModelsForSetup({
     baseUrl,
+    includeRemoteModels: HOST_BACKED_OLLAMA_MODE_CONFIG[params.mode].includeCloudModels,
     inspectTools: true,
     ...(params.signal ? { signal: params.signal } : {}),
   });
@@ -292,6 +294,7 @@ async function promptAndConfigureHostBackedOllama(params: {
     params.signal?.throwIfAborted();
     discovery = await discoverOllamaModelsForSetup({
       baseUrl,
+      includeRemoteModels: HOST_BACKED_OLLAMA_MODE_CONFIG[params.mode].includeCloudModels,
       inspectTools: true,
       ...(params.signal ? { signal: params.signal } : {}),
     });
@@ -569,37 +572,53 @@ export async function configureOllamaNonInteractive(params: {
     allModelNames = [...allModelNames, requestedDefaultModelId];
   }
 
+  const inspectAvailableModel = async (name: string): Promise<OllamaModelWithContext> => {
+    const model =
+      discoveredModelsByName.get(name) ??
+      expectDefined(
+        (
+          await enrichOllamaModelsWithContext(baseUrl, [
+            models.find((candidate) => candidate.name === name) ?? { name },
+          ])
+        )[0],
+        "selected Ollama setup model",
+      );
+    discoveredModelsByName.set(name, model);
+    return model;
+  };
+
   if (!findAvailableOllamaModelName(defaultModelId, availableModelNames)) {
-    if (availableModelNames.size === 0) {
+    let fallbackModelId: string | undefined;
+    for (const name of allModelNames) {
+      const availableName = findAvailableOllamaModelName(name, availableModelNames);
+      // Fallbacks beyond the initial scan must be inspected before becoming the chat default.
+      if (
+        availableName &&
+        !isOllamaEmbeddingOnlyModel(await inspectAvailableModel(availableName))
+      ) {
+        fallbackModelId = availableName;
+        break;
+      }
+    }
+    if (!fallbackModelId) {
       params.runtime.error(
         [
-          `No Ollama models are available at ${baseUrl}.`,
-          "Pull a model first, then re-run setup.",
+          `No Ollama chat models are available at ${baseUrl}.`,
+          "Pull a chat model first, then re-run setup.",
         ].join("\n"),
       );
       params.runtime.exit(1);
       return params.nextConfig;
     }
 
-    defaultModelId =
-      allModelNames.find((name) => findAvailableOllamaModelName(name, availableModelNames)) ??
-      expectDefined(availableModelNames.values().next().value, "available Ollama setup model");
+    defaultModelId = fallbackModelId;
     params.runtime.log(
       `Ollama model ${requestedDefaultModelId} was not available; using ${defaultModelId} instead.`,
     );
   }
 
-  if (!requestedCloudModel && !discoveredModelsByName.has(defaultModelId)) {
-    // Explicit and newly pulled models can fall outside the bounded catalog scan.
-    const selectedModel = expectDefined(
-      (
-        await enrichOllamaModelsWithContext(baseUrl, [
-          models.find((model) => model.name === defaultModelId) ?? { name: defaultModelId },
-        ])
-      )[0],
-      "selected Ollama setup model",
-    );
-    discoveredModelsByName.set(defaultModelId, selectedModel);
+  if (!requestedCloudModel) {
+    await inspectAvailableModel(defaultModelId);
   }
 
   const config = applyOllamaProviderConfig(
