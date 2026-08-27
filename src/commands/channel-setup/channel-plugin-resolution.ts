@@ -5,14 +5,10 @@ import {
   listRawChannelPluginCatalogEntries,
   type ChannelPluginCatalogEntry,
 } from "../../channels/plugins/catalog.js";
-import {
-  getChannelPlugin,
-  getLoadedChannelPlugin,
-  normalizeChannelId,
-} from "../../channels/plugins/index.js";
+import { getLoadedChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
 import type { ChannelId } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import { createClackPrompter } from "../../wizard/clack-prompter.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
@@ -170,7 +166,9 @@ export async function resolveInstallableChannelPlugin(params: {
     };
   }
 
-  const existing = getChannelPlugin(channelId);
+  // Bundled plugin metadata is not runtime-bound; load it through the scoped registry
+  // before returning a plugin that callers can execute.
+  const existing = getLoadedChannelPlugin(channelId);
   if (existing) {
     return {
       cfg: nextCfg,
