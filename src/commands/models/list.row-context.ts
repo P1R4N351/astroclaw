@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
 import type { ModelListAuthIndex } from "./list.auth-index.js";
 import type { ConfiguredEntry } from "./list.types.js";
@@ -15,6 +15,7 @@ export type RowBuilderContext = {
   agentDir: string;
   inheritedAuthDir?: string;
   authIndex: ModelListAuthIndex;
+  canonicalizeProvider: (provider: string) => string;
   providerDiscoveryProviderIds?: readonly string[];
   providerRuntimeDiscoveryProviderIds?: readonly string[];
   providerManifestFallbackProviderIds?: readonly string[];
