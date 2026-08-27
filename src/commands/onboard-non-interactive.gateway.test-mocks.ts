@@ -2,7 +2,7 @@
 // vi.mock calls live here so sibling suites share one config-write/daemon/health surface.
 import path from "node:path";
 import { vi } from "vitest";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
 import {
   createOnboardTestConfigStore,
   createThrowingRuntime,
@@ -196,13 +196,10 @@ vi.mock("../daemon/diagnostics.js", () => ({
 }));
 
 export let runNonInteractiveSetup: typeof import("./onboard-non-interactive.js").runNonInteractiveSetup;
-export let resolveInstallDaemonGatewayHealthTiming: typeof import("./onboard-non-interactive/local.test-support.js").resolveInstallDaemonGatewayHealthTiming;
 
 export async function loadGatewayOnboardModules(): Promise<void> {
   vi.resetModules();
   ({ runNonInteractiveSetup } = await import("./onboard-non-interactive.js"));
-  ({ resolveInstallDaemonGatewayHealthTiming } =
-    await import("./onboard-non-interactive/local.test-support.js"));
 }
 
 export const getPseudoPort = (base: number): number => base + (process.pid % 1000);
