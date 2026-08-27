@@ -1,6 +1,6 @@
 // Discord plugin module implements message handler.preflight behavior.
-import { formatAllowlistMatchMeta } from "astroclaw/plugin-sdk/allow-from";
-import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
+import { formatAllowlistMatchMeta } from "openclaw/plugin-sdk/allow-from";
+import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
 import {
   buildMentionRegexes,
   classifyChannelInboundEvent,
@@ -10,17 +10,17 @@ import {
   resolveUnmentionedGroupInboundPolicy,
   toHistoryMediaEntries,
   toInboundMediaFactsWithMetadata,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { isRecentOutboundMessageIdentity } from "astroclaw/plugin-sdk/channel-outbound";
-import { hasControlCommand } from "astroclaw/plugin-sdk/command-detection";
-import { isAbortRequestText } from "astroclaw/plugin-sdk/command-primitives-runtime";
-import { shouldHandleTextCommands } from "astroclaw/plugin-sdk/command-surface";
-import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
-import { logDebug } from "astroclaw/plugin-sdk/logging-core";
-import { mimeTypeFromFilePath } from "astroclaw/plugin-sdk/media-mime";
-import { createChannelHistoryWindow } from "astroclaw/plugin-sdk/reply-history";
-import { getChildLogger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { enqueueRoutedSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { isRecentOutboundMessageIdentity } from "openclaw/plugin-sdk/channel-outbound";
+import { hasControlCommand } from "openclaw/plugin-sdk/command-detection";
+import { isAbortRequestText } from "openclaw/plugin-sdk/command-primitives-runtime";
+import { shouldHandleTextCommands } from "openclaw/plugin-sdk/command-surface";
+import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
+import { logDebug } from "openclaw/plugin-sdk/logging-core";
+import { mimeTypeFromFilePath } from "openclaw/plugin-sdk/media-mime";
+import { createChannelHistoryWindow } from "openclaw/plugin-sdk/reply-history";
+import { getChildLogger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { enqueueRoutedSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
 import { resolveDefaultDiscordAccountId } from "../accounts.js";
 import { ChannelType, MessageType, type User } from "../internal/discord.js";
 import {
@@ -31,6 +31,10 @@ import {
 import { resolveDiscordChannelInfoSafe, resolveDiscordChannelNameSafe } from "./channel-access.js";
 import { resolveDiscordTextCommandAccess } from "./dm-command-auth.js";
 import { resolveDiscordSystemLocation, resolveTimestampMs } from "./format.js";
+import {
+  resolveDiscordChannelInfo,
+  resolveDiscordMessageChannelId,
+} from "./message-channel-info.js";
 import { resolveDiscordMessageStickers } from "./message-forwarded.js";
 import { resolveDiscordDmPreflightAccess } from "./message-handler.dm-preflight.js";
 import type { DiscordHistoryEntry } from "./message-handler.history.js";
@@ -64,13 +68,8 @@ import type {
   DiscordMessagePreflightParams,
 } from "./message-handler.preflight.types.js";
 import { resolveDiscordPreflightRoute } from "./message-handler.routing-preflight.js";
-import {
-  resolveDiscordChannelInfo,
-  resolveDiscordMessageChannelId,
-  resolveDiscordMessageText,
-  resolveForwardedMediaList,
-  resolveMediaList,
-} from "./message-utils.js";
+import { resolveForwardedMediaList, resolveMediaList } from "./message-media.js";
+import { resolveDiscordMessageText } from "./message-text.js";
 import { resolveDiscordSenderIdentity, resolveDiscordWebhookId } from "./sender-identity.js";
 import {
   DISCORD_ATTACHMENT_IDLE_TIMEOUT_MS,
