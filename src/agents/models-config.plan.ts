@@ -3,7 +3,7 @@
  * this module to merge implicit provider discovery, explicit config, and
  * preserved secrets before touching models.json.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import type { ProviderCatalogOutcome } from "../plugins/provider-catalog.types.js";
 import type { PreparedProviderStaticCatalog } from "../plugins/provider-discovery.js";
@@ -15,7 +15,6 @@ import {
   type ExistingProviderConfig,
 } from "./models-config.merge.js";
 import {
-  applyNativeStreamingUsageCompat,
   enforceSourceManagedProviderSecrets,
   normalizeProviderCatalogModelsForConfig,
   normalizeProviders,
@@ -303,9 +302,7 @@ async function planOpenClawModelsJsonWithDeps(
       sourceSecretDefaults: context.sourceConfigForSecrets.secrets?.defaults,
       secretRefManagedProviders,
     }) ?? normalizedMergedProviders;
-  const finalProviders = applyNativeStreamingUsageCompat(
-    filterWritableProviders(secretEnforcedProviders),
-  );
+  const finalProviders = filterWritableProviders(secretEnforcedProviders);
   const splitProviders = splitProvidersByPluginOwner({
     providers: finalProviders,
     pluginMetadataSnapshot: context.pluginMetadataSnapshot,
