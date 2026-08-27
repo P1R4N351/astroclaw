@@ -1,6 +1,6 @@
 // Covers outbound payload normalization across text, media, presentation,
 // interactive blocks, mirror text, and suppressed relay status payloads.
-import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
+import { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
 import { describe, expect, it } from "vitest";
 import { markInboundContextLabel } from "../../auto-reply/reply/inbound-context-marker.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
@@ -651,6 +651,27 @@ describe("OutboundPayloadPlan projections", () => {
     expect(projectOutboundPayloadPlanForDelivery(plan)).toEqual(
       normalizeReplyPayloadsForDelivery(matrix),
     );
+  });
+
+  it.each([
+    ["current tag with one closing bracket", "[[reply_to_current] Visible reply"],
+    ["explicit tag with one closing bracket", "[[reply_to:message-7] Visible reply"],
+  ])("strips a malformed %s without creating reply metadata", (_name, text) => {
+    const [normalized] = normalizeReplyPayloadsForDelivery([{ text }]);
+
+    expect(normalized).toMatchObject({
+      text: "Visible reply",
+      replyToTag: false,
+    });
+    expect(normalized?.replyToId).toBeUndefined();
+    expect(normalized?.replyToCurrent).toBeUndefined();
+  });
+
+  it("preserves an ambiguous unterminated explicit reply prefix", () => {
+    const text = "[[reply_to:message-7 Visible reply";
+    const [normalized] = normalizeReplyPayloadsForDelivery([{ text }]);
+
+    expect(normalized).toMatchObject({ text, replyToTag: false });
   });
 
   it("projects transport payloads without no-reply or reasoning entries", () => {
