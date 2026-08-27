@@ -4,7 +4,7 @@
  * auth availability without writing secret material into generated config.
  */
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { resolveProviderSyntheticAuthWithPlugin } from "../plugins/provider-runtime.js";
 import type { ProviderAuthEvidence } from "../secrets/provider-env-vars.js";
@@ -361,17 +361,10 @@ function resolveConfigBackedProviderAuth(params: {
     }
     return undefined;
   }
-  return isNonSecretApiKeyMarker(configuredApiKey)
-    ? {
-        apiKey: configuredApiKey,
-        discoveryApiKey: toDiscoveryApiKey(configuredApiKey),
-        mode: "api_key",
-        source: "config",
-      }
-    : {
-        apiKey: configuredApiKey,
-        discoveryApiKey: toDiscoveryApiKey(configuredApiKey),
-        mode: "api_key",
-        source: "config",
-      };
+  return {
+    apiKey: configuredApiKey,
+    discoveryApiKey: toDiscoveryApiKey(configuredApiKey),
+    mode: "api_key",
+    source: "config",
+  };
 }
