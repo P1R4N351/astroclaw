@@ -4,33 +4,33 @@ import {
   recordChannelBotPairLoopAndCheckSuppression,
   resolveEnvelopeFormatOptions,
   toInboundMediaFactsWithMetadata,
-} from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
 import {
   bindIngressLifecycleToReplyOptions,
   resolveAgentOutboundIdentity,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
 import {
   ensureConfiguredBindingRouteReady,
   resolveConfiguredBindingRoute,
   resolveRuntimeConversationBindingRoute,
-} from "openclaw/plugin-sdk/conversation-runtime";
-import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+import { parseStrictNonNegativeInteger } from "astroclaw/plugin-sdk/number-runtime";
 import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   createChannelHistoryWindow,
   type HistoryEntry,
-} from "openclaw/plugin-sdk/reply-history";
-import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/reply-history";
+import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
 import {
   resolveDefaultGroupPolicy,
   resolveOpenProviderRuntimeGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { normalizeOptionalString, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { normalizeOptionalString, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   evaluateSupplementalContextVisibility,
   normalizeAgentId,
@@ -126,7 +126,7 @@ function isFeishuTopicSessionScope(
   return scope === "group_topic" || scope === "group_topic_sender";
 }
 
-async function resolveFeishuAudioPreflightTranscript(params: {
+async function resolveFeishuAudioTranscript(params: {
   cfg: ClawdbotConfig;
   mediaList: FeishuMediaInfo[];
   content: string;
@@ -134,7 +134,7 @@ async function resolveFeishuAudioPreflightTranscript(params: {
   chatType: "direct" | "group";
   log: (msg: string) => void;
 }): Promise<string | undefined> {
-  if (params.messageType !== "audio" || params.content.trim()) {
+  if (params.messageType !== "audio") {
     return undefined;
   }
   const audioMedia = params.mediaList.filter(
@@ -143,6 +143,11 @@ async function resolveFeishuAudioPreflightTranscript(params: {
   );
   if (audioMedia.length === 0) {
     return undefined;
+  }
+  // Audio content is the server transcript. Return it for the shared marker path,
+  // but only after the media check so failed downloads retain their notice.
+  if (params.content.trim()) {
+    return params.content;
   }
 
   try {
@@ -1042,7 +1047,7 @@ export async function handleFeishuMessage(params: {
       return;
     }
 
-    const audioTranscript = await resolveFeishuAudioPreflightTranscript({
+    const audioTranscript = await resolveFeishuAudioTranscript({
       cfg: effectiveCfg,
       mediaList,
       content: ctx.content,
@@ -1050,14 +1055,14 @@ export async function handleFeishuMessage(params: {
       chatType: isGroup ? "group" : "direct",
       log,
     });
-    const preflightAudioIndex =
+    const transcribedAudioIndex =
       audioTranscript === undefined
         ? -1
         : mediaList.findIndex(
             (media) => media.kind === "audio" || media.contentType?.startsWith("audio/"),
           );
     const inboundMedia = await toInboundMediaFactsWithMetadata(mediaList, {
-      transcribed: (_media, index) => index === preflightAudioIndex,
+      transcribed: (_media, index) => index === transcribedAudioIndex,
     });
     const requiredMentionTargets =
       isGroup && ctx.senderType === "bot" && ctx.senderOpenId
