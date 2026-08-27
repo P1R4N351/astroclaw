@@ -4,7 +4,7 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.js";
 import { getRuntimeConfigSnapshot } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { revokeMessageActionTurnCapability } from "../../gateway/message-action-turn-capability.js";
 import {
   captureAgentRunLifecycleGeneration,
@@ -299,13 +299,14 @@ async function runEmbeddedAgentInternal(
         noteLaneTaskProgress,
         () =>
           params.preparedModelRuntimeMode === "isolated-read-only"
-            ? acquireReadOnlyPreparedModelRuntime(preparedInput)
+            ? acquireReadOnlyPreparedModelRuntime(preparedInput, params.abortSignal)
             : acquireAgentRunPreparedModelRuntime(preparedInput, {
                 retainIdleRunOwner,
                 // Turns need only configured admission facts. Full live model inventory remains
                 // available through the snapshot's lazy control-plane loader.
                 catalogMode: "static",
                 ...(params.pluginGeneration ? { pluginGeneration: params.pluginGeneration } : {}),
+                abortSignal: params.abortSignal,
               }),
       );
       startupStages.mark("prepared-runtime");
