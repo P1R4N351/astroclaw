@@ -1,5 +1,5 @@
 // Resolves directive interpretation and prompt projection at the text-command boundary.
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { FinalizedRuntimeMsgContext } from "../templating.js";
 import { type InlineDirectives, parseInlineSessionDirectives } from "./directive-handling.parse.js";
 import { clearExecInlineDirectives, clearInlineDirectives } from "./get-reply-directives-utils.js";
@@ -36,7 +36,8 @@ function preserveMixedModelDirective(
     rawModelProfile: directives.rawModelProfile,
     rawModelRuntime: directives.rawModelRuntime,
     modelDirectiveSource: directives.modelDirectiveSource,
-    modelSessionOnly: directives.modelSessionOnly,
+    modelScope: directives.modelScope,
+    modelScopeConflict: directives.modelScopeConflict,
   };
 }
 
