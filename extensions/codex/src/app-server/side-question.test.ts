@@ -2,20 +2,20 @@
 import {
   nativeHookRelayTesting,
   type NativeHookRelayRegistrationHandle,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   onInternalDiagnosticEvent,
   resetDiagnosticEventsForTest,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "astroclaw/plugin-sdk/hook-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
 import {
   createMockPluginRegistry,
   loadWebFetchToolFactoryForTest,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   codexTestTurnIds,
@@ -44,16 +44,16 @@ type SelectionRetryParams = {
   options: { timeoutMs?: number; abandonSignal?: AbortSignal };
   run: (
     client: unknown,
-    requestOptions: { timeoutMs: number; signal?: AbortSignal },
+    requestOptions: () => { timeoutMs: number; signal?: AbortSignal },
   ) => Promise<unknown>;
   onClientChange: (client: unknown) => void;
 };
 const withLeasedCodexAppServerClientStartSelectionRetryMock = vi.fn(
   async (params: SelectionRetryParams) =>
-    await params.run(params.lease.client, {
+    await params.run(params.lease.client, () => ({
       timeoutMs: params.options.timeoutMs ?? 60_000,
       signal: params.options.abandonSignal,
-    }),
+    })),
 );
 
 function supervisionConnectionFingerprint(): string {
@@ -99,7 +99,7 @@ vi.mock("./provider-capabilities.js", () => ({
     resolveCodexProviderWebSearchSupportForClientMock(...args),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness", () => ({
+vi.mock("openclaw/plugin-sdk/agent-harness", () => ({
   createOpenClawCodingTools: (...args: unknown[]) => createOpenClawCodingToolsMock(...args),
 }));
 
@@ -549,10 +549,10 @@ describe("runCodexAppServerSideQuestion", () => {
     withLeasedCodexAppServerClientStartSelectionRetryMock.mockReset();
     withLeasedCodexAppServerClientStartSelectionRetryMock.mockImplementation(
       async (params: SelectionRetryParams) =>
-        await params.run(params.lease.client, {
+        await params.run(params.lease.client, () => ({
           timeoutMs: params.options.timeoutMs ?? 60_000,
           signal: params.options.abandonSignal,
-        }),
+        })),
     );
     resolveCodexProviderWebSearchSupportForClientMock.mockResolvedValue("supported");
 
@@ -982,10 +982,10 @@ describe("runCodexAppServerSideQuestion", () => {
         expect(params.lease.client).toBe(initialClient);
         params.lease.client = replacementClient;
         params.onClientChange(replacementClient);
-        return await params.run(replacementClient, {
+        return await params.run(replacementClient, () => ({
           timeoutMs: params.options.timeoutMs ?? 60_000,
           signal: params.options.abandonSignal,
-        });
+        }));
       },
     );
 
@@ -1422,7 +1422,7 @@ describe("runCodexAppServerSideQuestion", () => {
     createOpenClawCodingToolsMock.mockImplementation((options) => {
       const toolOptions = options as NonNullable<
         Parameters<
-          (typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]
+          (typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]
         >[0]
       >;
       const webFetchTool = createWebFetchTool({
