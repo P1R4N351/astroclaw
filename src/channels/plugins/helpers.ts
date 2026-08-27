@@ -5,7 +5,7 @@
  */
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { formatCliCommand } from "../../cli/command-format.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import type { ChannelSecurityDmPolicy } from "./types.core.js";
 import type { ChannelPlugin } from "./types.plugin.js";
@@ -46,6 +46,7 @@ export function buildAccountScopedDmSecurityPolicy(params: {
   approveChannelId?: string;
   approveHint?: string;
   normalizeEntry?: (raw: string) => string;
+  classifyEntryAuthentication?: ChannelSecurityDmPolicy["classifyEntryAuthentication"];
   inheritSharedDefaultsFromDefaultAccount?: boolean;
 }): ChannelSecurityDmPolicy {
   const resolvedAccountId = params.accountId ?? params.fallbackAccountId ?? DEFAULT_ACCOUNT_ID;
@@ -101,5 +102,6 @@ export function buildAccountScopedDmSecurityPolicy(params: {
     approveHint:
       params.approveHint ?? formatPairingApproveHint(params.approveChannelId ?? params.channelKey),
     normalizeEntry: params.normalizeEntry,
+    classifyEntryAuthentication: params.classifyEntryAuthentication,
   };
 }
