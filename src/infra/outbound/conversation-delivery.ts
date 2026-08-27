@@ -13,7 +13,7 @@ import {
 } from "../../config/sessions/conversation-delivery-store.js";
 import type { ConversationRecord } from "../../config/sessions/conversation-registry.js";
 import { resolveSessionStorePathCore } from "../../config/sessions/paths.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { MessageActionResult } from "./message-action-contracts.js";
 import { runMessageAction } from "./message-action-runner.js";
 
@@ -101,7 +101,7 @@ function readMessageIdFromActionResult(result: MessageActionResult): string | un
   return undefined;
 }
 
-function resultFromExistingOperation(
+export function resultFromExistingOperation(
   operation: ConversationDeliveryRecord,
 ): ConversationMessageDeliveryResult | undefined {
   switch (operation.status) {
