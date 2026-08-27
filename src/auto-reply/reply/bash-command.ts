@@ -10,7 +10,7 @@ import { getFinishedSession, getSession } from "../../agents/bash-process-regist
 import { createExecTool } from "../../agents/bash-tools.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { isCommandFlagEnabled } from "../../config/commands.flags.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { logVerbose } from "../../globals.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { clampInt } from "../../utils.js";
@@ -250,7 +250,7 @@ export async function handleBashChatCommand(params: {
       const exitLabel = finished.exitSignal
         ? `signal ${String(finished.exitSignal)}`
         : `code ${String(finished.exitCode ?? 0)}`;
-      const prefix = finished.status === "completed" ? "⚙️" : "⚠️";
+      const prefix = finished.terminalStatus === "completed" ? "⚙️" : "⚠️";
       return {
         text: [
           `${prefix} bash finished (session ${formatSessionSnippet(sessionId)}).`,
