@@ -3,8 +3,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   telegramBotInfoForTest,
@@ -23,9 +23,9 @@ const { triggerInternalHookMock } = vi.hoisted(() => ({
   triggerInternalHookMock: vi.fn<(event: unknown) => Promise<void>>(async () => undefined),
 }));
 
-vi.mock("openclaw/plugin-sdk/hook-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/hook-runtime")>(
-    "openclaw/plugin-sdk/hook-runtime",
+vi.mock("astroclaw/plugin-sdk/hook-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/hook-runtime")>(
+    "astroclaw/plugin-sdk/hook-runtime",
   );
   return {
     ...actual,
@@ -33,7 +33,7 @@ vi.mock("openclaw/plugin-sdk/hook-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/file-access-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/file-access-runtime", () => ({
   root: async (rootDir: string) => ({
     read: async (relativePath: string, options?: { maxBytes?: number }) =>
       await rootRead({ rootDir, relativePath, maxBytes: options?.maxBytes }),
@@ -216,10 +216,15 @@ function replyPayload(): Record<string, unknown> {
   return call[0] as Record<string, unknown>;
 }
 
-function expectTypeOnlyMediaPayload(kind: string, rawBody = "") {
+function expectUnavailableMediaPayload(
+  kind: string,
+  rawBody = "",
+  notice = "[media unavailable: download failed]",
+) {
   const payload = replyPayload();
   expect(payload).toMatchObject({
-    BodyForAgent: rawBody,
+    Body: expect.stringContaining(notice),
+    BodyForAgent: [rawBody, notice].filter(Boolean).join("\n\n"),
     media: [expect.objectContaining({ kind })],
     RawBody: rawBody,
   });
@@ -524,7 +529,7 @@ describe("createTelegramBot channel_post media", () => {
 
     expect(replySpy).toHaveBeenCalledOnce();
     expect(sendMessageSpy).not.toHaveBeenCalled();
-    expectTypeOnlyMediaPayload("image");
+    expectUnavailableMediaPayload("image", "", "[media unavailable: file exceeds 0MB limit]");
     fetchSpy.mockRestore();
   });
 
@@ -541,7 +546,7 @@ describe("createTelegramBot channel_post media", () => {
       await waitForTelegramMockCalls(sendMessageSpy, 1);
       expectTelegramDownloadWarning(411);
       expect(replySpy).toHaveBeenCalledOnce();
-      expectTypeOnlyMediaPayload("image");
+      expectUnavailableMediaPayload("image");
     } finally {
       fetchSpy.mockRestore();
     }
@@ -564,7 +569,7 @@ describe("createTelegramBot channel_post media", () => {
     await waitForTelegramMockCalls(sendMessageSpy, 1);
     expectTelegramDownloadWarning(100000);
     expect(replySpy).toHaveBeenCalledOnce();
-    expectTypeOnlyMediaPayload("document");
+    expectUnavailableMediaPayload("document");
     expect(saveRemoteMedia).not.toHaveBeenCalled();
   });
 
@@ -594,7 +599,11 @@ describe("createTelegramBot channel_post media", () => {
         `⚠️ File too large. Maximum size is ${expectedLimitMb}MB.`,
       );
       expect(replySpy).toHaveBeenCalledOnce();
-      expectTypeOnlyMediaPayload("document");
+      expectUnavailableMediaPayload(
+        "document",
+        "",
+        `[media unavailable: file exceeds ${expectedLimitMb}MB limit]`,
+      );
       expect(saveRemoteMedia).not.toHaveBeenCalled();
     },
   );
@@ -615,6 +624,7 @@ describe("createTelegramBot channel_post media", () => {
       error: new MediaFetchError("max_bytes", "Failed to fetch media: payload exceeds maxBytes 10"),
       result: { kind: "completed" },
       warning: "⚠️ File too large. Maximum size is 100MB.",
+      notice: "[media unavailable: file exceeds 100MB limit]",
     },
     {
       name: "permanent SSRF rejection",
@@ -645,7 +655,7 @@ describe("createTelegramBot channel_post media", () => {
     expect(sendMessageSpy.mock.calls[0]?.[1]).toBe(testCase.warning);
     if (testCase.warning) {
       expectTelegramDownloadWarning(testCase.messageId, testCase.warning);
-      expectTypeOnlyMediaPayload("document");
+      expectUnavailableMediaPayload("document", "", testCase.notice);
     }
   });
 
@@ -899,7 +909,7 @@ describe("createTelegramBot channel_post media", () => {
         }),
       );
       expect(replySpy).toHaveBeenCalledOnce();
-      expectTypeOnlyMediaPayload("image", "caption" in testCase ? testCase.caption : "");
+      expectUnavailableMediaPayload("image", "caption" in testCase ? testCase.caption : "");
     } finally {
       fetchSpy.mockRestore();
     }
