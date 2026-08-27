@@ -9,7 +9,7 @@ import type {
   detectInferenceBackends,
   InferenceBackendKind,
 } from "../commands/onboard-inference.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { enablePluginInConfig } from "../plugins/enable.js";
 import type {
@@ -320,6 +320,23 @@ export function invalidSetupConfigError(snapshot: {
   const issue = snapshot.issues?.[0];
   const detail = issue ? ` (${issue.path ? `${issue.path}: ` : ""}${issue.message})` : "";
   return `OpenClaw config ${snapshot.path} is invalid${detail}. Fix it before running setup.`;
+}
+
+export async function redactSetupInferenceError(
+  message: string,
+  ...apiKeys: Array<string | undefined>
+): Promise<string> {
+  const secrets = new Set(
+    apiKeys
+      .flatMap((apiKey) => [apiKey, apiKey?.trim()])
+      .filter((value): value is string => Boolean(value)),
+  );
+  let redacted = message;
+  for (const secret of Array.from(secrets).toSorted((a, b) => b.length - a.length)) {
+    redacted = redacted.split(secret).join("[redacted]");
+  }
+  const { redactToolPayloadText } = await import("../logging/redact.js");
+  return redactToolPayloadText(redacted);
 }
 
 export function resolveCandidatePresentation(
