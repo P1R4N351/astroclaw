@@ -1,8 +1,8 @@
 // Slack tests cover monitor.tool result plugin behavior.
-import { CURRENT_MESSAGE_MARKER } from "openclaw/plugin-sdk/channel-mention-gating";
-import { expectPairingReplyText } from "openclaw/plugin-sdk/channel-test-helpers";
-import { HISTORY_CONTEXT_MARKER } from "openclaw/plugin-sdk/reply-history";
-import { resetInboundDedupe } from "openclaw/plugin-sdk/reply-runtime";
+import { CURRENT_MESSAGE_MARKER } from "astroclaw/plugin-sdk/channel-mention-gating";
+import { expectPairingReplyText } from "astroclaw/plugin-sdk/channel-test-helpers";
+import { HISTORY_CONTEXT_MARKER } from "astroclaw/plugin-sdk/reply-history";
+import { resetInboundDedupe } from "astroclaw/plugin-sdk/reply-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   defaultSlackTestConfig,
@@ -427,7 +427,7 @@ describe("monitorSlackProvider tool results", () => {
     }
 
     expect(replyMock).toHaveBeenCalledTimes(1);
-    expect(latestCtx?.RawBody).toBe("caption\n\n[slack forwarded image unavailable]");
+    expect(latestCtx?.RawBody).toBe("caption\n\n[slack attachment unavailable]");
     expect(mockFetch).toHaveBeenCalledOnce();
 
     if (process.env.OPENCLAW_SLACK_FORWARDED_IMAGE_PROOF === "1") {
