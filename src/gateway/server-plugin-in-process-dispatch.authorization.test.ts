@@ -8,7 +8,7 @@ import { PROTOCOL_VERSION } from "../../packages/gateway-protocol/src/version.js
 import { createOperationalRunInstanceRef } from "../agents/admitted-run-context.js";
 import { upsertSessionEntryCore } from "../config/sessions/session-accessor.js";
 import { withPluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway-request-scope.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { createGatewayMethodRegistry } from "./methods/registry.js";
 import { resolveNodeInvokeRuntimeAuthorityError } from "./server-methods/nodes.invoke-authority.js";
 import type {
@@ -156,6 +156,40 @@ describe("typed in-process agent authorization", () => {
       connect: { scopes: ["operator.read"] },
       internal: { syntheticClient: true },
     });
+  });
+
+  it("does not fall back to ambient scope when an explicit Gateway binding is retired", async () => {
+    const ambient = createContext();
+    ambient.getGatewayMethodRegistry = () =>
+      createGatewayMethodRegistry([
+        {
+          name: "sessions.list",
+          scope: "operator.read",
+          owner: { kind: "core", area: "sessions" },
+          handler: ({ respond }: GatewayRequestHandlerOptions) => {
+            respond(true, { sessions: [] });
+          },
+        },
+      ]);
+
+    await withPluginRuntimeGatewayRequestScope(
+      {
+        context: ambient,
+        isWebchatConnect: () => false,
+      },
+      async () =>
+        await expect(
+          dispatchGatewayMethodInProcess(
+            "sessions.list",
+            {},
+            {
+              forceSyntheticClient: true,
+              resolveGatewayContext: () => undefined,
+              syntheticScopes: ["operator.read"],
+            },
+          ),
+        ).rejects.toThrow("instance binding"),
+    );
   });
 
   it("preserves the scoped operator identity across synthetic model-initiated session creation", async () => {
