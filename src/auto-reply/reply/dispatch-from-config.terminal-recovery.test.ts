@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { readAgentRunTerminalOutcome } from "../../channels/turn/agent-run-terminal-outcome.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { ReplyPayload } from "../types.js";
 import {
   createDispatcher,
@@ -140,5 +140,54 @@ describe("dispatchReplyFromConfig terminal visible admission recovery", () => {
     expect(dispatchParams.dispatcher.sendFinalReply).toHaveBeenCalledWith(
       expect.objectContaining({ text: expect.stringContaining("Something went wrong") }),
     );
+  });
+
+  it("rethrows post-run dispatch errors after a completed run with no visible reply", async () => {
+    const resolverError = new Error("final delivery failed after completion");
+    const replyResolver: NonNullable<DispatchFromConfigParams["replyResolver"]> = async (
+      _ctx,
+      options,
+    ) => {
+      options?.onAgentRunTerminalOutcome?.("completed");
+      throw resolverError;
+    };
+
+    await expect(dispatchReplyFromConfig(createVisibleDispatchParams(replyResolver))).rejects.toBe(
+      resolverError,
+    );
+  });
+
+  it("records a terminal agent failure before the first visible reply", async () => {
+    const resolverError = new Error("provider failed before output");
+    let replyOperation: ReturnType<typeof createReplyOperation> | undefined;
+    const replyResolver: NonNullable<DispatchFromConfigParams["replyResolver"]> = async (
+      _ctx,
+      options,
+    ) => {
+      if (!options) {
+        throw new Error("reply options required for terminal failure");
+      }
+      replyOperation = options.replyOperation;
+      options.onAgentRunTerminalOutcome?.("failed");
+      throw resolverError;
+    };
+    const dispatchParams = {
+      ...createVisibleDispatchParams(replyResolver),
+      replyOptions: { sourceReplyDeliveryMode: "message_tool_only" as const },
+    };
+
+    const result = await dispatchReplyFromConfig(dispatchParams);
+
+    expect(replyOperation?.result).toEqual({
+      kind: "failed",
+      code: "run_failed",
+      cause: resolverError,
+    });
+    expect(result).toMatchObject({
+      queuedFinal: false,
+      counts: { tool: 0, block: 0, final: 0 },
+    });
+    expect(readAgentRunTerminalOutcome(result)).toBe("failed");
+    expect(dispatchParams.dispatcher.sendFinalReply).not.toHaveBeenCalled();
   });
 });
