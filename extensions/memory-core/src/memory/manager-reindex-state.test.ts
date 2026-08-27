@@ -2,7 +2,7 @@
 import {
   MEMORY_CHUNKING_VERSION,
   type MemorySource,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
 import { describe, expect, it } from "vitest";
 import {
   MEMORY_INDEX_PROVENANCE_VERSION,
@@ -32,7 +32,7 @@ function createMeta(overrides: Partial<MemoryIndexMeta> = {}): MemoryIndexMeta {
 function createIdentityParams(
   overrides: {
     meta?: MemoryIndexMeta | null;
-    provider?: { id: string; model: string } | null;
+    provider?: { id: string; model?: string } | null;
     providerKey?: string;
     providerAliases?: Array<{ model: string; providerKey: string }>;
     providerKeyKnown?: boolean;
@@ -144,6 +144,23 @@ describe("memory reindex state", () => {
         }),
       ),
     ).toEqual({ status: "valid" });
+  });
+
+  it("defers only model and key checks when the configured model is unknown", () => {
+    const params = createIdentityParams({ provider: { id: "openai" }, providerKey: undefined });
+    expect(resolveMemoryIndexIdentityState(params)).toEqual({ status: "valid" });
+    expect(resolveMemoryIndexIdentityState({ ...params, provider: { id: "other" } })).toEqual({
+      status: "mismatched",
+      reason: "index was built for provider openai, expected other",
+    });
+    expect(resolveMemoryIndexIdentityState({ ...params, configuredScopeHash: "other" })).toEqual({
+      status: "mismatched",
+      reason: "index scope changed",
+    });
+    expect(resolveMemoryIndexIdentityState({ ...params, vectorReady: true })).toEqual({
+      status: "mismatched",
+      reason: "index vector dimensions are missing",
+    });
   });
 
   it("keeps model identity strict when paths share a basename", () => {
