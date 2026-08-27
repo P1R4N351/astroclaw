@@ -1,5 +1,5 @@
 // Slack tests cover config schema plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { SlackConfigSchema } from "../config-api.js";
 import { listSlackAccountIds, resolveSlackAccount } from "./accounts.js";
@@ -74,6 +74,34 @@ describe("slack config schema", () => {
       expect(res.data.groupPolicy).toBe("allowlist");
     }
   });
+
+  it("preserves default-on join introductions without masking account inheritance", () => {
+    const parsed = SlackConfigSchema.parse({ accounts: { work: {} } });
+
+    expect(parsed.joinIntro).toBeUndefined();
+    expect(parsed.accounts?.work?.joinIntro).toBeUndefined();
+  });
+
+  it.each([
+    { root: false, account: undefined, expected: false },
+    { root: false, account: true, expected: true },
+    { root: true, account: false, expected: false },
+  ])(
+    "resolves join introductions from root=$root and account=$account to $expected",
+    ({ root, account, expected }) => {
+      const cfg = {
+        channels: {
+          slack: {
+            joinIntro: root,
+            accounts: { work: account === undefined ? {} : { joinIntro: account } },
+          },
+        },
+      } satisfies OpenClawConfig;
+
+      expectSlackConfigValid(cfg.channels.slack);
+      expect(resolveSlackAccount({ cfg, accountId: "work" }).config.joinIntro).toBe(expected);
+    },
+  );
 
   it('defaults postAs to "bot"', () => {
     const res = SlackConfigSchema.safeParse({ accounts: { work: {} } });
