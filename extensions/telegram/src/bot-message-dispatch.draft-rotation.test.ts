@@ -1,12 +1,12 @@
-import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { setReplyPayloadMetadata } from "openclaw/plugin-sdk/reply-payload-testing";
+import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { setReplyPayloadMetadata } from "astroclaw/plugin-sdk/reply-payload-testing";
 import { beforeEach, expect, it, vi } from "vitest";
 
 const registerChannelDelivery = vi.hoisted(() => vi.fn());
-vi.mock("openclaw/plugin-sdk/question-gateway-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/question-gateway-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/question-gateway-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/question-gateway-runtime")>();
   return {
     ...actual,
     questionGatewayRuntime: { ...actual.questionGatewayRuntime, registerChannelDelivery },
@@ -376,7 +376,6 @@ describeTelegramDispatch("dispatchTelegramMessage draft-rotation", () => {
     const firstPayload = {
       text: "Pick one",
       channelData: {
-        askUser: { questionId },
         telegram: { buttons: [[{ text: "One", callback_data: `tgq1:${questionId}:0` }]] },
       },
     };
