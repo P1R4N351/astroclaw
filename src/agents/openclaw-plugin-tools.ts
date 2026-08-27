@@ -4,7 +4,7 @@
  * This module builds runtime plugin tools from config/options, delivery context,
  * auth profiles, and the current runtime config snapshot.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   resolveMessageActionTurnCapability,
   selectMessageActionRequesterIdentity,
@@ -15,14 +15,11 @@ import {
   getPluginRuntimeGatewayRequestScope,
   withPluginRuntimeRegistryScope,
 } from "../plugins/runtime/gateway-request-scope.js";
+import { getPluginRuntimeLoadContext } from "../plugins/runtime/load-context.js";
 import type { OpenClawPluginToolDelivery } from "../plugins/tool-types.js";
 import { resolvePluginTools } from "../plugins/tools.js";
 import type { OpenClawPluginToolContext } from "../plugins/types.js";
 import { createLazyRuntimeModule } from "../shared/lazy-runtime.js";
-import {
-  resolveOpenClawPluginToolInputs,
-  type OpenClawPluginToolOptions,
-} from "./astroclaw-tools.plugin-context.js";
 import { resolveApiKeyForProfile, resolveAuthProfileOrder } from "./auth-profiles.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";
 import {
@@ -31,7 +28,10 @@ import {
   resolveApiKeyForProviderCore as resolveProviderAuth,
 } from "./model-auth.js";
 import { createNodePluginTools } from "./node-plugin-tools.js";
-import { getPreparedPluginRuntimeLoadContext } from "./prepared-model-runtime.plugin-context.js";
+import {
+  resolveOpenClawPluginToolInputs,
+  type OpenClawPluginToolOptions,
+} from "./openclaw-tools.plugin-context.js";
 import type { PreparedModelRuntimeSnapshot } from "./prepared-model-runtime.types.js";
 import { resolveAgentRuntimeToolConfig } from "./tool-runtime-config.js";
 import type { AnyAgentTool } from "./tools/common.js";
@@ -307,7 +307,7 @@ export function resolveOpenClawPluginToolsForOptions(params: {
     ...(preparedModelRuntime
       ? {
           preparedRuntime: {
-            loadContext: getPreparedPluginRuntimeLoadContext(preparedModelRuntime.pluginRegistry),
+            loadContext: getPluginRuntimeLoadContext(preparedModelRuntime.pluginRegistry),
             metadataSnapshot: preparedModelRuntime.metadataSnapshot,
             registry: preparedModelRuntime.pluginRegistry,
           },
