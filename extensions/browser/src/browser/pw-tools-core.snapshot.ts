@@ -2,12 +2,12 @@
  * Snapshot, navigation, viewport, close, and PDF helpers for Playwright-backed
  * browser tools.
  */
-import { parseFiniteNumber, resolveIntegerOption } from "openclaw/plugin-sdk/number-runtime";
+import { parseFiniteNumber, resolveIntegerOption } from "astroclaw/plugin-sdk/number-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import type { Frame, Page } from "playwright-core";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 import { ACT_MAX_VIEWPORT_DIMENSION, resolveBrowserNavigationTimeoutMs } from "./act-policy.js";
@@ -104,25 +104,21 @@ function buildStoredAriaRefs(
 ): Record<string, { role: string; name?: string; nth?: number; domMarker?: boolean }> {
   const refs: Record<string, { role: string; name?: string; nth?: number; domMarker?: boolean }> =
     {};
-  const counts = new Map<string, number>();
   const refsByKey = new Map<string, string[]>();
 
   for (const node of nodes) {
     const role = normalizeLowercaseStringOrEmpty(node.role) || "unknown";
     const name = node.name.trim();
     const key = `${role}:${name}`;
-    const nth = counts.get(key) ?? 0;
-    counts.set(key, nth + 1);
-    const refsForKey = refsByKey.get(key);
-    if (refsForKey) {
-      refsForKey.push(node.ref);
-    } else {
-      refsByKey.set(key, [node.ref]);
-    }
+    const refsForKey = refsByKey.get(key) ?? [];
+    const nth = refsForKey.length;
+    refsForKey.push(node.ref);
+    refsByKey.set(key, refsForKey);
     refs[node.ref] = {
       role,
       name,
-      ...(nth > 0 ? { nth } : {}),
+      // Keep index zero for duplicates; only singleton groups can omit nth.
+      nth,
       ...(markedRefs.has(node.ref) ? { domMarker: true } : {}),
     };
   }
