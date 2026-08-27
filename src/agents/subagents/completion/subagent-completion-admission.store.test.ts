@@ -8,7 +8,7 @@ import {
   SessionDeliveryDeadLetteredError,
   SessionDeliveryDeferredError,
 } from "../../../infra/session-delivery-queue-storage.js";
-import { resolvePreferredOpenClawTmpDir } from "../../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../../infra/tmp-openclaw-dir.js";
 import {
   closeOpenClawStateDatabaseForTest,
   openOpenClawStateDatabase,
@@ -376,9 +376,7 @@ describe("atomic subagent completion admission store", () => {
       };
       delete legacyPayload.completion!.fallbackResultText;
       database.db
-        .prepare(
-          "UPDATE subagent_runs SET payload_json = ?, fallback_frozen_result_text = NULL WHERE run_id = ?",
-        )
+        .prepare("UPDATE subagent_runs SET payload_json = ? WHERE run_id = ?")
         .run(JSON.stringify(legacyPayload), input.subagent.runId);
       database.db
         .prepare("UPDATE schema_meta SET app_version = ? WHERE meta_key = 'primary'")
