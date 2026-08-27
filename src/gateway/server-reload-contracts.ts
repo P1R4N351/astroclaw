@@ -1,5 +1,5 @@
 import type { CliDeps } from "../cli/deps.types.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
 import type { HeartbeatRunner } from "../infra/heartbeat-runner.js";
 import type { GatewayRestartEmitter } from "../infra/restart.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
@@ -129,6 +129,18 @@ export class GatewayConfigReloadSupersededError extends Error {
   constructor() {
     super("config reload superseded by a newer runtime config source");
     this.name = "GatewayConfigReloadSupersededError";
+  }
+}
+
+export function assertReloadPublicationCurrent(
+  publicationCurrent: boolean,
+  restartStopped: boolean,
+): void {
+  if (!publicationCurrent) {
+    throw new GatewayConfigReloadSupersededError();
+  }
+  if (restartStopped) {
+    throw new GatewayHotReloadCancelledError();
   }
 }
 
