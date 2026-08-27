@@ -1,42 +1,42 @@
 // Telegram plugin module implements channel behavior.
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
+import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
 import {
   buildDmGroupAccountAllowlistAdapter,
   createNestedAllowlistOverrideResolver,
-} from "openclaw/plugin-sdk/allowlist-config-edit";
+} from "astroclaw/plugin-sdk/allowlist-config-edit";
+import { clearAccountFieldsFromConfigSection } from "astroclaw/plugin-sdk/channel-config-helpers";
 import {
   buildChannelOutboundSessionRoute,
   buildThreadAwareOutboundSessionRoute,
-  clearAccountEntryFields,
   createChatChannelPlugin,
-} from "openclaw/plugin-sdk/channel-core";
+} from "astroclaw/plugin-sdk/channel-core";
 import {
   createAccountStatusSink,
   createChannelMessageAdapterFromOutbound,
   resolveOutboundSendDep,
   type OutboundSendDeps,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
 import {
   PAIRING_APPROVED_MESSAGE,
   buildTokenChannelStatusSummary,
   projectCredentialSnapshotFields,
   resolveConfiguredFromCredentialStatuses,
-} from "openclaw/plugin-sdk/channel-status";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createChannelDirectoryAdapter } from "openclaw/plugin-sdk/directory-runtime";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { channelBlockedPatch } from "openclaw/plugin-sdk/gateway-runtime";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { resolveAgentRoute, type RoutePeer } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/channel-status";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createChannelDirectoryAdapter } from "astroclaw/plugin-sdk/directory-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { channelBlockedPatch } from "astroclaw/plugin-sdk/gateway-runtime";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { resolveAgentRoute, type RoutePeer } from "astroclaw/plugin-sdk/routing";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "openclaw/plugin-sdk/status-helpers";
+} from "astroclaw/plugin-sdk/status-helpers";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   mergeTelegramAccountConfig,
   resolveDefaultTelegramAccountId,
@@ -1155,54 +1155,20 @@ export const telegramPlugin = createChatChannelPlugin({
       },
       logoutAccount: async ({ accountId, cfg }) => {
         const envToken = process.env.TELEGRAM_BOT_TOKEN?.trim() ?? "";
-        const nextCfg = { ...cfg } as OpenClawConfig;
-        const nextTelegram = cfg.channels?.telegram ? { ...cfg.channels.telegram } : undefined;
-        let cleared = false;
-        let changed = false;
-        if (nextTelegram) {
-          if (accountId === DEFAULT_ACCOUNT_ID && nextTelegram.botToken) {
-            delete nextTelegram.botToken;
-            cleared = true;
-            changed = true;
-          }
-          const accountCleanup = clearAccountEntryFields({
-            accounts: nextTelegram.accounts,
-            accountId,
-            fields: ["botToken"],
-          });
-          if (accountCleanup.changed) {
-            changed = true;
-            if (accountCleanup.cleared) {
-              cleared = true;
-            }
-            if (accountCleanup.nextAccounts) {
-              nextTelegram.accounts = accountCleanup.nextAccounts;
-            } else {
-              delete nextTelegram.accounts;
-            }
-          }
-        }
-        if (changed) {
-          if (nextTelegram && Object.keys(nextTelegram).length > 0) {
-            nextCfg.channels = { ...nextCfg.channels, telegram: nextTelegram };
-          } else {
-            const nextChannels = { ...nextCfg.channels };
-            delete nextChannels.telegram;
-            if (Object.keys(nextChannels).length > 0) {
-              nextCfg.channels = nextChannels;
-            } else {
-              delete nextCfg.channels;
-            }
-          }
-        }
+        const { nextConfig, changed, cleared } = clearAccountFieldsFromConfigSection({
+          cfg,
+          sectionKey: "telegram",
+          accountId,
+          fields: ["botToken"],
+        });
         const resolved = resolveTelegramAccount({
-          cfg: changed ? nextCfg : cfg,
+          cfg: nextConfig,
           accountId,
         });
         const loggedOut = resolved.tokenSource === "none";
         if (changed) {
           await getTelegramRuntime().config.replaceConfigFile({
-            nextConfig: nextCfg,
+            nextConfig,
             afterWrite: { mode: "auto" },
           });
         }
