@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Command } from "commander";
 // Config CLI tests cover config command registration, reads, writes, and output modes.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { Command } from "commander";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigMutationConflictError } from "../config/mutation-conflict.js";
 import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.js";
@@ -1765,7 +1765,12 @@ describe("config cli", () => {
       expect(gatewayPort?.description).toContain("TCP port used by the gateway listener");
       const channels = requireRecord(payload.properties?.channels, "schema channels");
       expect(channels.title).toBe("Channels");
-      expect(channels.properties).toEqual({});
+      // No channel plugins are loaded here, so the only entries are the core keys
+      // ChannelsSchema owns; per-channel entries still arrive from plugin metadata.
+      expect(Object.keys(requireRecord(channels.properties, "schema channel properties"))).toEqual([
+        "defaults",
+        "modelByChannel",
+      ]);
       expect(channels.additionalProperties).toBe(true);
       const plugins = requireRecord(payload.properties?.plugins, "schema plugins");
       expect(plugins.title).toBe("Plugins");
