@@ -43,7 +43,7 @@ import {
   closeOpenClawStateDatabaseForTest,
   openOpenClawStateDatabase,
 } from "../../state/openclaw-state-db.js";
-import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
 import {
   AUTH_RATE_LIMIT_SCOPE_BOOTSTRAP_TOKEN,
   createAuthRateLimiter,
@@ -130,8 +130,6 @@ async function attachStartupNodeConnect(params: {
   const requestContext = {
     ...createGatewayWsTestRequestContext(),
     nodeRegistry,
-    broadcast: vi.fn(),
-    nodeUnsubscribeAll: vi.fn(),
   };
   const pendingSetup = vi.fn(params.isPendingWorkerNodeSetup);
   attachGatewayWsForTest({
