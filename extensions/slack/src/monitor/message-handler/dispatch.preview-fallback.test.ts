@@ -823,6 +823,7 @@ vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
 }));
 
 vi.mock("astroclaw/plugin-sdk/reply-payload", () => ({
+  resolveAskUserQuestionOptionIndices: () => undefined,
   isReplyPayloadNonTerminalToolErrorWarning: () => false,
   buildTtsSupplementMediaPayload: (payload: {
     text?: string;
