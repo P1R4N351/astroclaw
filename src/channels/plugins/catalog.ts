@@ -11,9 +11,9 @@ import {
 } from "@astroclaw/normalization-core/string-normalization";
 import { MANIFEST_KEY } from "../../compat/legacy-names.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
-import { resolveOpenClawPackageRootSync } from "../../infra/astroclaw-root.js";
 import { tryReadJsonSync } from "../../infra/json-files.js";
 import { isPrereleaseSemverVersion, parseRegistryNpmSpec } from "../../infra/npm-registry-spec.js";
+import { resolveOpenClawPackageRootSync } from "../../infra/openclaw-root.js";
 import { listChannelCatalogEntries } from "../../plugins/channel-catalog-registry.js";
 import type { PluginDiscoveryResult } from "../../plugins/discovery.js";
 import {
@@ -304,7 +304,6 @@ function buildCatalogEntryFromManifest(params: {
       detailLabel: channel.detailLabel?.trim(),
       ...(systemImage ? { systemImage } : {}),
       arrayFieldMode: "defined",
-      selectionDocsPrefixMode: "truthy",
     }),
     install,
     installSource: describePluginInstallSource(install, {
