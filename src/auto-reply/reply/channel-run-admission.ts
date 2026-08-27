@@ -10,7 +10,7 @@ import {
   recordChannelAdmissionDecision,
   type ChannelAdmissionEvidence,
 } from "../../channels/message-access/admission-evidence.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 
 /** Adapt one opaque channel carrier to the canonical admitted-run facts and decision FIFO. */
 export function consumeChannelRunAdmission(evidence: ChannelAdmissionEvidence | undefined): {
@@ -39,13 +39,14 @@ export function consumeChannelRunAdmission(evidence: ChannelAdmissionEvidence | 
     }),
     onAdmitted: (context) => {
       const token = context.executionIdentityToken;
-      if (token && admission.decisionCoverage) {
+      if (token && admission.decisionCoverage && admission.identifierAuthentication) {
         recordChannelAdmissionDecision({
           contextId: token.contextId,
           executionId: token.executionId,
           runId: token.runId,
           occurredAt: token.createdAt,
           coverageState: admission.decisionCoverage,
+          identifierAuthentication: admission.identifierAuthentication,
         });
       }
     },
