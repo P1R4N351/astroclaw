@@ -6,9 +6,9 @@ import path from "node:path";
 import type {
   MemorySearchConfig,
   OpenClawConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type WatchIgnoredFn = (watchPath: string, stats?: { isDirectory?: () => boolean }) => boolean;
@@ -139,11 +139,9 @@ function restoreWatcherStateDir(): void {
   }
 }
 
-vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-foundation", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/memory-core-host-engine-foundation", async (importOriginal) => {
   const actual =
-    await importOriginal<
-      typeof import("astroclaw/plugin-sdk/memory-core-host-engine-foundation")
-    >();
+    await importOriginal<typeof import("openclaw/plugin-sdk/memory-core-host-engine-foundation")>();
   return {
     ...actual,
     createSubsystemLogger: (subsystem: string) => ({
@@ -158,7 +156,6 @@ vi.mock("./sqlite-vec.js", () => ({
 }));
 
 vi.mock("./embeddings.js", () => ({
-  resolveEmbeddingProviderAdapterId: (providerId: string) => providerId,
   resolveEmbeddingProviderAdapterTransport: (providerId: string) =>
     providerId === "local" ? "local" : "remote",
   resolveEmbeddingProviderIndexIdentity: () => undefined,
@@ -167,13 +164,13 @@ vi.mock("./embeddings.js", () => ({
     provider: {
       id: "mock",
       model: "mock-embed",
-      embedQuery: async () => [1, 0],
+      embed: async () => [1, 0],
       embedBatch: async (texts: string[]) => texts.map(() => [1, 0]),
     },
   }),
 }));
 
-import { clearEmbeddingProviders as clearRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { clearEmbeddingProviders as clearRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { closeAllMemorySearchManagers, getMemorySearchManager } from "./index.js";
 import type { MemoryIndexManager } from "./manager.js";
 import { isolateMemoryManagerTestConfig } from "./test-config-helpers.js";
