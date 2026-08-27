@@ -3,11 +3,11 @@ import {
   registerProviderPlugin,
   registerSingleProviderPlugin,
   requireRegisteredProvider,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { NON_ENV_SECRETREF_MARKER } from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
-import { expectPassthroughReplayPolicy } from "astroclaw/plugin-sdk/provider-test-contracts";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { NON_ENV_SECRETREF_MARKER } from "openclaw/plugin-sdk/provider-auth-runtime";
+import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+import { expectPassthroughReplayPolicy } from "openclaw/plugin-sdk/provider-test-contracts";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import plugin from "./index.js";
@@ -520,6 +520,47 @@ describe("opencode provider plugin", () => {
     expect(fallback.apiKey).toBe("runtime-key");
     expectSeedModels(fallback.models);
   });
+
+  it.each(["failed", "filtered"] as const)(
+    "uses refreshed lifecycle on the first fallback after %s model advertising",
+    async (advertising) => {
+      const retiredId = "big-pickle";
+      const provider = await registerSingleProviderPlugin(plugin);
+      const fetchGuard = createCatalogFetchGuard({
+        metadata: [{ id: retiredId, status: "deprecated" }],
+        advertised: () => {
+          if (advertising === "failed") {
+            throw new Error("model advertising unavailable");
+          }
+          return [retiredId];
+        },
+      });
+
+      try {
+        expectSeedModels((await buildOpencodeZenLiveProviderConfig()).models);
+        const fallback = await buildOpencodeZenLiveProviderConfig({
+          apiKey: "runtime-key",
+          discoveryApiKey: "discovery-key",
+          fetchGuard,
+        });
+
+        expect(fallback.apiKey).toBe("runtime-key");
+        expect(fallback.models.map((model) => model.id)).toEqual(
+          OFFLINE_MODEL_IDS.filter((id) => id !== retiredId),
+        );
+        expect(provider.resolveDynamicModel?.({ modelId: retiredId } as never)).toMatchObject({
+          id: retiredId,
+        });
+      } finally {
+        clearLiveCatalogCacheForTests();
+        await prepareOpencodeZenModel({
+          modelId: retiredId,
+          fetchGuard: createCatalogFetchGuard({ metadata: [], advertised: [] }),
+        });
+        clearLiveCatalogCacheForTests();
+      }
+    },
+  );
 
   it.each([
     [["claude-opus-5"], "opencode/claude-opus-5"],
