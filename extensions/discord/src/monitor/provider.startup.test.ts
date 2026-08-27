@@ -25,14 +25,14 @@ vi.mock("../internal/voice.js", () => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/dangerous-name-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/dangerous-name-runtime", () => ({
   isDangerousNameMatchingEnabled: () => false,
 }));
 
 // Suite runs isolate=false: a partial factory here poisons the shared module
 // cache for later files in the worker (#123025), so spread the real module.
-vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
+vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     danger: (value: string) => value,
@@ -399,6 +399,7 @@ describe("registerDiscordMonitorListeners", () => {
     expect(registeredListenerTypes()).toEqual([
       "interaction",
       "message",
+      "GUILD_CREATE",
       "thread-update",
       "thread-delete",
     ]);
@@ -443,6 +444,7 @@ describe("registerDiscordMonitorListeners", () => {
     expect(registeredListenerTypes()).toEqual([
       "interaction",
       "message",
+      "GUILD_CREATE",
       "thread-update",
       "thread-delete",
       "presence",
