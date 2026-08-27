@@ -10,7 +10,7 @@
  * returning so the timer correctly skips the system-event fallback.
  */
 
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.js";
 import type { ChannelMessagingAdapter } from "../../channels/plugins/types.public.js";
@@ -188,6 +188,7 @@ import {
 } from "../../infra/outbound/outbound-session.js";
 import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
+import { logError } from "../../logger.js";
 import {
   dispatchCronDelivery,
   queueCronMessageToolDeliveryAwareness,
@@ -3147,6 +3148,9 @@ describe("dispatchCronDelivery — double-announce guard", () => {
       error: "boom",
       deliveryAttempted: true,
     });
+    expect(logError).toHaveBeenCalledExactlyOnceWith(
+      "[cron:test-job] delivery failed (required): boom",
+    );
   });
 
   it("records structured direct delivery failures when best-effort is enabled", async () => {
@@ -3165,6 +3169,9 @@ describe("dispatchCronDelivery — double-announce guard", () => {
     expect(state.delivered).toBe(false);
     expect(state.deliveryAttempted).toBe(true);
     expect(state.deliveryError).toBe("boom");
+    expect(logError).toHaveBeenCalledExactlyOnceWith(
+      "[cron:test-job] delivery failed (bestEffort): boom",
+    );
   });
 
   it("no delivery requested means deliveryAttempted stays false and no delivery is sent", async () => {
