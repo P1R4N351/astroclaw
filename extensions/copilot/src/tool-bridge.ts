@@ -9,7 +9,7 @@ import type {
   AnyAgentTool,
   EmbeddedRunAttemptParamsV2,
   SandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   applyEmbeddedAttemptToolsAllow,
   buildEmbeddedAttemptToolRunContext,
@@ -22,13 +22,13 @@ import {
   resolveEmbeddedAttemptToolConstructionPlan,
   resolveModelAuthMode,
   sanitizeToolResult,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { createAgentHarnessToolSurfaceRuntime } from "astroclaw/plugin-sdk/agent-harness-tool-runtime";
-import { toStringifiedError as toCopilotToolError } from "astroclaw/plugin-sdk/error-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { createAgentHarnessToolSurfaceRuntime } from "openclaw/plugin-sdk/agent-harness-tool-runtime";
+import { toStringifiedError as toCopilotToolError } from "openclaw/plugin-sdk/error-runtime";
 import { isRawCopilotModelRun } from "./attempt-mode.js";
 
 type CreateOpenClawCodingTools =
-  (typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
+  (typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
 type OpenClawCodingToolsOptions = NonNullable<Parameters<CreateOpenClawCodingTools>[0]>;
 type CreateOpenClawCodingToolsForBridge = (
   options?: OpenClawCodingToolsOptions,
@@ -184,27 +184,13 @@ export async function createCopilotToolBridge(
     isRawModelRun: isRawCopilotModelRun(attemptParams),
     toolsAllow: attemptParams.toolsAllow,
   });
-  const effectiveToolPlan = hasNonWildcardGlobAllowlist(toolPlan.runtimeToolAllowlist)
-    ? {
-        ...toolPlan,
-        codingToolConstructionPlan: {
-          includeBaseCodingTools: true,
-          includeChannelTools: true,
-          includeOpenClawTools: true,
-          includePluginTools: true,
-          includeShellTools: true,
-        },
-        constructTools: true,
-        includeCoreTools: true,
-      }
-    : toolPlan;
-  if (!effectiveToolPlan.constructTools) {
+  if (!toolPlan.constructTools) {
     return { codeModeEngaged: false, promptToolPolicy: EMPTY_PROMPT_TOOL_POLICY, sourceTools: [] };
   }
 
   const createOpenClawCodingTools =
     input.createOpenClawCodingTools ??
-    (await import("astroclaw/plugin-sdk/agent-harness")).createOpenClawCodingTools;
+    (await import("openclaw/plugin-sdk/agent-harness")).createOpenClawCodingTools;
 
   const toolSurfaceRuntime = createAgentHarnessToolSurfaceRuntime({
     abortSignal: input.abortSignal,
@@ -221,7 +207,7 @@ export async function createCopilotToolBridge(
     modelToolsEnabled: true,
     prompt: attemptParams.prompt,
     runId: attemptParams.runId,
-    runtimeToolAllowlist: effectiveToolPlan.runtimeToolAllowlist,
+    runtimeToolAllowlist: toolPlan.runtimeToolAllowlist,
     sessionId: input.sessionId,
     sessionKey: attemptParams.sandboxSessionKey ?? attemptParams.sessionKey ?? input.sessionKey,
     scheduledToolPolicy: attemptParams.scheduledToolPolicy,
@@ -231,7 +217,7 @@ export async function createCopilotToolBridge(
   const toolOptions = buildOpenClawCodingToolsOptions(
     input,
     {
-      ...effectiveToolPlan,
+      ...toolPlan,
       runtimeToolAllowlist: toolSurfaceRuntime.runtimeToolAllowlist,
     },
     toolSurfaceRuntime,
@@ -269,7 +255,7 @@ export async function createCopilotToolBridge(
   );
   const plannedSourceTools = filterCopilotToolsForConstructionPlan(
     allowedSourceTools,
-    effectiveToolPlan.codingToolConstructionPlan,
+    toolPlan.codingToolConstructionPlan,
     { preserveToolNames: toolSurfaceRuntime.runtimeToolAllowlist },
   );
   const compactedTools = toolSurfaceRuntime.compactTools(plannedSourceTools, {
@@ -869,13 +855,6 @@ function filterCopilotToolsForConstructionPlan<T extends { name: string }>(
       return false;
     }
     return true;
-  });
-}
-
-function hasNonWildcardGlobAllowlist(toolsAllow: string[] | undefined): boolean {
-  return (toolsAllow ?? []).some((entry) => {
-    const trimmed = entry.trim();
-    return trimmed !== "*" && trimmed.includes("*");
   });
 }
 
