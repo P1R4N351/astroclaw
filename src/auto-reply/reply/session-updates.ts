@@ -15,7 +15,7 @@ import {
 } from "../../config/sessions/session-accessor.js";
 import { resolveSessionStorePathForScope } from "../../config/sessions/session-store-path.js";
 import { projectCanonicalSessionEntryShape } from "../../config/sessions/store-entry-shape.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   forgetActiveSessionForShutdown,
   noteActiveSessionForShutdown,
@@ -368,6 +368,7 @@ export async function incrementCompactionCount(params: {
   const updates: Partial<SessionEntry> = {
     compactionCount: nextCount,
     updatedAt: now,
+    ...(incrementBy > 0 ? { contextBudgetStatus: undefined } : {}),
   };
   if (compactionKind === "context-engine") {
     clearAllCliSessions(updates);
