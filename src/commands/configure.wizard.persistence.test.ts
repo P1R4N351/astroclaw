@@ -1,6 +1,6 @@
 // Configure wizard persistence tests protect config writes before local side effects.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const mocks = vi.hoisted(() => ({
   intro: vi.fn(),
@@ -106,6 +106,7 @@ describe("configure wizard persistence before local side effects", () => {
       },
     });
     mocks.probeGatewayReachable.mockResolvedValue({ ok: false });
+    mocks.waitForGatewayReachable.mockResolvedValue({ ok: false });
     mocks.text.mockResolvedValue("18789");
   });
 
