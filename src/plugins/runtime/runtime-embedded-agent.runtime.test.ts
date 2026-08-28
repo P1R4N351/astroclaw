@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DecisionReceiptV1 } from "../../../packages/gateway-protocol/src/index.js";
 import type { AdmittedRunContext } from "../../agents/admitted-run-context.js";
 import { configureRuntimeActionDecisionSink } from "../../audit/runtime-action-decision.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { withPluginRuntimePluginIdScope } from "./gateway-request-scope.js";
 import type { PluginRuntime } from "./types.js";
 
@@ -250,16 +250,18 @@ describe("plugin embedded-agent runtime admission", () => {
     expect(mocks.runEmbeddedAgentCore).not.toHaveBeenCalled();
   });
 
-  it.each(["admittedRunContext", "preparedRunAdmission"] as const)(
-    "rejects a plugin-supplied %s",
-    async (field) => {
-      await expect(
-        withPluginRuntimePluginIdScope("memory-plugin", () =>
-          runPluginEmbeddedAgent({ ...params, [field]: {} } as never),
-        ),
-      ).rejects.toThrow("cannot supply host run authority");
-      expect(mocks.prepareAgentRunAdmission).not.toHaveBeenCalled();
-      expect(mocks.runEmbeddedAgentCore).not.toHaveBeenCalled();
-    },
-  );
+  it.each([
+    "admittedRunContext",
+    "preparedRunAdmission",
+    "onDeferredLifecycleOwner",
+    "onDeferredLifecycleAbort",
+  ] as const)("rejects a plugin-supplied %s", async (field) => {
+    await expect(
+      withPluginRuntimePluginIdScope("memory-plugin", () =>
+        runPluginEmbeddedAgent({ ...params, [field]: {} } as never),
+      ),
+    ).rejects.toThrow("cannot supply host run authority");
+    expect(mocks.prepareAgentRunAdmission).not.toHaveBeenCalled();
+    expect(mocks.runEmbeddedAgentCore).not.toHaveBeenCalled();
+  });
 });
