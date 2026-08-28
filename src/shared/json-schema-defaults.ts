@@ -4,7 +4,7 @@ import {
   type JsonSchemaValue,
 } from "@astroclaw/normalization-core/json-schema";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import { Compile } from "typebox/compile";
+import { Compile } from "typebox/schema";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";
 
 type LocalRefResolution =
