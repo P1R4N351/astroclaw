@@ -9,7 +9,7 @@ import type {
   CliBackendExecuteContext,
   CliBackendLiveSessionCapability,
   CliBackendLiveSessionHandle,
-} from "openclaw/plugin-sdk/cli-backend";
+} from "astroclaw/plugin-sdk/cli-backend";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { executeClaudeAgentSdk } from "./agent-sdk.runtime.js";
 import { buildAnthropicCliBackend } from "./cli-backend.js";
@@ -217,7 +217,7 @@ describe("Anthropic Agent SDK runtime ownership", () => {
     expect(credential).toEqual(
       expect.objectContaining({
         env: {
-          CLAUDE_AGENT_SDK_VERSION: "0.3.236",
+          CLAUDE_AGENT_SDK_VERSION: "0.3.238",
           CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR: "3",
         },
         secretInput: expect.objectContaining({ fd: 3 }),
@@ -226,7 +226,7 @@ describe("Anthropic Agent SDK runtime ownership", () => {
     );
     expect(emptyCredential).toEqual(
       expect.objectContaining({
-        env: { CLAUDE_AGENT_SDK_VERSION: "0.3.236" },
+        env: { CLAUDE_AGENT_SDK_VERSION: "0.3.238" },
         execute: expect.any(Function),
       }),
     );
