@@ -3,10 +3,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { resolveOpenClawAgentSqlitePath } from "astroclaw/plugin-sdk/sqlite-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { resolveOpenClawAgentSqlitePath } from "openclaw/plugin-sdk/sqlite-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeAllMemorySearchManagers, getMemorySearchManager } from "./index.js";
 import type { MemoryIndexMeta } from "./manager-reindex-state.js";
@@ -638,6 +638,28 @@ describe("memory manager FTS-only reindex", () => {
     expect(createEmbeddingProviderMock).not.toHaveBeenCalled();
     expect(status.vector).toMatchObject({ enabled: false });
     expect(status.custom?.indexIdentity).toEqual({ status: "valid" });
+    expect(countChunksContaining("Alpha topic")).toBeGreaterThan(0);
+  });
+
+  it("ignores persisted vector rebuild debt after reopening an FTS-only index", async () => {
+    const memoryManager = await createManager({ provider: "none" });
+    const db = Reflect.get(memoryManager, "db") as DatabaseSync;
+    db.prepare(
+      `INSERT INTO memory_index_meta (key, value) VALUES ('memory_vector_rebuild_v1', '1')`,
+    ).run();
+
+    await memoryManager.sync({ force: true });
+    await memoryManager.close();
+    manager = null;
+    await closeAllMemorySearchManagers();
+    await closeAllMemoryIndexManagers();
+
+    const reopened = await createManager({ provider: "none", purpose: "status" });
+    expect(reopened.status()).toMatchObject({
+      dirty: false,
+      vector: { enabled: false, index: { state: "empty" } },
+      custom: { indexIdentity: { status: "valid" } },
+    });
     expect(countChunksContaining("Alpha topic")).toBeGreaterThan(0);
   });
 
