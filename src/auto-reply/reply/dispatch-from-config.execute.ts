@@ -1,7 +1,7 @@
 import {
   hasOutboundReplyContent,
   isFastModeAutoProgressPayload,
-} from "openclaw/plugin-sdk/reply-payload";
+} from "astroclaw/plugin-sdk/reply-payload";
 import { isAskUserPromptPending } from "../../agents/tools/ask-user-tool.js";
 import { normalizeAgentPlanSteps } from "../../channels/streaming.js";
 import { logVerbose } from "../../globals.js";
@@ -647,7 +647,7 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
     // Command handling prepared a trailing prompt after ACP in-place reset.
     // Route that tail through ACP now (same turn) instead of embedded dispatch.
     ctx.AcpDispatchTailAfterReset = false;
-    if (hookRunner?.hasHooks("reply_dispatch")) {
+    if (hookRunner?.hasHooks("reply_dispatch", { dispatchKind: state.dispatchKind })) {
       const tailDispatchResult = await runWithDispatchLifecycleAdmission(
         async () =>
           await runWithDispatchAbortSignal(
@@ -679,6 +679,7 @@ export async function executeDispatch(state: PrepareDispatchExecutionReadyState)
                 }),
                 {
                   cfg,
+                  dispatchKind: state.dispatchKind,
                   dispatcher: state.dispatchHookDispatcher,
                   abortSignal:
                     state.getPreDispatchAbortSignal() ?? params.replyOptions?.abortSignal,
