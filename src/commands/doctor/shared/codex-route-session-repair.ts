@@ -19,7 +19,7 @@ import {
 } from "../../../config/sessions/session-accessor.js";
 import { resolveAllAgentSessionStoreTargetsSync } from "../../../config/sessions/targets.js";
 import type { SessionEntry } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { loadJsonFileThroughSymlink } from "../../../infra/json-file.js";
 import {
   loadLegacySessionStore,
@@ -433,7 +433,7 @@ export async function maybeRepairCodexSessionRoutes(params: {
     const sqliteEntryCount = params.shouldRepair
       ? scanDoctorSessionEntriesStrict(sessionScope, scanEntry)
       : scanDoctorSessionEntriesTolerant(sessionScope, scanEntry);
-    const hasLegacyStore = fs.existsSync(target.storePath);
+    const hasLegacyStore = !target.storePath.endsWith(".sqlite") && fs.existsSync(target.storePath);
     return sqliteEntryCount > 0 || hasLegacyStore
       ? [
           {
