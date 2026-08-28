@@ -1,6 +1,6 @@
 // Resolves trusted tool policy for plugins from runtime config.
 import { getRuntimeConfig } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isPlainObject } from "../utils.js";
 import type {
   PluginHookBeforeToolCallEvent,
@@ -216,7 +216,9 @@ export async function runTrustedToolPolicies(
     config?: OpenClawConfig;
     deriveEvent?: (
       params: Record<string, unknown>,
-    ) => Pick<PluginHookBeforeToolCallEvent, "derivedPaths">;
+    ) =>
+      | Pick<PluginHookBeforeToolCallEvent, "derivedPaths">
+      | Promise<Pick<PluginHookBeforeToolCallEvent, "derivedPaths">>;
     normalizeEvent?: (
       event: PluginHookBeforeToolCallEvent,
       ctx: PluginHookToolContext,
@@ -357,12 +359,15 @@ export async function runTrustedToolPolicies(
           currentContextToolIdentity = normalizeToolIdentity(normalized.event);
         }
         hasAdjustedParams = true;
-        currentDerivedEvent = normalizeDerivedEventFields(options?.deriveEvent?.(adjustedParams));
+        currentDerivedEvent = normalizeDerivedEventFields(
+          await options?.deriveEvent?.(adjustedParams),
+        );
       }
       if ("requireApproval" in decision && decision.requireApproval && !approval) {
         approval = decision.requireApproval;
       }
     } catch {
+      ctx.abortSignal?.throwIfAborted();
       return trustedPolicyFailureResult(registration, "policy decision is unreadable");
     }
   }
