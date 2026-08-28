@@ -3,7 +3,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
 // Sessions tool tests cover list/send helpers, announce-target resolution,
 // and assistant-visible text sanitization.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelMessagingAdapter } from "../../channels/plugins/types.public.js";
 import { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } from "../../config/io.js";
@@ -14,7 +14,7 @@ import {
   getOwnedSessionTranscriptWriterFence,
   withOwnedSessionTranscriptWrites,
 } from "../../config/sessions/transcript-write-context.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { GatewayClientRequestError } from "../../gateway/client.js";
 import { withTestDir } from "../../test-helpers/temp-dir.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
@@ -368,10 +368,9 @@ async function executeFireAndForgetA2AFrom(
   expect(requireDetails(result).status).toBe("accepted");
   expect(recordParticipantMock).toHaveBeenCalledWith(
     expect.objectContaining({
-      actor: { type: "agent", id: "main" },
+      identity: { type: "agent", id: "main" },
       agentId: "other",
       sessionKey: targetSessionKey,
-      source: "agent",
     }),
   );
   const flowParams = vi.mocked(runSessionsSendA2AFlow).mock.calls[0]?.[0];
