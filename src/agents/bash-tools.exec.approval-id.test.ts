@@ -7,7 +7,7 @@ import path from "node:path";
  * Covers approval registration ids, follow-up idempotency, and approved
  * node/gateway invocation behavior.
  */
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadExecApprovals,
@@ -719,6 +719,9 @@ describe("exec approvals", () => {
     vi.mocked(callGatewayTool).mockImplementation(async (method, _opts, params) => {
       if (method === "node.invoke") {
         const invoke = params as { command?: string };
+        if (invoke.command === "system.run.prepare") {
+          return buildPreparedSystemRunPayload(params);
+        }
         if (invoke.command === "system.run") {
           return { payload: { success: true, stdout: "node-ok" } };
         }
