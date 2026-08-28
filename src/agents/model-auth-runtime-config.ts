@@ -6,8 +6,8 @@ import {
   getRuntimeConfigSnapshot,
   getRuntimeConfigSourceSnapshot,
   selectApplicableRuntimeConfig,
-} from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+} from "../config/runtime-snapshot.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   findActiveDegradedSecretOwner,
   SecretSurfaceUnavailableError,
