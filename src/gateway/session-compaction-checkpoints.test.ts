@@ -5,8 +5,8 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { CURRENT_SESSION_VERSION, SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
-import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
+import { CURRENT_SESSION_VERSION, SessionManager } from "openclaw/plugin-sdk/agent-sessions";
+import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
 import { afterEach, describe, expect, test } from "vitest";
 import type { SessionCompactionCheckpoint } from "../config/sessions.js";
 import { formatSqliteSessionFileMarker } from "../config/sessions/legacy-sqlite-marker.js";
@@ -89,8 +89,15 @@ describe("session-compaction-checkpoints", () => {
       sessionId,
       storePath,
     });
+    const sourceStamp = {
+      createdVia: "operator" as const,
+      createdActor: { type: "human" as const, id: "checkpoint-source-owner" },
+      createdAt: 123,
+      sandbox: "required" as const,
+    };
 
     await upsertSessionEntryCore(scope, {
+      ...sourceStamp,
       sessionId,
       sessionFile: marker,
       updatedAt: Date.now(),
@@ -153,6 +160,11 @@ describe("session-compaction-checkpoints", () => {
       sourceStoreKey: sessionStoreKey,
       nextKey: branchKey,
       checkpointId: checkpoint.checkpointId,
+      creation: {
+        via: "operator",
+        actor: { type: "human", id: "checkpoint-branch-owner" },
+        sandbox: "required",
+      },
     });
     const restored = await store.restoreCheckpointSession({
       expectedState: checkpointExpectedState(sessionId),
@@ -165,6 +177,13 @@ describe("session-compaction-checkpoints", () => {
     if (branched.status !== "created" || restored.status !== "created") {
       throw new Error("expected SQLite checkpoint branch and restore");
     }
+    expect(branched.entry).toMatchObject({
+      createdVia: "operator",
+      createdActor: { type: "human", id: "checkpoint-branch-owner" },
+      sandbox: "required",
+    });
+    expect(branched.entry.createdAt).not.toBe(sourceStamp.createdAt);
+    expect(restored.entry).toMatchObject(sourceStamp);
     expect(branched.entry).not.toHaveProperty("sessionFile");
     expect(restored.entry).not.toHaveProperty("sessionFile");
     expect(fsSync.readdirSync(dir).some((file) => file.endsWith(".jsonl"))).toBe(false);
