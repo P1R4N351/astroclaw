@@ -15,7 +15,7 @@ import {
   listBundledChannelIdsWithPersistedAuthState,
 } from "../channels/plugins/persisted-auth-state.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginDiscoveryResult } from "../plugins/discovery.js";
 import { listOfficialExternalChannelEnvVars } from "../plugins/official-external-plugin-catalog.js";
 import { isRecord } from "../utils.js";
@@ -85,22 +85,11 @@ function hasPersistedChannelState(env: NodeJS.ProcessEnv): boolean {
   return fs.existsSync(resolveStateDir(env, os.homedir));
 }
 
-let persistedAuthStateChannelIds: readonly string[] | null = null;
-
 function listPersistedAuthStateChannelIds(options: ChannelPresenceOptions): readonly string[] {
-  const override = options.persistedAuthStateProbe?.listChannelIds();
-  if (override) {
-    return override;
-  }
-  if (options.discovery) {
-    return listBundledChannelIdsWithPersistedAuthState(options.discovery);
-  }
-  if (persistedAuthStateChannelIds) {
-    return persistedAuthStateChannelIds;
-  }
-  // Bundled plugin metadata is process-stable; cache the static persisted-auth id list.
-  persistedAuthStateChannelIds = listBundledChannelIdsWithPersistedAuthState();
-  return persistedAuthStateChannelIds;
+  return (
+    options.persistedAuthStateProbe?.listChannelIds() ??
+    listBundledChannelIdsWithPersistedAuthState(options.discovery)
+  );
 }
 
 function hasPersistedAuthState(params: {
