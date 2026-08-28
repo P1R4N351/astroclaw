@@ -1,5 +1,5 @@
 // Browser control auth helpers resolve plugin browser credentials from OpenClaw config.
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { loadBundledPluginPublicSurfaceModuleSyncCore } from "./facade-loader.js";
 
 /** Browser control credentials resolved from config, env, or generated setup state. */
@@ -30,17 +30,13 @@ type BrowserControlAuthSurface = {
   ) => Promise<EnsureBrowserControlAuthResult>;
 };
 
-let cachedBrowserControlAuthSurface: BrowserControlAuthSurface | undefined;
-
 function loadBrowserControlAuthSurface(): BrowserControlAuthSurface {
   // Browser owns auth generation and env precedence; this SDK wrapper only keeps
   // the lazy public facade stable for plugin authors.
-  cachedBrowserControlAuthSurface ??=
-    loadBundledPluginPublicSurfaceModuleSyncCore<BrowserControlAuthSurface>({
-      dirName: "browser",
-      artifactBasename: "browser-control-auth.js",
-    });
-  return cachedBrowserControlAuthSurface;
+  return loadBundledPluginPublicSurfaceModuleSyncCore<BrowserControlAuthSurface>({
+    dirName: "browser",
+    artifactBasename: "browser-control-auth.js",
+  });
 }
 
 /** Resolves browser control auth from config/env without generating new credentials. */
