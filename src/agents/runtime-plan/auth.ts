@@ -3,7 +3,7 @@
  * and harness auth owners are resolved before session auth profiles can be
  * safely forwarded.
  */
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { normalizePluginsConfig } from "../../plugins/config-state.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
 import { normalizeOptionalAgentRuntimeId } from "../agent-runtime-id.js";
@@ -40,6 +40,7 @@ export function buildAgentRuntimeAuthPlan(params: {
   sessionAuthProfileCandidateIds?: string[];
   modelRoute?: AgentRuntimeAuthPlan["modelRoute"];
   deferredRouteSupport?: AgentRuntimeAuthPlan["deferredRouteSupport"];
+  credentialSource?: AgentRuntimeAuthPlan["credentialSource"];
   config?: OpenClawConfig;
   workspaceDir?: string;
   metadataSnapshot?: Pick<PluginMetadataSnapshot, "plugins">;
@@ -96,5 +97,6 @@ export function buildAgentRuntimeAuthPlan(params: {
       : {}),
     ...(params.modelRoute ? { modelRoute: params.modelRoute } : {}),
     ...(params.deferredRouteSupport ? { deferredRouteSupport: params.deferredRouteSupport } : {}),
+    ...(params.credentialSource ? { credentialSource: params.credentialSource } : {}),
   } satisfies AgentRuntimeAuthPlan;
 }
