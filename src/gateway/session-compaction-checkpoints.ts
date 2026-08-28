@@ -30,7 +30,7 @@ import {
 } from "../config/sessions/session-accessor.sqlite-checkpoint.js";
 import { streamSessionTranscriptLines } from "../config/sessions/transcript-stream.js";
 import { scanSessionTranscriptTree } from "../config/sessions/transcript-tree.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveGatewaySessionStoreTarget } from "./session-utils.js";
 
@@ -79,6 +79,7 @@ type BranchCheckpointSessionParams = {
   sourceStoreKey?: string;
   nextKey: string;
   checkpointId: string;
+  creation?: Parameters<typeof branchCompactionCheckpointSession>[0]["creation"];
 };
 
 type RestoreCheckpointSessionParams = {
@@ -547,6 +548,7 @@ async function branchCheckpointSessionFromStoredBoundary(
     nextKey: params.nextKey,
     checkpointId: params.checkpointId,
     expectedState: params.expectedState,
+    creation: params.creation,
     ...(params.sourceStoreKey ? { sourceStoreKey: params.sourceStoreKey } : {}),
     ...(legacySource ? { legacySource } : {}),
   });
