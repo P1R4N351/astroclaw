@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { runWithGatewayIndependentRootWorkContinuation } from "../../process/gateway-work-admission.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 import { beginSessionWorkAdmission } from "../../sessions/session-lifecycle-admission.js";
@@ -64,7 +64,10 @@ export function scheduleChatDashboardSessionTitle(params: {
     try {
       await admission.run(async () => {
         const titleEntry = loadSessionEntry(params.sessionKey, params.sessionLoadOptions).entry;
-        if (titleEntry?.sessionId !== params.admittedSessionId) {
+        if (
+          titleEntry?.sessionId !== params.admittedSessionId ||
+          (titleEntry.pendingWorktree && !titleEntry.pendingWorktree.name)
+        ) {
           return;
         }
         const updated = await maybeGenerateDashboardSessionTitle({
