@@ -1,7 +1,7 @@
 // Covers bundling rules encoded in the root tsdown config.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { bundledPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import tsdownConfig, {
   createStateSchemaInlinePlugin,
@@ -17,6 +17,7 @@ type TsdownConfigEntry = {
   };
   entry?: Record<string, string> | string[];
   inputOptions?: TsdownInputOptions;
+  minify?: unknown;
   outDir?: string;
   plugins?: Array<{ name?: string }>;
 };
@@ -94,6 +95,22 @@ function readAgentAuthDiscoverySource(): string {
 }
 
 describe("tsdown config", () => {
+  it("minifies only the sealed deploy worker while preserving runtime names", () => {
+    const configs = asConfigArray(tsdownConfig);
+    const deployWorker = configs.find((config) => entryKeys(config).includes("worker/worker"));
+    const rsyncReceiver = configs.find((config) =>
+      entryKeys(config).includes("worker/workspace-rsync-receiver"),
+    );
+
+    expect(deployWorker?.minify).toEqual({
+      codegen: true,
+      compress: true,
+      mangle: { keepNames: true },
+    });
+    expect(rsyncReceiver?.minify).toBeUndefined();
+    expect(requireUnifiedDistGraph().minify).toBeUndefined();
+  });
+
   it.each([
     {
       exportName: "OPENCLAW_STATE_SCHEMA_SQL",
@@ -364,8 +381,8 @@ describe("tsdown config", () => {
 
     expect(alwaysBundle("@openclaw/fs-safe")).toBe(true);
     expect(alwaysBundle("@openclaw/fs-safe/path")).toBe(true);
-    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
-    expect(alwaysBundle("openclaw/plugin-sdk/ssrf-runtime")).toBe(false);
+    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime-internal")).toBe(true);
+    expect(alwaysBundle("astroclaw/plugin-sdk/ssrf-runtime")).toBe(false);
     expect(alwaysBundle("zod")).toBe(true);
     expect(alwaysBundle("zod/v4/core")).toBe(true);
     expect(alwaysBundle("not-a-runtime-dependency")).toBe(false);
