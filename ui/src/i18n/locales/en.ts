@@ -2440,6 +2440,11 @@ export const en: TranslationMap = {
   },
   browser: {
     title: "Browser",
+    open: "Open",
+    openPanel: "Open browser panel",
+    moreActions: "More actions",
+    copyUrl: "Copy URL",
+    openNewTab: "Open in new tab",
     toggle: "Toggle browser panel",
     close: "Close browser panel",
     resize: "Resize browser panel",
@@ -3413,7 +3418,9 @@ export const en: TranslationMap = {
     remove: "Remove",
     removing: "Removing…",
     removeNamed: "Remove {name}",
-    removeConfirm: "Remove this plugin package and all of its entries?",
+    removeConfirmTitle: "Remove {name}?",
+    removeConfirmMessage:
+      "Removing this plugin package and all of its entries restarts the Gateway immediately and interrupts active sessions.",
     cancel: "Cancel",
     removedRestart: "Removed {name}. A Gateway restart is required to apply the change.",
     verifiedSource: "Verified source",
@@ -3444,6 +3451,9 @@ export const en: TranslationMap = {
     install: "Install",
     installing: "Installing…",
     installNamed: "Install {name}",
+    installConfirmTitle: "Install {name}?",
+    installConfirmMessage:
+      "Installing this plugin restarts the Gateway immediately and interrupts active sessions.",
     policyReviewTitle: "Security review needed",
     policyReviewBodyKnown: "Policy warnings: {count}. Not installed.",
     policyReviewBodyReason: "{reason} Not installed.",
@@ -6873,6 +6883,7 @@ export const en: TranslationMap = {
     },
     runEntry: {
       noSummary: "No summary.",
+      deliverySuppression: "Delivery suppression: {reason}",
       runAt: "Run at",
       openRunChat: "Open run chat",
       next: "Next {rel}",
