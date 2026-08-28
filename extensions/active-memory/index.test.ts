@@ -3,17 +3,17 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
-import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
-import { parseSqliteSessionFileMarker } from "astroclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
+import { parseSqliteSessionFileMarker } from "openclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyCliRuntimeRecallTimeoutDefault } from "./config.js";
 import plugin, { testing } from "./index.js";
@@ -70,14 +70,14 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/memory-host-search", () => ({
+vi.mock("openclaw/plugin-sdk/memory-host-search", () => ({
   closeActiveMemorySearchManager: hoisted.closeActiveMemorySearchManager,
   getActiveMemorySearchManager: hoisted.getActiveMemorySearchManager,
 }));
 
-vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/memory-host-core")>(
-    "astroclaw/plugin-sdk/memory-host-core",
+vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/memory-host-core")>(
+    "openclaw/plugin-sdk/memory-host-core",
   );
   return {
     ...actual,
@@ -91,9 +91,9 @@ vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
-    "astroclaw/plugin-sdk/session-store-runtime",
+vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
+    "openclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -103,10 +103,10 @@ vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async () => {
+vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
-  >("astroclaw/plugin-sdk/session-transcript-runtime");
+    typeof import("openclaw/plugin-sdk/session-transcript-runtime")
+  >("openclaw/plugin-sdk/session-transcript-runtime");
   return {
     ...actual,
     readSessionTranscriptRawDelta: async (
@@ -430,17 +430,16 @@ describe("active-memory plugin", () => {
       "utf8",
     );
   };
+  const usableMemoryTranscriptRecord = (text: string) => ({
+    message: {
+      role: "toolResult",
+      toolName: "memory_search",
+      details: { results: [{ text }] },
+      content: [{ type: "text", text: JSON.stringify({ results: [{ text }] }) }],
+    },
+  });
   const writeUsableMemoryTranscript = async (sessionFile: string, text: string) => {
-    await writeTranscriptJsonl(sessionFile, [
-      {
-        message: {
-          role: "toolResult",
-          toolName: "memory_search",
-          details: { results: [{ text }] },
-          content: [{ type: "text", text: JSON.stringify({ results: [{ text }] }) }],
-        },
-      },
-    ]);
+    await writeTranscriptJsonl(sessionFile, [usableMemoryTranscriptRecord(text)]);
   };
   const waitForAbort = async (abortSignal?: AbortSignal): Promise<never> => {
     if (abortSignal?.aborted) {
@@ -3086,6 +3085,7 @@ describe("active-memory plugin", () => {
           params.sessionFile,
           [
             { type: "message", message: { role: "user", content: "ignore this user text" } },
+            usableMemoryTranscriptRecord("user prefers lemon pepper wings"),
             {
               type: "message",
               message: { role: "assistant", content: "alpha beta gamma delta" },
@@ -3136,6 +3136,7 @@ describe("active-memory plugin", () => {
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
         tempSessionFile = params.sessionFile;
         await writeTranscriptJsonl(params.sessionFile, [
+          usableMemoryTranscriptRecord("user prefers lemon pepper wings"),
           {
             type: "message",
             message: { role: "assistant", content: "temporary partial recall summary" },
@@ -3186,6 +3187,10 @@ describe("active-memory plugin", () => {
         if (!target) {
           throw new Error("expected active-memory runtime session target");
         }
+        await appendSessionTranscriptMessageByIdentity({
+          ...target,
+          message: usableMemoryTranscriptRecord("user prefers lemon pepper wings").message,
+        });
         await appendSessionTranscriptMessageByIdentity({
           ...target,
           message: {
@@ -3250,6 +3255,39 @@ describe("active-memory plugin", () => {
     expectLinesNotToContain(lines, "timeout_partial");
   });
 
+  it("rejects a timeout partial without usable memory evidence", async () => {
+    testing.setMinimumTimeoutMsForTests(1);
+    testing.setSetupGraceTimeoutMsForTests(0);
+    testing.setTimeoutPartialDataGraceMsForTests(50);
+    registerPluginConfig({ timeoutMs: 100, logging: true });
+    const sessionKey = "agent:main:timeout-partial-no-evidence";
+    seedSession(sessionKey, "s-timeout-partial-no-evidence", 0);
+    runEmbeddedAgent.mockImplementationOnce(
+      async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
+        await writeTranscriptJsonl(params.sessionFile, [
+          {
+            message: {
+              role: "assistant",
+              content: "User prefers aisle seats and extra legroom.",
+            },
+          },
+        ]);
+        return await waitForAbort(params.abortSignal);
+      },
+    );
+
+    const result = await runPromptBuild(
+      { prompt: "what seat do i prefer? timeout without evidence" },
+      { sessionKey },
+    );
+
+    expect(result).toBeUndefined();
+    const lines = getActiveMemoryLines(sessionKey);
+    expectLinesToContain(lines, "Active Memory: status=timeout");
+    expectLinesNotToContain(lines, "timeout_partial");
+    expectLinesNotToContain(lines, "aisle seats");
+  });
+
   it("keeps timeout status when the timeout transcript path does not exist", async () => {
     testing.setMinimumTimeoutMsForTests(1);
     testing.setSetupGraceTimeoutMsForTests(0);
@@ -3281,6 +3319,7 @@ describe("active-memory plugin", () => {
     runEmbeddedAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
         await writeTranscriptJsonl(params.sessionFile, [
+          usableMemoryTranscriptRecord("user prefers lemon pepper wings"),
           {
             type: "message",
             message: {
@@ -3316,6 +3355,7 @@ describe("active-memory plugin", () => {
     runEmbeddedAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
         await writeTranscriptJsonl(params.sessionFile, [
+          usableMemoryTranscriptRecord("user prefers lemon pepper wings"),
           {
             type: "message",
             message: { role: "assistant", content: "partial abort summary" },
@@ -3344,6 +3384,47 @@ describe("active-memory plugin", () => {
       "🔎 Active Memory Debug: timeout_partial: 21 chars recovered (not persisted)",
     );
     expect(getActiveMemoryLines(sessionKey).join("\n")).not.toContain("partial abort summary");
+  });
+
+  it("keeps a timeout partial grounded only by the tool-result callback", async () => {
+    testing.setMinimumTimeoutMsForTests(1);
+    testing.setSetupGraceTimeoutMsForTests(0);
+    testing.setTimeoutPartialDataGraceMsForTests(50);
+    registerPluginConfig({ timeoutMs: 100, logging: true });
+    const sessionKey = "agent:main:timeout-partial-callback-evidence";
+    seedSession(sessionKey, "s-timeout-partial-callback-evidence", 0);
+    runEmbeddedAgent.mockImplementationOnce(
+      async (params: {
+        sessionFile: string;
+        abortSignal?: AbortSignal;
+        onAgentToolResult?: (event: {
+          toolName: string;
+          result: unknown;
+          isError: boolean;
+        }) => void;
+      }) => {
+        params.onAgentToolResult?.({
+          toolName: "memory_search",
+          isError: false,
+          result: {
+            content: [{ type: "text", text: '{"results":[{"text":"User likes ramen."}]}' }],
+            details: { results: [{ text: "User likes ramen." }] },
+          },
+        });
+        await writeTranscriptJsonl(params.sessionFile, [
+          { message: { role: "assistant", content: "User likes ramen with chili oil." } },
+        ]);
+        return await waitForAbort(params.abortSignal);
+      },
+    );
+
+    const result = await runPromptBuild(
+      { prompt: "what ramen do i like? callback evidence" },
+      { sessionKey },
+    );
+
+    expectPrependContextContains(result, "User likes ramen with chili oil.");
+    expectLinesToContain(getActiveMemoryLines(sessionKey), "Active Memory: status=timeout_partial");
   });
 
   it("skips generic subagent errors without using partial transcript output", async () => {
@@ -4622,7 +4703,7 @@ describe("active-memory plugin", () => {
       const staleReadStarted = createDeferred<void>();
       const releaseStaleRead = createDeferred<void>();
       if (stalePoll) {
-        const transcriptRuntime = await import("astroclaw/plugin-sdk/session-transcript-runtime");
+        const transcriptRuntime = await import("openclaw/plugin-sdk/session-transcript-runtime");
         const readDelta = transcriptRuntime.readSessionTranscriptRawDelta;
         let heldRead = false;
         vi.spyOn(transcriptRuntime, "readSessionTranscriptRawDelta").mockImplementation(
