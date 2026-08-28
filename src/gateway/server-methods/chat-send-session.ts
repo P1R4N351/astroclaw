@@ -6,7 +6,7 @@ import {
   resolveAgentMainSessionKey,
   resolveSessionRoutingContract,
 } from "../../config/sessions/main-session.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { measureDiagnosticsTimelineSpanSync } from "../../infra/diagnostics-timeline.js";
 import { isIncognitoSessionKey } from "../../routing/session-key.js";
 import { resolveMissingAgentHarnessSessionError } from "../../sessions/agent-harness-session-key.js";
@@ -175,6 +175,7 @@ export function prepareChatSendSession(params: {
   const timeoutMs = resolveAgentTimeoutMs({ cfg, overrideMs: p.timeoutMs });
   const now = Date.now();
   const restartSafeRequest = createRestartSafeChatRequest({
+    goalRequestFingerprint: request.goalOperation?.requestFingerprint,
     cfg,
     eligible:
       isBrowserOperatorUiClient(request.clientInfo) &&
