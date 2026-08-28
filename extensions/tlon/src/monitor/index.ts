@@ -1,27 +1,27 @@
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   createChannelInboundEnvelopeBuilder,
   formatInboundMediaUnavailableText,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 import type {
   ChannelIngressContextBinding,
   ResolvedChannelMessageIngress,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
 import {
   bindIngressLifecycleToReplyOptions,
   waitUntilAbort,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import type { GetReplyOptions, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import { retryAsync } from "astroclaw/plugin-sdk/retry-runtime";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
-import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { GetReplyOptions, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { retryAsync } from "openclaw/plugin-sdk/retry-runtime";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
+import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
 import {
   asFiniteNumber,
   asNullableRecord as asRecord,
   readStringField as readString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import type { OpenClawConfig } from "../../runtime-api.js";
 import { createLoggerBackedRuntime } from "../../runtime-api.js";
 import { getTlonRuntime } from "../runtime.js";
@@ -351,8 +351,11 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
     let unavailableMediaCount = 0;
     if (messageContent) {
       try {
-        ({ attachments, unavailableCount: unavailableMediaCount } =
-          await downloadMessageImages(messageContent));
+        ({ attachments, unavailableCount: unavailableMediaCount } = await downloadMessageImages(
+          messageContent,
+          undefined,
+          account.mediaMaxBytes,
+        ));
         if (attachments.length > 0) {
           runtime.log?.(`[tlon] Downloaded ${attachments.length} image(s) from message`);
         }
