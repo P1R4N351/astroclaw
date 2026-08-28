@@ -1,4 +1,4 @@
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 /**
  * Shared Browser control-server test harness with mocked Chrome, CDP,
  * Playwright, Chrome MCP, config, and media dependencies.
@@ -216,6 +216,10 @@ const pwMocks = vi.hoisted(() => {
     })),
     getMainFrameDocumentIdentityViaPlaywright: vi.fn(async () => "pw:test-document"),
     getPageErrorsViaPlaywright: vi.fn(async () => ({ errors: [] })),
+    getPageTextViaPlaywright: vi.fn(async (_opts?: unknown) => ({
+      text: "Page text",
+      truncated: false,
+    })),
     highlightViaPlaywright: vi.fn(async (_opts?: unknown) => {}),
     hoverViaPlaywright: vi.fn(async (_opts?: unknown) => {}),
     scrollIntoViewViaPlaywright: vi.fn(async (_opts?: unknown) => {}),
