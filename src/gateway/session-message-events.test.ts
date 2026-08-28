@@ -5,7 +5,7 @@ import { rawDataToString } from "@astroclaw/gateway-client/websocket-data";
 /**
  * Session message event indexing and broadcast tests.
  */
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import type { RawData } from "ws";
 import {
@@ -1043,7 +1043,7 @@ describe("session.message websocket events", () => {
           error: new Error("WebChat uses canonical session events"),
         },
         deliveryRequested: true,
-        skipHeartbeatDelivery: false,
+        undeliveredRunStatus: "ok",
         spawnOnlyHandoff: false,
         sourceDeliveryOutcome: {
           visibleDeliveries: [],
