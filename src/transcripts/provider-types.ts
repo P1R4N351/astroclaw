@@ -1,6 +1,6 @@
 // Transcript provider contracts for external and manual transcript sources.
 import type { Result } from "@astroclaw/normalization-core/result";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 /**
  * Public contracts for transcript source providers.
@@ -63,6 +63,12 @@ export type TranscriptStartRequest = {
   abortSignal?: AbortSignal;
   startupWaitMs?: number;
   onUtterance: (utterance: TranscriptUtterance) => void | Promise<void>;
+  /**
+   * `active: false` permanently ends this exact capture subscription, including
+   * replacement or detach; transient transport disconnects must not emit it.
+   * Deliver final utterances first. Callback payload ids/source are descriptive;
+   * consumers retain their admitted session identity and ownership metadata.
+   */
   onStatus?: (status: TranscriptSourceStatus) => void | Promise<void>;
 };
 
