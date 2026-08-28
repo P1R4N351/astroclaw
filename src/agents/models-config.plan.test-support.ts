@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import "./models-config.plan.js";
 import type { PreparedModelsConfigContext } from "./models-config.plan.js";
@@ -15,6 +15,7 @@ type ResolveImplicitProvidersForModelsJson = (params: {
   providerDiscoveryProviderIds?: readonly string[];
   providerDiscoveryTimeoutMs?: number;
   providerDiscoveryEntriesOnly?: boolean;
+  sourceModelInputOmissions?: ReadonlySet<string>;
 }) => Promise<Record<string, ProviderConfig>>;
 
 type PreparedPlanParams = Parameters<
