@@ -3,20 +3,22 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
-import { parseSqliteSessionFileMarker } from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
+import { parseSqliteSessionFileMarker } from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyCliRuntimeRecallTimeoutDefault } from "./config.js";
 import plugin, { testing } from "./index.js";
 import { resolveActiveRecallForRun } from "./recall-state.js";
+import * as transcriptWatch from "./transcript-watch.js";
 
 // Match only lone surrogates so valid supplementary-plane characters remain allowed.
 const UNPAIRED_SURROGATE_RE =
@@ -68,14 +70,14 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/memory-host-search", () => ({
+vi.mock("astroclaw/plugin-sdk/memory-host-search", () => ({
   closeActiveMemorySearchManager: hoisted.closeActiveMemorySearchManager,
   getActiveMemorySearchManager: hoisted.getActiveMemorySearchManager,
 }));
 
-vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/memory-host-core")>(
-    "openclaw/plugin-sdk/memory-host-core",
+vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/memory-host-core")>(
+    "astroclaw/plugin-sdk/memory-host-core",
   );
   return {
     ...actual,
@@ -89,9 +91,9 @@ vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
-    "openclaw/plugin-sdk/session-store-runtime",
+vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
+    "astroclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -101,10 +103,10 @@ vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async () => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/session-transcript-runtime")
-  >("openclaw/plugin-sdk/session-transcript-runtime");
+    typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
+  >("astroclaw/plugin-sdk/session-transcript-runtime");
   return {
     ...actual,
     readSessionTranscriptRawDelta: async (
@@ -4602,53 +4604,130 @@ describe("active-memory plugin", () => {
     expectLinesToContain(lines, `Active Memory Debug: ${warning} ${action}`);
   });
 
-  it("uses configured memory evidence from a rotated embedded transcript", async () => {
-    testing.setMinimumTimeoutMsForTests(1);
-    testing.setSetupGraceTimeoutMsForTests(0);
-    registerPluginConfig({
-      timeoutMs: 1_000,
-      toolsAllow: ["memory_get", "memory_search"],
-      logging: true,
-    });
-    const sessionKey = "agent:main:rotated-memory-evidence";
-    seedSession(sessionKey, "s-rotated-memory-evidence", 0);
-    runEmbeddedAgent.mockImplementationOnce(async (params: { sessionFile: string }) => {
-      await writeTranscriptJsonl(params.sessionFile, [
-        {
+  it.each([false, true])(
+    "uses configured memory evidence from a rotated embedded transcript (stale poll: %s)",
+    async (stalePoll) => {
+      testing.setMinimumTimeoutMsForTests(1);
+      testing.setSetupGraceTimeoutMsForTests(0);
+      registerPluginConfig({
+        timeoutMs: 1_000,
+        toolsAllow: ["memory_get", "memory_search"],
+        logging: true,
+      });
+      const sessionKey = "agent:main:rotated-memory-evidence";
+      seedSession(sessionKey, "s-rotated-memory-evidence", 0);
+      const cleanupStarted = createDeferred<void>();
+      const releaseCleanup = createDeferred<void>();
+      const watcherStopped = createDeferred<void>();
+      const staleReadStarted = createDeferred<void>();
+      const releaseStaleRead = createDeferred<void>();
+      if (stalePoll) {
+        const transcriptRuntime = await import("astroclaw/plugin-sdk/session-transcript-runtime");
+        const readDelta = transcriptRuntime.readSessionTranscriptRawDelta;
+        let heldRead = false;
+        vi.spyOn(transcriptRuntime, "readSessionTranscriptRawDelta").mockImplementation(
+          async (params) => {
+            const page = await readDelta(params);
+            if (!heldRead && page.kind === "page" && page.events.length > 0) {
+              heldRead = true;
+              staleReadStarted.resolve();
+              await releaseStaleRead.promise;
+            }
+            return page;
+          },
+        );
+      }
+      const cleanup = expectDefined(
+        hoisted.cleanupSessionLifecycleArtifacts.getMockImplementation(),
+        "recall cleanup fixture",
+      );
+      hoisted.cleanupSessionLifecycleArtifacts.mockImplementationOnce(async (params) => {
+        cleanupStarted.resolve();
+        await releaseCleanup.promise;
+        return await cleanup(params);
+      });
+      const watchTerminalMemorySearchResult = transcriptWatch.watchTerminalMemorySearchResult;
+      vi.spyOn(transcriptWatch, "watchTerminalMemorySearchResult").mockImplementation((params) => {
+        const watch = watchTerminalMemorySearchResult(params);
+        return {
+          ...watch,
+          stop() {
+            watch.stop();
+            watcherStopped.resolve();
+          },
+        };
+      });
+      runEmbeddedAgent.mockImplementationOnce(async (params: { sessionFile: string }) => {
+        if (stalePoll) {
+          await writeTranscriptJsonl(params.sessionFile, [
+            {
+              message: {
+                role: "toolResult",
+                toolName: "memory_search",
+                details: { disabled: true, error: "embedding request failed" },
+              },
+            },
+          ]);
+          await staleReadStarted.promise;
+        }
+        const memoryResult = {
           message: {
             role: "toolResult",
             toolName: "memory_get",
             details: { path: "memory/food.md", text: "User usually orders ramen." },
           },
-        },
-      ]);
-      const activeSessionFile = path.join(path.dirname(params.sessionFile), "rotated.jsonl");
-      await writeTranscriptJsonl(activeSessionFile, [
-        {
-          message: {
-            role: "toolResult",
-            toolName: "memory_search",
-            details: {
-              disabled: true,
-              error: "embedding request failed",
+        };
+        if (stalePoll) {
+          await fs.appendFile(params.sessionFile, `${JSON.stringify(memoryResult)}\n`, "utf8");
+        } else {
+          await writeTranscriptJsonl(params.sessionFile, [memoryResult]);
+        }
+        const activeSessionFile = path.join(path.dirname(params.sessionFile), "rotated.jsonl");
+        await writeTranscriptJsonl(activeSessionFile, [
+          {
+            message: {
+              role: "toolResult",
+              toolName: "memory_search",
+              details: {
+                disabled: true,
+                error: "embedding request failed",
+              },
             },
           },
-        },
-      ]);
-      return {
-        payloads: [{ text: "User usually orders ramen." }],
-        meta: { agentMeta: { sessionFile: activeSessionFile } },
-      };
-    });
+        ]);
+        return {
+          payloads: [{ text: "User usually orders ramen." }],
+          meta: { agentMeta: { sessionFile: activeSessionFile } },
+        };
+      });
 
-    const result = await runPromptBuild(
-      { prompt: "what food do i usually order? rotated transcript" },
-      { sessionKey },
-    );
+      const resultPromise = runPromptBuild(
+        { prompt: "what food do i usually order? rotated transcript" },
+        { sessionKey },
+      );
+      try {
+        await cleanupStarted.promise;
+        releaseStaleRead.resolve();
+        // Drain continuations of the old read after execution has completed;
+        // a stopped watcher must not publish that stale unavailable snapshot.
+        await new Promise<void>((resolve) => {
+          setImmediate(resolve);
+        });
+        // The completed run already has evidence; pending cleanup must not
+        // let a later transcript replace that grounded result.
+        await watcherStopped.promise;
+      } finally {
+        releaseStaleRead.resolve();
+        releaseCleanup.resolve();
+      }
+      const result = await resultPromise;
 
-    expectPrependContextContains(result, "User usually orders ramen.");
-    expectLinesToContain(getActiveMemoryLines(sessionKey), "status=ok");
-  });
+      expect(result, JSON.stringify(api.logger.info.mock.calls)).toMatchObject({
+        prependContext: expect.stringContaining("User usually orders ramen."),
+      });
+      expectLinesToContain(getActiveMemoryLines(sessionKey), "status=ok");
+    },
+  );
 
   it("rejects completed output when only a rotated transcript reports unavailable memory", async () => {
     testing.setMinimumTimeoutMsForTests(1);
