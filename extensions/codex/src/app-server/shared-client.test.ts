@@ -1,8 +1,8 @@
 // Codex tests cover shared client plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { withTempDir } from "openclaw/plugin-sdk/test-env";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { withTempDir } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { WebSocketServer, type RawData } from "ws";
 import type { CodexAppServerPreparedAuth } from "./auth-bridge.js";
@@ -97,7 +97,7 @@ vi.mock("./desktop-generation.js", () => ({
   waitForCodexDesktopGeneration: mocks.waitForCodexDesktopGeneration,
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", () => ({
   AgentHarnessPreflightError: class extends Error {
     readonly scope: string;
 
@@ -112,13 +112,14 @@ vi.mock("openclaw/plugin-sdk/agent-harness-runtime", () => ({
   OPENCLAW_VERSION: "test",
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
   resolveDefaultAgentDir: mocks.resolveDefaultAgentDir,
 }));
 
 import {
   assertCodexAppServerClientStartSelectionCurrent,
   captureExclusiveSharedCodexAppServerClient,
+  captureSharedCodexAppServerCatalogLifetime,
   getSharedCodexAppServerClient,
   readCodexAppServerClientDesktopGeneration,
   readCodexAppServerClientProcessIdentity,
@@ -2410,6 +2411,14 @@ describe("shared Codex app-server client", () => {
     const lease = getLeasedSharedCodexAppServerClient({ timeoutMs: 1000 });
     await sendInitializeResult(first, "openclaw/0.149.0 (macOS; test)");
     await expect(lease).resolves.toBe(first.client);
+    const current = captureSharedCodexAppServerCatalogLifetime(first.client);
+    expect(current()).toBe(true);
+    expect(releaseLeasedSharedCodexAppServerClient(first.client)).toBe(true);
+    expect(current()).toBe(true);
+    await expect(getLeasedSharedCodexAppServerClient({ timeoutMs: 1000 })).resolves.toBe(
+      first.client,
+    );
+    expect(current()).toBe(true);
 
     // Routine cleanup (e.g. one-shot bundle-MCP) must not yank a healthy
     // client from co-leased sessions; only suspect retirement does.
@@ -2418,10 +2427,32 @@ describe("shared Codex app-server client", () => {
       closed: false,
     });
     expect(first.process.stdin.destroyed).toBe(false);
+    expect(current()).toBe(false);
 
     expect(releaseLeasedSharedCodexAppServerClient(first.client)).toBe(true);
     expect(first.process.stdin.destroyed).toBe(true);
   });
+
+  it.each(["account/login/start", "account/logout", "config/value/write", "config/batchWrite"])(
+    "invalidates catalog observations before %s settles",
+    async (method) => {
+      const transport = createClientHarness();
+      vi.spyOn(CodexAppServerClient, "start").mockReturnValueOnce(transport.client);
+      const lease = getLeasedSharedCodexAppServerClient({ timeoutMs: 1000 });
+      await sendInitializeResult(transport, "openclaw/0.149.0 (test)");
+      const client = await lease;
+      const current = captureSharedCodexAppServerCatalogLifetime(client);
+      expect(current()).toBe(true);
+      const requestIndex = transport.writes.length;
+      const pending = client.request(method, {});
+      const request = JSON.parse(await transport.waitForWrite(requestIndex));
+      expect(current()).toBe(false);
+      transport.send({ id: request.id, result: {} });
+      await pending;
+      expect(current()).toBe(false);
+      releaseLeasedSharedCodexAppServerClient(client);
+    },
+  );
 
   it("waits for a dirty desktop generation before reusing a warm managed client", async () => {
     const generation = { epoch: 1, fingerprint: "desktop-x" };
