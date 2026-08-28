@@ -3,12 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Covers plugin registry assembly, contribution lookup, and reset behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import { recordPluginCandidateInstallOwner } from "./candidate-install-owner.js";
 import type { PluginCandidate } from "./discovery.js";
-import { writePersistedInstalledPluginIndex } from "./installed-plugin-index-store.js";
+import { writePersistedInstalledPluginIndex } from "./installed-plugin-index-store-write.js";
 import {
   resolveInstalledPluginIndexPolicyHash,
   type InstalledPluginIndex,
