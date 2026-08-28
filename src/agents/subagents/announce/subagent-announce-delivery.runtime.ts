@@ -10,7 +10,7 @@ import { tryResolveLegacyCompatibilityAgentId } from "../../../config/legacy.def
 import { resolveSessionStorePathCore } from "../../../config/sessions.js";
 import { loadSessionEntryReadOnly as loadSessionEntry } from "../../../config/sessions/session-accessor.js";
 import { resolvePersistedSessionStoreOwnerForKey } from "../../../config/sessions/session-store-owner.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { callGateway } from "../../../gateway/call.js";
 import { resolveExternalBestEffortDeliveryTarget } from "../../../infra/outbound/best-effort-delivery.js";
 import { createBoundDeliveryRouter } from "../../../infra/outbound/bound-delivery-router.js";
@@ -70,6 +70,8 @@ type RequesterSessionEntryResult = {
   cfg: ReturnType<typeof getRuntimeConfig>;
   entry: ReturnType<typeof loadSessionEntry>;
   canonicalKey: string;
+  agentId?: string;
+  storePath?: string;
 };
 
 export function tryResolveSubagentRequesterAgentId(
@@ -124,7 +126,7 @@ function loadDefaultRequesterSessionEntry(
     agentId,
     clone: false,
   });
-  return { cfg, entry, canonicalKey };
+  return { cfg, entry, canonicalKey, agentId, storePath };
 }
 
 const defaultSubagentAnnounceDeliveryDeps: SubagentAnnounceDeliveryDeps = {
