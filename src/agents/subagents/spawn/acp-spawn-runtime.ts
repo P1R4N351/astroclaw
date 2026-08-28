@@ -19,7 +19,7 @@ import {
 import { resolveSessionStorePathCore } from "../../../config/sessions/paths.js";
 import { loadSessionEntry } from "../../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { isMissingPathError } from "../../../infra/errors.js";
 import {
   getSessionBindingService,
@@ -118,7 +118,7 @@ export function resolveAcpSpawnRuntimeOptions(params: {
     };
   }
 
-  let thinking = thinkingPlan.thinkingOverride;
+  let thinking = thinkingPlan.thinkingOverride ?? targetAgentConfig?.thinkingDefault;
   if (!thinking && model) {
     const { provider, model: modelId } = splitModelRef(model);
     if (provider && modelId) {
