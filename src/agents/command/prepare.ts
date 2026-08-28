@@ -8,7 +8,7 @@ import {
   normalizeVerboseLevel,
 } from "../../auto-reply/thinking.js";
 import { formatCliCommand } from "../../cli/command-format.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveAgentExplicitRecipientSession } from "../../infra/outbound/agent-delivery.js";
 import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
 import { normalizePluginsConfig } from "../../plugins/config-state.js";
@@ -351,10 +351,21 @@ export async function prepareAgentCommandExecution(
   });
   const runLease = worktreeId ? await acquireWorktreeRunLease(worktreeId) : undefined;
   try {
+    const { resolveAcpAgentWorkspaceProvisioningForTurn } =
+      await import("../acp-workspace-provisioning.js");
+    const workspaceProvisioning = await resolveAcpAgentWorkspaceProvisioningForTurn({
+      cfg,
+      agentId: sessionAgentId,
+      workspaceDir,
+      cwd: resolvedCwd,
+      sessionKey: sessionKey ?? undefined,
+      sessionEntry: sessionEntryRaw ?? undefined,
+    });
     await ensureAgentWorkspace({
       dir: workspaceDirRaw,
       ensureBootstrapFiles: !agentCfg?.skipBootstrap,
       skipOptionalBootstrapFiles: agentCfg?.skipOptionalBootstrapFiles,
+      provisioning: workspaceProvisioning,
     });
     const runId = opts.runId?.trim() || sessionId;
     const { getAcpSessionManager } = await loadAcpManagerRuntime();
