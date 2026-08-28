@@ -1,7 +1,7 @@
 import { resolveStaticSessionMcpServerNames } from "../../agents/agent-bundle-mcp-runtime-config.js";
 import { resolveCodexMcpToolOverridesForAgent } from "../../agents/cli-runner/bundle-mcp-codex.js";
 /** Delivery planning, prompt policy, and delivery trace construction for cron runs. */
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type {
   SourceDeliveryOutcome,
   SourceDeliveryVisibleDelivery,
@@ -120,7 +120,7 @@ export function buildCronDeliveryTrace(params: {
   resolvedDelivery: ResolvedCronDeliveryTarget;
   sourceDeliveryOutcome: SourceDeliveryOutcome;
   fallbackUsed: boolean;
-  delivered: boolean;
+  delivered?: boolean;
 }): CronDeliveryTrace {
   // Trace both intended and resolved targets so run logs can explain fallback
   // delivery without leaking provider-specific raw routing internals.
