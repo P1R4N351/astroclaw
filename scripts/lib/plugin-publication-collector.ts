@@ -187,9 +187,9 @@ export function collectPublishablePluginPackageErrors(
   const extensions = metadata?.extensions ?? [];
   const requiredLatestDependencies = collectRequiredLatestDependencies(packageJson);
 
-  if (!packageName.startsWith("@openclaw/")) {
+  if (!packageName.startsWith("@astroclaw/")) {
     errors.push(
-      `package name must start with "@openclaw/"; found "${packageName || "<missing>"}".`,
+      `package name must start with "@astroclaw/"; found "${packageName || "<missing>"}".`,
     );
   }
   if (packageJson.private === true) {
