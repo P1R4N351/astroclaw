@@ -208,7 +208,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mts", () => {
     );
     expect(assertionsScript).toContain("!INVALID_PROBE_DIAGNOSTIC_SURFACE_MODES.has(surfaceMode)");
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
-      'from "astroclaw/plugin-sdk/plugin-entry"',
+      'from "openclaw/plugin-sdk/plugin-entry"',
     );
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
       "X-ClawHub-Artifact-Sha256",
@@ -905,7 +905,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mts", () => {
     const fullReleaseSource = readFileSync(".github/workflows/full-release-validation.yml", "utf8");
     expect(fullReleaseWorkflow.on.workflow_dispatch.inputs.fail_fast).toEqual({
       description:
-        "Cancel only an exact active child after its first blocking job; false drains all children to completion",
+        "Cancel only an exact active child after its first blocking job; false drains all children and permits same-parent recovery",
       required: false,
       default: false,
       type: "boolean",
