@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { createEmptyPluginRegistry } from "../../plugins/registry-empty.js";
 import type { ModelCatalogSnapshot } from "../model-catalog.types.js";
 import { augmentModelCatalogWithAgentHarness } from "./model-catalog.js";
@@ -94,6 +94,27 @@ function registryWithCatalog(loadModelCatalog: () => Promise<readonly never[]>) 
 }
 
 describe("agent harness model catalog", () => {
+  it("does not donate host transport or capabilities to native-owned rows", async () => {
+    const native = {
+      provider: "openai",
+      id: "gpt-5.6-sol",
+      name: "Native model",
+      nativeRuntime: "codex",
+      reasoning: true,
+    };
+    const result = await augmentModelCatalogWithAgentHarness({
+      cfg,
+      agentId: "main",
+      agentDir: "/tmp/main-agent",
+      workspaceDir: "/tmp/workspace",
+      defaultProvider: "openai",
+      defaultModel: "openai/gpt-5.6-sol",
+      snapshot,
+      pluginRegistry: registryWithCatalog(async () => [native] as never),
+    });
+    expect(result.entries[0]).toEqual(native);
+    expect(result.routeVariants[0]).toEqual(native);
+  });
   it("merges account-scoped harness models into the prepared generation", async () => {
     const loadModelCatalog = vi.fn(async () => [
       {
