@@ -1,11 +1,9 @@
 // Verifies optional media/PDF tool factory planning from plugin metadata and auth.
 import path from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
-import {
-  getCurrentPluginMetadataSnapshot,
-  setCurrentPluginMetadataSnapshot,
-} from "../plugins/current-plugin-metadata-snapshot.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { getCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
+import { setCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata.test-support.js";
 import { resolveInstalledPluginIndexPolicyHash } from "../plugins/installed-plugin-index-policy.js";
 import type { InstalledPluginIndexRecord } from "../plugins/installed-plugin-index.js";
 import type { PluginManifestRecord } from "../plugins/manifest-registry.js";
@@ -13,19 +11,19 @@ import { clearPluginMetadataLifecycleCaches } from "../plugins/plugin-metadata-l
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
 import { resetPluginRuntimeStateForTest } from "../plugins/runtime.js";
 import { clearSecretsRuntimeSnapshot } from "../secrets/runtime.js";
+import type { AuthProfileStore } from "./auth-profiles/types.js";
 import {
   resolveImageToolFactoryAvailable,
   resolveOptionalMediaToolFactoryPlan,
-} from "./astroclaw-tools.media-factory-plan.js";
-import type { AuthProfileStore } from "./auth-profiles/types.js";
+} from "./openclaw-tools.media-factory-plan.js";
 import { DEFAULT_PLUGIN_TOOLS_ALLOWLIST_ENTRY } from "./tool-policy.js";
 import { loadCapabilityMetadataSnapshot } from "./tools/manifest-capability-availability.js";
 import * as pdfModelConfigModule from "./tools/pdf-tool.model-config.js";
 
 type CreateOpenClawToolsOptions = Parameters<
-  typeof import("./astroclaw-tools.js").createOpenClawTools
+  typeof import("./openclaw-tools.js").createOpenClawTools
 >[0];
-let createOpenClawToolsForTestModule: typeof import("./astroclaw-tools.js").createOpenClawTools;
+let createOpenClawToolsForTestModule: typeof import("./openclaw-tools.js").createOpenClawTools;
 let legacyComfyToolNames: string[];
 
 async function createOpenClawToolsForTest(options?: CreateOpenClawToolsOptions) {
@@ -231,7 +229,7 @@ function installSnapshot(
 describe("optional media tool factory planning", () => {
   beforeAll(async () => {
     ({ createOpenClawTools: createOpenClawToolsForTestModule } =
-      await import("./astroclaw-tools.js"));
+      await import("./openclaw-tools.js"));
 
     const config = legacyModelProviderConfig({
       workflow: { "1": { inputs: {} } },
