@@ -2,7 +2,7 @@
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { Type } from "typebox";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { HookContext } from "./agent-tools.before-tool-call.js";
 import type { AgentToolResult, AgentToolUpdateCallback } from "./runtime/index.js";
 import type { ToolDefinition } from "./sessions/index.js";
@@ -10,7 +10,6 @@ import { resolveToolResultFailureKind } from "./tool-result-error.js";
 import {
   addClientToolsToToolCatalog,
   applyToolCatalogCompaction,
-  getReusableCatalogSnapshotCountForTest,
   isDirectVisibleCatalogTool,
   resolveCatalog,
 } from "./tool-search-catalog.js";
@@ -418,7 +417,6 @@ export function createToolSearchTools(ctx: ToolSearchToolContext): AnyAgentTool[
 }
 
 const testing = {
-  getReusableCatalogSnapshotCountForTest,
   maxToolSchemaDirectoryPromptChars: MAX_TOOL_SCHEMA_DIRECTORY_PROMPT_CHARS,
   resolveToolSearchConfig,
   isToolSearchCodeModeSupported,
