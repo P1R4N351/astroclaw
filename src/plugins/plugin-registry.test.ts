@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Covers plugin registry assembly, contribution lookup, and reset behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
@@ -358,48 +358,24 @@ describe("plugin registry facade", () => {
 
     expect(listPluginContributionIds({ lookUpTable, contribution: "providers" })).toEqual(["demo"]);
     expect(resolveProviderOwners({ lookUpTable, providerId: "DEMO" })).toEqual(["demo"]);
-    expect(
-      resolvePluginContributionOwners({
-        lookUpTable,
-        contribution: "channels",
-        matches: "demo-chat",
-      }),
-    ).toEqual(["demo"]);
-    expect(
-      resolvePluginContributionOwners({
-        lookUpTable,
-        contribution: "cliBackends",
-        matches: "demo-cli",
-      }),
-    ).toEqual(["demo"]);
-    expect(
-      resolvePluginContributionOwners({
-        lookUpTable,
-        contribution: "setupProviders",
-        matches: "demo-setup",
-      }),
-    ).toEqual(["demo"]);
-    expect(
-      resolvePluginContributionOwners({
-        lookUpTable,
-        contribution: "commandAliases",
-        matches: "demo-command",
-      }),
-    ).toEqual(["demo"]);
-    expect(
-      resolvePluginContributionOwners({
-        lookUpTable,
-        contribution: "cliBackends",
-        matches: "demo-setup-cli",
-      }),
-    ).toEqual(["demo"]);
-    expect(
-      resolvePluginContributionOwners({
-        lookUpTable,
-        contribution: "contracts",
-        matches: "tools",
-      }),
-    ).toEqual(["demo"]);
+    for (const [contribution, matches] of [
+      ["providers", "demo"],
+      ["channels", "demo-chat"],
+      ["channelConfigs", "demo-chat"],
+      ["cliBackends", "demo-cli"],
+      ["cliBackends", "demo-setup-cli"],
+      ["setupProviders", "demo-setup"],
+      ["modelCatalogProviders", "demo-alias"],
+      ["commandAliases", "demo-command"],
+      ["contracts", "tools"],
+    ] as const) {
+      const query = { lookUpTable, contribution, matches };
+      expect(resolvePluginContributionOwners(query), contribution).toEqual(["demo"]);
+      expect(
+        resolvePluginContributionOwners({ ...query, matches: "missing" }),
+        contribution,
+      ).toEqual([]);
+    }
 
     const policies: Array<[OpenClawConfig["plugins"], boolean]> = [
       [undefined, true],
