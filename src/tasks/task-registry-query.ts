@@ -1,6 +1,6 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveSessionAgentId } from "../agents/agent-scope.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import { clearTaskActivity } from "./task-registry-activity.js";
 import { isActiveTaskStatus, ensureLinkedTaskFlowRegistryReady } from "./task-registry-common.js";
@@ -152,9 +152,10 @@ export function listTaskRecordPage(params: {
   };
 }
 
-export function listTaskRecords(): TaskRecord[] {
+export function listTaskRecords(filter?: (task: Readonly<TaskRecord>) => boolean): TaskRecord[] {
   ensureTaskRegistryReady();
-  return [...tasks.values()]
+  const records = [...tasks.values()];
+  return (filter ? records.filter(filter) : records)
     .map((task, insertionIndex) => Object.assign({}, cloneTaskRecord(task), { insertionIndex }))
     .toSorted(compareTasksNewestFirst)
     .map(({ insertionIndex: _, ...task }) => task);
