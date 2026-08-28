@@ -1,5 +1,5 @@
 import { readConfigFileSnapshot } from "../../config/config.js";
-import type { ConfigFileSnapshot } from "../../config/types.astroclaw.js";
+import type { ConfigFileSnapshot } from "../../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import { loadInstalledPluginIndexInstallRecords } from "../../plugins/installed-plugin-index-records.js";
 import { resolveOwnedManagedUpdateEnv } from "./update-command-service-env.js";
@@ -47,7 +47,7 @@ export async function captureOwnedManagedUpdateContext(params: {
   const stopState = params.stopState;
   if (
     stopState?.stopped !== true ||
-    stopState.serviceMatchesMutationRoot !== true ||
+    stopState.serviceUpdateVerdict?.kind !== "owned" ||
     !stopState.serviceEnv
   ) {
     return undefined;
