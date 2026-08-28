@@ -1,11 +1,11 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Qwen tests cover index plugin behavior.
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { ProviderCatalogResult } from "openclaw/plugin-sdk/provider-catalog-shared";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { ProviderCatalogResult } from "astroclaw/plugin-sdk/provider-catalog-shared";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
 import { describe, expect, it, vi } from "vitest";
 import {
   QWEN_36_FLASH_MODEL_ID,
@@ -18,9 +18,9 @@ import {
   QWEN_TOKEN_PLAN_LEGACY_PROVIDER_ID,
   QWEN_TOKEN_PLAN_PROVIDER_ID,
 } from "./api.js";
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import qwenPlugin from "./index.js";
 import { applyQwenTokenPlanConfig } from "./onboard.js";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { wrapQwenProviderStream } from "./stream.js";
 
 function requireCatalogProvider(result: ProviderCatalogResult): ModelProviderConfig {
@@ -53,6 +53,8 @@ describe("qwen provider plugin", () => {
           { id: QWEN_36_PLUS_MODEL_ID },
           { id: QWEN_37_MAX_MODEL_ID },
           { id: QWEN_37_PLUS_MODEL_ID },
+          { id: "qwen3.8-max" },
+          { id: "qwen3.8-flash" },
         ],
       },
     } as never);
@@ -115,7 +117,9 @@ describe("qwen provider plugin", () => {
     } as never);
     const catalogProvider = requireCatalogProvider(result);
     expect(catalogProvider.baseUrl).toBe(QWEN_TOKEN_PLAN_GLOBAL_BASE_URL);
-    expect(catalogProvider.models).toHaveLength(6);
+    expect(catalogProvider.models.map((model) => model.id)).toEqual(
+      expect.arrayContaining(["qwen3.7-plus", "qwen3.8-max", "qwen3.8-flash"]),
+    );
 
     const legacy = requireRegisteredProvider(providers, QWEN_TOKEN_PLAN_LEGACY_PROVIDER_ID);
     expect(legacy.auth).toEqual([]);
@@ -196,7 +200,9 @@ describe("qwen provider plugin", () => {
       apiKey: "canonical-key",
       baseUrl: QWEN_TOKEN_PLAN_CN_BASE_URL,
     });
-    expect(catalogProvider.models).toHaveLength(6);
+    expect(catalogProvider.models.map((model) => model.id)).toEqual(
+      expect.arrayContaining(["qwen3.8-max", "qwen3.8-flash"]),
+    );
     expect(catalogProvider.models?.map((model) => model.id)).not.toContain("legacy-only");
     expect(resolveProviderApiKey).toHaveBeenCalledTimes(1);
     expect(resolveProviderApiKey).toHaveBeenCalledWith(QWEN_TOKEN_PLAN_PROVIDER_ID);
@@ -209,6 +215,15 @@ describe("qwen provider plugin", () => {
       name: "Qwen Provider",
     });
     const provider = requireRegisteredProvider(providers, QWEN_TOKEN_PLAN_PROVIDER_ID);
+    for (const ownerId of ["qwen", QWEN_TOKEN_PLAN_PROVIDER_ID]) {
+      const owner = requireRegisteredProvider(providers, ownerId);
+      for (const modelId of ["qwen3.8-max", "qwen3.8-flash"]) {
+        expect(owner.resolveThinkingProfile?.({ modelId } as never)).toEqual({
+          levels: ["off", "low", "medium", "xhigh"].map((id) => ({ id })),
+          defaultLevel: "xhigh",
+        });
+      }
+    }
     const expected = {
       levels: [{ id: "low", label: "on" }],
       defaultLevel: "low",
