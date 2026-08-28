@@ -1,6 +1,6 @@
 // Tests lifecycle/work admission ordering across canonical keys and backing ids.
 import { setImmediate as waitForImmediate } from "node:timers/promises";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { expect, it, vi } from "vitest";
 import { createDeferred } from "../../test/helpers/promise.js";
 import { runExclusiveSessionStoreWrite } from "../config/sessions/store-writer.js";
@@ -18,6 +18,7 @@ import {
   getSessionWorkAdmissionRelease,
   hasOnlySessionLifecycleMutationKindActive,
   interruptSessionWorkAdmissions,
+  isCompetingSessionWorkAdmissionActive,
   isSessionLifecycleMutationActive,
   isSessionWorkAdmissionActive,
   runExclusiveSessionLifecycleMutation,
@@ -557,6 +558,40 @@ it("runs one-time admission work only during writer-barrier revalidation", async
     admission.release();
   }
 });
+
+it.each([false, true])(
+  "excludes its own lease during revalidation while retaining competing work (%s)",
+  async (hasCompetingWork) => {
+    const target = {
+      scope: "store-revalidation-owner",
+      identities: ["agent:main:main", "session-revalidation-owner"],
+    };
+    const competing = hasCompetingWork
+      ? await beginSessionWorkAdmission({ ...target, assertAllowed: () => {} })
+      : undefined;
+    try {
+      const admission = await beginSessionWorkAdmission({
+        ...target,
+        assertAllowed: () => {},
+        revalidateAllowed: async () => {
+          await Promise.resolve();
+          expect(isSessionWorkAdmissionActive(target.scope, target.identities)).toBe(true);
+          expect(isCompetingSessionWorkAdmissionActive(target.scope, target.identities)).toBe(
+            hasCompetingWork,
+          );
+        },
+      });
+      try {
+        expect(isCompetingSessionWorkAdmissionActive(target.scope, target.identities)).toBe(true);
+      } finally {
+        admission.release();
+      }
+      expect(isSessionWorkAdmissionActive(target.scope, target.identities)).toBe(hasCompetingWork);
+    } finally {
+      competing?.release();
+    }
+  },
+);
 
 it("rejects and releases an admission invalidated by an earlier store writer", async () => {
   const storePath = "store-writer-revalidation";
