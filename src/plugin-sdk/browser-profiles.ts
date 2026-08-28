@@ -2,9 +2,9 @@
  * Public SDK facade for browser profile defaults and activated profile resolution.
  */
 import path from "node:path";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { BrowserConfig } from "../config/types.browser.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import type { ResolvedBrowserConfig, ResolvedBrowserProfile } from "./browser-types.js";
 import { loadBundledPluginPublicSurfaceModuleSyncCore } from "./facade-loader.js";
 export type {
@@ -41,15 +41,11 @@ type BrowserProfilesSurface = {
   ) => ResolvedBrowserProfile | null;
 };
 
-let cachedBrowserProfilesSurface: BrowserProfilesSurface | undefined;
-
 function loadBrowserProfilesSurface(): BrowserProfilesSurface {
-  cachedBrowserProfilesSurface ??=
-    loadBundledPluginPublicSurfaceModuleSyncCore<BrowserProfilesSurface>({
-      dirName: "browser",
-      artifactBasename: "browser-profiles.js",
-    });
-  return cachedBrowserProfilesSurface;
+  return loadBundledPluginPublicSurfaceModuleSyncCore<BrowserProfilesSurface>({
+    dirName: "browser",
+    artifactBasename: "browser-profiles.js",
+  });
 }
 
 /** Resolves browser config through the activated bundled browser profile facade. */
