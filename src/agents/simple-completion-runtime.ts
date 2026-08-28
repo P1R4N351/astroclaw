@@ -2,7 +2,10 @@ import {
   resolveClaudeOpus5ModelIdentity,
   resolveClaudeSonnet5ModelIdentity,
 } from "@astroclaw/llm-core";
-import { supportsOpenAIReasoningEffort } from "@openclaw/ai/internal/openai";
+import {
+  reasoningTagTextPolicy,
+  supportsOpenAIReasoningEffort,
+} from "@openclaw/ai/internal/openai";
 import { defaultApiRegistry } from "@openclaw/ai/internal/runtime";
 import { prepareModelForSimpleCompletion } from "@openclaw/ai/transports";
 /**
@@ -11,7 +14,7 @@ import { prepareModelForSimpleCompletion } from "@openclaw/ai/transports";
  * Resolves agent model selection, auth, runtime policy, and missing-auth errors before simple completions run.
  */
 import type { ThinkLevel } from "../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { bindModelLlmRuntime, getModelLlmRuntime } from "../llm/model-runtime-binding.js";
 import { completeSimple } from "../llm/stream.js";
@@ -84,6 +87,7 @@ type SimpleCompletionModelOptions = {
   maxTokens?: number;
   temperature?: number;
   reasoning?: ThinkLevel | SimpleCompletionThinkingLevel;
+  strictReasoningTags?: boolean;
   signal?: AbortSignal;
 };
 
@@ -653,13 +657,17 @@ export async function completeWithPreparedSimpleCompletionModel(params: {
   if (runtime) {
     completionModel = bindModelLlmRuntime(completionModel, runtime);
   }
-  const { reasoning: rawReasoning, ...options } = params.options ?? {};
+  const { reasoning: rawReasoning, strictReasoningTags, ...options } = params.options ?? {};
   const reasoning = normalizeSimpleCompletionReasoning(rawReasoning, completionModel);
-  return await completeSimple(completionModel, params.context, {
+  const completionOptions = {
     ...options,
     ...(reasoning ? { reasoning } : {}),
     apiKey: params.auth.apiKey,
-  });
+  };
+  if (strictReasoningTags) {
+    reasoningTagTextPolicy.markStrict(completionOptions);
+  }
+  return await completeSimple(completionModel, params.context, completionOptions);
 }
 
 function normalizeSimpleCompletionReasoning(
