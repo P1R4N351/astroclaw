@@ -2,7 +2,7 @@
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { collectUniqueCommandDescriptors } from "../cli/program/command-descriptor-utils.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveManifestActivationPluginIds } from "./activation-planner.js";
 import { createPluginCliGatewayNodesRuntime } from "./cli-gateway-nodes-runtime.js";
@@ -13,9 +13,9 @@ import type { PluginRegistry } from "./registry.js";
 import {
   buildPluginRuntimeLoadOptions,
   createPluginRuntimeLoaderLogger,
-  resolvePluginRuntimeLoadContext,
   type PluginRuntimeLoadContext,
 } from "./runtime/load-context.js";
+import { resolvePluginRuntimeLoadContext } from "./runtime/load-context.resolve.js";
 import type {
   OpenClawPluginCliContext,
   OpenClawPluginCliRootCommandDescriptor,
