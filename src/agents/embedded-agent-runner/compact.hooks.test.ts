@@ -4,7 +4,7 @@ import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { createDeferred } from "../../../test/helpers/promise.js";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
@@ -568,7 +568,7 @@ describe("compactEmbeddedAgentSessionDirect hooks", () => {
       runtimePlan,
     });
 
-    expect(result).toMatchObject({ ok: true });
+    expect(result, result.reason).toMatchObject({ ok: true });
     expect(selectAgentHarnessForPreparedModelProvidersMock).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: "openai",
