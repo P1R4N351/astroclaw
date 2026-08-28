@@ -8,7 +8,7 @@ import {
   resolveSendableOutboundReplyParts,
 } from "openclaw/plugin-sdk/reply-payload";
 import type { ChatType } from "../../channels/chat-type.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { TtsAutoMode } from "../../config/types.tts.js";
 import { logVerbose } from "../../globals.js";
 import { formatErrorMessage } from "../../infra/errors.js";
@@ -30,7 +30,7 @@ import {
 import type { FinalizedMsgContext } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import { prepareAcpDeliveryPayload } from "./dispatch-acp-payload.js";
-import type { NormalizeReplySkipReason } from "./normalize-reply.js";
+import type { NormalizeReplySkipReason } from "./normalize-reply-skip-reason.js";
 import {
   attachReplyDispatchUndeliveredFallback,
   captureReplyDispatchDeliveryOutcome,
