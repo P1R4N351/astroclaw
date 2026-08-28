@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { CURRENT_SESSION_VERSION } from "openclaw/plugin-sdk/agent-sessions";
+import { CURRENT_SESSION_VERSION } from "astroclaw/plugin-sdk/agent-sessions";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   GATEWAY_CLIENT_CAPS,
@@ -2769,6 +2769,35 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
     expect(Buffer.byteLength(serialized)).toBeLessThan(1_024);
     const assistantEntries = await readActiveAssistantTranscriptMessages();
     expect(JSON.stringify(assistantEntries)).not.toContain(source);
+  });
+
+  it("keeps managed media failures visible when rewriting an existing assistant row", async () => {
+    await createTranscriptFixture("openclaw-chat-send-managed-media-partial-failure-");
+    const mediaUrl = `data:image/png;base64,${TINY_PNG_BASE64}`;
+    const mirrorKey = "idem-managed-media-partial-failure:internal-source-reply:0";
+    await appendSourceReplyMirrorEntry({
+      idempotencyKey: mirrorKey,
+      text: `Artifacts ready\nMEDIA:${mediaUrl}`,
+    });
+    setAgentRunReplies([
+      createMainSourceReply({
+        idempotencyKey: mirrorKey,
+        text: "Artifacts ready\n⚠️ Media failed. Try sending a smaller supported file or a different format.",
+        mediaUrls: [mediaUrl],
+      }),
+    ]);
+    const { send } = createChatRequestFixture();
+
+    await send({
+      idempotencyKey: "idem-managed-media-partial-failure",
+      message: "hello from codex",
+    });
+
+    const assistantEntries = await readActiveAssistantTranscriptMessages();
+    expect(JSON.stringify(assistantEntries[0])).toContain(
+      "⚠️ Media failed. Try sending a smaller supported file or a different format.",
+    );
+    expect(JSON.stringify(assistantEntries[0])).not.toContain("MEDIA:");
   });
 
   it("does not cross a plugin-bound session rotation during finalization", async () => {
