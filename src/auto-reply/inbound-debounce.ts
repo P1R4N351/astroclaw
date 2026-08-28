@@ -3,8 +3,8 @@ import {
   resolveNonNegativeIntegerOption,
   resolveOptionalIntegerOption,
 } from "@astroclaw/normalization-core/number-coercion";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { InboundDebounceByProvider } from "../config/types.messages.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { toErrorObject } from "../infra/errors.js";
 
 const resolveMs = (value: unknown): number | undefined =>
@@ -56,6 +56,7 @@ type InboundDebounceAdmissionLifecycleInput = {
   abortSignal?: AbortSignal;
   onAdopted?: () => void | Promise<void>;
   onDeferred?: () => boolean | void;
+  onDeferredHeartbeat?: () => void;
   onAdoptionFinalizing?: () => void;
   onFailed?: (error: unknown) => void | Promise<void>;
   onAbandoned?: () => void | Promise<void>;
@@ -66,6 +67,7 @@ type InboundDebounceAdmissionLifecycle = {
   abortSignal: AbortSignal;
   onAdopted: () => Promise<void>;
   onDeferred: () => boolean | void;
+  onDeferredHeartbeat?: () => void;
   onAdoptionFinalizing: () => void;
   onFailed?: (error: unknown) => Promise<void>;
   onAbandoned: () => Promise<void>;
@@ -105,6 +107,7 @@ function createInboundDebounceFlush(params: {
       }
       return accepted;
     },
+    onDeferredHeartbeat: () => source?.onDeferredHeartbeat?.(),
     onAdoptionFinalizing: () => source?.onAdoptionFinalizing?.(),
     onFailed: source?.onFailed
       ? async (error) => {
