@@ -24,7 +24,7 @@ vi.mock("../state/openclaw-agent-db.js", () => ({
   OPENCLAW_AGENT_SCHEMA_VERSION: 1,
 }));
 
-vi.mock("../state/openclaw-state-db.js", () => ({
+vi.mock("../state/openclaw-state-db-contract.js", () => ({
   OPENCLAW_STATE_SCHEMA_VERSION: 1,
 }));
 
@@ -32,7 +32,7 @@ vi.mock("../commands/doctor-prompter.js", () => ({
   createDoctorPrompter: () => ({}),
 }));
 
-vi.mock("../infra/astroclaw-root.js", () => ({
+vi.mock("../infra/openclaw-root.js", () => ({
   resolveOpenClawPackageRoot: async () => undefined,
 }));
 
