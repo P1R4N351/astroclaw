@@ -3,7 +3,7 @@ import {
   resolveSubagentController,
 } from "../../agents/subagents/registry/subagent-control.js";
 import { listSubagentRunsForController } from "../../agents/subagents/registry/subagent-registry-read.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   abortChatRunById,
   type ChatAbortControllerEntry,
@@ -330,7 +330,7 @@ export async function abortChatRunsForSessionKeyWithPartials(params: {
     };
   }
   const snapshots = authorizedRuns.flatMap(({ runId, entry }) => {
-    const text = params.context.chatRunState.resolveBuffer(runId).text;
+    const text = params.context.chatRunState.resolveBuffer(runId, { final: true }).text;
     return text?.trim()
       ? [
           {
