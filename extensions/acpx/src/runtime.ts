@@ -23,10 +23,10 @@ import {
   type AcpRuntimeTurnResult,
   type SessionAgentOptions,
 } from "acpx/runtime";
-import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
-import { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
-import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
+import { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
+import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { AcpRuntimeError, type AcpRuntime, type AcpRuntimeErrorCode } from "../runtime-api.js";
 import { CODEX_ACP_PACKAGE, OPENCLAW_CODEX_CONFIG_ARG } from "./codex-adapter.js";
 import { splitCommandParts } from "./command-line.js";
