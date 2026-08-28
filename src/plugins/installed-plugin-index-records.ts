@@ -3,7 +3,7 @@ import {
   createPluginInstallRecordMap,
   setPluginInstallRecordMapEntry,
 } from "../config/plugin-install-record-map.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import {
   clearLoadInstalledPluginIndexInstallRecordsCache,
@@ -19,7 +19,7 @@ import {
   refreshPersistedInstalledPluginIndexWithLeaseSync,
   type InstalledPluginIndexWriteLease,
   type InstalledPluginIndexWriteReceipt,
-} from "./installed-plugin-index-store.js";
+} from "./installed-plugin-index-store-write.js";
 import type { RefreshInstalledPluginIndexParams } from "./installed-plugin-index.js";
 import { recordPluginInstall, type PluginInstallUpdate } from "./installs.js";
 
