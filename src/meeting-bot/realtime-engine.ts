@@ -1,5 +1,5 @@
 // Shared meeting bot realtime engines own provider and audio-transport orchestration.
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import type { PluginRuntime, RuntimeLogger } from "../plugins/runtime/types.js";
 import type { RealtimeVoiceProviderPlugin } from "../plugins/types.js";
@@ -582,6 +582,7 @@ export async function startMeetingRealtimeEngine(params: {
           harness,
         }),
       onError: (error) => {
+        // Provider errors may be recoverable; onClose owns terminal teardown.
         harness.emit({
           type: "session.error",
           payload: { message: formatErrorMessage(error) },
@@ -590,7 +591,6 @@ export async function startMeetingRealtimeEngine(params: {
         params.logger.warn(
           `${params.platform.logScope} ${realtimeLogScope} voice bridge failed: ${formatErrorMessage(error)}`,
         );
-        stopAfterFailure("voice bridge");
       },
       onClose: (reason) => {
         outputGenerationActive = false;
