@@ -45,7 +45,7 @@ import { createDefaultDeps } from "../cli/deps.js";
 import { getRuntimeConfig, registerConfigWriteListener } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { applySessionPatchProjection } from "../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isChatStopCommandText } from "../gateway/chat-abort.js";
 import { resolveEffectiveChatHistoryMaxChars } from "../gateway/chat-display-projection.js";
 import {
@@ -409,7 +409,7 @@ export class EmbeddedTuiBackend implements TuiBackend {
       this.preparedModelRuntime.publish(event.runtimeConfig);
     });
     this.preparedModelRuntime.publish(config);
-    // Local mode never runs gateway startup; canonicalize orphaned keys once here.
+    // Local mode shares the Gateway's session-store readiness checks.
     this.ready = (async () => {
       const { runSessionStartupMigration } =
         await import("../config/sessions/startup-migration.js");
