@@ -1,14 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { loadOpenClawPluginsWithInternalOverrides } from "../plugins/loader-runtime-load.js";
 import { resetPluginLoaderTestStateForTest } from "../plugins/loader.test-fixtures.js";
 import { createPluginRuntime } from "../plugins/runtime/index.js";
-import {
-  buildPluginRuntimeLoadOptions,
-  resolvePluginRuntimeLoadContext,
-} from "../plugins/runtime/load-context.js";
+import { buildPluginRuntimeLoadOptions } from "../plugins/runtime/load-context.js";
+import { resolvePluginRuntimeLoadContext } from "../plugins/runtime/load-context.resolve.js";
 import { resolvePluginTools } from "../plugins/tools.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { getTaskFlowByIdForOwner, listTaskFlowsForOwner } from "./task-flow-owner-access.js";
 import { reloadTaskFlowRegistryFromStore } from "./task-flow-registry.js";
 import { resetTaskFlowRegistryForTests } from "./task-runtime.test-helpers.js";
