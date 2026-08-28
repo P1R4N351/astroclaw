@@ -1,7 +1,7 @@
 // Covers gateway update runner scenarios.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { writePackageDistInventory } from "../../scripts/lib/package-dist-inventory.ts";
 import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../plugins/runtime-sidecar-paths.js";
@@ -110,6 +110,7 @@ describe("runGatewayUpdate", () => {
     stableTag: string;
     uiIndexPath: string;
     onDoctor?: () => Promise<void>;
+    onBuild?: () => Promise<void>;
     onUiBuild?: (count: number) => Promise<void>;
   }) {
     const calls: string[] = [];
@@ -143,6 +144,7 @@ describe("runGatewayUpdate", () => {
         return { stdout: "", stderr: "", code: 0 };
       }
       if (key === "pnpm build") {
+        await params.onBuild?.();
         return { stdout: "", stderr: "", code: 0 };
       }
       if (key === "pnpm ui:build") {
@@ -3070,6 +3072,55 @@ describe("runGatewayUpdate", () => {
         calls.lastIndexOf(`git -C ${tempDir} rev-parse HEAD`),
       );
       expect(calls.lastIndexOf("pnpm install")).toBeLessThan(calls.lastIndexOf("pnpm build"));
+    },
+  );
+
+  it("returns the build identity produced by a dev Git update build", async () => {
+    await setupGitPackageManagerFixture();
+    const buildId = "2026.8.1-target-build";
+    const { runCommand } = await createDevGitRunner({
+      onCommand: async (key) => {
+        if (key === "pnpm build") {
+          await fs.mkdir(path.join(tempDir, "dist"), { recursive: true });
+          await fs.writeFile(
+            path.join(tempDir, "dist", "build-info.json"),
+            `${JSON.stringify({ buildId })}\n`,
+            "utf8",
+          );
+        }
+        return undefined;
+      },
+    });
+
+    const result = await runWithCommand(runCommand, { channel: "dev" });
+
+    expect(result.status).toBe("ok");
+    expect(result.after?.buildId).toBe(buildId);
+  });
+
+  it.each(["stable", "beta"] as const)(
+    "does not return a build identity for a %s Git update",
+    async (channel) => {
+      await setupGitCheckout({ packageManager: "pnpm@8.0.0" });
+      const uiIndexPath = await setupUiIndex();
+      const stableTag = "v1.0.1-1";
+      const buildId = "2026.8.1-channel-build";
+      const { runCommand } = await createStableTagRunner({
+        stableTag,
+        uiIndexPath,
+        onBuild: async () => {
+          await fs.writeFile(
+            path.join(tempDir, "dist", "build-info.json"),
+            `${JSON.stringify({ buildId })}\n`,
+            "utf8",
+          );
+        },
+      });
+
+      const result = await runWithCommand(runCommand, { channel });
+
+      expect(result.status).toBe("ok");
+      expect(result.after?.buildId).toBeUndefined();
     },
   );
 
