@@ -1,6 +1,6 @@
 import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "@openclaw/ai/internal/shared";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import OpenAI from "openai";
-import type { Model } from "openclaw/plugin-sdk/llm";
 import { describe, expect, it, vi } from "vitest";
 import { buildOpenAICompletionsParams } from "./openai-transport-stream.js";
 import {
@@ -1399,11 +1399,9 @@ describe("openai transport stream", () => {
         tools: [],
       } as never,
       undefined,
-    ) as { input?: Array<{ content?: Array<{ type?: string; text?: string }> }> };
+    ) as { instructions?: string };
 
-    expect(params.input?.[0]?.content).toEqual([
-      { type: "input_text", text: "Stable prefix\nDynamic suffix" },
-    ]);
+    expect(params.instructions).toBe("Stable prefix\nDynamic suffix");
   });
 
   it("defaults responses tool schemas to strict on native OpenAI routes", () => {
