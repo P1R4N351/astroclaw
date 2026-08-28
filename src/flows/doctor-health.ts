@@ -19,7 +19,7 @@ async function assertDoctorDatabaseSchemasCompatible(): Promise<void> {
   const [databasePreflight, agentDatabase, stateDatabase] = await Promise.all([
     import("../state/openclaw-database-preflight.js"),
     import("../state/openclaw-agent-db.js"),
-    import("../state/openclaw-state-db.js"),
+    import("../state/openclaw-state-db-contract.js"),
   ]);
   const databaseSchemas = databasePreflight.preflightOpenClawDatabaseSchemas({
     env: process.env,
@@ -62,7 +62,7 @@ export async function runDoctorHealthFlow(runtime?: RuntimeEnv, options: DoctorO
   const { createDoctorPrompter } = await import("../commands/doctor-prompter.js");
   const prompter = createDoctorPrompter({ runtime: effectiveRuntime, options });
 
-  const { resolveOpenClawPackageRoot } = await import("../infra/astroclaw-root.js");
+  const { resolveOpenClawPackageRoot } = await import("../infra/openclaw-root.js");
   const root = await resolveOpenClawPackageRoot({
     moduleUrl: import.meta.url,
     argv1: process.argv[1],
