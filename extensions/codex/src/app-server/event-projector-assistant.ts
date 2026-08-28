@@ -1,7 +1,7 @@
-import type { EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness-runtime";
-import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
-import { isSilentReplyPayloadText } from "openclaw/plugin-sdk/reply-chunking";
-import { readStringField as readString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
+import { isSilentReplyPayloadText } from "astroclaw/plugin-sdk/reply-chunking";
+import { readStringField as readString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   createAssistantAsyncMessage as buildAssistantAsyncMessage,
   createAssistantCommentaryMessage as buildAssistantCommentaryMessage,
@@ -408,31 +408,27 @@ export class CodexAssistantProjection {
     });
   }
 
-  createCompletedAssistantBoundaryMessage(
+  collectCompletedAssistantMessages(
     completedItemIds: ReadonlySet<string>,
     options: AssistantMessageOptions,
-  ): { itemId: string; message: AssistantMessage } | undefined {
-    const itemId = this.latestCompletedTerminalAssistantItemId;
-    const text = itemId ? this.assistantTextByItem.get(itemId)?.trim() : undefined;
-    const itemIndex = itemId ? this.assistantItemOrder.indexOf(itemId) : -1;
-    if (
-      !itemId ||
-      !completedItemIds.has(itemId) ||
-      itemIndex < this.persistableAssistantBarrier ||
-      !text ||
-      isSilentReplyPayloadText(text) ||
-      this.isToolProgressEchoText(itemId, text)
-    ) {
-      return undefined;
-    }
-    const message = this.createAssistantMessage(text, options);
-    return {
-      itemId,
-      message: {
-        ...message,
-        timestamp: this.assistantTimestampByItem.get(itemId) ?? message.timestamp,
-      },
-    };
+  ): Array<{ itemId: string; message: AssistantMessage }> {
+    // Steering history covers visible completed items even across final-answer
+    // handoffs. Mirror identities deduplicate them across subsequent steers.
+    return this.assistantItemOrder.flatMap((itemId) => {
+      const text = this.assistantTextByItem.get(itemId)?.trim();
+      if (
+        !completedItemIds.has(itemId) ||
+        this.isNonTerminalAssistantItem(itemId) ||
+        !text ||
+        isSilentReplyPayloadText(text) ||
+        this.isToolProgressEchoText(itemId, text)
+      ) {
+        return [];
+      }
+      const message = this.createAssistantMessage(text, options);
+      const timestamp = this.assistantTimestampByItem.get(itemId) ?? message.timestamp;
+      return [{ itemId, message: { ...message, timestamp } }];
+    });
   }
 
   markAssistantBoundaryPersisted(itemId: string): void {
