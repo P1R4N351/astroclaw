@@ -7,7 +7,7 @@ import {
 } from "../../../packages/gateway-protocol/src/index.js";
 import { resolveAgentWorkspaceDir } from "../../agents/agent-scope.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox/runtime-status.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { isPathInside } from "../../infra/path-guards.js";
 import { resolveUserPath } from "../../utils.js";
@@ -59,6 +59,9 @@ export function prepareSessionCreateFilesystemRoot(params: {
       fs.mkdirSync(rootCandidate, { recursive: true });
     }
     const sessionRoot = fs.realpathSync(rootCandidate);
+    if (!fs.statSync(sessionRoot).isDirectory()) {
+      return err(errorShape(ErrorCodes.INVALID_REQUEST, "sessions.create cwd is not a directory"));
+    }
     return ok({ sessionRoot, sessionCwd: params.sessionCwd ? sessionRoot : undefined });
   } catch (error) {
     return err(
