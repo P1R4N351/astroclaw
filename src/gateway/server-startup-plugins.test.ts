@@ -2,7 +2,7 @@
  * Gateway startup plugin bootstrap tests.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import "./server-startup-bootstrap.test-support.js";
@@ -40,20 +40,22 @@ const pluginManifestRegistry = vi.hoisted(
     diagnostics: [],
   }),
 );
-const pluginMetadataSnapshot = vi.hoisted(
-  (): PluginMetadataSnapshot => ({
+const pluginMetadataSnapshot = vi.hoisted((): PluginMetadataSnapshot => {
+  const index: PluginMetadataSnapshot["index"] = {
+    version: 1,
+    hostContractVersion: "test",
+    compatRegistryVersion: "test",
+    migrationVersion: 1,
     policyHash: "policy",
-    index: {
-      version: 1,
-      hostContractVersion: "test",
-      compatRegistryVersion: "test",
-      migrationVersion: 1,
-      policyHash: "policy",
-      generatedAtMs: 0,
-      installRecords: {},
-      plugins: [],
-      diagnostics: [],
-    },
+    generatedAtMs: 0,
+    installRecords: {},
+    plugins: [],
+    diagnostics: [],
+  };
+  return {
+    policyHash: "policy",
+    index,
+    registryIndex: index,
     registryDiagnostics: [],
     manifestRegistry: pluginManifestRegistry,
     plugins: [],
@@ -78,8 +80,8 @@ const pluginMetadataSnapshot = vi.hoisted(
       indexPluginCount: 0,
       manifestPluginCount: 0,
     },
-  }),
-);
+  };
+});
 const pluginLookUpTableMetrics = vi.hoisted(() => ({
   registrySnapshotMs: 0,
   manifestRegistryMs: 0,
@@ -134,7 +136,7 @@ vi.mock("../config/plugin-auto-enable.js", () => ({
   applyPluginAutoEnable: (params: { config: unknown }) => applyPluginAutoEnable(params),
 }));
 
-vi.mock("../infra/astroclaw-root.js", () => ({
+vi.mock("../infra/openclaw-root.js", () => ({
   resolveOpenClawPackageRootSync: (params: unknown) => resolveOpenClawPackageRootSync(params),
 }));
 
