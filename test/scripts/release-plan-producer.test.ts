@@ -108,11 +108,11 @@ function createFixtureRepo(
     JSON.stringify({
       name: "openclaw",
       version,
-      dependencies: { "@openclaw/ai": "workspace:*" },
+      dependencies: { "@astroclaw/ai": "workspace:*" },
     }),
   );
   for (const [path, name] of [
-    ["packages/ai", "@openclaw/ai"],
+    ["packages/ai", "@astroclaw/ai"],
     ["packages/gateway-client", "@astroclaw/gateway-client"],
     ["packages/gateway-protocol", "@astroclaw/gateway-protocol"],
   ]) {
@@ -129,20 +129,20 @@ function createFixtureRepo(
   if (options.corePackageNameCollision) {
     writePublishablePluginFixture(root, {
       extensionId: "shadow-ai",
-      packageName: "@openclaw/ai",
+      packageName: "@astroclaw/ai",
       version,
       publishTo: "both",
     });
   } else if (options.duplicateCrossTargetPackageName) {
     writePublishablePluginFixture(root, {
       extensionId: "duplicate-npm",
-      packageName: "@openclaw/duplicate",
+      packageName: "@astroclaw/duplicate",
       version,
       publishTo: "npm",
     });
     writePublishablePluginFixture(root, {
       extensionId: "duplicate-clawhub",
-      packageName: "@openclaw/duplicate",
+      packageName: "@astroclaw/duplicate",
       version,
       publishTo: "clawhub",
     });
@@ -153,7 +153,7 @@ function createFixtureRepo(
       root,
       "extensions/broken/package.json",
       JSON.stringify({
-        name: "@openclaw/broken",
+        name: "@astroclaw/broken",
         version,
         type: "commonjs",
         private: true,
@@ -162,7 +162,7 @@ function createFixtureRepo(
           extensions: ["./index.ts"],
           compat: { pluginApi: `>=${version}` },
           build: { openclawVersion: version },
-          install: { npmSpec: "@openclaw/broken" },
+          install: { npmSpec: "@astroclaw/broken" },
           release: { publishToNpm: true },
         },
       }),
@@ -225,7 +225,7 @@ function createFixtureRepo(
       "        env:",
       "          CORE_PACKAGE_DIRS: packages/ai packages/gateway-protocol packages/gateway-client",
       "        run: |",
-      '          if [[ "$package_dir" == "packages/ai" ]] && ! node -e \'const pkg = require("./package.json"); process.exit(pkg.dependencies?.["@openclaw/ai"] ? 0 : 1)\'; then',
+      '          if [[ "$package_dir" == "packages/ai" ]] && ! node -e \'const pkg = require("./package.json"); process.exit(pkg.dependencies?.["@astroclaw/ai"] ? 0 : 1)\'; then',
       "            exit 0",
       "          fi",
       "",
@@ -542,7 +542,7 @@ describe("release plan producer", () => {
       soak: false,
     });
     expect(plan.inventory.packages).toEqual([
-      { name: "@openclaw/ai", targets: ["npm"], version: "2026.8.1-beta.2" },
+      { name: "@astroclaw/ai", targets: ["npm"], version: "2026.8.1-beta.2" },
       { name: "@astroclaw/gateway-client", targets: ["npm"], version: "2026.8.1-beta.2" },
       { name: "@astroclaw/gateway-protocol", targets: ["npm"], version: "2026.8.1-beta.2" },
       { name: "openclaw", targets: ["npm"], version: "2026.8.1-beta.2" },
@@ -1092,7 +1092,7 @@ mutateModule.syncBuiltinESMExports();
     });
 
     expect(() => produceReleasePlan(sourceParams(fixture))).toThrow(
-      "package @openclaw/duplicate is declared by multiple plugin sources",
+      "package @astroclaw/duplicate is declared by multiple plugin sources",
     );
   });
 
@@ -1102,7 +1102,7 @@ mutateModule.syncBuiltinESMExports();
     });
 
     expect(() => produceReleasePlan(sourceParams(fixture))).toThrow(
-      "package inventory source mismatch for @openclaw/ai: extensions/shadow-ai/package.json and packages/ai/package.json",
+      "package inventory source mismatch for @astroclaw/ai: extensions/shadow-ai/package.json and packages/ai/package.json",
     );
   });
 
@@ -1145,7 +1145,7 @@ mutateModule.syncBuiltinESMExports();
     expect(npmPackages).toHaveLength(93);
     expect(clawHubPackages).toHaveLength(89);
     const coreNpmPackages = new Set([
-      "@openclaw/ai",
+      "@astroclaw/ai",
       "@astroclaw/gateway-client",
       "@astroclaw/gateway-protocol",
       "openclaw",
@@ -1167,7 +1167,7 @@ mutateModule.syncBuiltinESMExports();
     );
     expect(npmPackages.map((entry) => entry.name)).toEqual(
       expect.arrayContaining([
-        "@openclaw/ai",
+        "@astroclaw/ai",
         "@astroclaw/gateway-client",
         "@astroclaw/gateway-protocol",
         "openclaw",
