@@ -1,5 +1,6 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import { inheritSessionCreationPolicy } from "../../../config/sessions/session-entry-provenance.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { isIncognitoSessionKey } from "../../../routing/session-key.js";
 import { resolveUserPath } from "../../../utils.js";
 import { resolveAgentDir } from "../../agent-scope-config.js";
@@ -136,6 +137,7 @@ type ResolvedSubagentChildPlan = {
   incognito: boolean;
   childSessionKey: string;
   childRuntimeSandboxed: boolean;
+  creationPolicy: ReturnType<typeof inheritSessionCreationPolicy>;
   targetAgentDir: string;
   modelPlan: Extract<ReturnType<typeof resolveSubagentModelAndThinkingPlan>, { status: "ok" }>;
   launchAuthorization?: SubagentLaunchAuthorization;
@@ -303,6 +305,13 @@ export async function resolveSubagentChildPlan(params: {
       incognito,
       childSessionKey,
       childRuntimeSandboxed: childRuntime.sandboxed,
+      creationPolicy: inheritSessionCreationPolicy(
+        {
+          sandbox: requesterRuntime.sandboxRequired ? "required" : undefined,
+          createdActor: { type: "human", id: requesterRuntime.sandboxPrincipalId },
+        },
+        { type: "agent", id: params.requesterAgentId },
+      ),
       targetAgentDir,
       modelPlan,
       launchAuthorization,
