@@ -37,7 +37,6 @@ export const resolveOpenClawPackageRoot = defineMockFn(vi.fn().mockResolvedValue
 export const runGatewayUpdate = defineMockFn(
   vi.fn().mockResolvedValue(createGatewayUpdateResult()),
 );
-const collectRelevantDoctorPluginIds = defineMockFn(vi.fn(() => []));
 const listPluginDoctorLegacyConfigRules = defineMockFn(vi.fn(() => []));
 const runDoctorHealthContributions = defineMockFn(vi.fn(defaultRunDoctorHealthContributions));
 const maybeRepairMemoryRecallHealth = defineMockFn(vi.fn().mockResolvedValue(undefined));
@@ -422,22 +421,22 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
   isNonSecretApiKeyMarker: () => false,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-model-shared", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-model-shared", () => ({
   DEFAULT_CONTEXT_TOKENS: 32768,
   normalizeProviderId: (value: string) => normalizeLowercaseStringOrEmpty(value),
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-stream-shared", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-stream-shared", () => ({
   createMoonshotThinkingWrapper: () => undefined,
   resolveMoonshotThinkingType: () => undefined,
   streamWithPayloadPatch: () => undefined,
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   createSubsystemLogger: () => ({
     debug: () => {},
     info: () => {},
@@ -446,8 +445,8 @@ vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   }),
 }));
 
-vi.mock("../infra/astroclaw-root.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../infra/astroclaw-root.js")>();
+vi.mock("../infra/openclaw-root.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../infra/openclaw-root.js")>();
   return {
     ...actual,
     resolveOpenClawPackageRoot,
@@ -495,7 +494,7 @@ vi.mock("../plugins/doctor-contract-registry.js", () => ({
     config,
     changes: [],
   }),
-  collectRelevantDoctorPluginIds,
+  collectDoctorConfigRepairPluginIds: () => [],
   listPluginDoctorLegacyConfigRules,
 }));
 
@@ -524,6 +523,7 @@ vi.mock("../agents/auth-profiles/store.js", async () => {
   return {
     ...actual,
     ensureAuthProfileStore,
+    ensureAuthProfileStoreWithoutExternalProfiles: ensureAuthProfileStore,
   };
 });
 
