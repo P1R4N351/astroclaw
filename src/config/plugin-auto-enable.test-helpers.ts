@@ -6,7 +6,7 @@ import { clearPluginMetadataLifecycleCaches } from "../plugins/plugin-metadata-l
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import type { PluginOrigin } from "../plugins/plugin-origin.types.js";
 import { cleanupTrackedTempDirs, makeTrackedTempDir } from "../plugins/test-helpers/fs-fixtures.js";
-import type { OpenClawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 const tempDirs: string[] = [];
 
@@ -84,20 +84,22 @@ export function createPluginMetadataSnapshot(params: {
   workspaceDir?: string;
 }): PluginMetadataSnapshot {
   const policyHash = resolveInstalledPluginIndexPolicyHash(params.config);
+  const index: PluginMetadataSnapshot["index"] = {
+    version: 1,
+    hostContractVersion: "test",
+    compatRegistryVersion: "test",
+    migrationVersion: 1,
+    policyHash,
+    generatedAtMs: 1,
+    installRecords: {},
+    plugins: [],
+    diagnostics: [],
+  };
   return {
     policyHash,
     ...(params.workspaceDir ? { workspaceDir: params.workspaceDir } : {}),
-    index: {
-      version: 1,
-      hostContractVersion: "test",
-      compatRegistryVersion: "test",
-      migrationVersion: 1,
-      policyHash,
-      generatedAtMs: 1,
-      installRecords: {},
-      plugins: [],
-      diagnostics: [],
-    },
+    index,
+    registryIndex: index,
     registryDiagnostics: [],
     manifestRegistry: params.manifestRegistry,
     plugins: params.manifestRegistry.plugins,
