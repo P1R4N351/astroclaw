@@ -2,7 +2,7 @@ import { normalizeOptionalString } from "@astroclaw/normalization-core/string-co
 import {
   hasOutboundReplyContent,
   resolveSendableOutboundReplyParts,
-} from "openclaw/plugin-sdk/reply-payload";
+} from "astroclaw/plugin-sdk/reply-payload";
 import { logVerbose } from "../../globals.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { createPluginSubagentRequesterContext } from "../../plugins/runtime/subagent-requester-context.js";
@@ -615,7 +615,7 @@ export async function chooseDispatchRoute(state: PrepareDispatchOperationReadySt
     }
   }
 
-  if (hookRunner?.hasHooks("reply_dispatch")) {
+  if (hookRunner?.hasHooks("reply_dispatch", { dispatchKind: state.dispatchKind })) {
     const replyDispatchResult = await traceReplyPhase("reply.reply_dispatch_hooks", () =>
       runWithDispatchLifecycleAdmission(
         async () =>
@@ -647,6 +647,7 @@ export async function chooseDispatchRoute(state: PrepareDispatchOperationReadySt
                 }),
                 {
                   cfg,
+                  dispatchKind: state.dispatchKind,
                   dispatcher: state.dispatchHookDispatcher,
                   abortSignal: getPreDispatchAbortSignal() ?? params.replyOptions?.abortSignal,
                   onReplyStart: params.replyOptions?.onReplyStart,
