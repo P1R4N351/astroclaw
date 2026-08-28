@@ -4,9 +4,8 @@
  * Builds lightweight SDK-backed send adapters with chunking, sanitization, and media limits.
  */
 import { asOptionalRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
-import { sendTextMediaPayload } from "openclaw/plugin-sdk/reply-payload";
 import { chunkText } from "../../../auto-reply/chunk.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import type { OutboundSendDeps } from "../../../infra/outbound/deliver.js";
 import { sanitizeForPlainText } from "../../../infra/outbound/sanitize-text.js";
 import type { OutboundMediaAccess } from "../../../media/load-options.js";
@@ -126,8 +125,10 @@ export function createDirectTextMediaOutbound<
     chunkerMode: "text",
     textChunkLimit: 4000,
     sanitizeText: ({ text }) => sanitizeForPlainText(text),
-    sendPayload: async (ctx) =>
-      await sendTextMediaPayload({ channel: params.channel, ctx, adapter: outbound }),
+    sendPayload: async (ctx) => {
+      const { sendTextMediaPayload } = await import("openclaw/plugin-sdk/reply-payload");
+      return await sendTextMediaPayload({ channel: params.channel, ctx, adapter: outbound });
+    },
     sendText: async ({ cfg, to, text, accountId, deps, replyToId }) => {
       return await sendDirect({
         cfg,
