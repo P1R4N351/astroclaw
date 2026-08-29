@@ -217,6 +217,7 @@ export const en: TranslationMap = {
     changedFile: "{count} file",
     changedFiles: "{count} files",
     pullRequestLabel: "Pull request #{number}, {state}",
+    pullRequestAuthorLabel: "Opened by {login}",
     states: {
       open: "Open",
       draft: "Draft",
@@ -2742,8 +2743,15 @@ export const en: TranslationMap = {
       action: "Review connection",
     },
     loading: "Checking this Gateway for available AI access…",
+    testing: "Testing — asking the selected model for a quick reply…",
     retry: "Retry",
     checkAgain: "Check again",
+    recovery: {
+      unknown:
+        "The previous activation is unresolved. You can verify and use the selected model, or check again after the setup attempt has finished. No activation will be repeated automatically.",
+      wait: "The previous setup attempt may still be running. Wait for its bounded setup window to finish, then choose Check again to retry.",
+      useCurrent: "Verify & use selected model",
+    },
     verify: {
       title: "Selected model",
       button: "Check model",
@@ -2768,7 +2776,6 @@ export const en: TranslationMap = {
       testAndUse: "Test & use",
       retry: "Retry test",
       testingButton: "Testing…",
-      testing: "Testing — asking {modelRef} for a quick reply…",
     },
     empty: {
       title: "Recommended installs",
@@ -5801,6 +5808,7 @@ export const en: TranslationMap = {
       moreActions: "More queued message actions",
       cancelEdit: "Cancel editing and keep the queued message",
       states: {
+        queued: "Queued",
         applyingSettings: "Applying chat settings",
         runningCommand: "Running command",
         waitingForReconnect: "Waiting for reconnect",
@@ -5916,7 +5924,9 @@ export const en: TranslationMap = {
       volume: "Volume",
       download: "Download {filename}",
       preparing: "Preparing playback…",
-      videoUnavailable: "Can't play this format — download instead.",
+      openVideo: "Expand {filename} in the media overlay",
+      videoPreview: "Video preview: {title}",
+      closeVideoPreview: "Close video preview",
     },
     modelControls: {
       default: "Default",
@@ -6266,7 +6276,6 @@ export const en: TranslationMap = {
       showInTextField: "Show in text field",
       outsideAllowedFolders: "Outside allowed folders",
       unavailable: "Unavailable",
-      checking: "Checking...",
       failureDeliveryFailed: "Delivery failed. Try sending this file again.",
       failureFileNotFound: "File not found. Check the path and try again.",
       failureUnsupportedFormat:
