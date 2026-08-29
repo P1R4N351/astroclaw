@@ -1,7 +1,7 @@
 // Covers maintenance reconciliation for managed task-flow records.
 import { afterEach, describe, expect, it } from "vitest";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { captureEnv } from "../test-utils/env.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { SUBAGENT_KILL_TASK_ERROR } from "./detached-task-runtime-contract.js";
 import { createRunningTaskRunCore as createRunningTaskRunOrNull } from "./task-executor.js";
 import {
@@ -66,14 +66,14 @@ async function withTaskFlowMaintenanceStateDir(
     },
     async (state) => {
       resetTaskRegistryDeliveryRuntimeForTests();
-      resetTaskRegistryForTests();
-      resetTaskFlowRegistryForTests();
+      resetTaskRegistryForTests({ persist: false });
+      resetTaskFlowRegistryForTests({ persist: false });
       try {
         await run(state.stateDir);
       } finally {
         resetTaskRegistryDeliveryRuntimeForTests();
-        resetTaskRegistryForTests();
-        resetTaskFlowRegistryForTests();
+        resetTaskRegistryForTests({ persist: false });
+        resetTaskFlowRegistryForTests({ persist: false });
       }
     },
   );
@@ -83,8 +83,8 @@ describe("task-flow-registry maintenance", () => {
   afterEach(() => {
     ORIGINAL_ENV.restore();
     resetTaskRegistryDeliveryRuntimeForTests();
-    resetTaskRegistryForTests();
-    resetTaskFlowRegistryForTests();
+    resetTaskRegistryForTests({ persist: false });
+    resetTaskFlowRegistryForTests({ persist: false });
   });
 
   it("finalizes cancel-requested managed flows once no child tasks remain active", async () => {
