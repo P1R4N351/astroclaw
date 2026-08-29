@@ -1,6 +1,6 @@
 import type { ThinkLevel, VerboseLevel } from "../../auto-reply/thinking.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { assertAgentRunLifecycleGenerationCurrent } from "../../infra/agent-events.js";
 import { registerAgentRunContext } from "../../infra/agent-run-registry.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
@@ -79,7 +79,9 @@ export async function prepareEmbeddedSessionState(params: {
         advertiseExecNode: nodeSkillsEligibility.canExec,
       }),
     },
-    watch: params.watchSkills,
+    // A one-shot caller has no later turn to consume invalidations; persistent
+    // watchers would keep its process alive after the reply has completed.
+    watch: params.watchSkills && params.opts.oneShotCliRun !== true,
     ...(params.pluginMetadataSnapshot
       ? { pluginMetadataSnapshot: params.pluginMetadataSnapshot }
       : {}),
