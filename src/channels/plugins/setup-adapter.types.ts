@@ -1,8 +1,10 @@
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { ChannelSetupInput } from "./setup-input.js";
 
 export type ChannelSetupAdapter<Input extends { name?: string } = ChannelSetupInput> = {
+  /** Keep root config as an independent identity when the host adds named accounts. */
+  configPromotion?: "preserve-root";
   resolveAccountId?: (params: { cfg: OpenClawConfig; accountId?: string; input?: Input }) => string;
   prepareAccountConfigInput?: (params: {
     cfg: OpenClawConfig;
