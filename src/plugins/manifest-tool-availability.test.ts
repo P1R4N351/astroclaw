@@ -1,6 +1,6 @@
 // Manifest tool-availability tests cover config, auth, environment, and base-URL gates.
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";
 import {
   hasManifestToolAvailability,
@@ -159,6 +159,31 @@ describe("manifestConfigSignalPasses", () => {
         signal: webSearchSignal,
       }),
     ).toBe(false);
+  });
+
+  it.each([
+    {
+      name: "present selected env",
+      selected: true,
+      env: { COLLISION_KEY: "synthetic-key" },
+      expected: true,
+    },
+    { name: "missing selected env", selected: true, env: {}, expected: false },
+    {
+      name: "non-default mismatch",
+      selected: false,
+      env: { COLLISION_KEY: "synthetic-key" },
+      expected: false,
+    },
+  ])("evaluates $name under an exec collision", ({ selected, env, expected }) => {
+    const config = xaiConfig({
+      webSearch: { apiKey: { source: "env", provider: "selected", id: "COLLISION_KEY" } },
+    });
+    config.secrets = {
+      defaults: selected ? { env: "selected" } : undefined,
+      providers: { selected: { source: "exec", command: "/unused" } },
+    };
+    expect(manifestConfigSignalPasses({ config, env, signal: webSearchSignal })).toBe(expected);
   });
 });
 
