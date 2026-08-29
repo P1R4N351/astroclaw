@@ -91,7 +91,7 @@ type PublishablePluginPackageSource = Pick<
   "extensionId" | "packageDir" | "packageName"
 >;
 
-export const OPENCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/openclaw/openclaw";
+export const OPENCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/astroclaw/astroclaw";
 const SAFE_CLAWHUB_EXTENSION_ID = /^[a-z0-9][a-z0-9._-]*$/;
 
 /** Explicit core ownership defers staged external publication until the plugin is externalized. */
