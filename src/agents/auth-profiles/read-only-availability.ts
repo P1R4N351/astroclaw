@@ -1,6 +1,6 @@
 /** Pure, non-resolving credential availability checks shared by status and route selection. */
 import { hasNonEmptyString as hasSecret } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   isSecretRef,
   LEGACY_DOUBLE_UNDERSCORE_ENV_MARKER_PREFIX,
@@ -8,8 +8,8 @@ import {
 } from "../../config/types.secrets.js";
 import { canResolveEnvSecretRefInReadOnlyPath } from "../../plugin-sdk/secret-ref-readonly.internal.js";
 import {
+  isBuiltInDefaultSecretProviderRef,
   isValidSecretRef,
-  resolveDefaultSecretProviderAlias,
   SINGLE_VALUE_FILE_REF_ID,
 } from "../../secrets/ref-contract.js";
 import {
@@ -55,9 +55,7 @@ export function resolveSecretRefReadOnlyAvailability(
     return hasSecret(env[value.id]) ? true : undefined;
   }
   const source = cfg.secrets?.providers?.[value.provider];
-  const isImplicitProvider =
-    value.source === "store" && value.provider === resolveDefaultSecretProviderAlias(cfg, "store");
-  if ((!source && !isImplicitProvider) || (source && source.source !== value.source)) {
+  if (source?.source !== value.source && !isBuiltInDefaultSecretProviderRef(cfg, value)) {
     return false;
   }
   if (
