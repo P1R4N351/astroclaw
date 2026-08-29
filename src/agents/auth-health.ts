@@ -9,7 +9,7 @@ import {
 } from "@astroclaw/model-catalog-core/provider-id";
 import { asDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeUniqueStringEntries } from "@astroclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   DEFAULT_OAUTH_REFRESH_MARGIN_MS,
   type AuthCredentialReasonCode,
@@ -292,7 +292,7 @@ export function buildAuthHealthSummary(params: {
     : null;
 
   const profiles = Object.entries(params.store.profiles)
-    .filter(([_, cred]) =>
+    .filter(([, cred]) =>
       providerFilter ? providerFilter.has(normalizeProviderId(cred.provider)) : true,
     )
     .map(([profileId, credential]) =>
