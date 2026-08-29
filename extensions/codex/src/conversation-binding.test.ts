@@ -5,11 +5,11 @@ import path from "node:path";
 import {
   clearActiveEmbeddedRun,
   setActiveEmbeddedRun,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import type { ExecApprovalsFile } from "openclaw/plugin-sdk/exec-approvals-runtime";
-import type { PluginConversationBinding } from "openclaw/plugin-sdk/plugin-entry";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import type { ExecApprovalsFile } from "astroclaw/plugin-sdk/exec-approvals-runtime";
+import type { PluginConversationBinding } from "astroclaw/plugin-sdk/plugin-entry";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sharedClientMocks = vi.hoisted(() => ({
@@ -46,7 +46,7 @@ const agentRuntimeMocks = vi.hoisted(() => ({
   resolveAgentWorkspaceDir: vi.fn(() => "/agent/workspace"),
   resolvePersistedAuthProfileOwnerAgentDir: vi.fn(),
   resolveProviderIdForAuth: vi.fn((provider: string, _lookup?: { config?: unknown }) => provider),
-  resolveSessionAgentIds: vi.fn(() => ({ defaultAgentId: "main", sessionAgentId: "main" })),
+  resolveSessionAgentIdsStrict: vi.fn(() => ({ defaultAgentId: "main", sessionAgentId: "main" })),
   saveAuthProfileStore: vi.fn(),
 }));
 
@@ -71,17 +71,18 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     resolveSandboxContext: resolveSandboxContextMock,
   };
 });
 
-vi.mock("openclaw/plugin-sdk/conversation-binding-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/conversation-binding-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/conversation-binding-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-binding-runtime")>();
   return {
     ...actual,
     getSessionBindingService: () => ({
@@ -122,18 +123,18 @@ vi.mock("./app-server/shared-client.js", () => ({
       assertCurrent: () => undefined,
     })),
 }));
-vi.mock("openclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/exec-approvals-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/exec-approvals-runtime")>();
   return {
     ...actual,
     loadExecApprovals: execApprovalsRuntimeMocks.loadExecApprovals,
   };
 });
-vi.mock("openclaw/plugin-sdk/agent-runtime", () => agentRuntimeMocks);
-vi.mock("openclaw/plugin-sdk/agent-scope-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/agent-scope-runtime")>()),
-  resolveSessionAgentIds: agentRuntimeMocks.resolveSessionAgentIds,
+vi.mock("astroclaw/plugin-sdk/agent-runtime", () => agentRuntimeMocks);
+vi.mock("astroclaw/plugin-sdk/agent-scope-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/agent-scope-runtime")>()),
+  resolveSessionAgentIdsStrict: agentRuntimeMocks.resolveSessionAgentIdsStrict,
 }));
 
 import {
@@ -430,7 +431,7 @@ describe("codex conversation binding", () => {
     agentRuntimeMocks.resolveDefaultAgentDir.mockClear();
     agentRuntimeMocks.resolvePersistedAuthProfileOwnerAgentDir.mockReset();
     agentRuntimeMocks.resolveProviderIdForAuth.mockClear();
-    agentRuntimeMocks.resolveSessionAgentIds.mockClear();
+    agentRuntimeMocks.resolveSessionAgentIdsStrict.mockClear();
     agentRuntimeMocks.saveAuthProfileStore.mockReset();
     codexRequirementsTomlMock.mockReset();
     resolveSandboxContextMock.mockReset();
@@ -448,7 +449,7 @@ describe("codex conversation binding", () => {
     agentRuntimeMocks.resolveProviderIdForAuth.mockImplementation(
       (provider: string, _lookup?: { config?: unknown }) => provider,
     );
-    agentRuntimeMocks.resolveSessionAgentIds.mockReturnValue({
+    agentRuntimeMocks.resolveSessionAgentIdsStrict.mockReturnValue({
       defaultAgentId: "main",
       sessionAgentId: "main",
     });
