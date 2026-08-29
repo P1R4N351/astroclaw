@@ -4,7 +4,7 @@
  * Adapts declarative wizard definitions into imperative setup adapters used by onboarding.
  */
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
 import { resolveChannelSetupExecutionAdapter } from "./setup-contract.js";
 import { configureChannelAccessWithAllowlist } from "./setup-group-access-configure.js";
@@ -76,6 +76,9 @@ function createWizardAccountScope(params: {
       ...cfg.channels,
       [params.channelKey]: {
         ...channel,
+        // Legacy callbacks use this map to choose account-scoped writes even
+        // when there were no root values to promote into a default account.
+        accounts: channel.accounts ?? {},
         defaultAccount: accountId,
       },
     },
