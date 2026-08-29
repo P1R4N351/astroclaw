@@ -6,7 +6,7 @@ import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolveSimpleCompletionSelectionForAgent } from "../agents/simple-completion-runtime.js";
 import { resolveUtilityModelRefForAgent } from "../agents/utility-model.js";
 import { resolveSessionStorePathCore } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { Message, Usage } from "../llm/types.js";
 import { redactToolPayloadText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
@@ -197,6 +197,7 @@ async function defaultRun(params: SessionCompanionRunParams): Promise<string> {
       workspaceDir: params.workspaceDir,
       cwd: params.workspaceDir,
       config: buildSessionCompanionRunConfig(params.cfg),
+      codeModeOverride: false,
       prompt: current.content,
       provider: selection.runtimeProvider ?? selection.provider,
       model: selection.modelId,
