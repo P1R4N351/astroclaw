@@ -3,7 +3,7 @@
 import os from "node:os";
 import path from "node:path";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { createTerminalTool } from "../agents/tools/terminal-tool.js";
 import {
@@ -1340,6 +1340,7 @@ describe("loadGatewayPlugins", () => {
           nodeId: "node-1",
           command: "browser.proxy",
           params: { method: "GET", path: "/profiles" },
+          sessionKey: "agent:main:trusted",
           scopes: ["operator.admin"],
         }),
     );
@@ -1351,6 +1352,9 @@ describe("loadGatewayPlugins", () => {
     });
     expect(getLastDispatchedClientScopes()).toEqual(["operator.admin"]);
     expect(getLastDispatchedClientInternal().pluginRuntimeOwnerId).toBe("google-meet");
+    expect(getLastDispatchedClientInternal().nodeInvokeApprovalSessionKey).toBe(
+      "agent:main:trusted",
+    );
   });
 
   test("honors trusted plugin node scopes inside a narrower Gateway request", async () => {
@@ -1517,6 +1521,7 @@ describe("loadGatewayPlugins", () => {
           nodeId: "node-1",
           command: "browser.proxy",
           params: { method: "GET", path: "/profiles" },
+          sessionKey: "agent:main:untrusted",
           scopes: ["operator.admin"],
         }),
     );
@@ -1529,6 +1534,7 @@ describe("loadGatewayPlugins", () => {
     expect(getLastDispatchedClientScopes()).toEqual(["operator.write"]);
     expect(getLastDispatchedClientScopes()).not.toContain("operator.admin");
     expect(getLastDispatchedClientInternal().pluginRuntimeOwnerId).toBe("third-party");
+    expect(getLastDispatchedClientInternal()).not.toHaveProperty("nodeInvokeApprovalSessionKey");
   });
 
   test("rejects an owned non-duplex node command before invoking its handler", async () => {
