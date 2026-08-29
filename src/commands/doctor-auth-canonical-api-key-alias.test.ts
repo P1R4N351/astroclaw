@@ -9,7 +9,7 @@ import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/astroclaw-test-state.js";
+} from "../test-utils/openclaw-test-state.js";
 import { maybeMigrateAuthProfileJsonStoresToSqlite } from "./doctor-auth-flat-profiles.js";
 
 const states: OpenClawTestState[] = [];
@@ -109,7 +109,12 @@ describe("canonical SQLite migration for historical API-key aliases", () => {
       prompter,
       env: state.env,
     });
-    expect(rerun).toEqual({ detected: [], changes: [], warnings: [] });
+    expect(rerun).toEqual({
+      detected: [],
+      changes: [],
+      configOwnerMigrationApplied: false,
+      warnings: [],
+    });
     expect(prompter.confirmAutoFix).toHaveBeenCalledOnce();
   });
 
@@ -145,7 +150,12 @@ describe("canonical SQLite migration for historical API-key aliases", () => {
       env: state.env,
     });
 
-    expect(result).toEqual({ detected: [authPath], changes: [], warnings: [] });
+    expect(result).toEqual({
+      detected: [authPath],
+      changes: [],
+      configOwnerMigrationApplied: false,
+      warnings: [],
+    });
     expect(fs.readFileSync(authPath)).toEqual(original);
     expect(loadPersistedAuthProfileStore(state.agentDir())).toBeNull();
   });
