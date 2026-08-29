@@ -1,23 +1,28 @@
 // Sync Plugin Versions script supports OpenClaw repository automation.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
+
+type PackageMetadataBlock = {
+  install?: {
+    minHostVersion?: string;
+  };
+  compat?: {
+    pluginApi?: string;
+  };
+  build?: {
+    openclawVersion?: string;
+  };
+};
 
 type PackageJson = {
   name?: string;
   version?: string;
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
-  openclaw?: {
-    install?: {
-      minHostVersion?: string;
-    };
-    compat?: {
-      pluginApi?: string;
-    };
-    build?: {
-      openclawVersion?: string;
-    };
-  };
+  astroclaw?: PackageMetadataBlock;
+  /** Pre-rebrand key; accepted read-only via pluginPackageMetadata(), never written. */
+  openclaw?: PackageMetadataBlock;
 };
 
 type SyncPluginVersionsOptions = {
@@ -48,7 +53,7 @@ function syncOpenClawDependencyRange(
 }
 
 function syncPluginApiVersion(pkg: PackageJson, targetVersion: string): boolean {
-  const compat = pkg.openclaw?.compat;
+  const compat = pluginPackageMetadata<PackageMetadataBlock>(pkg)?.compat;
   const current = compat?.pluginApi;
   if (!current || !OPENCLAW_VERSION_RANGE_RE.test(current)) {
     return false;
@@ -62,7 +67,7 @@ function syncPluginApiVersion(pkg: PackageJson, targetVersion: string): boolean 
 }
 
 function syncBuildOpenClawVersion(pkg: PackageJson, targetVersion: string): boolean {
-  const build = pkg.openclaw?.build;
+  const build = pluginPackageMetadata<PackageMetadataBlock>(pkg)?.build;
   const current = build?.openclawVersion;
   if (!current) {
     return false;
