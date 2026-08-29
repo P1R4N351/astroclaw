@@ -1,15 +1,14 @@
 /** Helpers for selecting image-generation providers and models in live tests. */
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   parseLiveCsvFilter,
   parseProviderModelMap,
-  redactLiveApiKey,
   resolveConfiguredLiveProviderModels,
   resolveLiveAuthStore,
 } from "../media-generation/live-test-helpers.js";
 
-export { parseProviderModelMap, redactLiveApiKey };
+export { parseProviderModelMap };
 
 // Default provider/model matrix for image live tests. Provider env filters can
 // override these without changing test source.
