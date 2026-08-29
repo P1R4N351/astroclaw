@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSuiteLogPathTracker } from "../logging/log-test-helpers.js";
 import { resetLogger } from "../logging/logger.js";
 import { loggingState } from "../logging/state.js";
@@ -347,6 +347,29 @@ describe("runGuidedOnboarding custodian flow", () => {
     expect(localOnboarding.complete.mock.invocationCallOrder[0]).toBeLessThan(
       runSetupMemoryImportStep.mock.invocationCallOrder[0]!,
     );
+  });
+
+  it.each([
+    ["enables default hooks", {}, true],
+    ["preserves --skip-hooks", { skipHooks: true }, undefined],
+  ] as const)("%s in the persisted setup config", async (_label, opts, expectedEnabled) => {
+    const applySetup = vi.fn<NonNullable<GuidedOnboardingDeps["applySetup"]>>(async (params) => {
+      const sourceConfig = localOnboarding.persisted.config ?? {};
+      localOnboarding.persisted.config =
+        params.finalizeConfig?.(sourceConfig, sourceConfig) ?? sourceConfig;
+      return setupApplyResult();
+    });
+    const deps = setupDeps({ prompter: createWizardPrompter(), applySetup });
+
+    await runGuidedOnboarding(
+      { acceptRisk: true, workspace: "/tmp/work", ...opts },
+      makeRuntime(),
+      deps,
+    );
+
+    expect(
+      localOnboarding.persisted.config?.hooks?.internal?.entries?.["session-memory"]?.enabled,
+    ).toBe(expectedEnabled);
   });
 
   it("resumes an interrupted gateway install using its approved workspace", async () => {
