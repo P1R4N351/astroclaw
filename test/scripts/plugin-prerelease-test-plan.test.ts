@@ -316,7 +316,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mts", () => {
     );
     expect(assertionsScript).toContain("!INVALID_PROBE_DIAGNOSTIC_SURFACE_MODES.has(surfaceMode)");
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
-      'from "openclaw/plugin-sdk/plugin-entry"',
+      'from "astroclaw/plugin-sdk/plugin-entry"',
     );
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
       "X-ClawHub-Artifact-Sha256",
@@ -496,15 +496,29 @@ describe("scripts/lib/plugin-prerelease-test-plan.mts", () => {
         "persist-credentials": false,
         ref: "${{ github.sha }}",
         path: ".plugin-prerelease-trusted",
-        "sparse-checkout": "src/plugins/npm-install-security-scan.release.test.ts",
         "sparse-checkout-cone-mode": false,
       },
     });
-    expect(installInventory?.run).toContain(
-      '"$trusted_checkout/src/plugins/npm-install-security-scan.release.test.ts"',
+    expect(trustedCheckout.with?.["sparse-checkout"]).toBe(
+      [
+        "src/plugins/npm-install-security-scan.release.test.ts",
+        "scripts/lib/npm-json-output.mts",
+        "",
+      ].join("\n"),
     );
     expect(installInventory?.run).toContain(
-      "src/plugins/npm-install-security-scan.release.test.ts",
+      [
+        "install -m 0644 \\",
+        '  "$trusted_checkout/src/plugins/npm-install-security-scan.release.test.ts" \\',
+        "  src/plugins/npm-install-security-scan.release.test.ts",
+      ].join("\n"),
+    );
+    expect(installInventory?.run).toContain(
+      [
+        "install -m 0644 \\",
+        '  "$trusted_checkout/scripts/lib/npm-json-output.mts" \\',
+        "  scripts/lib/npm-json-output.mts",
+      ].join("\n"),
     );
     expect(installInventory?.run).toContain('rm -rf -- "$trusted_checkout"');
     expect(runNodeShard?.env?.NODE_TEST_EXCLUDE_PATTERNS_JSON).toBe(
