@@ -74,7 +74,7 @@ export function collectPackageDistImportErrors(params) {
 }
 
 /** Collect relative dist import edges from package JavaScript files. */
-function collectPackageDistImports(params) {
+export function collectPackageDistImports(params) {
   const files = [...new Set(params.files.map(normalizePackagePath))];
   const imports = [];
 
@@ -93,4 +93,44 @@ function collectPackageDistImports(params) {
   }
 
   return imports;
+}
+
+/**
+ * Expand a seed set of dist files to the transitive closure of everything they
+ * (recursively) import via relative specifiers. Used to decide which installed
+ * dist files are actually reachable from a declared inventory/entry set, so
+ * callers can flag files the inventory omits (check-astroclaw-package-tarball.mjs)
+ * or avoid pruning files a declared entry still needs (postinstall-bundled-plugins.mjs).
+ */
+export function expandPackageDistImportClosure(params) {
+  const files = [...new Set(params.files.map(normalizePackagePath))];
+  const fileSet = new Set(files);
+  const imports = params.imports ?? collectPackageDistImports({ files, readText: params.readText });
+
+  const importedPathsByImporter = new Map();
+  for (const { importerPath, importedPath } of imports) {
+    let importedPaths = importedPathsByImporter.get(importerPath);
+    if (!importedPaths) {
+      importedPaths = [];
+      importedPathsByImporter.set(importerPath, importedPaths);
+    }
+    importedPaths.push(importedPath);
+  }
+
+  const closure = new Set();
+  const queue = (params.seedFiles ?? []).map(normalizePackagePath);
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (closure.has(current)) {
+      continue;
+    }
+    closure.add(current);
+    for (const importedPath of importedPathsByImporter.get(current) ?? []) {
+      if (fileSet.has(importedPath) && !closure.has(importedPath)) {
+        queue.push(importedPath);
+      }
+    }
+  }
+
+  return [...closure];
 }
