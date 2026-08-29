@@ -32,6 +32,11 @@ import {
 } from "../shared-interactive.js";
 import { parseDiscordTarget, resolveDiscordChannelId } from "../targets.js";
 import { tryHandleDiscordMessageActionGuildAdmin } from "./handle-action.guild-admin.js";
+import {
+  isDiscordPhotoIntakeAction,
+  tryHandleDiscordMessageActionPhotoIntake,
+} from "./handle-action.photo-intake.js";
+import { createDefaultPhotoIntakeActionDeps } from "./handle-action.photo-intake.runtime.js";
 import type { DiscordMessagingActionOptions } from "./runtime.messaging.shared.js";
 import { readDiscordAutoArchiveDurationParam } from "./runtime.shared.js";
 
@@ -508,6 +513,17 @@ export async function handleDiscordMessageAction(
       cfg,
       actionOptions,
     );
+  }
+
+  if (isDiscordPhotoIntakeAction(action)) {
+    const photoIntakeResult = await tryHandleDiscordMessageActionPhotoIntake({
+      action,
+      params,
+      deps: createDefaultPhotoIntakeActionDeps(),
+    });
+    if (photoIntakeResult !== undefined) {
+      return photoIntakeResult;
+    }
   }
 
   const adminResult = await tryHandleDiscordMessageActionGuildAdmin({
