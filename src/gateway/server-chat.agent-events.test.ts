@@ -2,7 +2,7 @@
 // session lifecycle persistence, and subscriber registry behavior.
 
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveDefaultAgentId } from "../agents/agent-scope-config.js";
 import { buildAssistantStreamData } from "../agents/embedded-agent-subscribe.handlers.messages.stream.js";
@@ -4892,6 +4892,33 @@ describe("agent event handler", () => {
     vi.advanceTimersByTime(1);
     expect(broadcastToConnIds).toHaveBeenCalledTimes(1);
     expect(persistGatewaySessionLifecycleEventMock).toHaveBeenCalledTimes(persisted);
+  });
+
+  it("preserves an owner claim in the terminal persistence handoff", () => {
+    const runId = "claimed-terminal-handoff";
+    const claimId = claimAgentRunContext(
+      runId,
+      { sessionKey: "session-claimed-terminal" },
+      { exclusive: true, trackOwner: true },
+    )!;
+    const { handler } = createHarness({
+      resolveSessionKeyForRun: () => "session-claimed-terminal",
+    });
+    let event: Parameters<typeof handler>[0] | undefined;
+    const stop = onAgentRuntimeEvent((received) => {
+      event = received;
+    });
+    emitAgentEventForOwner({ runId, stream: "lifecycle", data: { phase: "end" } }, claimId);
+    stop();
+
+    handler(expectDefined(event, "claimed terminal event"));
+
+    expect(persistGatewaySessionLifecycleEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: expect.objectContaining({ contextClaimId: claimId }),
+      }),
+    );
+    releaseAgentRunContext(runId, claimId);
   });
 
   it("mirrors commentary-phase assistant events only to exact session message subscribers", () => {
