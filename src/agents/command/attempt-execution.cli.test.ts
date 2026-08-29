@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 // Covers CLI-backed attempt execution and session-binding persistence.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions.js";
 import {
@@ -3961,7 +3961,7 @@ describe("embedded attempt harness pinning", () => {
     });
   });
 
-  it("forwards runtime toolsAllow into embedded attempts", async () => {
+  it("forwards invocation tool restrictions into embedded attempts", async () => {
     const sessionEntry = makeSessionEntry("tools-allow-session");
     runEmbeddedAgentMock.mockResolvedValueOnce({
       meta: { durationMs: 1 },
@@ -3971,10 +3971,13 @@ describe("embedded attempt harness pinning", () => {
       sessionEntry,
       body: "read only",
       runId: "run-tools-allow",
-      opts: { toolsAllow: ["read", "web_search"] },
+      opts: { toolsAllow: ["read", "web_search"], codeModeOverride: false },
     });
 
-    expectMockArgFields(runEmbeddedAgentMock, { toolsAllow: ["read", "web_search"] });
+    expectMockArgFields(runEmbeddedAgentMock, {
+      toolsAllow: ["read", "web_search"],
+      codeModeOverride: false,
+    });
   });
 
   it("lets provider/model runtime policy choose Codex without storing a session harness pin", async () => {
