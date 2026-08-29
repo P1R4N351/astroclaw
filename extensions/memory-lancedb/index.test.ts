@@ -12,21 +12,21 @@ import { Buffer } from "node:buffer";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { Command } from "commander";
-import { isToolResultError } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { isToolResultError } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   clearMemoryPluginState,
   getMemoryCapabilityRegistration,
   listActiveMemoryPublicArtifacts,
   registerMemoryCapability,
   type MemoryPluginCapability,
-} from "openclaw/plugin-sdk/memory-host-core";
-import { MESSAGE_TOOL_DELIVERY_HINTS } from "openclaw/plugin-sdk/message-tool-delivery-hints";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/memory-host-core";
+import { MESSAGE_TOOL_DELIVERY_HINTS } from "astroclaw/plugin-sdk/message-tool-delivery-hints";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
+import { Command } from "commander";
 import { afterEach, describe, test, expect, vi } from "vitest";
 import memoryPlugin, {
   detectCategory,
@@ -51,8 +51,8 @@ const moduleMocks = vi.hoisted(() => ({
   loadLanceDbModule: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     ensureGlobalUndiciEnvProxyDispatcher: () => {
@@ -77,9 +77,11 @@ vi.mock("openai", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/memory-core-host-engine-embeddings", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-embeddings", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/memory-core-host-engine-embeddings")>();
+    await importOriginal<
+      typeof import("astroclaw/plugin-sdk/memory-core-host-engine-embeddings")
+    >();
   return {
     ...actual,
     getMemoryEmbeddingProvider: (...args: Parameters<typeof actual.getMemoryEmbeddingProvider>) => {
@@ -2413,6 +2415,51 @@ describe("memory plugin e2e", () => {
       cleanupAutoCaptureCursorHarness();
     }
   });
+
+  test.each(["repeated", "invocation-distinct"])(
+    "does not checkpoint %s display-only hook evidence",
+    async (contentKind) => {
+      const harness = await setupAutoCaptureCursorHarness();
+      const history = [
+        { role: "user", content: "I prefer Helix for editing code every day." },
+        { role: "user", content: "I prefer Fish for shell commands every day." },
+        { role: "user", content: "I prefer Deno for small scripts every day." },
+        { role: "assistant", content: "Preferences recorded." },
+      ];
+      const activity = (invocation: number) => ({
+        role: "custom",
+        customType: "tool-activity",
+        display: true,
+        excludeFromContext: true,
+        content: contentKind === "repeated" ? "completed" : `invocation-${invocation}`,
+      });
+      const newPreference = "I prefer SQLite for local application state.";
+      const context = { agentId: "main", sessionKey: "session-display-evidence" };
+      try {
+        await harness.agentEnd?.({ success: true, messages: [...history, activity(1)] }, context);
+        await harness.agentEnd?.(
+          {
+            success: true,
+            messages: [
+              ...history,
+              { role: "user", content: newPreference },
+              { role: "assistant", content: "New preference recorded." },
+              activity(2),
+            ],
+          },
+          context,
+        );
+
+        expect(harness.embeddingsCreate.mock.calls.map(([request]) => request.input)).toEqual([
+          ...history.slice(0, 3).map((message) => message.content),
+          newPreference,
+        ]);
+        expect(harness.add).toHaveBeenCalledTimes(4);
+      } finally {
+        cleanupAutoCaptureCursorHarness();
+      }
+    },
+  );
 
   test("does not advance auto-capture cursor when message processing fails", async () => {
     const embeddingsCreate = vi
