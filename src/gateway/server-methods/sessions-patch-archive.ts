@@ -9,7 +9,7 @@ import {
 import type { ModelCatalogEntry } from "../../agents/model-catalog.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { SESSION_LIFECYCLE_CHANGED_ERROR_REASON } from "../../config/sessions/lifecycle.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { resolveMissingAgentHarnessSessionError } from "../../sessions/agent-harness-session-key.js";
 import { resolvePluginSessionOwnershipError } from "../session-plugin-ownership.js";
@@ -20,9 +20,9 @@ import {
 } from "../session-utils.js";
 import { projectSessionsPatchEntry } from "../sessions-patch.js";
 import {
-  prepareSessionArchiveLifecycle,
-  type SessionArchiveLifecycleDrain,
-} from "./sessions-archive-lifecycle.js";
+  prepareSessionLifecycleDrain,
+  type SessionLifecycleDrain,
+} from "./sessions-lifecycle-drain.js";
 import {
   isAgentMainSessionKey,
   resolveSessionWorkerPlacementPatchError,
@@ -32,7 +32,7 @@ import type { GatewayRequestContext } from "./types.js";
 
 export type SessionPatchArchivePreparation = {
   canonicalKey: string;
-  drain: SessionArchiveLifecycleDrain;
+  drain: SessionLifecycleDrain;
   entry?: SessionEntry;
 };
 
@@ -202,7 +202,8 @@ export async function prepareSessionPatchArchive(params: {
   }
 
   try {
-    const drain = await prepareSessionArchiveLifecycle({
+    const drain = await prepareSessionLifecycleDrain({
+      action: "archive",
       context: params.context,
       storePath: target.storePath,
       sessionKeys: Array.from(
