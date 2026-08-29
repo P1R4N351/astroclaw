@@ -5,7 +5,7 @@ import {
   openOpenClawAgentDatabase,
   runOpenClawAgentWriteTransaction,
 } from "../../state/openclaw-agent-db.js";
-import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
 import {
   assignSessionOwner,
   loadSessionEntry,
@@ -27,7 +27,7 @@ describe("SQLite session owner assignment", () => {
       await upsertSessionEntryCore(scope, {
         sessionId: "session-owned",
         updatedAt: 1,
-        createdActor: { type: "human", id: "profile-creator" },
+        createdActor: { type: "human", source: "profile", id: "profile-creator" },
       });
       const initial = openOpenClawAgentDatabase({ agentId: "main", env: state.env });
       for (const { columnName } of FIRST_USE_ADDITIVE_AGENT_COLUMN_DEFINITIONS) {
@@ -36,7 +36,7 @@ describe("SQLite session owner assignment", () => {
       closeOpenClawAgentDatabasesForTest();
 
       expect(loadSessionEntry(scope)).toMatchObject({
-        createdActor: { type: "human", id: "profile-creator" },
+        createdActor: { type: "human", source: "profile", id: "profile-creator" },
       });
       expect(loadSessionEntry(scope)?.owner).toBeUndefined();
 
