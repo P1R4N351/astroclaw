@@ -14,7 +14,7 @@ import {
   resolveToolProfilePolicy,
 } from "../../../agents/tool-policy.js";
 import type { AgentModelConfig } from "../../../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { normalizePluginId } from "../../../plugins/config-state.js";
 import { loadManifestMetadataSnapshot } from "../../../plugins/manifest-contract-eligibility.js";
 import type { PluginManifestRegistry } from "../../../plugins/manifest-registry.js";
@@ -142,7 +142,7 @@ function collectConfiguredMcpServerNames(cfg: OpenClawConfig): string[] {
     return [];
   }
   return Object.entries(servers)
-    .filter(([, value]) => hasRecord(value))
+    .filter(([, value]) => hasRecord(value) && value.enabled !== false)
     .map(([name]) => name.trim())
     .filter(Boolean)
     .toSorted((left, right) => left.localeCompare(right));
