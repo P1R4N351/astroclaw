@@ -1,7 +1,7 @@
 // Firecrawl plugin module implements firecrawl client behavior.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { parseFiniteNumber } from "astroclaw/plugin-sdk/number-runtime";
-import { readProviderJsonObjectResponse } from "astroclaw/plugin-sdk/provider-http";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { parseFiniteNumber } from "openclaw/plugin-sdk/number-runtime";
+import { readProviderJsonObjectResponse } from "openclaw/plugin-sdk/provider-http";
 import {
   DEFAULT_CACHE_TTL_MINUTES,
   markdownToText,
@@ -12,22 +12,22 @@ import {
   withSelfHostedWebToolsEndpoint,
   withStrictWebToolsEndpoint,
   writeCache,
-} from "astroclaw/plugin-sdk/provider-web-fetch";
-import { resolveSiteName } from "astroclaw/plugin-sdk/provider-web-search";
-import { normalizeSecretInput } from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/provider-web-fetch";
+import { resolveSiteName } from "openclaw/plugin-sdk/provider-web-search";
+import { normalizeSecretInput } from "openclaw/plugin-sdk/secret-input";
 import {
   truncateSanitizedExternalContent,
   wrapExternalContent,
   wrapWebContent,
-} from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/security-runtime";
 import {
   SsrFBlockedError,
   isBlockedHostnameOrIp,
   isPrivateIpAddress,
   resolvePinnedHostnameWithPolicy,
   type LookupFn,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 import {
   DEFAULT_FIRECRAWL_BASE_URL,
@@ -469,7 +469,11 @@ export async function runFirecrawlSearch(
       scrapeResults,
     }),
   );
-  const cached = readCache(SEARCH_CACHE, cacheKey);
+  const cacheTtlMs = resolveCacheTtlMs(
+    params.cfg?.tools?.web?.search?.cacheTtlMinutes,
+    DEFAULT_CACHE_TTL_MINUTES,
+  );
+  const cached = readCache(SEARCH_CACHE, cacheKey, cacheTtlMs);
   if (cached) {
     return { ...cached.value, cached: true };
   }
@@ -545,12 +549,7 @@ export async function runFirecrawlSearch(
     tookMs: Date.now() - start,
     scrapeResults,
   });
-  writeCache(
-    SEARCH_CACHE,
-    cacheKey,
-    result,
-    resolveCacheTtlMs(undefined, DEFAULT_CACHE_TTL_MINUTES),
-  );
+  writeCache(SEARCH_CACHE, cacheKey, result, cacheTtlMs);
   return result;
 }
 
