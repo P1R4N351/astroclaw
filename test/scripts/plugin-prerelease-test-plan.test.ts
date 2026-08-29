@@ -316,7 +316,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mts", () => {
     );
     expect(assertionsScript).toContain("!INVALID_PROBE_DIAGNOSTIC_SURFACE_MODES.has(surfaceMode)");
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
-      'from "astroclaw/plugin-sdk/plugin-entry"',
+      'from "openclaw/plugin-sdk/plugin-entry"',
     );
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
       "X-ClawHub-Artifact-Sha256",
@@ -617,7 +617,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mts", () => {
     expect(buildDistStep.env).toEqual({ NODE_OPTIONS: "--max-old-space-size=8192" });
     expect(staticShard).toEqual({
       if: "needs.preflight.outputs.run_plugin_prerelease_static == 'true'",
-      name: "${{ matrix.check_name }}",
+      name: "${{ matrix.check_name || 'plugin-prerelease-static-shard' }}",
       needs: ["preflight"],
       permissions: {
         contents: "read",
