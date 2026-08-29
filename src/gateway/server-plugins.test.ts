@@ -3,7 +3,7 @@
 import os from "node:os";
 import path from "node:path";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { createTerminalTool } from "../agents/tools/terminal-tool.js";
 import {
@@ -20,6 +20,7 @@ import { setActiveDegradedPlugins } from "../plugins/runtime-degraded-state.js";
 import type { PluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway-request-scope.test-fixtures.js";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
 import { withEnv } from "../test-utils/env.js";
+import { createInternalAgentTurnFacade } from "./agent-turn/internal-facade.js";
 import type { GatewayRequestContext, GatewayRequestOptions } from "./server-methods/types.js";
 import { createSyntheticPluginRuntimeClient } from "./server-plugin-runtime-client.js";
 
@@ -276,7 +277,13 @@ function createTestLog() {
 }
 
 function createTestContext(label: string): GatewayRequestContext {
-  return { label } as unknown as GatewayRequestContext;
+  return bindTestAgentTurns({ label } as unknown as GatewayRequestContext);
+}
+
+function bindTestAgentTurns(context: GatewayRequestContext): GatewayRequestContext {
+  context.createAgentTurnFacade ??= (principal) =>
+    createInternalAgentTurnFacade({ ...principal, getContext: () => context });
+  return context;
 }
 
 const requireRecord = createRequireRecord("record", "expected-label-object-capitalized");
@@ -368,6 +375,7 @@ async function loadTestModules() {
       resolveTestGatewayContext = () => undefined;
     },
     setFallbackGatewayContext: (context) => {
+      bindTestAgentTurns(context);
       resolveTestGatewayContext = () => context;
       return () => {
         if (resolveTestGatewayContext() === context) {
@@ -376,9 +384,13 @@ async function loadTestModules() {
       };
     },
     setFallbackGatewayContextResolver: (resolve) => {
-      resolveTestGatewayContext = resolve;
+      const boundResolve = () => {
+        const context = resolve();
+        return context ? bindTestAgentTurns(context) : undefined;
+      };
+      resolveTestGatewayContext = boundResolve;
       return () => {
-        if (resolveTestGatewayContext === resolve) {
+        if (resolveTestGatewayContext === boundResolve) {
           resolveTestGatewayContext = () => undefined;
         }
       };
