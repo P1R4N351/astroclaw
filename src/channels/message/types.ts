@@ -4,8 +4,8 @@
  * Defines receipts, live-message state, send contexts, and adapter capability contracts.
  */
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { ReplyToMode } from "../../config/types.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { OutboundSendDeps } from "../../infra/outbound/send-deps.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import type { PollInput } from "../../polls.js";
@@ -52,6 +52,8 @@ type DurableFinalDeliveryPayloadShape = {
 
 /** Raw platform result shape normalized into a message receipt. */
 export type MessageReceiptSourceResult = {
+  /** Provider-confirmed intentional omission before dispatch, never an ambiguous send. */
+  outcome?: "not_sent";
   channel?: string;
   messageId?: string;
   target?: {
@@ -238,6 +240,7 @@ export type ChannelMessageSendPollContext<TConfig = OpenClawConfig> = Omit<
 
 /** Adapter send result normalized to a receipt plus optional legacy message id. */
 export type ChannelMessageSendResult = {
+  outcome?: MessageReceiptSourceResult["outcome"];
   receipt: MessageReceipt;
   messageId?: string;
   target?: MessageReceiptSourceResult["target"];
