@@ -16,9 +16,9 @@ const DISCORD_TEST_CFG = {
   session: { dmScope: "main" },
 } as const;
 
-vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-config-runtime")>(
-    "astroclaw/plugin-sdk/plugin-config-runtime",
+vi.mock("openclaw/plugin-sdk/plugin-config-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-config-runtime")>(
+    "openclaw/plugin-sdk/plugin-config-runtime",
   );
   return {
     ...actual,
@@ -36,9 +36,9 @@ vi.mock("./send.outbound.js", () => ({
 }));
 
 const loadOutboundMediaFromUrlMock = vi.hoisted(() => vi.fn());
-vi.mock("astroclaw/plugin-sdk/outbound-media", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/outbound-media")>(
-    "astroclaw/plugin-sdk/outbound-media",
+vi.mock("openclaw/plugin-sdk/outbound-media", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/outbound-media")>(
+    "openclaw/plugin-sdk/outbound-media",
   );
   return { ...actual, loadOutboundMediaFromUrl: loadOutboundMediaFromUrlMock };
 });
@@ -88,17 +88,18 @@ function readRecordArg(
   return arg as Record<string, unknown>;
 }
 
+// Both suites consume these bindings, including when either suite runs alone or first.
+beforeAll(async () => {
+  ({ registerDiscordComponentEntries } = await import("./components-registry.js"));
+  ({
+    editDiscordComponentMessage,
+    registerBuiltDiscordComponentMessage,
+    sendDiscordComponentMessage,
+  } = await import("./send.components.js"));
+});
+
 describe("sendDiscordComponentMessage", () => {
   let registerMock: ReturnType<typeof vi.mocked<typeof registerDiscordComponentEntries>>;
-
-  beforeAll(async () => {
-    ({ registerDiscordComponentEntries } = await import("./components-registry.js"));
-    ({
-      editDiscordComponentMessage,
-      registerBuiltDiscordComponentMessage,
-      sendDiscordComponentMessage,
-    } = await import("./send.components.js"));
-  });
 
   beforeEach(() => {
     registerMock = vi.mocked(registerDiscordComponentEntries);
