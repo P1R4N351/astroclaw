@@ -5,9 +5,23 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./agent-id": "./src/agent-id.ts",
+    "./boolean-coercion": "./src/boolean-coercion.ts",
+    "./cjk-chars": "./src/cjk-chars.ts",
+    "./error-coercion": "./src/error-coercion.ts",
+    "./json-coercion": "./src/json-coercion.ts",
+    "./json-schema": "./src/json-schema.ts",
+    "./markdown-plain-text": "./src/markdown-plain-text.ts",
+    "./mountinfo-path": "./src/mountinfo-path.ts",
     "./number-coercion": "./src/number-coercion.ts",
+    "./phone-presentation": "./src/phone-presentation.ts",
+    "./promise-like": "./src/promise-like.ts",
     "./record-coerce": "./src/record-coerce.ts",
+    "./result": "./src/result.ts",
+    "./stable-node-path": "./src/stable-node-path.ts",
+    "./stable-stringify": "./src/stable-stringify.ts",
     "./string-coerce": "./src/string-coerce.ts",
-    "./string-normalization": "./src/string-normalization.ts"
+    "./string-normalization": "./src/string-normalization.ts",
+    "./utf16-slice": "./src/utf16-slice.ts"
   }
 }
