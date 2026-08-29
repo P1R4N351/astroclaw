@@ -1,7 +1,7 @@
 // Local embedded Gateway request context.
 // Lets local agent paths reuse Gateway server methods without starting a server.
 import type { CliDeps } from "../cli/deps.types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withLocalAgentCronJobsRemoved } from "../cron/local-service.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
@@ -88,7 +88,7 @@ function createLocalGatewayRequestContext(
         getConfig: params.getRuntimeConfig,
       }),
   });
-  return {
+  const context: GatewayRequestContext = {
     deps: params.deps,
     configRevisionProjector: loadGatewayConfigRevisionProjector({ env: process.env }),
     cron,
@@ -168,6 +168,12 @@ function createLocalGatewayRequestContext(
     broadcastVoiceWakeRoutingChanged: () => {},
     unavailableGatewayMethods: new Set(),
   };
+  context.createAgentTurnFacade = async (principal) => {
+    const { createInternalAgentTurnFacade } =
+      await import("./agent-turn/internal-facade.runtime.js");
+    return createInternalAgentTurnFacade({ ...principal, getContext: () => context });
+  };
+  return context;
 }
 
 /** Runs code inside a local gateway request scope unless an outer scope already exists. */
