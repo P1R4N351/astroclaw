@@ -2,6 +2,7 @@
 import { expectDefined } from "@astroclaw/normalization-core";
 import { configureAiTransportHost, getAiTransportHost } from "@openclaw/ai";
 import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import { resolveProviderEndpoint } from "astroclaw/plugin-sdk/provider-model-shared";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   createAnthropicBetaHeadersWrapper,
@@ -24,6 +25,7 @@ beforeAll(() => {
     ...initialTransportHost,
     resolveProviderRequestCapabilities: (input) => ({
       ...initialTransportHost.resolveProviderRequestCapabilities(input),
+      endpointClass: resolveProviderEndpoint(input.baseUrl).endpointClass,
       allowsAnthropicServiceTier: input.provider === "anthropic",
     }),
   });
