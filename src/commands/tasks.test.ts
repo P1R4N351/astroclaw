@@ -29,8 +29,8 @@ import type {
   TaskSystemAuditCode,
   TaskSystemAuditSeverity,
 } from "../tasks/task-system-audit.types.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
-import type { OpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import type { OpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import {
   tasksAuditCommand,
   tasksCancelCommand,
@@ -197,7 +197,7 @@ describe("tasks commands", () => {
         };
       };
 
-      expect(payload.summary.byCode.lost).toBe(1);
+      expect(payload.summary.byCode.stale_running).toBe(1);
       expect(payload.summary.taskFlows.byCode.stale_waiting).toBe(1);
       expect(payload.summary.taskFlows.byCode.missing_linked_tasks).toBe(1);
       expect(payload.summary.combined.total).toBe(3);
