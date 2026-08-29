@@ -1,7 +1,7 @@
 /** Command handlers for changing ACP runtime mode and config options on live sessions. */
 import type { AcpRuntime, AcpRuntimeHandle } from "@astroclaw/acp-core/runtime/types";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { AcpRuntimeError, withAcpRuntimeErrorBoundary } from "../runtime/errors.js";
 import type { ManagerRuntimeHandleCache } from "./manager.runtime-handle-cache.js";
 import type {
@@ -15,6 +15,7 @@ import {
   inferRuntimeOptionPatchFromConfigOption,
   mergeRuntimeOptions,
   normalizeRuntimeOptions,
+  reconcileAcceptedRuntimeOptions,
   resolveRuntimeConfigOptionKey,
   resolveRuntimeOptionsFromMeta,
 } from "./runtime-options.js";
@@ -120,7 +121,7 @@ export async function runSetManagerSessionConfigOption(
     );
   }
 
-  await withAcpRuntimeErrorBoundary({
+  const result = await withAcpRuntimeErrorBoundary({
     run: async () =>
       await runtime.setConfigOption!({
         handle,
@@ -131,10 +132,10 @@ export async function runSetManagerSessionConfigOption(
     fallbackMessage: "Could not update ACP runtime config option.",
   });
 
-  const nextOptions = mergeRuntimeOptions({
-    current: resolveRuntimeOptionsFromMeta(meta),
-    patch: inferredPatch,
-  });
+  const nextOptions = reconcileAcceptedRuntimeOptions(
+    mergeRuntimeOptions({ current: resolveRuntimeOptionsFromMeta(meta), patch: inferredPatch }),
+    result,
+  );
   await persistManagerRuntimeOptions({
     ...params,
     options: nextOptions,
