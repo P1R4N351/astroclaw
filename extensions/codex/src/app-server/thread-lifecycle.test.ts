@@ -2,11 +2,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT,
   type ModelCompatConfig,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { codexCatalogHomeId } from "../session-catalog-home-id.js";
 import { resolveCodexAppServerHomeDir } from "./auth-start-options.js";
@@ -2392,26 +2392,23 @@ describe("Codex app-server turn params", () => {
 });
 
 describe("Codex app-server model provider selection", () => {
-  it.each(["openai", "openai"])(
-    "omits public %s modelProvider when forwarding native Codex auth on thread/start",
-    (provider) => {
-      const request = buildThreadStartParams(
-        createAttemptParams({
-          provider,
-          authProfileId: "work",
-          runtimeExternalProfileIds: ["work"],
-        }),
-        {
-          cwd: "/repo",
-          dynamicTools: [],
-          appServer: createAppServerOptions() as never,
-          developerInstructions: "test instructions",
-        },
-      );
+  it("omits public openai modelProvider when forwarding native Codex auth on thread/start", () => {
+    const request = buildThreadStartParams(
+      createAttemptParams({
+        provider: "openai",
+        authProfileId: "work",
+        runtimeExternalProfileIds: ["work"],
+      }),
+      {
+        cwd: "/repo",
+        dynamicTools: [],
+        appServer: createAppServerOptions() as never,
+        developerInstructions: "test instructions",
+      },
+    );
 
-      expect(request).not.toHaveProperty("modelProvider");
-    },
-  );
+    expect(request).not.toHaveProperty("modelProvider");
+  });
 
   it("uses the bound native Codex auth profile when deciding thread/resume modelProvider", () => {
     const request = buildThreadResumeParams(
