@@ -6,18 +6,19 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
-  realpathSync,
   rmSync,
   statSync,
   symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, join, relative, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import { collectClawHubPublishablePluginPackages } from "../../scripts/lib/plugin-clawhub-release.ts";
 import { collectPublishablePluginPackages } from "../../scripts/lib/plugin-npm-release.ts";
+import { collectExtensionPackageJsonCandidates } from "../../scripts/lib/plugin-publication-candidates.ts";
 import {
   canonicalReleasePlanLockJson,
   createReleasePlanLock,
@@ -52,6 +53,7 @@ const TOOLING_CLOSURE = [
   "scripts/lib/npm-publish-plan.mjs",
   "scripts/lib/plugin-publication-candidates.ts",
   "scripts/lib/plugin-publication-collector.ts",
+  "scripts/lib/pnpm-lockfile-documents.mjs",
   "scripts/lib/record-shared.mjs",
   "scripts/lib/release-version.mjs",
 ];
@@ -108,11 +110,11 @@ function createFixtureRepo(
     JSON.stringify({
       name: "openclaw",
       version,
-      dependencies: { "@astroclaw/ai": "workspace:*" },
+      dependencies: { "@openclaw/ai": "workspace:*" },
     }),
   );
   for (const [path, name] of [
-    ["packages/ai", "@astroclaw/ai"],
+    ["packages/ai", "@openclaw/ai"],
     ["packages/gateway-client", "@astroclaw/gateway-client"],
     ["packages/gateway-protocol", "@astroclaw/gateway-protocol"],
   ]) {
@@ -129,20 +131,20 @@ function createFixtureRepo(
   if (options.corePackageNameCollision) {
     writePublishablePluginFixture(root, {
       extensionId: "shadow-ai",
-      packageName: "@astroclaw/ai",
+      packageName: "@openclaw/ai",
       version,
       publishTo: "both",
     });
   } else if (options.duplicateCrossTargetPackageName) {
     writePublishablePluginFixture(root, {
       extensionId: "duplicate-npm",
-      packageName: "@astroclaw/duplicate",
+      packageName: "@openclaw/duplicate",
       version,
       publishTo: "npm",
     });
     writePublishablePluginFixture(root, {
       extensionId: "duplicate-clawhub",
-      packageName: "@astroclaw/duplicate",
+      packageName: "@openclaw/duplicate",
       version,
       publishTo: "clawhub",
     });
@@ -153,7 +155,7 @@ function createFixtureRepo(
       root,
       "extensions/broken/package.json",
       JSON.stringify({
-        name: "@astroclaw/broken",
+        name: "@openclaw/broken",
         version,
         type: "commonjs",
         private: true,
@@ -162,7 +164,7 @@ function createFixtureRepo(
           extensions: ["./index.ts"],
           compat: { pluginApi: `>=${version}` },
           build: { openclawVersion: version },
-          install: { npmSpec: "@astroclaw/broken" },
+          install: { npmSpec: "@openclaw/broken" },
           release: { publishToNpm: true },
         },
       }),
@@ -225,7 +227,7 @@ function createFixtureRepo(
       "        env:",
       "          CORE_PACKAGE_DIRS: packages/ai packages/gateway-protocol packages/gateway-client",
       "        run: |",
-      '          if [[ "$package_dir" == "packages/ai" ]] && ! node -e \'const pkg = require("./package.json"); process.exit(pkg.dependencies?.["@astroclaw/ai"] ? 0 : 1)\'; then',
+      '          if [[ "$package_dir" == "packages/ai" ]] && ! node -e \'const pkg = require("./package.json"); process.exit(pkg.dependencies?.["@openclaw/ai"] ? 0 : 1)\'; then',
       "            exit 0",
       "          fi",
       "",
@@ -322,6 +324,11 @@ type YamlPackageHarnessParams = {
 
 function runYamlPackageSubprocess(
   options: {
+    main?: {
+      intent: "diagnostic" | "main-qualification";
+      validationIntent?: MainQualificationValidationIntent;
+      comparisonStatus: string;
+    };
     beforeProduce?: (params: YamlPackageHarnessParams) => string;
     environment?: (params: YamlPackageHarnessParams) => Record<string, string>;
     mutate?: (params: YamlPackageHarnessParams) => void;
@@ -342,7 +349,9 @@ function runYamlPackageSubprocess(
     };
   }
   const packageRoot = join(fixture.root, "node_modules/yaml");
-  cpSync(realpathSync(resolve("node_modules/yaml")), packageRoot, { recursive: true });
+  cpSync(dirname(createRequire(import.meta.url).resolve("yaml/package.json")), packageRoot, {
+    recursive: true,
+  });
   const sentinelPath = join(fixture.root, "yaml-executed");
   const tempRoot = join(fixture.root, "yaml-temp");
   mkdirSync(tempRoot);
@@ -356,20 +365,23 @@ ${options.beforeImport?.(params) ?? ""}
 const { produceReleasePlan } = await import("./scripts/release-plan-producer.mts");
 ${options.beforeProduce?.(params) ?? ""}
 
-const toolingFullRef = ${JSON.stringify(fixture.toolingFullRef)};
+const toolingFullRef = ${JSON.stringify(options.main ? "refs/heads/main" : fixture.toolingFullRef)};
 const toolingSha = ${JSON.stringify(fixture.toolingSha)};
-produceReleasePlan({
+const plan = produceReleasePlan({
   repoRoot: ${JSON.stringify(fixture.root)},
-  intent: "publish",
+  intent: ${JSON.stringify(options.main?.intent ?? "publish")},
+  validationIntent: ${JSON.stringify(options.main?.validationIntent)},
   candidateSha: ${JSON.stringify(fixture.candidateSha)},
-  candidateRef: ${JSON.stringify(fixture.candidateRef)},
+  candidateRef: ${JSON.stringify(options.main ? fixture.candidateSha : fixture.candidateRef)},
   toolingSha,
   toolingFullRef,
   runGh: () => JSON.stringify({
+    status: ${JSON.stringify(options.main?.comparisonStatus)},
     ref: toolingFullRef,
     object: { type: "commit", sha: ${JSON.stringify(options.remoteToolingSha?.(params) ?? fixture.toolingSha)} },
   }),
 });
+process.stdout.write(JSON.stringify(plan));
 const moduleApi = await import("node:module");
 const harnessRequire = moduleApi.createRequire(import.meta.url);
 const leakedSnapshotCache = Object.keys(harnessRequire.cache).filter(path =>
@@ -542,7 +554,7 @@ describe("release plan producer", () => {
       soak: false,
     });
     expect(plan.inventory.packages).toEqual([
-      { name: "@astroclaw/ai", targets: ["npm"], version: "2026.8.1-beta.2" },
+      { name: "@openclaw/ai", targets: ["npm"], version: "2026.8.1-beta.2" },
       { name: "@astroclaw/gateway-client", targets: ["npm"], version: "2026.8.1-beta.2" },
       { name: "@astroclaw/gateway-protocol", targets: ["npm"], version: "2026.8.1-beta.2" },
       { name: "openclaw", targets: ["npm"], version: "2026.8.1-beta.2" },
@@ -586,7 +598,7 @@ describe("release plan producer", () => {
     });
   });
 
-  it("produces tagless diagnostics from trusted main or protected tooling", () => {
+  it("produces tagless diagnostics from protected tooling", () => {
     const fixture = createFixtureRepo();
     expect(produceReleasePlan(sourceParams(fixture, "diagnostic"))).toMatchObject({
       candidate_sha: fixture.candidateSha,
@@ -603,25 +615,64 @@ describe("release plan producer", () => {
         soak: true,
       },
     });
+  });
 
-    expect(
-      produceReleasePlan({
-        ...sourceParams(fixture, "diagnostic"),
-        toolingFullRef: "refs/heads/main",
-        runGh: (args) => {
-          expect(args[1]).toBe(`repos/openclaw/openclaw/compare/${fixture.toolingSha}...main`);
-          return JSON.stringify({ status: "identical" });
+  it.each([
+    ["diagnostic", undefined, "ahead", "diagnostic-full", "full", true],
+    ["main-qualification", "main-daily", "identical", "main-daily", "beta", false],
+    ["main-qualification", "main-weekly", "ahead", "main-weekly", "full", true],
+  ] as const)(
+    "produces trusted-main %s/%s with %s ancestry through the verified child",
+    (intent, validationIntent, comparisonStatus, expectedIntent, profile, soak) => {
+      const { result, fixture } = runYamlPackageSubprocess({
+        main: { intent, validationIntent, comparisonStatus },
+      });
+      expect(result.stderr).toBe("");
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        candidate_sha: fixture.candidateSha,
+        purpose: intent,
+        tag: null,
+        target_context_ref: fixture.candidateSha,
+        tooling: { ref: "refs/heads/main", sha: fixture.toolingSha },
+        validation: {
+          intent: expectedIntent,
+          profile,
+          soak,
+          allowed_groups: ["all", "ci", "package"],
         },
-      }),
-    ).toMatchObject({
-      purpose: "diagnostic",
-      tag: null,
-      target_context_ref: fixture.candidateSha,
-      tooling: {
-        ref: "refs/heads/main",
-        sha: fixture.toolingSha,
+      });
+    },
+  );
+
+  it.each(["diverged", "behind"])(
+    "rejects %s main ancestry before the verified child",
+    (comparisonStatus) => {
+      const { result } = runYamlPackageSubprocess({
+        main: { intent: "diagnostic", comparisonStatus },
+      });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(
+        "main release tooling SHA is not reachable from current main",
+      );
+    },
+  );
+
+  it("rejects an uncached request from verified tooling", () => {
+    const { result } = runYamlPackageSubprocess({
+      mutateTooling: (fixture) => {
+        const corePath = join(fixture.root, "scripts/release-plan-producer-core.mts");
+        writeFileSync(
+          corePath,
+          readFileSync(corePath, "utf8").replace(
+            "const params = { ...request.params, runGh: runtime.runGh };",
+            'runtime.runGh(["api", "repos/openclaw/openclaw"]);\nconst params = { ...request.params, runGh: runtime.runGh };',
+          ),
+        );
       },
     });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("verified child rejected an uncached GitHub request");
   });
 
   it("requires main qualification producers to choose daily or weekly", () => {
@@ -1092,7 +1143,7 @@ mutateModule.syncBuiltinESMExports();
     });
 
     expect(() => produceReleasePlan(sourceParams(fixture))).toThrow(
-      "package @astroclaw/duplicate is declared by multiple plugin sources",
+      "package @openclaw/duplicate is declared by multiple plugin sources",
     );
   });
 
@@ -1102,7 +1153,7 @@ mutateModule.syncBuiltinESMExports();
     });
 
     expect(() => produceReleasePlan(sourceParams(fixture))).toThrow(
-      "package inventory source mismatch for @astroclaw/ai: extensions/shadow-ai/package.json and packages/ai/package.json",
+      "package inventory source mismatch for @openclaw/ai: extensions/shadow-ai/package.json and packages/ai/package.json",
     );
   });
 
@@ -1123,10 +1174,37 @@ mutateModule.syncBuiltinESMExports();
       encoding: "utf8",
     }).trim();
     execFileSync("git", ["clone", "-q", "--shared", "--no-checkout", resolve("."), root]);
+    const candidates = collectExtensionPackageJsonCandidates();
+    const pluginMetadataPaths = candidates.flatMap(({ packageDir, readmeText }) => [
+      `${packageDir}/package.json`,
+      ...(readmeText === undefined ? [] : [`${packageDir}/README.md`]),
+    ]);
+    // Preserve the exact candidate commit without materializing runtime trees for fixture cleanup.
+    execFileSync("git", ["sparse-checkout", "set", "--no-cone", "--stdin"], {
+      cwd: root,
+      input: [
+        ".github/workflows/",
+        "packages/*/package.json",
+        ...pluginMetadataPaths,
+        ...TOOLING_CLOSURE,
+        ...TOOLING_ROOT_FILES,
+      ]
+        .map((path) => `/${path}`)
+        .join("\n"),
+    });
     execFileSync("git", ["checkout", "-q", "--detach", candidateSha], { cwd: root });
     copyToolingClosure(root);
     const toolingSha = commit(root, "tooling overlay", { allowEmpty: true });
     execFileSync("git", ["update-ref", "refs/heads/main", toolingSha], { cwd: root });
+    expect(candidateSha).not.toBe(toolingSha);
+    expect(existsSync(join(root, "src"))).toBe(false);
+    expect(collectExtensionPackageJsonCandidates(root)).toEqual(candidates);
+    expect(
+      readdirSync(join(root, "extensions"), { recursive: true, withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => relative(root, join(entry.parentPath, entry.name)).replaceAll("\\", "/"))
+        .toSorted(),
+    ).toEqual(pluginMetadataPaths.toSorted());
 
     const plan = produceReleasePlan({
       repoRoot: root,
@@ -1145,7 +1223,7 @@ mutateModule.syncBuiltinESMExports();
     expect(npmPackages).toHaveLength(93);
     expect(clawHubPackages).toHaveLength(89);
     const coreNpmPackages = new Set([
-      "@astroclaw/ai",
+      "@openclaw/ai",
       "@astroclaw/gateway-client",
       "@astroclaw/gateway-protocol",
       "openclaw",
@@ -1167,7 +1245,7 @@ mutateModule.syncBuiltinESMExports();
     );
     expect(npmPackages.map((entry) => entry.name)).toEqual(
       expect.arrayContaining([
-        "@astroclaw/ai",
+        "@openclaw/ai",
         "@astroclaw/gateway-client",
         "@astroclaw/gateway-protocol",
         "openclaw",
