@@ -10,7 +10,7 @@ import {
 } from "../../config/sessions/session-accessor.js";
 import { replaceTranscriptEvents } from "../../config/sessions/session-accessor.sqlite-transcript-write.js";
 import type { InternalSessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   forkSessionEntryFromParent,
   forkSessionFromParent,
@@ -78,7 +78,7 @@ describe("forkSessionEntryFromParent", () => {
         sessionKey: "agent:main:subagent:child",
         storePath,
       }),
-    ).resolves.toEqual({ status: "failed" });
+    ).rejects.toThrow(MODEL_SELECTION_LOCKED_PARENT_FORK_MESSAGE);
     expect(
       loadSessionEntry({ agentId: "main", sessionKey: "agent:main:subagent:child", storePath }),
     ).toBeUndefined();
