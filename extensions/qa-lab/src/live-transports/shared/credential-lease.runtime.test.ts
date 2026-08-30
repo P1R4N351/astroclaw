@@ -1,6 +1,6 @@
 // Qa Lab tests cover credential lease plugin behavior.
 import { createServer } from "node:http";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   acquireQaCredentialLease,
@@ -766,6 +766,7 @@ describe("credential lease runtime", () => {
     await vi.advanceTimersByTimeAsync(55);
     expect(heartbeat.getFailure()).toBeInstanceOf(Error);
     expect(() => heartbeat.throwIfFailed()).toThrow("heartbeat-down");
+    expect((await heartbeat.whenFailed).message).toContain("heartbeat-down");
     await heartbeat.stop();
   });
 
