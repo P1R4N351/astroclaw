@@ -88,6 +88,16 @@ export function isPackageLockfile(filename) {
   return filename.endsWith("pnpm-lock.yaml") || filename.endsWith("package-lock.json");
 }
 
+// A PR is guard-relevant when it touches ANY dependency file (lockfiles,
+// pnpm-workspace.yaml, or patches/ — see isDependencyFile) OR any dependency
+// manifest field. Previously this only consulted lockfileChanges, so a
+// patches/-only or pnpm-workspace.yaml-only PR slipped past the early-return
+// (never blocked / never required secops approval) even though the autoscrub
+// path treats those exact files as guard-blocked.
+export function hasGuardBlockingDependencyChange(dependencyFiles, dependencyManifestChanges) {
+  return dependencyFiles.length > 0 || dependencyManifestChanges.length > 0;
+}
+
 export function dependencyFieldChanges(baseManifest, headManifest) {
   const changes = [];
   for (const field of dependencyManifestFields) {
@@ -740,8 +750,10 @@ async function main() {
     pullRequest,
     files,
   });
-  const hasDependencyGraphChange =
-    lockfileChanges.length > 0 || dependencyManifestChanges.length > 0;
+  const hasDependencyGraphChange = hasGuardBlockingDependencyChange(
+    dependencyFiles,
+    dependencyManifestChanges,
+  );
   const dependencyGraphFiles = [
     ...dependencyFiles,
     ...dependencyManifestChanges.map((change) => change.path),

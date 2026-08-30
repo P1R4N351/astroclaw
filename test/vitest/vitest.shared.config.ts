@@ -86,9 +86,16 @@ function hasWorkerOverride(env: Record<string, string | undefined>): boolean {
   return Boolean((env.OPENCLAW_VITEST_MAX_WORKERS ?? env.OPENCLAW_TEST_WORKERS)?.trim());
 }
 
-function sourcePackageAlias(packageId: string, subpath?: string) {
+// `scope` defaults to the pre-rebrand "openclaw" npm scope because a handful of
+// packages/* dirs used here (retry, session-url-contract, workboard-contract)
+// have no package.json of their own -- they are source-only aliases, never
+// published, and every real import site still spells them "@openclaw/...".
+// Packages that DID get a real @astroclaw/* package.json (normalization-core,
+// media-core, acp-core) must pass scope: "astroclaw" explicitly at the call
+// site below, or their real @astroclaw/* imports go unaliased under vitest.
+function sourcePackageAlias(packageId: string, subpath?: string, scope: "openclaw" | "astroclaw" = "openclaw") {
   return {
-    find: `@openclaw/${packageId}${subpath ? `/${subpath}` : ""}`,
+    find: `@${scope}/${packageId}${subpath ? `/${subpath}` : ""}`,
     replacement: path.join(
       repoRoot,
       "packages",
@@ -101,12 +108,16 @@ function sourcePackageAlias(packageId: string, subpath?: string) {
   };
 }
 
-function sourcePackageAliasesFromExports(packageId: string, exports: Record<string, unknown>) {
+function sourcePackageAliasesFromExports(
+  packageId: string,
+  exports: Record<string, unknown>,
+  scope: "openclaw" | "astroclaw" = "openclaw",
+) {
   return Object.keys(exports)
     .map((exportKey) => (exportKey === "." ? undefined : exportKey.slice(2)))
     .filter((subpath) => subpath === undefined || (subpath && !subpath.includes("..")))
     .toSorted((a, b) => (a ?? "").localeCompare(b ?? ""))
-    .map((subpath) => sourcePackageAlias(packageId, subpath));
+    .map((subpath) => sourcePackageAlias(packageId, subpath, scope));
 }
 
 export function resolveSharedVitestWorkerConfig(params: {
@@ -438,25 +449,26 @@ export const sharedVitestConfig = {
       ...sourcePackageAliasesFromExports(
         "normalization-core",
         normalizationCorePackageJson.exports,
+        "astroclaw",
       ),
       sourcePackageAlias("markdown-core", "code-spans"),
       sourcePackageAlias("markdown-core", "fences"),
-      sourcePackageAlias("media-core", "attachment-classify"),
-      sourcePackageAlias("media-core", "base64"),
-      sourcePackageAlias("media-core", "constants"),
-      sourcePackageAlias("media-core", "content-length"),
-      sourcePackageAlias("media-core", "file-name"),
-      sourcePackageAlias("media-core", "inbound-path-policy"),
-      sourcePackageAlias("media-core", "inline-image-data-url"),
-      sourcePackageAlias("media-core", "media-source-url"),
-      sourcePackageAlias("media-core", "mime"),
-      sourcePackageAlias("media-core", "read-byte-stream-with-limit"),
-      sourcePackageAlias("media-core"),
+      sourcePackageAlias("media-core", "attachment-classify", "astroclaw"),
+      sourcePackageAlias("media-core", "base64", "astroclaw"),
+      sourcePackageAlias("media-core", "constants", "astroclaw"),
+      sourcePackageAlias("media-core", "content-length", "astroclaw"),
+      sourcePackageAlias("media-core", "file-name", "astroclaw"),
+      sourcePackageAlias("media-core", "inbound-path-policy", "astroclaw"),
+      sourcePackageAlias("media-core", "inline-image-data-url", "astroclaw"),
+      sourcePackageAlias("media-core", "media-source-url", "astroclaw"),
+      sourcePackageAlias("media-core", "mime", "astroclaw"),
+      sourcePackageAlias("media-core", "read-byte-stream-with-limit", "astroclaw"),
+      sourcePackageAlias("media-core", undefined, "astroclaw"),
       sourcePackageAlias("retry"),
       sourcePackageAlias("session-url-contract", "parse"),
       sourcePackageAlias("session-url-contract"),
       sourcePackageAlias("workboard-contract"),
-      ...sourcePackageAliasesFromExports("acp-core", acpCorePackageJson.exports),
+      ...sourcePackageAliasesFromExports("acp-core", acpCorePackageJson.exports, "astroclaw"),
       ...sourcePluginSdkSubpaths.map((subpath) => ({
         find: `openclaw/plugin-sdk/${subpath}`,
         replacement: path.join(repoRoot, "src", "plugin-sdk", `${subpath}.ts`),
