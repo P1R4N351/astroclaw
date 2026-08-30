@@ -1,7 +1,7 @@
 // Codex tests cover index plugin behavior.
 import fs from "node:fs";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { describe, expect, it, vi } from "vitest";
 import openAIPlugin from "../openai/index.js";
 import { createCodexAppServerAgentHarness } from "./harness.js";
@@ -154,7 +154,13 @@ describe("codex plugin", () => {
       }),
     );
 
-    expect(registerService).toHaveBeenCalledTimes(2);
+    expect(registerService).toHaveBeenCalledTimes(3);
+    expect(registerService.mock.calls.map(([service]) => service)).toContainEqual(
+      expect.objectContaining({
+        id: "codex-app-server-process-reaper",
+        start: expect.any(Function),
+      }),
+    );
     expect(registerService.mock.calls.map(([service]) => service)).toContainEqual(
       expect.objectContaining({
         id: "codex-app-server-connection-health",
@@ -180,11 +186,15 @@ describe("codex plugin", () => {
         }),
       );
 
-      expect(registerService).toHaveBeenCalledOnce();
+      expect(registerService).toHaveBeenCalledTimes(2);
       expect(mockCallArg(registerService)).toMatchObject({
         id: "codex-desktop-generation",
         start: expect.any(Function),
         stop: expect.any(Function),
+      });
+      expect(mockCallArg(registerService, 1)).toMatchObject({
+        id: "codex-app-server-process-reaper",
+        start: expect.any(Function),
       });
     }
   });
