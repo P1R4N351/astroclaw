@@ -1,12 +1,12 @@
 import os from "node:os";
 import path from "node:path";
-import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { captureEnv } from "openclaw/plugin-sdk/test-env";
+import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { captureEnv } from "astroclaw/plugin-sdk/test-env";
 // Telegram tests cover action runtime plugin behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   handleTelegramAction as handleTelegramActionRuntime,
@@ -171,6 +171,8 @@ const sendDurableMessageBatch = vi.fn(
             index: 0,
           },
         ],
+        threadId: params.threadId == null ? undefined : String(params.threadId),
+        replyToId: params.reply?.replyToId ?? params.replyToId,
         sentAt: Date.now(),
       },
     } as const;
@@ -1017,6 +1019,7 @@ describe("handleTelegramAction", () => {
         action: "sendMessage",
         to: "@testchannel",
         content: "Hello, Telegram!",
+        messageThreadId: 77,
       },
       telegramConfig(),
       {
@@ -1036,12 +1039,14 @@ describe("handleTelegramAction", () => {
     const options = requireRecord(call[2], "text message options");
     expect(options.token).toBe("tok");
     expect(options.mediaUrl).toBeUndefined();
+    expect(options.messageThreadId).toBe(77);
     const durableCall = mockCall(sendDurableMessageBatch, 0, "durable text message");
     expect(requireRecord(durableCall[0], "durable text message params")).toMatchObject({
       channel: "telegram",
       to: "@testchannel",
       durability: "required",
       gatewayClientScopes: ["operator.write"],
+      threadId: 77,
       // The gateway-owned plugin send must inherit the caller's retry ownership,
       // or the failed row stays replay-eligible and duplicates (#124279).
       deliveryRetryOwner: "caller",
@@ -1049,17 +1054,21 @@ describe("handleTelegramAction", () => {
       reply: { replyToId: "456", source: "implicit", mode: "first" },
       payloads: [{ text: "Hello, Telegram!" }],
     });
-    expect(result.content).toStrictEqual([
-      {
-        type: "text",
-        text: '{\n  "ok": true,\n  "messageId": "789",\n  "chatId": "123"\n}',
-      },
-    ]);
-    expect(result.details).toStrictEqual({
+    const details = resultDetails(result);
+    // Source-reply reconciliation reads `receipt` off this result (#133051); dropping it
+    // makes a successfully delivered Telegram reply look unconfirmed and fail closed.
+    expect(details).toStrictEqual({
       ok: true,
       messageId: "789",
       chatId: "123",
+      receipt: {
+        threadId: "77",
+        replyToId: "456",
+      },
     });
+    expect(result.content).toStrictEqual([
+      { type: "text", text: JSON.stringify(details, null, 2) },
+    ]);
   });
 
   it("persists sendMessage action deliveries before Telegram platform send", async () => {
@@ -1069,7 +1078,7 @@ describe("handleTelegramAction", () => {
       createTestRegistry,
       readQueuedDeliveryEntriesForTest,
       setActivePluginRegistry,
-    } = await import("openclaw/plugin-sdk/plugin-test-runtime");
+    } = await import("astroclaw/plugin-sdk/plugin-test-runtime");
     const readDurableQueueEntries = () => readQueuedDeliveryEntriesForTest(stateDir);
     const sendText = vi
       .fn()
