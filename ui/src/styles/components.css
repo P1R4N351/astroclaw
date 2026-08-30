@@ -171,7 +171,7 @@
   display: block;
   margin: 4px 0 2px;
   padding: 5px 10px;
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   font-size: 11px;
   background: var(--bg);
   border: 1px solid var(--border);

@@ -321,7 +321,7 @@
 
 .qs-identity-card__source code {
   color: var(--text);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-family: var(--mono);
   font-size: 0.68rem;
   font-weight: 650;
   letter-spacing: normal;

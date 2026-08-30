@@ -607,7 +607,7 @@ export class OpenClawTerminalPanel extends LitElement {
       position: fixed;
       z-index: 60;
       color: var(--text, #d7dae0);
-      font-family: var(--font-sans, system-ui, sans-serif);
+      font-family: var(--font-body);
     }
     .tp {
       position: fixed;
