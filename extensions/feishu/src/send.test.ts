@@ -29,20 +29,20 @@ const {
   mockRuntimeResolveMarkdownTableMode: vi.fn(() => "preserve"),
 }));
 
-vi.mock("openclaw/plugin-sdk/markdown-table-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/markdown-table-runtime", () => ({
   resolveMarkdownTableMode: mockResolveMarkdownTableMode,
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     logVerbose: mockLogVerbose,
   };
 });
 
-vi.mock("openclaw/plugin-sdk/text-chunking", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/text-chunking")>();
+vi.mock("astroclaw/plugin-sdk/text-chunking", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/text-chunking")>();
   return {
     ...actual,
     convertMarkdownTables: mockConvertMarkdownTables,
@@ -90,8 +90,7 @@ describe("getMessageFeishu", () => {
       receipt: {
         primaryPlatformMessageId: messageId,
         platformMessageIds: [messageId],
-        parts: [{ platformMessageId: messageId, kind: "text", index: 0, raw, threadId: chatId }],
-        threadId: chatId,
+        parts: [{ platformMessageId: messageId, kind: "text", index: 0, raw }],
         sentAt: result.receipt.sentAt,
         raw: [raw],
       },
@@ -122,9 +121,9 @@ describe("getMessageFeishu", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("openclaw/plugin-sdk/markdown-table-runtime");
-    vi.doUnmock("openclaw/plugin-sdk/runtime-env");
-    vi.doUnmock("openclaw/plugin-sdk/text-chunking");
+    vi.doUnmock("astroclaw/plugin-sdk/markdown-table-runtime");
+    vi.doUnmock("astroclaw/plugin-sdk/runtime-env");
+    vi.doUnmock("astroclaw/plugin-sdk/text-chunking");
     vi.doUnmock("./client.js");
     vi.doUnmock("./accounts.js");
     vi.doUnmock("./runtime.js");
