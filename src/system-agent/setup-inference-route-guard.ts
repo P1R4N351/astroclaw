@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   sameDefaultInferenceRoute,
   type DefaultInferenceRouteProjection,
@@ -8,7 +8,7 @@ import {
 
 function withoutAgentIdentity(projection: DefaultInferenceRouteProjection): unknown {
   const agent = isRecord(projection.agent)
-    ? { ...projection.agent, id: "<agent>", agentDir: "<agent-dir>" }
+    ? { ...projection.agent, id: "<agent>" }
     : projection.agent;
   return {
     ...projection,

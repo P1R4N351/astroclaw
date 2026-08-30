@@ -9,7 +9,7 @@ import { promisify } from "node:util";
 import { afterAll, describe, expect, it } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { resolveGatewayLockDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { hasActiveStartupMigrationLease } from "../infra/startup-migration-checkpoint.js";
 import { getFileLockProcessStartTime } from "../shared/pid-alive.js";
 import { ensureOpenClawAgentDatabaseSchema } from "../state/openclaw-agent-db.js";
@@ -426,10 +426,11 @@ describe.concurrent("gateway startup-migration refusal", () => {
 
     try {
       fs.mkdirSync(stateDir, { recursive: true });
-      fs.writeFileSync(
-        configPath,
-        JSON.stringify({ gateway: { mode: "local", auth: { mode: "none" } } }),
-      );
+      const originalConfig = JSON.stringify({
+        meta: { lastTouchedAt: "2026-08-01T00:00:00.000Z" },
+        gateway: { mode: "local", auth: { mode: "none" } },
+      });
+      fs.writeFileSync(configPath, originalConfig);
       seedPluginStateConflict(stateDir);
 
       const result = spawnSync(
@@ -451,6 +452,8 @@ describe.concurrent("gateway startup-migration refusal", () => {
       expect(result.stderr).toContain(STARTUP_RECOVERY);
       expect(result.stderr.split(STARTUP_REFUSAL)).toHaveLength(2);
       expect(result.stderr).not.toContain("[openclaw] Could not start the CLI.");
+      expect(fs.readFileSync(configPath, "utf8")).toBe(originalConfig);
+      expect(fs.existsSync(`${configPath}.bak`)).toBe(false);
       expect(hasActiveStartupMigrationLease({ env })).toBe(false);
     } finally {
       await fs.promises.rm(root, { recursive: true, force: true });

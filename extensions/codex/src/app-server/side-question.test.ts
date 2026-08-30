@@ -2,20 +2,21 @@
 import {
   nativeHookRelayTesting,
   type NativeHookRelayRegistrationHandle,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   onInternalDiagnosticEvent,
   resetDiagnosticEventsForTest,
   type DiagnosticEventPayload,
-} from "openclaw/plugin-sdk/diagnostic-runtime";
+} from "astroclaw/plugin-sdk/diagnostic-runtime";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "openclaw/plugin-sdk/hook-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
 import {
   createMockPluginRegistry,
   loadWebFetchToolFactoryForTest,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { ModelCompatConfig } from "astroclaw/plugin-sdk/provider-model-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   codexTestTurnIds,
@@ -29,7 +30,7 @@ import {
   createCodexTestBindingStore,
   type CodexAppServerBindingStore,
 } from "./session-binding.test-helpers.js";
-import { createClientHarness } from "./test-support.js";
+import { createClientHarness, createCodexTestModel } from "./test-support.js";
 
 const readCodexAppServerBindingMock = vi.fn();
 const isCodexAppServerNativeAuthProfileMock = vi.fn();
@@ -99,7 +100,7 @@ vi.mock("./provider-capabilities.js", () => ({
     resolveCodexProviderWebSearchSupportForClientMock(...args),
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-harness", () => ({
   createOpenClawCodingTools: (...args: unknown[]) => createOpenClawCodingToolsMock(...args),
 }));
 
@@ -1000,6 +1001,64 @@ describe("runCodexAppServerSideQuestion", () => {
     expect(replacementClient.requests).toHaveLength(1);
   });
 
+  it.each([
+    {
+      metadata: "Platform",
+      supported: ["none", "low", "medium", "high", "xhigh", "max"],
+      expected: "none",
+    },
+    {
+      metadata: "subscription",
+      supported: ["low", "medium", "high", "xhigh", "max"],
+      expected: null,
+    },
+    { metadata: "unknown", supported: undefined, expected: null },
+  ] as const)(
+    "sends off with $metadata metadata to the side-question request boundary",
+    async ({ metadata, supported, expected }) => {
+      const client = createFakeClient();
+      getSharedCodexAppServerClientMock.mockResolvedValue(client);
+      const compat: ModelCompatConfig | undefined = supported
+        ? { supportedReasoningEfforts: [...supported] }
+        : undefined;
+      const params = sideParams({
+        model: "gpt-5.6-luna",
+        resolvedThinkLevel: "off",
+        runtimeModel: {
+          ...createCodexTestModel(),
+          id: "gpt-5.6-luna",
+          api: metadata === "subscription" ? "openai-chatgpt-responses" : "openai-responses",
+          baseUrl:
+            metadata === "subscription"
+              ? "https://chatgpt.com/backend-api/codex"
+              : "https://api.openai.com/v1",
+          compat,
+        },
+      });
+      if (metadata !== "subscription") {
+        params.preparedRuntimeAuth = platformPreparedRuntimeAuth("platform-test-key");
+        params.authProfileId = undefined;
+        params.authProfileIdSource = undefined;
+        isCodexAppServerNativeAuthProfileMock.mockReturnValue(false);
+      }
+      params.preparedRuntimeAuth.plan.modelRoute!.modelId = params.model;
+
+      await expect(runCodexAppServerSideQuestion(params)).resolves.toEqual({
+        text: "Side answer.",
+      });
+
+      const turnStartCall = client.request.mock.calls.find(([method]) => method === "turn/start");
+      expect(turnStartCall?.[1]).toMatchObject({
+        threadId: "side-thread",
+        model: "gpt-5.6-luna",
+        effort: expected,
+        collaborationMode: {
+          settings: { model: "gpt-5.6-luna", reasoning_effort: expected },
+        },
+      });
+    },
+  );
+
   it("rejects a Platform plan before binding OAuth can fill missing prepared auth", async () => {
     await expect(
       runCodexAppServerSideQuestion(
@@ -1137,8 +1196,9 @@ describe("runCodexAppServerSideQuestion", () => {
           runtimeModel: {
             id: "claude-opus-4-6",
             provider: "anthropic",
-            compat: { supportsTools: false },
+            compat: { supportsTools: false, supportedReasoningEfforts: ["none", "high"] },
           } as never,
+          resolvedThinkLevel: "off",
           authProfileId: "openai:outer",
         }),
         { pluginConfig: { supervision: { enabled: true } } },
@@ -1422,7 +1482,7 @@ describe("runCodexAppServerSideQuestion", () => {
     createOpenClawCodingToolsMock.mockImplementation((options) => {
       const toolOptions = options as NonNullable<
         Parameters<
-          (typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]
+          (typeof import("astroclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]
         >[0]
       >;
       const webFetchTool = createWebFetchTool({

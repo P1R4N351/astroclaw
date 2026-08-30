@@ -1,18 +1,18 @@
 // Memory Core plugin module coordinates synchronization and shadow reindexing.
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentDir,
   resolveUserPath,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   MEMORY_CHUNKING_VERSION,
   type MemorySyncParams,
   type MemorySyncProgressUpdate,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import { withMemoryWorkspaceLock } from "../memory-workspace-lock.js";
 import {
   createEmbeddingProvider,
@@ -154,6 +154,16 @@ export abstract class MemoryManagerSyncOps extends MemoryManagerSourceSyncOps {
   }
 
   protected async runSync(params?: MemorySyncParams) {
+    try {
+      await this.runSyncPass(params);
+    } finally {
+      // Run after every sync path and after any shadow reindex scope has ended,
+      // so the cap is enforced once against the published live database.
+      this.pruneEmbeddingCacheIfNeeded?.();
+    }
+  }
+
+  private async runSyncPass(params?: MemorySyncParams) {
     // Guard: if an embedding provider is configured but currently unavailable,
     // abort sync to prevent silently degrading an existing semantic vector index
     // to fts-only and wiping existing semantic vectors.
@@ -599,7 +609,6 @@ export abstract class MemoryManagerSyncOps extends MemoryManagerSourceSyncOps {
           }
 
           this.writeMeta(nextMeta);
-          this.pruneEmbeddingCacheIfNeeded?.();
           return { nextMeta, vectorIndexComplete };
         } finally {
           // Escaped continuations must fail closed, never write to the live DB.

@@ -5,9 +5,9 @@ import {
 } from "../../config/sessions/session-accessor.js";
 import { addSessionMember } from "../../config/sessions/session-sharing-store.js";
 import { addSessionSuggestion } from "../../config/sessions/session-suggestion-store.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { ensureProfileForEmail } from "../../state/user-profiles.js";
-import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
 import { getSessionSuggestionTestMocks } from "./sessions-suggestions.test-mocks.js";
 import {
   call,
@@ -70,7 +70,7 @@ describe("session suggestion visibility and role ceilings", () => {
         {
           sessionId: "session-main",
           updatedAt: 1,
-          createdActor: { type: "human", id: ownerProfile.id },
+          createdActor: { type: "human", source: "profile", id: ownerProfile.id },
           visibility: "suggest",
         },
       );
@@ -146,7 +146,7 @@ describe("session suggestion visibility and role ceilings", () => {
         {
           sessionId: "session-draft",
           updatedAt: 1,
-          createdActor: { type: "human", id: "owner" },
+          createdActor: { type: "human", source: "profile", id: "owner" },
           visibility: "draft",
         },
       );
@@ -229,7 +229,7 @@ describe("session suggestion visibility and role ceilings", () => {
           sessionId: "session-incognito",
           updatedAt: 1,
           incognito: true,
-          createdActor: { type: "human", id: "owner" },
+          createdActor: { type: "human", source: "profile", id: "owner" },
           visibility: "suggest",
         },
       );

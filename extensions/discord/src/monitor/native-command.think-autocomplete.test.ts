@@ -2,20 +2,20 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   createEmptyPluginRegistry,
   setActivePluginRegistry,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import {
   clearSessionStoreCacheForTest,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelType, type AutocompleteInteraction } from "../internal/discord.js";
 import { createNoopThreadBindingManager } from "./thread-bindings.js";
 
-type ConversationRuntimeModule = typeof import("openclaw/plugin-sdk/conversation-binding-runtime");
+type ConversationRuntimeModule = typeof import("astroclaw/plugin-sdk/conversation-binding-runtime");
 type ResolveConfiguredBindingRoute = ConversationRuntimeModule["resolveConfiguredBindingRoute"];
 type ConfiguredBindingRouteResult = ReturnType<ResolveConfiguredBindingRoute>;
 type EnsureConfiguredBindingRouteReady =
@@ -44,7 +44,7 @@ const resolveConfiguredBindingRouteMock = vi.hoisted(() =>
 const providerThinkingMocks = vi.hoisted(() => ({
   resolveProviderThinkingProfile: vi.fn(),
 }));
-const buildModelsProviderDataMock = vi.hoisted(() => vi.fn());
+const buildPreparedModelsProviderDataMock = vi.hoisted(() => vi.fn());
 
 type ConfiguredBindingRoute = ConfiguredBindingRouteResult;
 type ConfiguredBindingResolution = NonNullable<ConfiguredBindingRoute["bindingResolution"]>;
@@ -78,24 +78,24 @@ function createConfiguredRouteResult(
   };
 }
 
-vi.mock("openclaw/plugin-sdk/conversation-binding-runtime", async () => {
+vi.mock("astroclaw/plugin-sdk/conversation-binding-runtime", async () => {
   const { createConfiguredBindingConversationRuntimeModuleMock } =
     await import("../test-support/configured-binding-runtime.js");
   return await createConfiguredBindingConversationRuntimeModuleMock<
-    typeof import("openclaw/plugin-sdk/conversation-binding-runtime")
+    typeof import("astroclaw/plugin-sdk/conversation-binding-runtime")
   >(
     {
       ensureConfiguredBindingRouteReadyMock,
       resolveConfiguredBindingRouteMock,
     },
     () =>
-      vi.importActual<typeof import("openclaw/plugin-sdk/conversation-binding-runtime")>(
-        "openclaw/plugin-sdk/conversation-binding-runtime",
+      vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-binding-runtime")>(
+        "astroclaw/plugin-sdk/conversation-binding-runtime",
       ),
   );
 });
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
   getPreparedModelCatalogSnapshot: vi.fn(() => ({ entries: [], routeVariants: [] })),
   loadPreparedModelCatalog: vi.fn(async () => []),
   normalizeProviderId: (value: string) => value.trim().toLowerCase(),
@@ -121,8 +121,8 @@ vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/models-provider-runtime", () => ({
-  buildModelsProviderData: buildModelsProviderDataMock,
+vi.mock("astroclaw/plugin-sdk/models-provider-runtime", () => ({
+  buildPreparedModelsProviderData: buildPreparedModelsProviderDataMock,
 }));
 
 const STORE_PATH = path.join(
@@ -130,8 +130,8 @@ const STORE_PATH = path.join(
   `openclaw-discord-think-autocomplete-${process.pid}.json`,
 );
 const SESSION_KEY = "agent:main:main";
-let findCommandByNativeName: typeof import("openclaw/plugin-sdk/command-auth-native").findCommandByNativeName;
-let resolveCommandArgChoices: typeof import("openclaw/plugin-sdk/command-auth-native").resolveCommandArgChoices;
+let findCommandByNativeName: typeof import("astroclaw/plugin-sdk/command-auth-native").findCommandByNativeName;
+let resolveCommandArgChoices: typeof import("astroclaw/plugin-sdk/command-auth-native").resolveCommandArgChoices;
 let resolveDiscordNativeChoiceContext: typeof import("./native-command-model-picker-ui.js").resolveDiscordNativeChoiceContext;
 
 async function saveSessionOverride(params: {
@@ -175,7 +175,7 @@ function installProviderThinkingRegistryForTest(): void {
 
 async function loadDiscordThinkAutocompleteModulesForTest() {
   installProviderThinkingRegistryForTest();
-  const commandAuth = await import("openclaw/plugin-sdk/command-auth-native");
+  const commandAuth = await import("astroclaw/plugin-sdk/command-auth-native");
   const nativeCommandUi = await import("./native-command-model-picker-ui.js");
   return {
     findCommandByNativeName: commandAuth.findCommandByNativeName,
@@ -200,7 +200,7 @@ describe("discord native /think autocomplete", () => {
             }
           : undefined,
     );
-    buildModelsProviderDataMock.mockResolvedValue({
+    buildPreparedModelsProviderDataMock.mockResolvedValue({
       byProvider: new Map<string, Set<string>>(),
       providers: [],
       resolvedDefault: {

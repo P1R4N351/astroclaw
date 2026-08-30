@@ -6,8 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonResult } from "../../agents/tools/common.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.public.js";
 import type { OpenClawConfig } from "../../config/config.js";
-import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { createChannelTestPluginBase } from "../../test-utils/channel-plugins.js";
+import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
 import {
   messageActionRunnerMocks as channelResolutionMocks,
   resetMessageActionMediaMocks,
@@ -137,5 +137,53 @@ describe("runMessageAction media behavior", () => {
       expect(channelResolutionMocks.executeSendAction).not.toHaveBeenCalled();
       await expect(fs.readdir(path.join(stateDir, "media", "outbound"))).rejects.toThrow();
     });
+  });
+
+  it("keeps sandbox attachment hydration off the host reader without workspace access", async () => {
+    const handleAction = vi.fn(async () => jsonResult({ ok: true }));
+    const uploadPlugin: ChannelPlugin = {
+      ...workspacePlugin,
+      messaging: {
+        normalizeTarget: (raw) => raw.trim() || undefined,
+        targetResolver: { looksLikeId: (raw) => raw.trim().length > 0 },
+      },
+      actions: {
+        describeMessageTool: () => ({ actions: ["upload-file"] }),
+        supportsAction: ({ action }) => action === "upload-file",
+        handleAction,
+      },
+    };
+    setTestPlugin(uploadPlugin, "workspace");
+    const hostReadFile = vi.fn(async () => Buffer.from("host workspace"));
+    vi.mocked(loadWebMedia).mockImplementation(async (_mediaUrl, maxBytesOrOptions) => {
+      const options =
+        typeof maxBytesOrOptions === "object" && maxBytesOrOptions !== null
+          ? maxBytesOrOptions
+          : undefined;
+      expect(options?.readFile).not.toBe(hostReadFile);
+      return {
+        buffer: Buffer.from("sandbox mirror"),
+        contentType: "text/plain",
+        fileName: "chart.txt",
+        kind: "document",
+      };
+    });
+
+    await runMessageAction({
+      cfg: workspaceConfig,
+      action: "upload-file",
+      params: {
+        channel: "workspace",
+        target: "room-1",
+        media: "/sandbox/chart.txt",
+      },
+      sandboxRoot: "/host-mirror",
+      sandboxContainerWorkdir: "/sandbox",
+      mediaAccess: { localRoots: ["/host-mirror"], readFile: hostReadFile },
+    });
+
+    expect(loadWebMedia).toHaveBeenCalled();
+    expect(hostReadFile).not.toHaveBeenCalled();
+    expect(handleAction).toHaveBeenCalled();
   });
 });

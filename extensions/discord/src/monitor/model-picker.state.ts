@@ -1,14 +1,11 @@
 // Discord plugin module implements model picker.state behavior.
 import { createHash } from "node:crypto";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import type { ModelsProviderData } from "astroclaw/plugin-sdk/models-provider-runtime";
-import {
-  parseStrictInteger,
-  parseStrictPositiveInteger,
-} from "astroclaw/plugin-sdk/number-runtime";
-import { normalizeProviderId } from "astroclaw/plugin-sdk/provider-model-shared";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import type { ModelsProviderData } from "openclaw/plugin-sdk/models-provider-runtime";
+import { parseStrictInteger, parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
+import { normalizeProviderId } from "openclaw/plugin-sdk/provider-model-shared";
 import { decodeCustomIdComponent, encodeCustomIdComponent } from "../custom-id-codec.js";
 import type { ComponentData } from "../internal/discord.js";
 
@@ -116,7 +113,7 @@ export type DiscordModelPickerModelPage = DiscordModelPickerPage<string> & {
 };
 
 const loadModelsProviderRuntime = createLazyRuntimeModule(
-  () => import("astroclaw/plugin-sdk/models-provider-runtime"),
+  () => import("openclaw/plugin-sdk/models-provider-runtime"),
 );
 
 function isValidCommandContext(value: string): value is DiscordModelPickerCommandContext {
@@ -198,8 +195,8 @@ export async function loadDiscordModelPickerData(
   cfg: OpenClawConfig,
   agentId?: string,
 ): Promise<ModelsProviderData> {
-  const { buildModelsProviderData } = await loadModelsProviderRuntime();
-  return buildModelsProviderData(cfg, agentId);
+  const { buildPreparedModelsProviderData } = await loadModelsProviderRuntime();
+  return buildPreparedModelsProviderData(cfg, agentId);
 }
 
 export function buildDiscordModelPickerCustomId(params: {

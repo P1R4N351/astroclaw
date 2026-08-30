@@ -5,6 +5,7 @@ import path from "node:path";
 import { asFiniteNumber } from "../packages/normalization-core/src/number-coercion.ts";
 import { loadBundledPluginPublicArtifactModuleSync } from "../src/plugins/public-surface-loader.js";
 import { isDirectRunUrl } from "./lib/direct-run.mjs";
+import { pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 import { loadChannelConfigSurfaceModule } from "./load-channel-config-surface.ts";
 
 const GENERATED_BY = "scripts/generate-bundled-channel-config-metadata.ts";
@@ -99,19 +100,13 @@ function resolveChannelConfigSchemaModulePath(rootDir: string): string | null {
 }
 
 function resolvePackageChannelMeta(source: BundledPluginSource) {
-  const openclawMeta =
-    source.packageJson &&
-    typeof source.packageJson === "object" &&
-    !Array.isArray(source.packageJson) &&
-    "openclaw" in source.packageJson
-      ? (source.packageJson.openclaw as Record<string, unknown> | undefined)
-      : undefined;
+  const metadata = pluginPackageMetadata<Record<string, unknown>>(source.packageJson);
   const channelMeta =
-    openclawMeta &&
-    typeof openclawMeta.channel === "object" &&
-    openclawMeta.channel &&
-    !Array.isArray(openclawMeta.channel)
-      ? (openclawMeta.channel as Record<string, unknown>)
+    metadata &&
+    typeof metadata.channel === "object" &&
+    metadata.channel &&
+    !Array.isArray(metadata.channel)
+      ? (metadata.channel as Record<string, unknown>)
       : undefined;
   return channelMeta;
 }

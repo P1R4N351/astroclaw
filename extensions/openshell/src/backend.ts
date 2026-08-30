@@ -2,8 +2,8 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/keyed-async-queue";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { KeyedAsyncQueue } from "openclaw/plugin-sdk/keyed-async-queue";
 import type {
   CreateSandboxBackendParams,
   OpenClawConfig,
@@ -12,18 +12,19 @@ import type {
   SandboxBackendFactory,
   SandboxBackendManager,
   SandboxFsBridge,
-} from "astroclaw/plugin-sdk/sandbox";
+} from "openclaw/plugin-sdk/sandbox";
 import {
   createRemoteShellSandboxFsBridge,
   disposeSshSandboxSession,
   prepareSshSandboxExec,
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   runSshSandboxCommand,
   sanitizeEnvVars,
   shellEscape,
   withTempWorkspace,
-} from "astroclaw/plugin-sdk/sandbox";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/sandbox";
+import { canonicalPathFromExistingAncestor } from "openclaw/plugin-sdk/security-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { OpenShellFsBridgeContext, OpenShellSandboxBackend } from "./backend.types.js";
 import {
   buildValidatedExecRemoteCommand,
@@ -421,7 +422,8 @@ class OpenShellSandboxBackendImpl {
   private async acquireWorkspaceLease(): Promise<OpenShellWorkspaceLease> {
     const { config, sandboxName } = this.params.execContext;
     const keys = [
-      `host:${path.resolve(this.params.createParams.workspaceDir)}`,
+      // Mirror publication owns the physical directory, so aliases must share its host lease.
+      `host:${await canonicalPathFromExistingAncestor(this.params.createParams.workspaceDir)}`,
       `runtime:${JSON.stringify([
         config.gatewayEndpoint ?? "",
         config.gateway ?? "",
@@ -1372,7 +1374,7 @@ async function restoreLocalShadow(params: {
 }
 
 function resolveOpenShellTmpRoot(): string {
-  return path.resolve(resolvePreferredAstroclawTmpDir());
+  return path.resolve(resolvePreferredOpenClawTmpDir());
 }
 
 function normalizeRemotePath(remotePath: string): string {

@@ -89,6 +89,9 @@ importers:
       '@openclaw/proxyline':
         specifier: 0.3.0
         version: 0.3.0(undici@8.3.0)
+      '@silvia-odwyer/photon-node':
+        specifier: 0.3.4
+        version: 0.3.4
       ajv:
         specifier: 8.20.0
         version: 8.20.0
@@ -137,6 +140,9 @@ importers:
       markdown-it:
         specifier: 14.1.1
         version: 14.1.1
+      ms:
+        specifier: 2.1.3
+        version: 2.1.3
       node-edge-tts:
         specifier: 1.2.10
         version: 1.2.10
@@ -146,6 +152,9 @@ importers:
       p-map:
         specifier: 7.0.6
         version: 7.0.6
+      partial-json:
+        specifier: 0.1.7
+        version: 0.1.7
       pdfjs-dist:
         specifier: 5.7.284
         version: 5.7.284

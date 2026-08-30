@@ -1,16 +1,21 @@
 // Bundled Extension Manifest script supports OpenClaw repository automation.
 import { checkMinHostVersion } from "../../src/plugins/min-host-version.ts";
 import { isRecord } from "../../src/utils.js";
+import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
+
+type ExtensionPackageMetadataBlock = {
+  install?: unknown;
+  releaseChecks?: unknown;
+};
 
 export type ExtensionPackageJson = {
   name?: string;
   version?: string;
   dependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
-  openclaw?: {
-    install?: unknown;
-    releaseChecks?: unknown;
-  };
+  astroclaw?: ExtensionPackageMetadataBlock;
+  /** Pre-rebrand key; accepted read-only via pluginPackageMetadata(), never written. */
+  openclaw?: ExtensionPackageMetadataBlock;
 };
 
 export type BundledExtension = { id: string; packageJson: ExtensionPackageJson };
@@ -19,7 +24,9 @@ export function collectBundledExtensionManifestErrors(extensions: BundledExtensi
   const errors: string[] = [];
 
   for (const extension of extensions) {
-    const install = extension.packageJson.openclaw?.install;
+    const install = pluginPackageMetadata<ExtensionPackageMetadataBlock>(
+      extension.packageJson,
+    )?.install;
     if (install !== undefined && !isRecord(install)) {
       errors.push(
         `bundled extension '${extension.id}' manifest invalid | openclaw.install must be an object`,

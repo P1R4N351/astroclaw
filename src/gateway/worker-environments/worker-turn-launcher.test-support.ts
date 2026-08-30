@@ -17,7 +17,7 @@ import {
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/astroclaw-test-state.js";
+} from "../../test-utils/openclaw-test-state.js";
 import type { MintedWorkerCredential } from "./credential.js";
 import {
   createWorkerSessionPlacementStore,
@@ -124,6 +124,7 @@ export function openSessionManager(): SessionManager {
 
 export function seedActivePlacement(
   executionMode: "worker-turn" | "remote-exec" = "worker-turn",
+  remoteWorkspaceDir = "/worker/workspace",
 ): void {
   let placement = placements.startDispatch({
     sessionId: SESSION_ID,
@@ -151,7 +152,7 @@ export function seedActivePlacement(
     to: "starting",
     expectedGeneration: placement.generation,
     patch: {
-      remoteWorkspaceDir: "/worker/workspace",
+      remoteWorkspaceDir,
       workspaceBaseManifestRef: MANIFEST_REF,
     },
   });
@@ -332,6 +333,7 @@ export function turn(runId = "run-worker-turn", executionIdentity = false) {
     runId,
     provider: "openai",
     model: "gpt-test",
+    modelHasVision: true,
     config,
   };
 }

@@ -1,11 +1,11 @@
 import { accessSync, constants, statSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { resolveAcpSessionAvailability } from "astroclaw/plugin-sdk/acp-runtime";
-import { resolveSessionAgentIds } from "astroclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveNodeHostExecutable } from "astroclaw/plugin-sdk/node-host";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import { resolveAcpSessionAvailability } from "openclaw/plugin-sdk/acp-runtime";
+import { resolveSessionAgentIdsStrict } from "openclaw/plugin-sdk/agent-scope-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveNodeHostExecutable } from "openclaw/plugin-sdk/node-host";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import {
   createSessionCatalogFamily,
   createSessionCatalogNodeHostBindings,
@@ -14,8 +14,8 @@ import {
   sessionCatalogAdoptedSessionKey,
   type SessionCatalogEntrySnapshot,
   type SessionCatalogSession,
-} from "astroclaw/plugin-sdk/session-catalog";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/session-catalog";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   OPENCODE_LOCAL_SESSION_HOST_ID as LOCAL_HOST_ID,
   OPENCODE_NODE_INVOKE_TIMEOUT_MS as NODE_TIMEOUT_MS,
@@ -169,7 +169,7 @@ async function createAdoptedOpenCodeSession(params: {
     key: sessionCatalogAdoptedSessionKey(OPENCODE_ADOPTED_SESSION_KEY_PREFIX, params.threadId),
     agentId: params.agentId,
     recoverMatchingInitialEntry: true,
-    ...(params.session.name ? { label: params.session.name } : {}),
+    ...(params.session.name ? { displayName: params.session.name } : {}),
     ...(params.session.cwd ? { spawnedCwd: params.session.cwd } : {}),
     initialEntry: {
       acpBackendId: ACPX_BACKEND_ID,
@@ -302,7 +302,7 @@ export function registerOpenCodeSessionCatalog(api: OpenClawPluginApi): void {
       },
       continuation: {
         resolveAgentId: (agentId) =>
-          resolveSessionAgentIds({ config: api.config, agentId }).sessionAgentId,
+          resolveSessionAgentIdsStrict({ config: api.config, agentId }).sessionAgentId,
         availability: () =>
           resolveAcpSessionAvailability({
             config: currentOpenCodeCatalogConfig(api),

@@ -8,7 +8,7 @@ import {
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
 import { Type } from "typebox";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { bindModelLlmRuntime } from "../../llm/model-runtime-binding.js";
 import { complete } from "../../llm/stream.js";
 import type { Context } from "../../llm/types.js";
@@ -557,6 +557,7 @@ export function createPdfTool(options?: {
           : await loadWebMediaRaw(resolvedPath, {
               maxBytes,
               localRoots,
+              ...(options?.workspaceDir ? { workspaceDir: options.workspaceDir } : {}),
               ...(isHttpUrl ? { readIdleTimeoutMs: REMOTE_MEDIA_READ_IDLE_TIMEOUT_MS } : {}),
               ssrfPolicy: remoteMediaSsrfPolicy,
               // Forward the run abort signal into the fetch layer so an abort

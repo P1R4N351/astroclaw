@@ -23,10 +23,10 @@ import {
   type AcpRuntimeTurnResult,
   type SessionAgentOptions,
 } from "acpx/runtime";
-import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
-import { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
-import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
+import { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { AcpRuntimeError, type AcpRuntime, type AcpRuntimeErrorCode } from "../runtime-api.js";
 import { CODEX_ACP_PACKAGE, OPENCLAW_CODEX_CONFIG_ARG } from "./codex-adapter.js";
 import { splitCommandParts } from "./command-line.js";
@@ -1771,9 +1771,9 @@ export class AcpxRuntime implements CompleteAcpRuntime {
 
   async setConfigOption(
     input: Parameters<NonNullable<AcpRuntime["setConfigOption"]>>[0],
-  ): Promise<void> {
+  ): ReturnType<NonNullable<AcpRuntime["setConfigOption"]>> {
     const snapshot = await this.loadOperationSnapshotForHandle(input.handle);
-    await this.runWithProcessLeaseForHandle(input.handle, snapshot.record, () =>
+    return await this.runWithProcessLeaseForHandle(input.handle, snapshot.record, () =>
       this.setConfigOptionUnlocked(input, snapshot),
     );
   }
@@ -1781,7 +1781,7 @@ export class AcpxRuntime implements CompleteAcpRuntime {
   private async setConfigOptionUnlocked(
     input: Parameters<NonNullable<AcpRuntime["setConfigOption"]>>[0],
     snapshot: AcpxHandleOperationSnapshot,
-  ): Promise<void> {
+  ): ReturnType<NonNullable<AcpRuntime["setConfigOption"]>> {
     const { command } = snapshot;
     const delegate = this.resolveDelegateForOperationSnapshot(input.handle, snapshot);
     const key = input.key.trim().toLowerCase();
@@ -1796,17 +1796,17 @@ export class AcpxRuntime implements CompleteAcpRuntime {
           failUnsupportedCodexAcpModel(input.value);
         }
         const { override } = classification;
-        if (override.model) {
-          await delegate.setConfigOption({ ...input, key: "model", value: override.model });
-        }
+        const modelResult = override.model
+          ? await delegate.setConfigOption({ ...input, key: "model", value: override.model })
+          : undefined;
         if (override.reasoningEffort) {
-          await delegate.setConfigOption({
+          return await delegate.setConfigOption({
             ...input,
             key: "reasoning_effort",
             value: override.reasoningEffort,
           });
         }
-        return;
+        return modelResult;
       }
       if (key === "thinking" || key === "thought_level" || key === "reasoning_effort") {
         const classification = classifyCodexAcpModelRequest(undefined, input.value);
@@ -1819,22 +1819,20 @@ export class AcpxRuntime implements CompleteAcpRuntime {
             "Clearing Codex reasoning effort on an existing session is unsupported. Choose a supported explicit effort; the current effort is unchanged.",
           );
         }
-        await delegate.setConfigOption({
+        return await delegate.setConfigOption({
           ...input,
           key: "reasoning_effort",
           value: reasoningEffort,
         });
-        return;
       }
     }
     if (isClaudeAcpCommand(command) && key === "model") {
-      await delegate.setConfigOption({
+      return await delegate.setConfigOption({
         ...input,
         value: normalizeClaudeAcpModelOverride(input.value) ?? input.value,
       });
-      return;
     }
-    await delegate.setConfigOption(input);
+    return await delegate.setConfigOption(input);
   }
 
   async cancel(input: Parameters<AcpRuntime["cancel"]>[0]): Promise<void> {

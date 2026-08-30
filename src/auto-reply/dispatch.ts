@@ -1,7 +1,7 @@
 /** Auto-reply dispatch orchestration, hook composition, and foreground delivery fencing. */
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeChatType } from "../channels/chat-type.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isDiagnosticsEnabled } from "../infra/diagnostic-events.js";
 import {
   measureDiagnosticsTimelineSpan,
@@ -145,9 +145,9 @@ function bindReplyPayloadRunState(
   const onAgentRunStart = replyOptions?.onAgentRunStart;
   return {
     ...replyOptions,
-    onAgentRunStart: (runId, executionIdentityToken) => {
-      runState.runId = runId;
-      onAgentRunStart?.(runId, executionIdentityToken);
+    onAgentRunStart: (...args) => {
+      runState.runId = args[0];
+      return onAgentRunStart?.(...args);
     },
   };
 }

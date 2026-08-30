@@ -1,15 +1,15 @@
 // Codex tests cover run attemptynamic tools plugin behavior.
 import path from "node:path";
-import { onAgentEvent, type AgentEventPayload } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { onAgentEvent, type AgentEventPayload } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   emitTrustedDiagnosticEvent,
   hasPendingInternalDiagnosticEvent,
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
-} from "openclaw/plugin-sdk/diagnostic-runtime";
-import { initializeGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/diagnostic-runtime";
+import { initializeGlobalHookRunner } from "astroclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { dynamicToolBuildState } from "./dynamic-tool-build-state.js";
 import { resolveCodexAppServerHookChannelId } from "./dynamic-tool-build.js";
@@ -242,6 +242,7 @@ describe("runCodexAppServerAttempt dynamic tools", () => {
       data?: {
         args?: Record<string, unknown>;
         commandBearing?: boolean;
+        hideFromChannelProgress?: boolean;
         isError?: boolean;
         name?: string;
         phase?: string;
@@ -261,6 +262,7 @@ describe("runCodexAppServerAttempt dynamic tools", () => {
     expect(startEvent?.data?.toolCallId).toBe("call-1");
     expect(startEvent?.data?.args?.action).toBe("search");
     expect(startEvent?.data?.commandBearing).toBe(true);
+    expect(startEvent?.data?.hideFromChannelProgress).toBe(true);
     expect(startEvent?.data?.args?.token).toBe("plain-…2345");
     expect(startEvent?.data?.args?.text).toBe("hello");
     const resultEvent = agentEvents.find(
@@ -271,6 +273,7 @@ describe("runCodexAppServerAttempt dynamic tools", () => {
     );
     expect(resultEvent?.data?.name).toBe("lookup");
     expect(resultEvent?.data?.commandBearing).toBe(true);
+    expect(resultEvent?.data?.hideFromChannelProgress).toBe(true);
     expect(resultEvent?.data?.toolCallId).toBe("call-1");
     expect(resultEvent?.data?.isError).toBe(true);
     expect(resultEvent?.data?.result).not.toHaveProperty("success");

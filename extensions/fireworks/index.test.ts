@@ -1,9 +1,9 @@
 // Fireworks tests cover index plugin behavior.
-import type { ProviderRuntimeModel } from "openclaw/plugin-sdk/plugin-entry";
+import type { ProviderRuntimeModel } from "astroclaw/plugin-sdk/plugin-entry";
 import {
   registerSingleProviderPlugin,
   resolveProviderPluginChoice,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it } from "vitest";
 import {
   createProviderDynamicModelContext,
@@ -29,7 +29,7 @@ function createFireworksDefaultRuntimeModel(params: { reasoning: boolean }): Pro
     api: "openai-completions",
     baseUrl: FIREWORKS_BASE_URL,
     reasoning: params.reasoning,
-    input: ["text", "image"],
+    input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: FIREWORKS_DEFAULT_CONTEXT_WINDOW,
     maxTokens: FIREWORKS_DEFAULT_MAX_TOKENS,
@@ -73,7 +73,7 @@ describe("fireworks provider plugin", () => {
     ]);
     expect(models[0]?.name).toBe("GLM 5.2 Fast");
     expect(models[0]?.reasoning).toBe(true);
-    expect(models[0]?.input).toEqual(["text", "image"]);
+    expect(models[0]?.input).toEqual(["text"]);
     expect(models[0]?.contextWindow).toBe(FIREWORKS_DEFAULT_CONTEXT_WINDOW);
     expect(models[0]?.maxTokens).toBe(FIREWORKS_DEFAULT_MAX_TOKENS);
     expect(models[0]?.cost).toEqual({

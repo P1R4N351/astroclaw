@@ -1,6 +1,6 @@
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 // Update command presentation helpers: spinner lifecycle, failure hints, and result summaries.
 import { spinner } from "@clack/prompts";
-import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { formatDurationPrecise } from "../../infra/format-time/format-duration.ts";
 import type {
@@ -50,6 +50,12 @@ function isAdvisoryStep(step: { advisory?: UpdateStepAdvisory }): boolean {
 function inferUpdateFailureHints(result: UpdateRunResult): string[] {
   if (result.status !== "error") {
     return [];
+  }
+  if (result.reason === "preflight-insufficient-space") {
+    return [
+      "Free space on the preflight staging and package-manager store filesystems, then rerun the update.",
+      "Preflight stopped because storage was exhausted; trying another commit would not repair it.",
+    ];
   }
   if (result.reason === "pnpm-corepack-missing") {
     return [

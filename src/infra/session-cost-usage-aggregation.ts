@@ -12,7 +12,7 @@ import {
   scanSessionTranscriptTree,
 } from "../config/sessions/transcript-tree.js";
 import { selectVisibleTranscriptEvents } from "../config/sessions/transcript-visible-events.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { resolveOpenClawAgentSqlitePath } from "../state/openclaw-agent-db.js";
 import { resolveModelCostConfigFingerprint } from "../utils/usage-format.js";
@@ -130,9 +130,14 @@ export function readUsageCostRollups(
   agentId: string,
   pricingFingerprint: string,
   databasePath?: string,
-  rows = readSessionCostUsageRollupRows(agentId, databasePath),
+  params: {
+    rows?: ReturnType<typeof readSessionCostUsageRollupRows>;
+    filePaths?: readonly string[];
+  } = {},
 ): Map<string, UsageCostStoredRollup> {
   const result = new Map<string, UsageCostStoredRollup>();
+  const rows =
+    params.rows ?? readSessionCostUsageRollupRows(agentId, databasePath, params.filePaths);
   for (const row of rows) {
     try {
       const entry = normalizeUsageCostRollup(JSON.parse(row.valueJson), pricingFingerprint);
@@ -589,7 +594,9 @@ export async function refreshCostUsageCacheForAgent(params: {
     const pricingFingerprint = resolveUsageCostPricingFingerprint(params.config, agentDir);
     const rows = readSessionCostUsageRollupRows(params.agentId, databasePath);
     const rawValues = new Map(rows.map((row) => [row.key, row.valueJson]));
-    const rollups = readUsageCostRollups(params.agentId, pricingFingerprint, databasePath, rows);
+    const rollups = readUsageCostRollups(params.agentId, pricingFingerprint, databasePath, {
+      rows,
+    });
     const discoveredFiles = await listUsageCountedTranscriptStats(
       params.agentId,
       params.sessionsDir ? { sessionsDir: params.sessionsDir } : undefined,

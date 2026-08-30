@@ -18,7 +18,11 @@ import {
 } from "@astroclaw/normalization-core/number-coercion";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 import pLimit from "p-limit";
-import type { ReplyMediaAttachment, ReplyPayload } from "../auto-reply/reply-payload.js";
+import type {
+  ReplyMediaAttachment,
+  ReplyMediaFailureCode,
+  ReplyPayload,
+} from "../auto-reply/reply-payload.js";
 import { getRuntimeConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { loadExactSessionEntryReadOnlyResult } from "../config/sessions/session-accessor.sqlite-entry-availability.js";
@@ -338,6 +342,23 @@ function getSanitizedManagedImageAttachmentError(
   return createManagedImageAttachmentError(
     `Managed ${kind} attachment ${JSON.stringify(label)} could not be prepared`,
   );
+}
+
+export function buildManagedMediaFailureBlock(params: {
+  code: ReplyMediaFailureCode;
+  kind: ManagedMediaKind | "media";
+  label: string;
+  mimeType?: string;
+}): Record<string, unknown> {
+  return {
+    type: "attachment_error",
+    attachment: {
+      code: params.code,
+      kind: params.kind === "media" ? "document" : params.kind,
+      label: params.label,
+      ...(params.mimeType ? { mimeType: params.mimeType } : {}),
+    },
+  };
 }
 
 function validateManagedImageBuffer(
@@ -1737,6 +1758,14 @@ export async function createManagedOutgoingMediaBlocks(params: {
       }
       const sanitizedError = getSanitizedManagedImageAttachmentError(error, label, hintedKind);
       if (params.continueOnPrepareError) {
+        blocks.push(
+          buildManagedMediaFailureBlock({
+            code: "delivery-failed",
+            kind: hintedKind,
+            label,
+            mimeType: item.mimeType ?? mimeTypeFromFilePath(localMediaPath ?? mediaUrl),
+          }),
+        );
         params.onPrepareError?.(sanitizedError);
         continue;
       }

@@ -7,7 +7,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { runManagedCommand } from "./lib/managed-child-process.mjs";
 import { assertRealOutputRoot } from "./lib/output-root-guard.mjs";
-import { findPluginManifestPath } from "./lib/plugin-manifest-filenames.mjs";
+import { findPluginManifestPath, pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 import { resolveRepoRoot } from "./lib/repo-root.mjs";
 import { listGeneratedExtensionAssetSources } from "./lib/static-extension-assets.mjs";
 const rootDir = resolveRepoRoot(import.meta.url);
@@ -56,7 +56,7 @@ async function resolvePluginAliases(pluginDir, packageJson) {
 }
 
 function resolveAssetCommand(packageJson, phase) {
-  const assetScripts = packageJson.openclaw?.assetScripts;
+  const assetScripts = pluginPackageMetadata(packageJson)?.assetScripts;
   if (!assetScripts || typeof assetScripts !== "object") {
     return null;
   }

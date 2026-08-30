@@ -1,3 +1,4 @@
+import { expectDefined } from "@astroclaw/normalization-core";
 import type { ProviderRuntimeModel } from "openclaw/plugin-sdk/plugin-entry";
 import {
   clearLiveCatalogCacheForTests,
@@ -9,6 +10,15 @@ import {
   normalizeClawRouterResolvedModel,
   prepareClawRouterRequestModel,
 } from "./provider-catalog.js";
+
+const PRICING = {
+  inputMicrosPerMillion: 3_000_000,
+  outputMicrosPerMillion: 15_000_000,
+  cachedInputMicrosPerMillion: 300_000,
+  cacheWrite5mInputMicrosPerMillion: 3_750_000,
+  maxInputTokens: 1_000_000,
+  defaultMaxOutputTokens: 64_000,
+};
 
 const CATALOG = {
   version: "clawrouter.client-catalog.v1",
@@ -23,14 +33,29 @@ const CATALOG = {
           path: "/v1/responses",
           methods: ["POST"],
           requestFormat: "openai.responses",
-          responseFormat: "openai.responses",
         },
       ],
       models: [
         {
-          id: "openai/gpt-5.5-mini",
-          upstream: "gpt-5.5-mini",
+          id: "openai/gpt-5.6",
+          upstream: "gpt-5.6",
           capabilities: ["llm.responses", "llm.chat"],
+          supportedReasoningEfforts: ["none", "low", "medium", "high", "xhigh", "max"],
+          pricing: PRICING,
+        },
+      ],
+    },
+    {
+      id: "deepseek",
+      displayName: "DeepSeek",
+      openaiCompatible: true,
+      nativeBaseUrl: "/v1/native/deepseek",
+      routes: [],
+      models: [
+        {
+          id: "deepseek/deepseek-v4-flash",
+          upstream: "deepseek-v4-flash",
+          capabilities: ["llm.chat"],
         },
       ],
     },
@@ -44,14 +69,14 @@ const CATALOG = {
           path: "/v1/messages",
           methods: ["POST"],
           requestFormat: "anthropic.messages",
-          responseFormat: "anthropic.messages",
         },
       ],
       models: [
         {
-          id: "anthropic/default",
-          upstream: "claude-sonnet-4-5-20250929",
+          id: "anthropic/claude-sonnet-4-6",
+          upstream: "claude-sonnet-4-6",
           capabilities: ["llm.messages"],
+          pricing: PRICING,
         },
       ],
     },
@@ -65,19 +90,17 @@ const CATALOG = {
           path: "/v1beta/models/${model}:generateContent",
           methods: ["POST"],
           requestFormat: "google.generate_content",
-          responseFormat: "google.generate_content",
         },
         {
           path: "/v1beta/models/${model}:streamGenerateContent",
           methods: ["POST"],
           requestFormat: "google.generate_content",
-          responseFormat: "google.generate_content",
         },
       ],
       models: [
         {
-          id: "google/gemini-default",
-          upstream: "gemini",
+          id: "google/gemini-3.5-flash",
+          upstream: "gemini-3.5-flash",
           capabilities: ["llm.generate", "llm.stream"],
         },
       ],
@@ -92,13 +115,12 @@ const CATALOG = {
           path: "/v2/chat",
           methods: ["POST"],
           requestFormat: "cohere.chat",
-          responseFormat: "cohere.chat",
         },
       ],
       models: [
         {
-          id: "cohere/default",
-          upstream: "command-a",
+          id: "cohere/command-a-plus-05-2026",
+          upstream: "command-a-plus-05-2026",
           capabilities: ["llm.chat"],
         },
       ],
@@ -118,12 +140,12 @@ function buildFetchGuard(catalog: unknown = CATALOG): {
   return { fetchGuard: fetchGuardMock, fetchGuardMock };
 }
 
-describe("clawrouter provider catalog", () => {
+describe("ClawRouter provider catalog", () => {
   beforeEach(() => {
     clearLiveCatalogCacheForTests();
   });
 
-  it("maps credential-scoped catalog rows to their real provider transports", async () => {
+  it("maps every supported catalog protocol to its OpenClaw transport", async () => {
     const { fetchGuard, fetchGuardMock } = buildFetchGuard();
     const provider = await buildClawRouterProviderConfig({
       apiKey: "clawrouter-test-key",
@@ -132,64 +154,195 @@ describe("clawrouter provider catalog", () => {
     });
 
     expect(fetchGuardMock).toHaveBeenCalledOnce();
-    expect(provider).toMatchObject({
-      api: "openai-responses",
-      apiKey: "clawrouter-test-key",
-      baseUrl: "https://clawrouter.example/v1",
-    });
     expect(provider.models.map((model) => model.id)).toEqual([
-      "anthropic/default",
-      "google/gemini-default",
-      "openai/gpt-5.5-mini",
+      "anthropic/claude-sonnet-4-6",
+      "deepseek/deepseek-v4-flash",
+      "google/gemini-3.5-flash",
+      "openai/gpt-5.6",
     ]);
-
-    expect(provider.models.find((model) => model.id === "openai/gpt-5.5-mini")).toMatchObject({
+    const openai = provider.models.find((model) => model.id === "openai/gpt-5.6");
+    expect(openai).toMatchObject({
+      name: "OpenAI · openai/gpt-5.6",
       api: "openai-responses",
       baseUrl: "https://clawrouter.example/v1",
+      reasoning: true,
+      input: ["text", "image"],
+      cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+      contextWindow: 1_000_000,
+      maxTokens: 64_000,
     });
-    expect(provider.models.find((model) => model.id === "anthropic/default")).toMatchObject({
+    expect(openai?.thinkingLevelMap).toEqual({
+      off: "none",
+      minimal: null,
+      low: "low",
+      medium: "medium",
+      high: "high",
+      xhigh: "xhigh",
+      max: "max",
+    });
+    expect(openai?.compat).toEqual({
+      supportsReasoningEffort: true,
+      supportedReasoningEfforts: ["none", "low", "medium", "high", "xhigh", "max"],
+    });
+    const deepseek = provider.models.find((model) => model.id === "deepseek/deepseek-v4-flash");
+    expect(deepseek).toMatchObject({ api: "openai-completions" });
+    expect(deepseek?.compat).toBeUndefined();
+    expect(deepseek?.thinkingLevelMap).toBeUndefined();
+    expect(
+      provider.models.find((model) => model.id === "anthropic/claude-sonnet-4-6"),
+    ).toMatchObject({
       api: "anthropic-messages",
       baseUrl: "https://clawrouter.example/v1/native/anthropic",
     });
-    expect(provider.models.find((model) => model.id === "google/gemini-default")).toMatchObject({
+    expect(provider.models.find((model) => model.id === "google/gemini-3.5-flash")).toMatchObject({
       api: "google-generative-ai",
       baseUrl: "https://clawrouter.example/v1/native/google-gemini/v1beta",
     });
+    expect(provider.models.map((model) => model.id)).not.toContain("cohere/command-a-plus-05-2026");
+  });
 
-    const anthropic = provider.models.find((model) => model.id === "anthropic/default");
+  it.each(["codex-latest", "synthetic-upstream-sentinel"])(
+    "preserves the catalog display name and Responses alias with upstream %s",
+    async (upstream) => {
+      const catalog = {
+        providers: [
+          {
+            ...CATALOG.providers[0],
+            models: [
+              {
+                id: "codex-latest",
+                displayName: "Codex (Latest)",
+                upstream,
+                capabilities: ["llm.responses"],
+              },
+            ],
+          },
+        ],
+      };
+      const provider = await buildClawRouterProviderConfig({
+        apiKey: "isolated-workload-test-key",
+        baseUrl: "https://clawrouter.example/private",
+        fetchGuard: buildFetchGuard(catalog).fetchGuard,
+      });
+      expect(provider.models).toHaveLength(1);
+      const model = expectDefined(provider.models[0], "catalog alias");
+      expect(model).toMatchObject({
+        id: "codex-latest",
+        name: "Codex (Latest)",
+        api: "openai-responses",
+        baseUrl: "https://clawrouter.example/private/v1",
+      });
+      const normalized = expectDefined(
+        normalizeClawRouterResolvedModel({
+          ...model,
+          provider: "clawrouter",
+        } as ProviderRuntimeModel),
+        "resolved catalog alias",
+      );
+      expect(prepareClawRouterRequestModel(normalized)).toMatchObject({
+        id: "codex-latest",
+        name: "Codex (Latest)",
+        params: undefined,
+      });
+      expect(JSON.stringify(provider)).not.toContain("synthetic-upstream-sentinel");
+
+      const publicProvider = await buildClawRouterProviderConfig({
+        apiKey: "public-workload-test-key",
+        baseUrl: "https://clawrouter.example",
+        fetchGuard: buildFetchGuard().fetchGuard,
+      });
+      expect(publicProvider.models.map((entry) => entry.id)).not.toContain("codex-latest");
+    },
+  );
+
+  it("rewrites only native protocol model ids at the request boundary", async () => {
+    const provider = await buildClawRouterProviderConfig({
+      apiKey: "clawrouter-test-key",
+      baseUrl: "https://clawrouter.example",
+      fetchGuard: buildFetchGuard().fetchGuard,
+    });
+    const anthropic = provider.models.find((model) => model.id === "anthropic/claude-sonnet-4-6");
     const normalized = normalizeClawRouterResolvedModel({
       ...anthropic,
       baseUrl: provider.baseUrl,
       provider: "clawrouter",
     } as ProviderRuntimeModel);
+
     expect(normalized).toMatchObject({
-      id: "anthropic/default",
+      id: "anthropic/claude-sonnet-4-6",
       api: "anthropic-messages",
-      baseUrl: "https://clawrouter.example/v1/native/anthropic",
     });
     expect(prepareClawRouterRequestModel(normalized as ProviderRuntimeModel)).toMatchObject({
-      id: "claude-sonnet-4-5-20250929",
+      id: "claude-sonnet-4-6",
       params: undefined,
     });
-    const gemini = provider.models.find((model) => model.id === "google/gemini-default");
-    const normalizedGemini = normalizeClawRouterResolvedModel({
-      ...gemini,
+
+    const openaiModel = provider.models.find((model) => model.id === "openai/gpt-5.6");
+    const normalizedOpenAi = normalizeClawRouterResolvedModel({
+      ...openaiModel,
       baseUrl: provider.baseUrl,
       provider: "clawrouter",
     } as ProviderRuntimeModel);
-    expect(normalizedGemini).toMatchObject({
-      id: "google/gemini-default",
-      api: "google-generative-ai",
-      baseUrl: "https://clawrouter.example/v1/native/google-gemini/v1beta",
-    });
-    expect(prepareClawRouterRequestModel(normalizedGemini as ProviderRuntimeModel)).toMatchObject({
-      id: "gemini",
-      params: undefined,
-    });
-    expect(JSON.stringify(provider.models)).not.toContain("clawrouter-test-key");
+    expect(prepareClawRouterRequestModel(normalizedOpenAi as ProviderRuntimeModel).id).toBe(
+      "openai/gpt-5.6",
+    );
   });
 
-  it("caches the auth-scoped catalog for the discovery TTL", async () => {
+  it("bounds reasoning effort metadata to exact canonical wire values", async () => {
+    const catalog = structuredClone(CATALOG);
+    const model = expectDefined(catalog.providers[0]?.models[0], "OpenAI ClawRouter model");
+    (model as unknown as Record<string, unknown>).supportedReasoningEfforts = [
+      "max",
+      "none",
+      "ultra",
+      "low",
+      "low",
+      null,
+      "xhigh",
+    ];
+    const provider = await buildClawRouterProviderConfig({
+      apiKey: "clawrouter-test-key",
+      fetchGuard: buildFetchGuard(catalog).fetchGuard,
+    });
+    const bounded = provider.models.find((entry) => entry.id === "openai/gpt-5.6");
+
+    expect(bounded?.compat?.supportedReasoningEfforts).toEqual(["none", "low", "xhigh", "max"]);
+    expect(bounded?.thinkingLevelMap).toEqual({
+      off: "none",
+      minimal: null,
+      low: "low",
+      medium: null,
+      high: null,
+      xhigh: "xhigh",
+      max: "max",
+    });
+
+    const malformedCatalog = structuredClone(CATALOG);
+    const malformed = expectDefined(
+      malformedCatalog.providers[0]?.models[0],
+      "OpenAI ClawRouter model",
+    );
+    (malformed as unknown as Record<string, unknown>).supportedReasoningEfforts = [
+      "none",
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+      "ultra",
+    ];
+    clearLiveCatalogCacheForTests();
+    const rejected = await buildClawRouterProviderConfig({
+      apiKey: "clawrouter-test-key",
+      fetchGuard: buildFetchGuard(malformedCatalog).fetchGuard,
+    });
+    const rejectedModel = rejected.models.find((entry) => entry.id === "openai/gpt-5.6");
+    expect(rejectedModel?.compat).toBeUndefined();
+    expect(rejectedModel?.thinkingLevelMap).toBeUndefined();
+  });
+
+  it("caches catalog rows per credential scope", async () => {
     const { fetchGuard, fetchGuardMock } = buildFetchGuard();
     const params = {
       apiKey: "clawrouter-test-key",
@@ -206,61 +359,20 @@ describe("clawrouter provider catalog", () => {
     expect((headers as Headers).get("authorization")).toBe("Bearer clawrouter-test-key");
   });
 
-  it("does not advertise Gemini models without an explicit streaming route", async () => {
-    const generateOnlyCatalog = structuredClone(CATALOG);
-    generateOnlyCatalog.providers[2].routes = generateOnlyCatalog.providers[2].routes.filter(
+  it("does not advertise Gemini without a streaming route", async () => {
+    const catalog = structuredClone(CATALOG);
+    const geminiProvider = expectDefined(catalog.providers[3], "Gemini ClawRouter provider");
+    geminiProvider.routes = geminiProvider.routes.filter(
       (route) => !route.path.includes(":streamGenerateContent"),
     );
-    generateOnlyCatalog.providers[2].models[0].capabilities = ["llm.generate"];
-    const { fetchGuard } = buildFetchGuard(generateOnlyCatalog);
-
+    expectDefined(geminiProvider.models[0], "Gemini ClawRouter model").capabilities = [
+      "llm.generate",
+    ];
     const provider = await buildClawRouterProviderConfig({
       apiKey: "clawrouter-test-key",
-      baseUrl: "https://clawrouter.example",
-      fetchGuard,
+      fetchGuard: buildFetchGuard(catalog).fetchGuard,
     });
 
-    expect(provider.models.map((model) => model.id)).not.toContain("google/gemini-default");
-  });
-
-  it("keeps credential-scoped route metadata isolated on each catalog result", async () => {
-    const firstCatalog = structuredClone(CATALOG);
-    firstCatalog.providers[1].models[0].upstream = "first-upstream";
-    const first = buildFetchGuard(firstCatalog);
-    const firstProvider = await buildClawRouterProviderConfig({
-      apiKey: "first-key",
-      baseUrl: "https://clawrouter.example",
-      fetchGuard: first.fetchGuard,
-    });
-    const firstAnthropic = firstProvider.models.find((model) => model.id === "anthropic/default");
-
-    const secondCatalog = structuredClone(CATALOG);
-    secondCatalog.providers[1].models[0].upstream = "second-upstream";
-    const second = buildFetchGuard(secondCatalog);
-    const secondProvider = await buildClawRouterProviderConfig({
-      apiKey: "second-key",
-      baseUrl: "https://clawrouter.example",
-      fetchGuard: second.fetchGuard,
-    });
-    const secondAnthropic = secondProvider.models.find((model) => model.id === "anthropic/default");
-
-    expect(
-      prepareClawRouterRequestModel(
-        normalizeClawRouterResolvedModel({
-          ...firstAnthropic,
-          baseUrl: firstProvider.baseUrl,
-          provider: "clawrouter",
-        } as ProviderRuntimeModel) as ProviderRuntimeModel,
-      ).id,
-    ).toBe("first-upstream");
-    expect(
-      prepareClawRouterRequestModel(
-        normalizeClawRouterResolvedModel({
-          ...secondAnthropic,
-          baseUrl: secondProvider.baseUrl,
-          provider: "clawrouter",
-        } as ProviderRuntimeModel) as ProviderRuntimeModel,
-      ).id,
-    ).toBe("second-upstream");
+    expect(provider.models.map((model) => model.id)).not.toContain("google/gemini-3.5-flash");
   });
 });

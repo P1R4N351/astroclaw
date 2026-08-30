@@ -5,7 +5,7 @@
  */
 
 import type { ChannelId } from "../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   expandAllowFromWithAccessGroups,
   type AccessGroupMembershipResolver,
@@ -99,7 +99,7 @@ export {
   buildModelsProviderData,
   formatModelsAvailableHeader,
   resolveModelsCommandReply,
-} from "../auto-reply/reply/commands-models.js";
+} from "./models-provider-runtime.js";
 export type { ModelsProviderData } from "../auto-reply/reply/commands-models.js";
 export { resolveStoredModelOverride } from "../sessions/stored-model-overrides.js";
 export type { StoredModelOverride } from "../sessions/stored-model-overrides.js";

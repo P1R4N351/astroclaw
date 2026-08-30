@@ -1,7 +1,7 @@
 import { parseStrictNonNegativeInteger } from "@astroclaw/normalization-core/number-coercion";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { Option } from "commander";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { ChannelSetupAdapter } from "./setup-adapter.types.js";
 import type { ChannelSetupInput } from "./setup-input.js";
@@ -116,6 +116,7 @@ type ChannelOwnedSetupAdapterShape<Input extends { name?: string }> = ChannelSet
 
 export type ChannelOwnedSetupContract = {
   kind: "channel-owned";
+  configPromotion?: ChannelSetupAdapter["configPromotion"];
   metadata: ChannelSetupMetadata;
   parseInput: (input: unknown) => ChannelSetupParseResult;
   resolveAccountId?: (params: {
@@ -337,6 +338,7 @@ export function defineChannelSetupContract<const Fields extends Record<string, C
           },
         }
       : {}),
+    configPromotion: adapter.configPromotion,
     singleAccountKeysToMove: adapter.singleAccountKeysToMove,
     namedAccountPromotionKeys: adapter.namedAccountPromotionKeys,
     resolveSingleAccountPromotionTarget: adapter.resolveSingleAccountPromotionTarget,

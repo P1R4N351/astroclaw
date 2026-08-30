@@ -10,10 +10,11 @@ import {
   resolveSessionWorkStartError,
   type SessionEntry,
 } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type {
   CronScheduledToolCallerOrigin,
   CronScheduledToolPolicy,
+  CronToolsAllowExecTarget,
 } from "../../cron/scheduled-tool-policy.js";
 import type { PluginHookSessionEndReason } from "../../plugins/hook-types.js";
 import {
@@ -43,6 +44,7 @@ export type RestoredCronContinuation = {
   toolsAllowIsDefault?: boolean;
   scheduledToolPolicy?: CronScheduledToolPolicy;
   scheduledToolCallerOrigin?: CronScheduledToolCallerOrigin;
+  toolsAllowExecTarget?: CronToolsAllowExecTarget;
   cliSessionBindingFacts?: {
     extraSystemPromptStatic?: string;
     sourceReplyDeliveryMode?: "automatic" | "message_tool_only";

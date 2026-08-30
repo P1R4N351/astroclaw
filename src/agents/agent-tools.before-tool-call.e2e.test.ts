@@ -6,9 +6,9 @@ import fs from "node:fs/promises";
  */
 import os from "node:os";
 import path from "node:path";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { GatewayClientRequestError } from "../gateway/client.js";
 import {
   onInternalDiagnosticEvent,
@@ -2282,6 +2282,130 @@ describe("before_tool_call requireApproval handling", () => {
     expectRecordFields(event, {
       toolName: "apply_patch",
       derivedPaths: ["/host/sandbox/src/new.ts"],
+    });
+  });
+
+  it("derives remote apply_patch shorthand and literal paths like execution", async () => {
+    const patch = [
+      "*** Begin Patch",
+      "*** Update File: @reference.md",
+      "@@",
+      "+reference",
+      "*** Update File: @literal.md",
+      "@@",
+      "+literal",
+      "*** End Patch",
+    ].join("\n");
+    hookRunner.runBeforeToolCall.mockResolvedValue(undefined);
+    const resolvePath = ({ filePath }: { filePath: string }) => ({
+      containerPath: path.posix.resolve("/workspace", filePath),
+      relativePath: filePath,
+    });
+
+    const result = await runBeforeToolCallHook({
+      toolName: "apply_patch",
+      params: { input: patch },
+      toolCallId: "patch-remote-at",
+      ctx: {
+        agentId: "main",
+        cwd: "/workspace",
+        sandbox: {
+          root: "/workspace",
+          bridge: {
+            resolvePath,
+            stat: async ({ filePath }: { filePath: string }) =>
+              filePath === "./@literal.md" ? { type: "file", size: 7, mtimeMs: 0 } : null,
+          } as never,
+        },
+        sessionKey: "main",
+        runId: "run-patch",
+      },
+    });
+
+    expect(result.blocked).toBe(false);
+    const [event] = requireHookCall(0);
+    expectRecordFields(event, {
+      toolName: "apply_patch",
+      derivedPaths: ["/workspace/reference.md", "/workspace/@literal.md"],
+    });
+  });
+
+  it("preserves bridge-native absolute apply_patch paths", async () => {
+    const rawPath = "/workspace//src/new.ts";
+    const patch = ["*** Begin Patch", `*** Add File: ${rawPath}`, "+new", "*** End Patch"].join(
+      "\n",
+    );
+    const resolvePath = vi.fn(({ filePath }: { filePath: string }) => ({
+      containerPath: path.posix.normalize(filePath),
+      relativePath: filePath,
+    }));
+    hookRunner.runBeforeToolCall.mockResolvedValue(undefined);
+
+    const result = await runBeforeToolCallHook({
+      toolName: "apply_patch",
+      params: { input: patch },
+      ctx: {
+        cwd: "/workspace",
+        sandbox: {
+          root: "/workspace",
+          bridge: { resolvePath } as never,
+        },
+      },
+    });
+
+    expect(result.blocked).toBe(false);
+    expect(resolvePath).toHaveBeenCalledWith({ filePath: rawPath, cwd: "/workspace" });
+  });
+
+  it("cancels remote apply_patch path derivation with the run", async () => {
+    const controller = new AbortController();
+    let reportStatSignal!: (signal: AbortSignal | undefined) => void;
+    const statStarted = new Promise<AbortSignal | undefined>((resolve) => {
+      reportStatSignal = resolve;
+    });
+    hookRunner.runBeforeToolCall.mockResolvedValue(undefined);
+
+    const running = runBeforeToolCallHook({
+      toolName: "apply_patch",
+      params: {
+        input: ["*** Begin Patch", "*** Update File: @remote.md", "*** End Patch"].join("\n"),
+      },
+      signal: controller.signal,
+      ctx: {
+        cwd: "/workspace",
+        sandbox: {
+          root: "/workspace",
+          bridge: {
+            resolvePath: ({ filePath }: { filePath: string }) => ({
+              containerPath: path.posix.resolve("/workspace", filePath),
+              relativePath: filePath,
+            }),
+            stat: ({ signal }: { signal?: AbortSignal }) => {
+              reportStatSignal(signal);
+              if (!signal) {
+                return Promise.resolve(null);
+              }
+              return new Promise((_, reject) => {
+                signal.addEventListener(
+                  "abort",
+                  () =>
+                    reject(signal.reason instanceof Error ? signal.reason : new Error("aborted")),
+                  { once: true },
+                );
+              });
+            },
+          } as never,
+        },
+      },
+    });
+
+    const statSignal = await statStarted;
+    controller.abort();
+    expect(statSignal).toBe(controller.signal);
+    await expect(running).resolves.toMatchObject({
+      blocked: true,
+      kind: "failure",
+      disposition: "cancelled",
     });
   });
 

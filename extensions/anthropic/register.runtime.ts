@@ -2,8 +2,9 @@
  * Anthropic provider runtime registration. It owns API-key/setup-token/Claude
  * CLI auth, dynamic model normalization, usage auth, media, and stream wrappers.
  */
-import { formatCliCommand, parseDurationMs } from "astroclaw/plugin-sdk/cli-runtime";
-import { resolveExpiresAtMsFromDurationMs } from "astroclaw/plugin-sdk/number-runtime";
+import { formatCliCommand, parseDurationMs } from "openclaw/plugin-sdk/cli-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { resolveExpiresAtMsFromDurationMs } from "openclaw/plugin-sdk/number-runtime";
 import type {
   OpenClawPluginApi,
   ProviderAuthContext,
@@ -12,7 +13,7 @@ import type {
   ProviderResolveDynamicModelContext,
   ProviderNormalizeResolvedModelContext,
   ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   type AuthProfileStore,
@@ -23,13 +24,13 @@ import {
   type ProviderAuthResult,
   suggestOAuthProfileIdForLegacyDefault,
   validateAnthropicSetupToken,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { upsertAuthProfileWithLockOrThrow } from "astroclaw/plugin-sdk/provider-auth-api-key";
-import { buildOpenAICompatibleProviderCatalog } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+} from "openclaw/plugin-sdk/provider-auth";
+import { upsertAuthProfileWithLockOrThrow } from "openclaw/plugin-sdk/provider-auth-api-key";
+import { buildOpenAICompatibleProviderCatalog } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
 import {
   buildManifestModelProviderConfig,
   type ProviderCatalogResult,
-} from "astroclaw/plugin-sdk/provider-catalog-shared";
+} from "openclaw/plugin-sdk/provider-catalog-shared";
 import {
   buildProviderReplayFamilyHooks,
   cloneFirstTemplateModel,
@@ -46,8 +47,8 @@ import {
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeMaxEffort,
   supportsClaudeNativeXhighEffort,
-} from "astroclaw/plugin-sdk/provider-model-shared";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-model-shared";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import * as claudeCliAuth from "./cli-auth-seam.js";
 import { buildAnthropicCliBackend } from "./cli-backend.js";
@@ -1220,9 +1221,9 @@ export function buildAnthropicProvider(): ProviderPlugin {
 /** Register Anthropic provider, Claude CLI backend, and media understanding provider. */
 export function registerAnthropicPlugin(api: OpenClawPluginApi): void {
   let supportsDynamicSystemPromptSections = false;
-  // Start once at plugin load. The first Claude execution awaits the same promise,
-  // so a post-ready gateway hook cannot race the first session's immutable argv.
-  const dynamicSystemPromptSectionsProbe = (async () => {
+  // Catalog discovery must not materialize the runtime for a CLI-only capability probe.
+  // First CLI executions share and await it before resolving immutable process argv.
+  const ensureDynamicSystemPromptSectionsSupport = createLazyRuntimeModule(async () => {
     try {
       const result = await api.runtime.system.runCommandWithTimeout(["claude", "--version"], {
         timeoutMs: 1_500,
@@ -1234,10 +1235,10 @@ export function registerAnthropicPlugin(api: OpenClawPluginApi): void {
     } catch {
       supportsDynamicSystemPromptSections = false;
     }
-  })();
+  });
   api.registerCliBackend(
     buildAnthropicCliBackend({
-      ensureDynamicSystemPromptSectionsSupport: () => dynamicSystemPromptSectionsProbe,
+      ensureDynamicSystemPromptSectionsSupport,
       supportsDynamicSystemPromptSections: () => supportsDynamicSystemPromptSections,
     }),
   );
