@@ -1,10 +1,10 @@
 // Model picker provider choices projected from the lifecycle-owned catalog.
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { resolveDefaultAgentDir } from "../agents/agent-scope.js";
-import { canonicalizePreparedModelCatalogProvider } from "../agents/model-catalog.js";
+import { createPreparedModelCatalogProviderNormalizer } from "../agents/model-catalog.js";
 import type { ModelCatalogSnapshot } from "../agents/model-catalog.types.js";
 import { loadPreparedModelCatalogSnapshot } from "../agents/prepared-model-catalog.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolvePluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 
 function filterProviderSnapshot(
@@ -40,10 +40,8 @@ export async function loadPreferredProviderPickerCatalog(params: {
     env,
     ...(params.workspaceDir ? { workspaceDir: params.workspaceDir } : {}),
   });
-  const providerFilter = canonicalizePreparedModelCatalogProvider(
-    requestedProvider,
-    metadataSnapshot,
-  );
+  const providerFilter =
+    createPreparedModelCatalogProviderNormalizer(metadataSnapshot)(requestedProvider);
   const snapshot = await loadPreparedModelCatalogSnapshot({
     config: params.cfg,
     agentDir: params.agentDir ?? resolveDefaultAgentDir(params.cfg, params.env),
