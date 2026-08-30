@@ -5,6 +5,7 @@ import { truncateUtf16Safe } from "../../packages/normalization-core/src/utf16-s
 import { retryClawHubRead } from "../../src/infra/clawhub-retry.js";
 import { runTasksWithConcurrency } from "../../src/utils/run-with-concurrency.js";
 import { readBoundedResponseText } from "./bounded-response.mjs";
+import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
 import {
   assertPluginReleaseDependencyFreshness,
   collectChangedPathsFromGitRange,
@@ -26,6 +27,7 @@ import {
 import {
   collectPublishablePluginPackagesFromCandidates,
   type PluginPackageJson,
+  type PluginPackageMetadataBlock,
   type PublishablePluginPackage,
 } from "./plugin-publication-collector.ts";
 
@@ -363,7 +365,10 @@ export function collectClawHubVersionGateErrors(params: {
       ref: params.gitRange.baseRef,
       packageDir: plugin.packageDir,
     });
-    if (baseManifest?.openclaw?.release?.publishToClawHub !== true) {
+    if (
+      pluginPackageMetadata<PluginPackageMetadataBlock>(baseManifest)?.release?.publishToClawHub !==
+      true
+    ) {
       continue;
     }
     const baseVersion =
