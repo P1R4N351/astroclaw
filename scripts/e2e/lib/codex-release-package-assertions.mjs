@@ -2,6 +2,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { pluginPackageMetadata } from "../../lib/plugin-manifest-filenames.mjs";
 import { assertPathInside, findPackageJson, readJson } from "./codex-install-utils.mjs";
 
 const EXPECTED_CODEX_VERSION = "0.150.1";
@@ -39,7 +40,8 @@ export function assertCodexReleasePackageContract(params) {
       `@openclaw/codex must depend on @openai/codex ${EXPECTED_CODEX_VERSION}; found ${String(expectedDependency)}`,
     );
   }
-  const requiredPlatformPackages = pluginPackage.openclaw?.install?.requiredPlatformPackages;
+  const requiredPlatformPackages =
+    pluginPackageMetadata(pluginPackage)?.install?.requiredPlatformPackages;
   if (
     !Array.isArray(requiredPlatformPackages) ||
     !requiredPlatformPackages.includes(target.alias)

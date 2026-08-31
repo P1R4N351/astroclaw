@@ -17,6 +17,7 @@ import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import { readPublicationArtifactArchive, sha256Digest } from "./lib/actions-artifact-archive.mjs";
 import { fetchNpmRegistryPackumentWithRetry } from "./lib/npm-publish-plan.mjs";
+import { pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 
 const MANIFEST_FILENAME = "npm-placeholder-manifest.json";
 const MANIFEST_SCHEMA = "openclaw.npm-placeholder-publication/v1";
@@ -206,7 +207,7 @@ export function resolveSelectedPackageSources(repoRoot, packageNames) {
       if (
         entry?.source === "official" &&
         typeof entry.name === "string" &&
-        entry.openclaw?.install?.npmSpec === entry.name
+        pluginPackageMetadata(entry)?.install?.npmSpec === entry.name
       ) {
         officialPackageNames.add(entry.name);
       }
@@ -242,12 +243,13 @@ export function resolveSelectedPackageSources(repoRoot, packageNames) {
       throw new Error(`${packageName} must map uniquely to extensions/*/package.json.`);
     }
     const [match] = matches;
+    const matchMetadata = pluginPackageMetadata(match.packageJson);
     if (
       match.packageJson.private === true ||
       ["private", "restricted"].includes(match.packageJson.publishConfig?.access) ||
-      match.packageJson.openclaw?.install?.npmSpec !== packageName ||
-      match.packageJson.openclaw?.build?.bundledDist !== false ||
-      match.packageJson.openclaw?.release?.publishToNpm !== true
+      matchMetadata?.install?.npmSpec !== packageName ||
+      matchMetadata?.build?.bundledDist !== false ||
+      matchMetadata?.release?.publishToNpm !== true
     ) {
       throw new Error(`${packageName} is not a public release-enabled npm plugin.`);
     }
