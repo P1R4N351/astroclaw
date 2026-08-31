@@ -2,8 +2,9 @@
  * Cerebras provider plugin entrypoint.
  */
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
-import { applyCerebrasConfig } from "./onboard.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { applyCerebrasConfig } from "./onboard.js";
+import { CEREBRAS_MODEL_DISCOVERY } from "./provider-catalog.js";
 
 const PROVIDER_ID = "cerebras";
 
@@ -24,6 +25,9 @@ export default defineSingleProviderPluginEntry({
       ].join("\n"),
       noteTitle: "Cerebras",
     },
-    catalog: {},
+    catalog: {
+      allowExplicitBaseUrl: true,
+      liveModelDiscovery: CEREBRAS_MODEL_DISCOVERY,
+    },
   },
 });
