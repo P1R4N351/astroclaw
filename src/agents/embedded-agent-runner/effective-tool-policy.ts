@@ -1,9 +1,9 @@
 /**
  * Applies final effective tool policy to embedded-agent runtime settings.
  */
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
-import { getPluginToolMeta } from "../../plugins/tools.js";
+import { getPluginToolMeta } from "../../plugins/tool-metadata.js";
 import type { ResolvedConversationCapabilityProfile } from "../conversation-capability-profile.js";
 import {
   buildConversationToolPolicyPipelineSteps,
