@@ -3,7 +3,7 @@
  *
  * Resolves which session controls spawn state, thread binding, and completion delivery.
  */
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import {
   resolveDisplaySessionKey,
   resolveInternalSessionKey,
@@ -12,7 +12,6 @@ import {
 
 type SubagentSpawnOwnership = {
   controllerSessionKey: string;
-  threadBindingRequesterSessionKey: string;
   completionRequesterSessionKey: string;
   completionRequesterDisplayKey: string;
 };
@@ -48,7 +47,6 @@ export function resolveSubagentSpawnOwnership(params: {
 
   return {
     controllerSessionKey,
-    threadBindingRequesterSessionKey: controllerSessionKey,
     completionRequesterSessionKey,
     completionRequesterDisplayKey,
   };
