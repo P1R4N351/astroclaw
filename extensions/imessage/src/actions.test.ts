@@ -1,5 +1,5 @@
 // Imessage tests cover actions plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const probeMock = vi.hoisted(() => ({
@@ -40,9 +40,9 @@ const loggerMock = vi.hoisted(() => ({
   fatal: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
-    "openclaw/plugin-sdk/runtime-env",
+vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
+    "astroclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -303,6 +303,54 @@ describe("imessage message actions", () => {
     ]);
     expect(result).toMatchObject({ details: { ok: true, messageId: "poll-guid" } });
   });
+
+  it("dispatches a current-conversation poll without a model-supplied target", async () => {
+    probeMock.getCachedIMessagePrivateApiStatus.mockReturnValue({
+      available: true,
+      v2Ready: true,
+      selectors: { pollPayloadMessage: true },
+    });
+    runtimeMock.sendPoll.mockResolvedValue({ messageId: "poll-guid" });
+
+    await imessageMessageActions.handleAction?.({
+      action: "poll",
+      cfg: cfg(),
+      params: {
+        pollQuestion: "Lunch?",
+        pollOption: ["Pizza", "Sushi"],
+      },
+      toolContext: { currentChannelId: "chat_guid:iMessage;+;chat0000" },
+    } as never);
+
+    expect(runtimeMock.sendPoll).toHaveBeenCalledWith(
+      expect.objectContaining({ chatGuid: "iMessage;+;chat0000" }),
+    );
+  });
+
+  it.each(["target", "to", "chatGuid", "chatIdentifier"])(
+    "rejects a redacted %s with current-conversation remediation",
+    async (targetAlias) => {
+      probeMock.getCachedIMessagePrivateApiStatus.mockReturnValue({
+        available: true,
+        v2Ready: true,
+        selectors: { pollPayloadMessage: true },
+      });
+
+      await expect(
+        imessageMessageActions.handleAction?.({
+          action: "poll",
+          cfg: cfg(),
+          params: {
+            [targetAlias]: "***",
+            pollQuestion: "Lunch?",
+            pollOption: ["Pizza", "Sushi"],
+          },
+          toolContext: { currentChannelId: "chat_guid:iMessage;+;chat0000" },
+        } as never),
+      ).rejects.toThrow("Omit the target to use the current conversation");
+      expect(runtimeMock.sendPoll).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects a poll send when the bridge lacks the poll payload selector", async () => {
     const staleStatus = {
