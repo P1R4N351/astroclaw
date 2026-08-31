@@ -6,6 +6,8 @@ import type {
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import {
   capturePluginRegistration,
+  createRuntimeEnv,
+  createTestWizardPrompter,
   registerSingleProviderPlugin,
 } from "astroclaw/plugin-sdk/plugin-test-runtime";
 // Anthropic tests cover index plugin behavior.
@@ -1299,6 +1301,56 @@ describe("anthropic provider replay hooks", () => {
     expect(normalized).toBeUndefined();
   });
 
+  it("preserves API-key validation and interactive and non-interactive auth", async () => {
+    const provider = await registerSingleProviderPlugin(anthropicPlugin);
+    const method = provider.auth.find(({ id }) => id === "api-key");
+    if (!method?.validateNonInteractive || !method.runNonInteractive) {
+      throw new Error("expected complete Anthropic API-key auth");
+    }
+    const runtime = createRuntimeEnv();
+    const resolveApiKey = vi.fn(async () => ({ key: "test-token", source: "profile" as const }));
+    const context = {
+      authChoice: "apiKey",
+      config: {},
+      baseConfig: {},
+      opts: { anthropicApiKey: "test-token" },
+      runtime,
+      resolveApiKey,
+      toApiKeyCredential: vi.fn(() => null),
+    };
+    expect(await method.validateNonInteractive(context)).toBe(true);
+    expect(resolveApiKey).toHaveBeenCalledWith({
+      provider: "anthropic",
+      flagValue: "test-token",
+      flagName: "--anthropic-api-key",
+      envVar: "ANTHROPIC_API_KEY",
+    });
+    expect(await method.runNonInteractive(context)).toMatchObject({
+      auth: { profiles: { "anthropic:default": { provider: "anthropic", mode: "api_key" } } },
+      agents: { defaults: { model: { primary: "anthropic/claude-opus-5" } } },
+    });
+    const result = await method.run({
+      config: {},
+      env: {},
+      opts: context.opts,
+      runtime,
+      prompter: createTestWizardPrompter(),
+      secretInputMode: "plaintext",
+      isRemote: false,
+      openUrl: vi.fn(),
+      oauth: { createVpsAwareHandlers: vi.fn() },
+    });
+    expect(result).toMatchObject({
+      defaultModel: "anthropic/claude-opus-5",
+      profiles: [
+        {
+          profileId: "anthropic:default",
+          credential: { type: "api_key", provider: "anthropic", key: "test-token" },
+        },
+      ],
+    });
+  });
+
   it("stores setup-token expiry from a bounded duration", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
@@ -1404,20 +1456,69 @@ describe("anthropic provider replay hooks", () => {
     }
   });
 
-  it("resolves claude-cli with a non-secret native auth marker", async () => {
-    const provider = await registerSingleProviderPlugin(anthropicPlugin);
+  it.each([
+    { status: "available", authenticated: true },
+    { status: "missing", authenticated: false },
+    { status: "unreadable", authenticated: false },
+  ] as const)(
+    "publishes native Claude auth only when its CLI reports $status",
+    async ({ status, authenticated }) => {
+      probeClaudeCliAuthStatusMock.mockReturnValue({ status });
+      const provider = await registerSingleProviderPlugin(anthropicPlugin);
+      const config = {};
 
-    const runtimeAuth = provider.resolveSyntheticAuth?.({
-      provider: "claude-cli",
-    } as never);
-    const discoveryAuth = anthropicProviderDiscovery.resolveSyntheticAuth?.({
-      provider: "claude-cli",
-    } as never);
-    for (const auth of [runtimeAuth, discoveryAuth]) {
-      expect(auth?.apiKey).toBe(CLAUDE_CLI_NATIVE_AUTH_MARKER);
-      expect(auth?.source).toBe("Claude CLI native auth");
-      expect(auth?.mode).toBe("oauth");
+      const runtimeAuth = provider.resolveSyntheticAuth?.({
+        config,
+        provider: "claude-cli",
+      } as never);
+      const discoveryAuth = anthropicProviderDiscovery.resolveSyntheticAuth?.({
+        config,
+        provider: "claude-cli",
+      } as never);
+      for (const auth of [runtimeAuth, discoveryAuth]) {
+        expect(auth).toEqual(
+          authenticated
+            ? {
+                apiKey: CLAUDE_CLI_NATIVE_AUTH_MARKER,
+                source: "Claude CLI native auth",
+                mode: "oauth",
+              }
+            : undefined,
+        );
+      }
+      expect(probeClaudeCliAuthStatusMock).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("reuses native login facts within one config generation and reprobes its replacement", async () => {
+    probeClaudeCliAuthStatusMock.mockReturnValue({ status: "available" });
+    const provider = await registerSingleProviderPlugin(anthropicPlugin);
+    const firstConfig = {};
+
+    for (let request = 0; request < 4; request += 1) {
+      expect(
+        anthropicProviderDiscovery.resolveSyntheticAuth?.({
+          config: firstConfig,
+          provider: "claude-cli",
+        } as never)?.apiKey,
+      ).toBe(CLAUDE_CLI_NATIVE_AUTH_MARKER);
+      expect(
+        provider.resolveSyntheticAuth?.({ config: firstConfig, provider: "claude-cli" } as never)
+          ?.apiKey,
+      ).toBe(CLAUDE_CLI_NATIVE_AUTH_MARKER);
     }
+    expect(probeClaudeCliAuthStatusMock).toHaveBeenCalledOnce();
+
+    probeClaudeCliAuthStatusMock.mockReturnValue({ status: "missing" });
+    expect(
+      anthropicProviderDiscovery.resolveSyntheticAuth?.({
+        config: {},
+        provider: "claude-cli",
+      } as never),
+    ).toBeUndefined();
+    expect(probeClaudeCliAuthStatusMock).toHaveBeenCalledTimes(2);
+    expect(provider.resolveSyntheticAuth?.({ provider: "claude-cli" } as never)).toBeUndefined();
+    expect(probeClaudeCliAuthStatusMock).toHaveBeenCalledTimes(2);
   });
 
   it("does not copy native Claude auth during anthropic cli migration", async () => {
