@@ -1,8 +1,7 @@
 /** Configured provider rows own exact model ids before plugin normalization. */
 import { findNormalizedProviderValue } from "@astroclaw/model-catalog-core/provider-id";
 import type { ModelProviderConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
-import { normalizePluginsConfig } from "../plugins/config-state.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 type ConfiguredProviderModelParams = {
   cfg?: OpenClawConfig;
@@ -37,7 +36,7 @@ export function allowsPluginModelNormalization(params: ConfiguredProviderModelPa
   if (!provider) {
     return true;
   }
-  if (!normalizePluginsConfig(params.cfg?.plugins).enabled) {
+  if (params.cfg?.plugins?.enabled === false) {
     return false;
   }
   const model = params.model.trim();
