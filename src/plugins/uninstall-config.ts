@@ -1,5 +1,5 @@
 // Pure plugin config cleanup shared by doctor repair and full uninstall flows.
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   isUninstallPathInsideOrEqualInternal,
   removePluginInstallOwnerFromConfig,
@@ -11,7 +11,7 @@ import type { PluginConfigUninstallActions } from "./uninstall-package-config.js
 
 export type { PluginConfigUninstallActions } from "./uninstall-package-config.js";
 
-/** Resolve a path through existing ancestors while preserving missing targets. */
+/** Resolve canonically when present, otherwise preserve an absolute lexical path. */
 export function resolveComparableUninstallPath(value: string): string {
   return resolveComparableUninstallPathInternal(value);
 }
