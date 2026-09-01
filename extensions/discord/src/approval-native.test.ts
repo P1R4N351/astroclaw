@@ -2,8 +2,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { splitChannelApprovalCapability } from "openclaw/plugin-sdk/approval-delivery-runtime";
-import { clearSessionStoreCacheForTest } from "openclaw/plugin-sdk/session-store-runtime";
+import { splitChannelApprovalCapability } from "astroclaw/plugin-sdk/approval-delivery-runtime";
+import { clearSessionStoreCacheForTest } from "astroclaw/plugin-sdk/session-store-runtime";
 import { describe, expect, it } from "vitest";
 import { getDiscordApprovalCapability } from "./approval-native.js";
 import { shouldHandleDiscordApprovalRequest } from "./approval-shared.js";
@@ -35,6 +35,10 @@ function writeStore(store: Record<string, unknown>) {
 }
 
 describe("createDiscordNativeApprovalAdapter", () => {
+  it("subscribes the native runtime to system-agent approval events", () => {
+    expect(getDiscordApprovalCapability().nativeRuntime?.eventKinds).toContain("system-agent");
+  });
+
   it("keeps approval availability enabled when approvers exist but native delivery is off", () => {
     const adapter = createDiscordNativeApprovalAdapter();
     const cfg = {
