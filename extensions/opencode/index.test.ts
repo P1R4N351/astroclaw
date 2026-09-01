@@ -3,11 +3,11 @@ import {
   registerProviderPlugin,
   registerSingleProviderPlugin,
   requireRegisteredProvider,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { NON_ENV_SECRETREF_MARKER } from "openclaw/plugin-sdk/provider-auth-runtime";
-import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
-import { expectPassthroughReplayPolicy } from "openclaw/plugin-sdk/provider-test-contracts";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { NON_ENV_SECRETREF_MARKER } from "astroclaw/plugin-sdk/provider-auth-runtime";
+import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+import { expectPassthroughReplayPolicy } from "astroclaw/plugin-sdk/provider-test-contracts";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import plugin from "./index.js";
@@ -161,6 +161,17 @@ describe("opencode provider plugin", () => {
       throw new Error("expected registered OpenCode Zen static provider");
     }
     expectSeedModels(result.provider.models);
+    // Official public-feed snapshot, 2026-08-30; connected pricing refreshes independently.
+    expect(result.provider.models.find((model) => model.id === "gpt-5.6-sol")?.cost).toEqual({
+      input: 2,
+      output: 10,
+      cacheRead: 0.2,
+      cacheWrite: 2.5,
+      tieredPricing: [
+        { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5, range: [0, 272_000] },
+        { input: 4, output: 15, cacheRead: 0.4, cacheWrite: 5, range: [272_000] },
+      ],
+    });
     expectSeedModels(manifest.modelCatalog.providers.opencode.models);
     for (const modelId of OFFLINE_MODEL_IDS) {
       expect(provider.resolveDynamicModel?.({ modelId } as never)).toMatchObject({ id: modelId });
