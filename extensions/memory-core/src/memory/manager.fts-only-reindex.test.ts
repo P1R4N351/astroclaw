@@ -3,10 +3,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { resolveOpenClawAgentSqlitePath } from "openclaw/plugin-sdk/sqlite-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { resolveOpenClawAgentSqlitePath } from "astroclaw/plugin-sdk/sqlite-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeAllMemorySearchManagers, getMemorySearchManager } from "./index.js";
 import type { MemoryIndexMeta } from "./manager-reindex-state.js";
@@ -612,6 +612,21 @@ describe("memory manager FTS-only reindex", () => {
       attemptedProviderId: "none",
     });
   });
+
+  it.skipIf(process.platform === "win32")(
+    "syncs regular memory when USER.md is a symlink",
+    async () => {
+      const linkedUserPath = path.join(workspaceDir, "shared-user.md");
+      await fs.writeFile(linkedUserPath, "Linked user content must not be indexed.");
+      await fs.symlink(linkedUserPath, path.join(workspaceDir, "USER.md"));
+      const memoryManager = await createManager({ provider: "none", vectorEnabled: false });
+
+      await expect(memoryManager.sync({ reason: "cli", force: true })).resolves.toBeUndefined();
+
+      expect(countChunksContaining("Alpha topic")).toBeGreaterThan(0);
+      expect(countChunksContaining("Linked user content")).toBe(0);
+    },
+  );
 
   it("reports explicit provider-none probes as FTS-only without resolving providers", async () => {
     const memoryManager = await createManager({ provider: "none", vectorEnabled: false });
