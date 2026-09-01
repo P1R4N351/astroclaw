@@ -2,13 +2,13 @@
 import {
   registerSingleProviderPlugin,
   resolveProviderPluginChoice,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { resolveAgentModelPrimaryValue } from "openclaw/plugin-sdk/provider-onboard";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { resolveAgentModelPrimaryValue } from "astroclaw/plugin-sdk/provider-onboard";
 import { describe, expect, it } from "vitest";
 import { runSingleProviderCatalog } from "../test-support/provider-model-test-helpers.js";
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import qianfanPlugin from "./index.js";
 import { applyQianfanConfig, QIANFAN_DEFAULT_MODEL_REF } from "./onboard.js";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 function expectRecord<T>(value: T | null | undefined, label: string): NonNullable<T> {
   if (!value) {
@@ -42,7 +42,7 @@ describe("qianfan provider plugin", () => {
 
   it("builds the static Qianfan model catalog", async () => {
     const provider = await registerSingleProviderPlugin(qianfanPlugin);
-    const catalogProvider = await runSingleProviderCatalog(provider);
+    const catalogProvider = await runSingleProviderCatalog({ catalog: provider.staticCatalog });
 
     expect(catalogProvider.api).toBe("openai-completions");
     expect(catalogProvider.baseUrl).toBe("https://qianfan.baidubce.com/v2");
