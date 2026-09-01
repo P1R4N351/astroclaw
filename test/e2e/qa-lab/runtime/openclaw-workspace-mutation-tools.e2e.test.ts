@@ -3,7 +3,7 @@ import path from "node:path";
 import { afterEach, expect, test } from "vitest";
 import { createOpenClawCodingTools } from "../../../../src/agents/agent-tools.js";
 import type { AnyAgentTool } from "../../../../src/agents/agent-tools.types.js";
-import type { OpenClawConfig } from "../../../../src/config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../../src/config/types.openclaw.js";
 import { useAutoCleanupTempDirTracker } from "../../../helpers/temp-dir.js";
 
 const ARTIFACT = "mutation-receipt.md";
@@ -86,7 +86,8 @@ test("OpenClaw applies and edits exact workspace bytes while rejecting escapes",
     path: ARTIFACT,
     edits: [{ oldText: "state: DRAFT", newText: "state: FINAL" }],
   });
-  expect(textOf(edited)).toBe(`Successfully replaced 1 block(s) in ${ARTIFACT}.`);
+  const artifactPath = path.join(workspace, ARTIFACT);
+  expect(textOf(edited)).toBe(`Successfully replaced 1 block(s) in ${artifactPath}.`);
   expect(edited.details).toMatchObject({
     changed: true,
     firstChangedLine: 3,
@@ -100,8 +101,8 @@ test("OpenClaw applies and edits exact workspace bytes while rejecting escapes",
   expect(details.diff).toBe(
     [" 1 # Workspace mutation", " 2 ", "-3 state: DRAFT", "+3 state: FINAL"].join("\n"),
   );
-  expect(details.patch).toContain(`--- ${ARTIFACT}`);
-  expect(details.patch).toContain(`+++ ${ARTIFACT}`);
+  expect(details.patch).toContain(`--- ${artifactPath}`);
+  expect(details.patch).toContain(`+++ ${artifactPath}`);
   expect(details.patch).toContain("-state: DRAFT\n+state: FINAL");
   const finalBytes = await fs.readFile(path.join(workspace, ARTIFACT), "utf8");
   expect(finalBytes).toBe(FINAL);
