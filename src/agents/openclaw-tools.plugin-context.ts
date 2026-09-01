@@ -7,7 +7,7 @@ import {
  *
  * Normalizes workspace, delivery, browser, sandbox, and active-model inputs before plugin tool invocation.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeDeliveryContext } from "../utils/delivery-context.shared.js";
 import { resolveAgentWorkspaceDir, resolveSessionAgentIds } from "./agent-scope.js";
 import type { ConversationRecallContext } from "./conversation-recall.types.js";
@@ -18,6 +18,7 @@ import { resolveWorkspaceRoot } from "./workspace-dir.js";
 /** Options provided by agent runtime callers when invoking OpenClaw plugin tools. */
 export type OpenClawPluginToolOptions = {
   agentSessionKey?: string;
+  runSessionKey?: string;
   runId?: string;
   agentChannel?: string;
   agentAccountId?: string;
@@ -63,8 +64,9 @@ export function resolveOpenClawPluginToolInputs(params: {
   getRuntimeConfig?: () => OpenClawConfig | undefined;
 }) {
   const { options, resolvedConfig, runtimeConfig, getRuntimeConfig } = params;
+  const sessionKey = options?.runSessionKey ?? options?.agentSessionKey;
   const { sessionAgentId } = resolveSessionAgentIds({
-    sessionKey: options?.agentSessionKey,
+    sessionKey,
     config: resolvedConfig,
     agentId: options?.requesterAgentIdOverride,
   });
@@ -101,7 +103,7 @@ export function resolveOpenClawPluginToolInputs(params: {
       workspaceDir,
       agentDir: options?.agentDir,
       agentId: sessionAgentId,
-      sessionKey: options?.agentSessionKey,
+      sessionKey,
       sessionId: options?.sessionId,
       toolBindings: options?.toolBindings,
       activeProjectKeys: options?.activeProjectKeys,
