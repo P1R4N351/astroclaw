@@ -1,6 +1,4 @@
 // Optional bundled plugin cluster policy used by build and package scripts.
-import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
-
 const optionalBundledClusters = [
   "acpx",
   "diagnostics-otel",
@@ -23,7 +21,7 @@ const optionalBundledClusters = [
  */
 export const optionalBundledClusterSet = new Set(optionalBundledClusters);
 
-const OPTIONAL_BUNDLED_BUILD_ENV = "OPENCLAW_INCLUDE_OPTIONAL_BUNDLED";
+export const OPTIONAL_BUNDLED_BUILD_ENV = "OPENCLAW_INCLUDE_OPTIONAL_BUNDLED";
 
 function isOptionalBundledCluster(cluster) {
   return optionalBundledClusterSet.has(cluster);
@@ -36,8 +34,10 @@ function shouldIncludeOptionalBundledClusters(env = process.env) {
 }
 
 function hasReleasedBundledInstall(packageJson) {
-  const npmSpec = pluginPackageMetadata(packageJson)?.install?.npmSpec;
-  return typeof npmSpec === "string" && npmSpec.trim().length > 0;
+  return (
+    typeof packageJson?.openclaw?.install?.npmSpec === "string" &&
+    packageJson.openclaw.install.npmSpec.trim().length > 0
+  );
 }
 
 /** Decide whether a bundled plugin cluster should be included in the current build. */
