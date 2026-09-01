@@ -8,11 +8,9 @@ import type {
 } from "../agents/github-oauth-records.js";
 import type { GitHubToolAccount } from "../agents/github-tool-account.js";
 import { resolveConfiguredGitHubToolIdentity } from "../agents/github-tool-identity.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { GitHubToolIdentityConfig } from "../config/types.tools.js";
 
-export const DEVICE_MAX_LIFETIME_SECONDS = 15 * 60;
-export const DEVICE_MAX_POLL_INTERVAL_SECONDS = 60;
 export const REFRESH_SKEW_MS = 10 * 60_000;
 export const MAINTENANCE_INTERVAL_MS = 60_000;
 export const SHUTDOWN_DRAIN_TIMEOUT_MS = 31_000;
