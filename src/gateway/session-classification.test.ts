@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SessionEntry } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { sessionClassificationForRow } from "./session-classification.js";
 
 function entry(overrides: Partial<SessionEntry> = {}): SessionEntry {
@@ -29,6 +29,9 @@ describe("sessionClassificationForRow", () => {
     ["agent:main:acp:child", false, "acp", true],
     ["agent:main:cron:job", false, "cron", true],
     ["agent:main:hook:run", false, "hook", true],
+    ["agent:main:boot", false, "system", true],
+    ["agent:main:boot:startup-run", false, "system", true],
+    ["agent:main:bootcamp:startup-run", false, "custom", false],
     ["agent:main:node-device", false, "node", false],
     ["agent:main:harness:codex:supervision:thread", false, "harness", true],
     ["agent:main:voice:call:123", false, "voice", false],
