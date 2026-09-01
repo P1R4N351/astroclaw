@@ -1,5 +1,5 @@
 /** Shared command-handler test harness and config fixtures. */
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { configureTaskRegistryRuntime } from "../../tasks/task-registry.store.js";
 import type { MsgContext } from "../templating.js";
 import { buildCommandContext } from "./commands-context.js";
@@ -41,6 +41,7 @@ export function buildCommandTestParams(
   const params: HandleCommandsParams = {
     ctx,
     cfg,
+    agentId: "main",
     command,
     directives: parseInlineSessionDirectives(commandBody),
     elevated: { enabled: true, allowed: true, failures: [] },
@@ -124,6 +125,7 @@ export function buildPluginsCommandParams(params: {
       to: "test-bot",
     },
     sessionKey: "agent:main:whatsapp:direct:test-user",
+    agentId: "main",
     sessionEntry: {
       sessionId: "session-plugin-command",
       updatedAt: Date.now(),
