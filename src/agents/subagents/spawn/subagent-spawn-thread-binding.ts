@@ -1,7 +1,4 @@
-import {
-  routeFromBindingRecord,
-  routeToDeliveryFields,
-} from "../../../channels/route-projection.js";
+import { deliveryContextFromConversation } from "../../../channels/route-projection.js";
 import {
   resolveThreadBindingIntroText,
   resolveThreadBindingThreadName,
@@ -10,7 +7,7 @@ import {
   resolveThreadBindingIdleTimeoutMsForChannel,
   resolveThreadBindingMaxAgeMsForChannel,
 } from "../../../channels/thread-bindings-policy.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import type { DeliveryContext } from "../../../utils/delivery-context.types.js";
 import { summarizeSpawnError } from "../../spawn-pipeline.js";
 import { prepareSpawnThreadBinding } from "../../spawn-plan.js";
@@ -99,7 +96,7 @@ export async function bindThreadForSubagentSpawn(params: {
           "Unable to create or bind a thread for this subagent session. Session mode is unavailable for this target.",
       };
     }
-    const deliveryOrigin = routeToDeliveryFields(routeFromBindingRecord(binding)).deliveryContext;
+    const deliveryOrigin = deliveryContextFromConversation(binding.conversation);
     return {
       status: "ok",
       ...(deliveryOrigin ? { deliveryOrigin } : {}),
@@ -110,10 +107,4 @@ export async function bindThreadForSubagentSpawn(params: {
       error: `Thread bind failed: ${summarizeSpawnError(err)}`,
     };
   }
-}
-
-export function hasRoutableDeliveryOrigin(
-  origin?: DeliveryContext,
-): origin is DeliveryContext & { channel: string; to: string } {
-  return Boolean(origin?.channel && origin.to);
 }
