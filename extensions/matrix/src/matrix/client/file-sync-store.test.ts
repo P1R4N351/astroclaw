@@ -10,12 +10,9 @@ import type { ISyncResponse } from "matrix-js-sdk/lib/matrix.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getMatrixRuntime } from "../../runtime.js";
 import { installMatrixTestRuntime } from "../../test-runtime.js";
-import {
-  openMatrixSyncCacheStoreOptions,
-  SqliteBackedMatrixSyncStore,
-  type MatrixSyncCacheRecord,
-} from "./file-sync-store.js";
+import { SqliteBackedMatrixSyncStore } from "./file-sync-store.js";
 import { openMatrixStorageMetaStoreOptions } from "./storage.js";
+import { openMatrixSyncCacheStoreOptions, type MatrixSyncCacheRecord } from "./sync-cache-state.js";
 
 function createSyncResponse(nextBatch: string): ISyncResponse {
   return {
