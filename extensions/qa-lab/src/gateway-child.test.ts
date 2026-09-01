@@ -178,7 +178,8 @@ if (!recordPath || !configPath || !stateDir) {
 const record = (value) => fs.appendFileSync(recordPath, JSON.stringify(value) + "\\n");
 const fail = async (code, message) => {
   await new Promise((resolve) => process.stderr.write(
-    message + "\\ncontext retained\\n" + "diagnostic ".repeat(400), resolve));
+    message + "\\ncontext retained\\n" + "diagnostic ".repeat(400) +
+    "\\nterminal failure: Authorization: Bearer fixture-tail-secret", resolve));
   process.exit(code);
 };
 const authDbPath = path.join(stateDir, "agents", "qa", "agent", "openclaw-agent.sqlite");
@@ -304,6 +305,42 @@ describe("runQaGatewayCliCommand", () => {
         env: process.env,
       }),
     ).rejects.toThrow("OpenClaw CLI exited 7: fixture failure");
+  });
+
+  it("retains bounded redacted stdout failures alongside stderr panels", async () => {
+    const lifetime = new QaGatewayChildLifecycle();
+    try {
+      const error = await runQaGatewayCliCommand({
+        lifetime,
+        executablePath: process.execPath,
+        argsPrefix: [
+          "--input-type=module",
+          "--eval",
+          `await new Promise((resolve) => process.stderr.write(
+            "Doctor panel: Authorization: Bearer fixture-panel-secret\\n" + "diagnostic ".repeat(400), resolve));
+          await new Promise((resolve) => process.stdout.write(JSON.stringify({
+            status: "error", reason: "readiness execution failed", apiKey: "fixture-result-secret",
+          }), resolve));
+          process.exit(7);`,
+        ],
+        args: [],
+        cwd: process.cwd(),
+        env: process.env,
+      }).catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(Error);
+      if (!(error instanceof Error)) {
+        throw new Error("expected CLI failure");
+      }
+      expect(error.message).toContain("OpenClaw CLI exited 7: Doctor panel:");
+      expect(error.message).toContain('"reason":"readiness execution failed"');
+      expect(error.message.length).toBeLessThanOrEqual(2_048);
+      expect(error.message).toContain("Bearer <redacted>");
+      expect(error.message).toContain('"apiKey":"<redacted>"');
+      expect(inspect(error, { depth: null })).not.toMatch(/fixture-(panel|result)-secret/u);
+    } finally {
+      await expect(lifetime.stop()).resolves.toEqual({ process: "confirmed-stopped", errors: [] });
+    }
   });
 });
 
@@ -1734,6 +1771,7 @@ describe("buildQaRuntimeEnv", () => {
       expect(error.message).toContain(`${prefix}${detail}\ncontext retained\n`);
       expect(error.cause.message.length).toBeLessThanOrEqual(prefix.length + 2_048);
       expect(error.cause.message).not.toContain("diagnostic ".repeat(400));
+      expect(error.cause.message).toContain("terminal failure: Authorization: Bearer <redacted>");
       expect(error.cause).not.toHaveProperty("cause");
       const records = await readJsonLines(recordPath);
       expect(records.map((record) => record.kind)).toEqual(
@@ -1757,6 +1795,7 @@ describe("buildQaRuntimeEnv", () => {
         expect(diagnostic).not.toContain(submittedKey);
       }
       expect(diagnostic).not.toContain("fixture-plugin-secret");
+      expect(diagnostic).not.toContain("fixture-tail-secret");
       const tempRoots = await readdir(tempParentDir);
       expect(tempRoots).toHaveLength(1);
       for (const stream of ["stdout", "stderr"]) {
