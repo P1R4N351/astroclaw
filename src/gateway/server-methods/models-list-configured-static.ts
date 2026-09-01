@@ -5,7 +5,7 @@ import {
   RUNTIME_MODEL_VISIBILITY_NORMALIZATION,
 } from "../../agents/model-visibility-policy.js";
 import { resolveModelCatalogIdentityKey } from "../../agents/openai-model-routes.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
 
 export function includeConfiguredStaticCatalogEntries(params: {
@@ -26,7 +26,7 @@ export function includeConfiguredStaticCatalogEntries(params: {
     defaultModel: params.defaultModel,
     agentId: params.agentId,
     ...RUNTIME_MODEL_VISIBILITY_NORMALIZATION,
-    manifestPlugins: params.metadataSnapshot.plugins,
+    manifestPlugins: params.metadataSnapshot,
   });
   const configuredKeys = new Set(
     [...policy.configuredKeys].map((key) => {
