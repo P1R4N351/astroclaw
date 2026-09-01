@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   normalizeSessionDeliveryState,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import type { SessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import type { SessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { telegramApprovalCapability } from "./approval-native.js";
 
@@ -127,6 +127,31 @@ describe("telegram native approval adapter", () => {
     expect(target).toEqual({
       to: "-1003841603622",
       threadId: 928,
+    });
+  });
+
+  it("preserves channel Direct Messages topic targets from the turn source", async () => {
+    const target = await telegramApprovalCapability.native?.resolveOriginTarget?.({
+      cfg: buildConfig(),
+      accountId: "default",
+      approvalKind: "system-agent",
+      request: {
+        id: "req-direct-topic-1",
+        request: {
+          command: "set config gateway.port 19001",
+          turnSourceChannel: "telegram",
+          turnSourceTo: "telegram:-1003841603622:direct-topic:77",
+          turnSourceAccountId: "default",
+          sessionKey: "agent:main:telegram:group:-1003841603622:direct-topic:77",
+        },
+        createdAtMs: 0,
+        expiresAtMs: 1000,
+      },
+    });
+
+    expect(target).toEqual({
+      to: "-1003841603622:direct-topic:77",
+      threadId: undefined,
     });
   });
 
