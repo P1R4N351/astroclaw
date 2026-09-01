@@ -1,5 +1,5 @@
 // Telegram tests cover approval callback data plugin behavior.
-import { buildApprovalResolutionRef } from "openclaw/plugin-sdk/approval-reference-runtime";
+import { buildApprovalResolutionRef } from "astroclaw/plugin-sdk/approval-reference-runtime";
 import { describe, expect, it } from "vitest";
 import {
   buildTelegramApprovalCallbackData,
@@ -51,6 +51,7 @@ describe("approval callback data", () => {
     ["exec", "allow-once", "tga1:e:o:approval:with:delimiters"],
     ["exec", "allow-always", "tga1:e:a:approval:with:delimiters"],
     ["plugin", "deny", "tga1:p:d:approval:with:delimiters"],
+    ["system-agent", "deny", "tga1:s:d:approval:with:delimiters"],
   ] as const)("round-trips explicit %s %s actions", (approvalKind, decision, callbackData) => {
     const action = {
       type: "approval" as const,
