@@ -1,7 +1,7 @@
 // Focused QA evidence for official Codex plugin drift through doctor diagnostics.
 import { describe, expect, it, vi } from "vitest";
 import * as noteModule from "../../packages/terminal-core/src/note.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { detectPluginVersionDrift } from "../plugins/plugin-version-drift.js";
 import {
   collectWorkspaceStatusHealthFindings,
@@ -42,7 +42,7 @@ const config: OpenClawConfig = {
 };
 
 function detectCodexDrift(installedVersion: string, gatewayVersion: string) {
-  return detectPluginVersionDrift({
+  const report = detectPluginVersionDrift({
     gatewayVersion,
     installRecords: {
       codex: {
@@ -54,6 +54,15 @@ function detectCodexDrift(installedVersion: string, gatewayVersion: string) {
     },
     config,
   });
+  for (const entry of report.drifts) {
+    entry.targetResolution = {
+      status: "resolved",
+      packageName: "@openclaw/codex",
+      requestedTarget: gatewayVersion,
+      version: gatewayVersion,
+    };
+  }
+  return report;
 }
 
 describe("official Codex plugin version drift doctor evidence", () => {
@@ -72,6 +81,12 @@ describe("official Codex plugin version drift doctor evidence", () => {
             source: "npm",
             packageName: "@openclaw/codex",
             spec: `@openclaw/codex@${installedVersion}`,
+            targetResolution: {
+              status: "resolved",
+              packageName: "@openclaw/codex",
+              requestedTarget: gatewayVersion,
+              version: gatewayVersion,
+            },
           },
         ],
       });
