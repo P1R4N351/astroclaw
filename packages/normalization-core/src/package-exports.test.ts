@@ -3,30 +3,23 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 type PackageManifest = {
-  exports: Record<
-    string,
-    {
-      default: string;
-      import: string;
-      types: string;
-    }
-  >;
-  scripts: { build: string };
+  exports: Record<string, string>;
 };
 
-const packageJsonPath = fileURLToPath(new URL("../package.json", import.meta.url));
+const packageJsonUrl = new URL("../package.json", import.meta.url);
+const packageJsonPath = fileURLToPath(packageJsonUrl);
 const manifest = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as PackageManifest;
+const packageDir = fileURLToPath(new URL(".", packageJsonUrl));
 
 describe("normalization-core package exports", () => {
-  it("builds every focused export from its matching source entry", () => {
+  it("points every subpath export at its matching TypeScript source file", () => {
     for (const [subpath, target] of Object.entries(manifest.exports)) {
       const entryName = subpath === "." ? "index" : subpath.slice(2);
-      expect(target).toEqual({
-        types: `./dist/${entryName}.d.mts`,
-        import: `./dist/${entryName}.mjs`,
-        default: `./dist/${entryName}.mjs`,
-      });
-      expect(manifest.scripts.build.split(/\s+/u)).toContain(`src/${entryName}.ts`);
+      // This package has no build step: exports resolve directly to src/*.ts
+      // (consumed via tsx/vitest), unlike published packages that point at
+      // compiled ./dist output.
+      expect(target).toBe(`./src/${entryName}.ts`);
+      expect(fs.existsSync(`${packageDir}${target.slice(2)}`)).toBe(true);
     }
   });
 });
