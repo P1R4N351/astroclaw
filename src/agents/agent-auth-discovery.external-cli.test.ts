@@ -1,6 +1,6 @@
 /** Tests external CLI scoping during agent auth-profile credential discovery. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const storeMocks = vi.hoisted(() => ({
   ensureAuthProfileStore: vi.fn(() => ({ version: 1, profiles: {} })),
@@ -35,7 +35,10 @@ vi.mock("../plugins/provider-runtime.js", () => ({
   resolveProviderSyntheticAuthWithPlugin: syntheticAuthMocks.resolveProviderSyntheticAuthWithPlugin,
 }));
 
-import { resolveAgentDiscoveryAuthFacts } from "./agent-auth-discovery.js";
+import {
+  resolveAgentDiscoveryAuthFacts,
+  resolveAmbientAgentCredentialsForDiscovery,
+} from "./agent-auth-discovery.js";
 import { externalCliDiscoveryForProviders } from "./auth-profiles/external-cli-discovery.js";
 
 describe("resolveAgentDiscoveryAuthFacts external CLI scoping", () => {
@@ -135,6 +138,23 @@ describe("resolveAgentDiscoveryAuthFacts external CLI scoping", () => {
         providerConfig: undefined,
       },
     });
+  });
+
+  it("keeps authoritative native auth separate from provider environment aliases", () => {
+    discoveryCoreMocks.addEnvBackedAgentCredentials.mockReturnValueOnce({
+      "claude-cli": { type: "api_key", key: "provider-key" },
+    });
+    const resolveSyntheticAuth = vi.fn(() => undefined);
+
+    expect(
+      resolveAmbientAgentCredentialsForDiscovery({
+        env: { ANTHROPIC_API_KEY: "provider-key" },
+        syntheticAuthProviderRefs: ["claude-cli"],
+        authoritativeSyntheticAuthProviderRefs: ["claude-cli"],
+        resolveSyntheticAuth,
+      }),
+    ).toEqual({});
+    expect(resolveSyntheticAuth).toHaveBeenCalledWith("claude-cli");
   });
 
   it.each(["oauth", "token"] as const)(
