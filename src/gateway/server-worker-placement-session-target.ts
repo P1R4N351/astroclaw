@@ -1,5 +1,5 @@
 import type { managedWorktrees } from "../agents/worktrees/service.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { runExclusiveSessionLifecycleMutation } from "../sessions/session-lifecycle-admission.js";
 import type * as sessionUtils from "./session-utils.js";
 import type { WorkerPlacementExecutionMode } from "./worker-environments/placement-record.js";
@@ -26,6 +26,7 @@ export async function runWorkerPlacementSessionBarrier<T>(params: {
   agentId: string;
   executionMode: WorkerPlacementExecutionMode;
   action: "activation" | "recovery";
+  signal?: AbortSignal;
   run: (worktree: WorkerPlacementWorktree) => T | Promise<T>;
 }): Promise<T> {
   const target = params.sessionRuntime.resolveGatewaySessionStoreTargetWithStore({
@@ -37,6 +38,7 @@ export async function runWorkerPlacementSessionBarrier<T>(params: {
   return await runExclusiveSessionLifecycleMutation({
     scope: target.storePath,
     identities: [params.sessionKey, target.canonicalKey, ...target.storeKeys, params.sessionId],
+    signal: params.signal,
     run: async () => {
       const {
         config,
