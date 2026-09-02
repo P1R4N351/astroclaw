@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizePluginsConfig, resolveEffectivePluginActivationState } from "./config-state.js";
 import { isPluginEnabledByDefaultForPlatform } from "./default-enablement.js";
 import { loadPluginManifestRegistryCore } from "./manifest-registry.js";
@@ -29,6 +29,7 @@ export function listEnabledPluginRecords(config: OpenClawConfig): EnabledPluginR
         resolveEffectivePluginActivationState({
           id: plugin.id,
           origin: plugin.origin,
+          channelIds: plugin.channels,
           config: normalizedConfig,
           rootConfig: config,
           enabledByDefault: isPluginEnabledByDefaultForPlatform(plugin),
