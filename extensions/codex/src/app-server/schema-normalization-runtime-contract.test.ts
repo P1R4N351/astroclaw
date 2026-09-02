@@ -2,12 +2,12 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness";
+import type { EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
 import {
   createParameterFreeTool,
   createPermissiveTool,
   normalizedParameterFreeSchema,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createCodexTestHostCapabilities } from "./host-capability.test-support.js";
 import type { CodexThreadStartParams } from "./protocol.js";
@@ -55,7 +55,6 @@ function createAppServerOptions(): Parameters<typeof startOrResumeThread>[0]["ap
     codeModeOnly: false,
     loopDetectionPreToolUseRelay: true,
     requestTimeoutMs: 60_000,
-    turnCompletionIdleTimeoutMs: 60_000,
     approvalPolicy: "never",
     approvalsReviewer: "user",
     sandbox: "workspace-write",
