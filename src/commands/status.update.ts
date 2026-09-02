@@ -2,7 +2,7 @@
 // Wraps registry/git update checks and formats compact update rows/hints.
 
 import { formatCliCommand } from "../cli/command-format.js";
-import { resolveOpenClawPackageRoot } from "../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
 import {
   normalizeUpdateChannel,
   resolveEffectiveUpdateChannel,
@@ -12,15 +12,16 @@ import {
   checkUpdateStatus,
   compareSemverStrings,
   type UpdateCheckResult,
+  type UpdateInstallIdentity,
 } from "../infra/update-check.js";
 import { VERSION } from "../version.js";
 
 /** Chooses a registry tag only after the status check has identified the install. */
-export function resolveStatusRegistryUpdateChannel(params: {
-  configChannel?: UpdateChannel | null;
-  installKind: UpdateCheckResult["installKind"];
-  git?: UpdateCheckResult["git"];
-}): UpdateChannel {
+export function resolveStatusRegistryUpdateChannel(
+  params: UpdateInstallIdentity & {
+    configChannel?: UpdateChannel | null;
+  },
+): UpdateChannel {
   return resolveEffectiveUpdateChannel({
     configChannel: params.configChannel,
     currentVersion: VERSION,
