@@ -1,8 +1,9 @@
 import {
+  parseRemoteModelCatalogBundle,
   validateAndSanitizeRemoteModelCatalogBundle,
   type RemoteModelCatalogBundle,
 } from "@astroclaw/model-catalog-core";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { compareOpenClawVersions } from "../config/version.js";
 import { readResponseWithLimit } from "../infra/http-body.js";
 import {
@@ -39,7 +40,7 @@ function bundleCounts(bundle: RemoteModelCatalogBundle): RefreshCounts {
 }
 
 function storedCounts(bundleJson: string): RefreshCounts & { generatedAt: number } {
-  const bundle = validateAndSanitizeRemoteModelCatalogBundle(JSON.parse(bundleJson));
+  const bundle = parseRemoteModelCatalogBundle(JSON.parse(bundleJson));
   return { ...bundleCounts(bundle), generatedAt: bundle.generatedAt };
 }
 
