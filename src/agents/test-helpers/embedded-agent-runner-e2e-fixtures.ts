@@ -7,7 +7,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { buildAttemptReplayMetadata } from "../embedded-agent-runner/run/attempt-terminal-evidence.js";
 import type { EmbeddedRunAttemptResult } from "../embedded-agent-runner/run/types.js";
 
@@ -119,6 +119,9 @@ export function makeEmbeddedRunnerAttempt(
     assistantTexts: [],
     toolMetas,
     lastAssistant: undefined,
+    // The harness backfills omitted provenance; explicit undefined in overrides
+    // still represents an attempt that produced no response.
+    currentAttemptAssistant: overrides.lastAssistant,
     replayMetadata:
       overrides.replayMetadata ??
       buildAttemptReplayMetadata({
