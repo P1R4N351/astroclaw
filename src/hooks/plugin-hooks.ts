@@ -1,7 +1,7 @@
 // Plugin hook helpers discover hooks contributed by installed plugins.
 import fs from "node:fs";
 import path from "node:path";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   normalizePluginsConfigWithResolver,
@@ -54,6 +54,7 @@ export function resolvePluginHookDirs(params: {
     const activationState = resolvePolicyPluginActivationState({
       id: record.id,
       origin: record.origin,
+      channelIds: record.channels,
       config: normalizedPlugins,
       rootConfig: params.config,
     });
