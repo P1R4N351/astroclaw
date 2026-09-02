@@ -1,12 +1,12 @@
 /** Builds doctor/install repair hints for missing official external plugin owners. */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveConfiguredChannelPresencePolicy } from "./channel-plugin-ids.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";
 import {
   getOfficialExternalPluginCatalogEntry,
   getOfficialExternalPluginCatalogManifest,
   resolveOfficialExternalPluginId,
-  resolveOfficialExternalPluginInstall,
+  resolveOfficialExternalPluginInstallSources,
   resolveOfficialExternalPluginLabel,
 } from "./official-external-plugin-catalog.js";
 
@@ -33,11 +33,7 @@ export function resolveOfficialExternalPluginRepairHint(
   if (!entry) {
     return null;
   }
-  const install = resolveOfficialExternalPluginInstall(entry);
-  const npmSpec = install?.npmSpec?.trim();
-  const clawhubSpec = install?.clawhubSpec?.trim();
-  const installSpec =
-    install?.defaultChoice === "clawhub" ? (clawhubSpec ?? npmSpec) : (npmSpec ?? clawhubSpec);
+  const installSpec = resolveOfficialExternalPluginInstallSources(entry)[0]?.spec;
   if (!installSpec) {
     return null;
   }
