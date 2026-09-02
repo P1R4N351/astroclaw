@@ -1,3 +1,4 @@
+import { readSessionMessageIdentity } from "@astroclaw/gateway-client/browser";
 import { asNullableRecord as asToolRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
@@ -66,7 +67,8 @@ export function extractToolMessageRefs(message: unknown): ToolMessageRef[] {
       )
     : [];
   const topLevelToolId = resolveToolUseId({ ...record, id: undefined });
-  const topLevelRunId = normalizeOptionalString(record.runId);
+  const topLevelRunId =
+    readSessionMessageIdentity(record)?.runId ?? normalizeOptionalString(record.runId);
   const role = record.role;
   const messageHasToolShape =
     (typeof role === "string" && normalizeRoleForGrouping(role).toLowerCase() === "tool") ||
