@@ -1,7 +1,7 @@
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
 import { jsonResult } from "../agents/tools/common.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveMcpLoopbackScopedTools } from "./mcp-http.runtime.js";
 
 const pluginTools = vi.hoisted(() => ({
@@ -14,7 +14,7 @@ vi.mock("../plugins/tools.js", async (importOriginal) => ({
 }));
 
 describe("MCP loopback OAuth tools", () => {
-  it("exposes a plugin tool backed by a prepared OAuth profile", () => {
+  it("exposes a plugin tool backed by a prepared OAuth profile", async () => {
     pluginTools.resolve.mockImplementation(
       (params: {
         context?: { activeModel?: { provider?: string; modelId?: string } };
@@ -35,7 +35,7 @@ describe("MCP loopback OAuth tools", () => {
           : [],
     );
 
-    const result = resolveMcpLoopbackScopedTools({
+    const result = await resolveMcpLoopbackScopedTools({
       cfg: {
         auth: { order: { xai: ["xai:oauth"] } },
         plugins: { allow: ["xai"] },
