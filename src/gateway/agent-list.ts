@@ -7,7 +7,7 @@ import { listAgentEntries, tryResolveDefaultAgentId } from "../agents/agent-scop
 import { tryResolveLegacyCompatibilityAgentId } from "../config/legacy.default-agent-owner.js";
 import { resolveStateDir } from "../config/paths.js";
 import type { SessionScope } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeAgentId, normalizeMainKey } from "../routing/session-key.js";
 import type { GatewayAgentKind } from "../shared/session-types.js";
 import { SYSTEM_AGENT_ROSTER_ENTRIES } from "../system-agent/agent-id.js";
@@ -68,10 +68,7 @@ export function resolveGatewayAgentSelectionState(cfg: OpenClawConfig): GatewayA
 }
 
 /** Lists gateway-visible agents with canonical membership, ordering, and semantic kind. */
-export function listGatewayAgentsBasic(cfg: OpenClawConfig): {
-  defaultId: string;
-  ownership?: GatewayAgentOwnership;
-  selectionRequired?: boolean;
+export function listGatewayAgentsBasic(cfg: OpenClawConfig): GatewayAgentSelectionState & {
   mainKey: string;
   scope: SessionScope;
   agents: GatewayAgentListRow[];
