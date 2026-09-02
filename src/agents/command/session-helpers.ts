@@ -4,7 +4,7 @@ import type {
   ChannelPlugin,
 } from "../../channels/plugins/types.public.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   resolveAgentDeliveryPlanWithSessionRoute,
   resolveAgentOutboundTarget,
@@ -113,30 +113,6 @@ export async function prepareCurrentRunDelivery(params: {
     threadId,
   });
   return context ? { context, targetMode } : undefined;
-}
-
-export function createAgentCommandSessionWorkingCopy(params: {
-  sessionKey?: string;
-  sessionEntry?: SessionEntry;
-  sessionStore?: Record<string, SessionEntry>;
-}): {
-  sessionEntry?: SessionEntry;
-  sessionStore?: Record<string, SessionEntry>;
-} {
-  const result: {
-    sessionEntry?: SessionEntry;
-    sessionStore?: Record<string, SessionEntry>;
-  } = {};
-  if (params.sessionEntry) {
-    result.sessionEntry = { ...params.sessionEntry };
-  }
-  if (params.sessionStore || params.sessionKey) {
-    result.sessionStore = {};
-  }
-  if (params.sessionKey && result.sessionEntry && result.sessionStore) {
-    result.sessionStore[params.sessionKey] = result.sessionEntry;
-  }
-  return result;
 }
 
 export function resolveInternalSessionEffectsSource(params: {
