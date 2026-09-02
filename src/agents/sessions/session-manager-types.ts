@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { ImageContent, TextContent } from "../../llm/types.js";
 import type { AgentMessage } from "../runtime/index.js";
 
@@ -43,6 +43,7 @@ export interface ModelChangeEntry extends SessionEntryBase {
 
 export interface CompactionEntry<T = unknown> extends SessionEntryBase {
   type: "compaction";
+  __openclaw?: { runId?: string; itemId?: string };
   summary: string;
   firstKeptEntryId: string;
   tokensBefore: number;
