@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 
 export const PREPUBLISH_PLUGIN_REGISTRY_MANIFEST = "prepublish-plugin-registry.json";
 const SCHEMA = "openclaw.prepublish-plugin-registry/v1";
@@ -220,8 +221,8 @@ function findPublishablePlugin(repoRoot, packageName) {
     );
   }
   const match = matches[0];
-  if (match.packageJson.openclaw?.release?.publishToNpm !== true) {
-    throw new Error(`${packageName} is not marked openclaw.release.publishToNpm`);
+  if (pluginPackageMetadata(match.packageJson)?.release?.publishToNpm !== true) {
+    throw new Error(`${packageName} is not marked astroclaw.release.publishToNpm`);
   }
   return match;
 }
