@@ -1,6 +1,6 @@
 // Official plugin setup helpers install and configure bundled onboarding plugins.
 import { ensureOnboardingPluginInstalled } from "../commands/onboarding-plugin-install.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginPackageInstall } from "../plugins/manifest.js";
 import {
   getOfficialExternalPluginCatalogManifest,
@@ -45,9 +45,7 @@ function isGenericOfficialPluginEntry(entry: { source?: string; kind?: string })
 
 function formatInstallHint(install: PluginPackageInstall): string {
   if (install.clawhubSpec && install.npmSpec) {
-    return install.defaultChoice === "clawhub"
-      ? "ClawHub, with npm fallback"
-      : "npm, with ClawHub fallback";
+    return "npm, with ClawHub fallback";
   }
   if (install.clawhubSpec) {
     return "ClawHub";
