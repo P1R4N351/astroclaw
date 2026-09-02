@@ -1,8 +1,4 @@
 // Openrouter tests cover media understanding provider plugin behavior.
-import {
-  describeImageWithModel,
-  describeImagesWithModel,
-} from "openclaw/plugin-sdk/media-understanding";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { openrouterMediaUnderstandingProvider } from "./media-understanding-provider.js";
 
@@ -23,7 +19,7 @@ const { assertOkOrThrowHttpErrorMock, postJsonRequestMock, resolveProviderHttpRe
     })),
   }));
 
-vi.mock("openclaw/plugin-sdk/provider-http", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-http", () => ({
   assertOkOrThrowHttpError: assertOkOrThrowHttpErrorMock,
   postJsonRequest: postJsonRequestMock,
   // Pass-through: bounded-reader enforcement is tested via bounded-reader unit tests.
@@ -62,8 +58,6 @@ describe("openrouter media understanding provider", () => {
         audio: "openai/whisper-large-v3-turbo",
       },
       autoPriority: { audio: 35 },
-      describeImage: describeImageWithModel,
-      describeImages: describeImagesWithModel,
       transcribeAudio: transcribeOpenRouterAudio,
     });
   });
