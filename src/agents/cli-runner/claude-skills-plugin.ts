@@ -5,7 +5,7 @@ import { accessSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
 import type { SkillSnapshot } from "../../skills/types.js";
 import { cliBackendLog } from "./log.js";
 
@@ -95,6 +95,11 @@ export async function prepareClaudeCliSkillsPlugin(params: {
   skillsSnapshot?: SkillSnapshot;
 }): Promise<{ args: string[]; cleanup: () => Promise<void>; pluginDir?: string }> {
   if (normalizeLowercaseStringOrEmpty(params.backendId) !== CLAUDE_CLI_BACKEND_ID) {
+    return { args: [], cleanup: async () => {} };
+  }
+  // Library command identities are host-owned, not frontmatter names. Keep their
+  // canonical catalog and immutable paths instead of registering colliding native aliases.
+  if (params.skillsSnapshot?.librarySelections?.length) {
     return { args: [], cleanup: async () => {} };
   }
 
