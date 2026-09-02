@@ -3,7 +3,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { ProviderRuntimeModel } from "../../plugins/provider-runtime-model.types.js";
 import { normalizeAcceptedSessionSpawnResult } from "../accepted-session-spawn.js";
 import { setCompactionSafeguardRuntime } from "../agent-hooks/compaction-safeguard-runtime.js";
@@ -126,6 +126,7 @@ function buildAgentToolResultMiddlewareFactory(
       return {
         content: result.content,
         details: result.details,
+        ...(result.terminate !== undefined ? { terminate: result.terminate } : {}),
         ...(isError ? { isError: true } : {}),
         ...(clearsAcceptedSessionSpawnError ? { isError: false } : {}),
       };
