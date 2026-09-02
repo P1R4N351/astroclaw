@@ -9,7 +9,7 @@ import type {
 } from "../../packages/gateway-protocol/src/index.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { resolveAgentMainSessionKey } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { parseAgentSessionKey, parseSessionDeliveryRoute } from "../routing/session-key.js";
 import {
   isAcpSessionKey,
@@ -67,7 +67,11 @@ function classifyRest(rest: string): SessionClassification {
   if (normalized.startsWith("dreaming-narrative-")) {
     return "dreaming";
   }
-  if (normalized === "boot" || normalized.startsWith("internal-session-effects:")) {
+  if (
+    normalized === "boot" ||
+    normalized.startsWith("boot:") ||
+    normalized.startsWith("internal-session-effects:")
+  ) {
     return "system";
   }
   return "custom";
