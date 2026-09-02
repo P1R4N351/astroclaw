@@ -5,7 +5,7 @@ import {
 } from "../../auto-reply/envelope.js";
 import { resolveSessionStorePathCore } from "../../config/sessions/paths.js";
 import { readSessionUpdatedAtCore } from "../../config/sessions/session-accessor.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   resolveAgentRoute,
   type ResolvedAgentRoute,
@@ -76,12 +76,12 @@ export function createInboundEnvelopeBuilder<TConfig, TEnvelope>(params: {
   cfg: TConfig;
   route: RouteLike;
   sessionStore?: string;
-  resolveSessionStorePathCore: (store: string | undefined, opts: { agentId: string }) => string;
+  resolveStorePath: (store: string | undefined, opts: { agentId: string }) => string;
   readSessionUpdatedAt: (params: { storePath: string; sessionKey: string }) => number | undefined;
   resolveEnvelopeFormatOptions: (cfg: TConfig) => TEnvelope;
   formatAgentEnvelope: (params: InboundEnvelopeFormatParams<TEnvelope>) => string;
 }) {
-  const storePath = params.resolveSessionStorePathCore(params.sessionStore, {
+  const storePath = params.resolveStorePath(params.sessionStore, {
     agentId: params.route.agentId,
   });
   const envelopeOptions = params.resolveEnvelopeFormatOptions(params.cfg);
@@ -114,7 +114,7 @@ export function resolveInboundRouteEnvelopeBuilder<
   peer: TPeer;
   resolveAgentRoute: (params: InboundRouteResolveParams<TConfig, TPeer>) => TRoute;
   sessionStore?: string;
-  resolveSessionStorePathCore: (store: string | undefined, opts: { agentId: string }) => string;
+  resolveStorePath: (store: string | undefined, opts: { agentId: string }) => string;
   readSessionUpdatedAt: (params: { storePath: string; sessionKey: string }) => number | undefined;
   resolveEnvelopeFormatOptions: (cfg: TConfig) => TEnvelope;
   formatAgentEnvelope: (params: InboundEnvelopeFormatParams<TEnvelope>) => string;
@@ -132,7 +132,7 @@ export function resolveInboundRouteEnvelopeBuilder<
     cfg: params.cfg,
     route,
     sessionStore: params.sessionStore,
-    resolveSessionStorePathCore: params.resolveSessionStorePathCore,
+    resolveStorePath: params.resolveStorePath,
     readSessionUpdatedAt: params.readSessionUpdatedAt,
     resolveEnvelopeFormatOptions: params.resolveEnvelopeFormatOptions,
     formatAgentEnvelope: params.formatAgentEnvelope,
@@ -183,7 +183,7 @@ export function resolveInboundRouteEnvelopeBuilderWithRuntime<
     peer: params.peer,
     resolveAgentRoute: (routeParams) => params.runtime.routing.resolveAgentRoute(routeParams),
     sessionStore: params.sessionStore,
-    resolveSessionStorePathCore: params.runtime.session.resolveStorePath,
+    resolveStorePath: params.runtime.session.resolveStorePath,
     readSessionUpdatedAt: params.runtime.session.readSessionUpdatedAt,
     resolveEnvelopeFormatOptions: params.runtime.reply.resolveEnvelopeFormatOptions,
     formatAgentEnvelope: params.runtime.reply.formatAgentEnvelope,
