@@ -4,7 +4,7 @@
  * This adapter applies the generic capability-provider resolver to Talk
  * providers, including default model injection and per-call config overrides.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveConfiguredCapabilityProvider } from "../plugin-sdk/provider-selection-runtime.js";
 import type { RealtimeVoiceProviderPlugin } from "../plugins/types.js";
 import {
@@ -100,7 +100,6 @@ export function resolveConfiguredRealtimeVoiceProvider(
   params: ResolveConfiguredRealtimeVoiceProviderParams,
 ): ResolvedRealtimeVoiceProvider {
   const cfgForResolve = params.cfgForResolve ?? params.cfg ?? ({} as OpenClawConfig);
-  const providers = params.providers ?? listRealtimeVoiceProviders(params.cfg);
   const resolution = resolveConfiguredCapabilityProvider({
     configuredProviderId: params.configuredProviderId,
     providerConfigs: params.providerConfigs,
@@ -109,7 +108,9 @@ export function resolveConfiguredRealtimeVoiceProvider(
     getConfiguredProvider: (providerId) =>
       params.providers?.find((entry) => entry.id === providerId) ??
       getRealtimeVoiceProvider(providerId, params.cfg),
-    listProviders: () => providers,
+    listProviders: () =>
+      params.providers ??
+      listRealtimeVoiceProviders(params.cfg, Object.keys(params.providerConfigs ?? {})),
     isProviderAvailable: params.isProviderAvailable
       ? ({ provider }) => params.isProviderAvailable?.(provider) === true
       : undefined,
