@@ -1,9 +1,9 @@
 /** Normalizes manifest-declared CLI command aliases. */
+import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
-import { isRecord } from "../utils.js";
 
 type PluginManifestCommandAliasKind = "runtime-slash";
 
