@@ -5,7 +5,7 @@ import type { OpenClawConfig } from "../config/types.js";
 import {
   DEFAULT_POSIX_TMP_ROOT,
   resolvePreferredOpenClawTmpDir,
-} from "../infra/tmp-astroclaw-dir.js";
+} from "../infra/tmp-openclaw-dir.js";
 import { canUseNodeFs, formatLocalDate, LOG_PREFIX, LOG_SUFFIX } from "./log-file-shared.js";
 
 const ROLLING_LOG_FILE_RE = /^(openclaw(?:-[a-z0-9-]+)?)-(\d{4}-\d{2}-\d{2})\.log$/u;
@@ -73,9 +73,8 @@ export function isRollingLogFilePath(file: string): boolean {
 export function isLegacyRollingLogFilePath(file: string): boolean {
   const base = path.basename(file);
   return (
-    base.startsWith(`${LOG_PREFIX}-`) &&
-    base.endsWith(LOG_SUFFIX) &&
-    base.length === `${LOG_PREFIX}-YYYY-MM-DD${LOG_SUFFIX}`.length
+    base === `${LOG_PREFIX}-YYYY-MM-DD${LOG_SUFFIX}` ||
+    ROLLING_LOG_FILE_RE.exec(base)?.[1] === LOG_PREFIX
   );
 }
 
