@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const PLUGIN_PACKAGE_UNINSTALL_PLAN = Symbol.for("openclaw.pluginPackageUninstallPlan");
 
@@ -27,7 +27,7 @@ export function resolvePluginPackageUninstallPlan(
   ];
 }
 
-export function prepareConfigForPendingPluginDirectoryRemovalSet(
+export function prepareConfigForDisabledPluginSet(
   config: OpenClawConfig,
   pluginIds: readonly string[],
 ): OpenClawConfig {
