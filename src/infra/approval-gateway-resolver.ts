@@ -7,7 +7,7 @@ import type {
 } from "../../packages/gateway-protocol/src/index.js";
 import { isWellFormedApprovalId } from "../../packages/gateway-protocol/src/schema/approvals.js";
 import { findChatChannelLabel } from "../channels/ids.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withOperatorApprovalsGatewayClient } from "../gateway/operator-approvals-client.js";
 import { isApprovalNotFoundError } from "./approval-errors.js";
 import { getGatewayNativeApprovalRuntime } from "./approval-gateway-runtime-context.js";
@@ -79,7 +79,10 @@ export async function resolveApprovalOverGateway(
 ): Promise<ApprovalResolveResult | void> {
   const approvalKind = (params as { approvalKind?: unknown }).approvalKind;
   const resolveMethod = (params as { resolveMethod?: unknown }).resolveMethod;
-  const canonicalKind = approvalKind === "exec" || approvalKind === "plugin" ? approvalKind : null;
+  const canonicalKind =
+    approvalKind === "exec" || approvalKind === "plugin" || approvalKind === "system-agent"
+      ? approvalKind
+      : null;
   const legacyMethod =
     resolveMethod === "exec" || resolveMethod === "plugin" ? resolveMethod : null;
   const hasCanonicalKind = canonicalKind !== null;
