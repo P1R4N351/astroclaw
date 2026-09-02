@@ -1,5 +1,5 @@
 /** Resolves enabled bundled plugins that advertise a specific manifest contract list. */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveBundledCompatActivationInputs } from "./activation-context.js";
 import { resolveEffectivePluginActivationState } from "./config-state.js";
 import { isPluginEnabledByDefaultForPlatform } from "./default-enablement.js";
@@ -72,6 +72,7 @@ export function resolveEnabledBundledManifestContractPlugins(params: {
     return resolveEffectivePluginActivationState({
       id: plugin.id,
       origin: plugin.origin,
+      channelIds: plugin.channels,
       config: activation.normalized,
       rootConfig: activation.config,
       enabledByDefault: isPluginEnabledByDefaultForPlatform(plugin),
