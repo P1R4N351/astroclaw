@@ -1,5 +1,5 @@
 // Cron snapshot helpers collect runtime skill state for scheduled agents.
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import type { SkillSnapshot } from "../types.js";
 
@@ -16,6 +16,7 @@ export async function resolveCronSkillsSnapshot(params: {
   config: OpenClawConfig;
   agentId: string;
   existingSnapshot?: SkillSnapshot;
+  librarySelections?: SkillSnapshot["librarySelections"];
   isFastTestEnv: boolean;
 }): Promise<SkillSnapshot> {
   if (params.isFastTestEnv) {
@@ -34,6 +35,7 @@ export async function resolveCronSkillsSnapshot(params: {
     config: params.config,
     agentId: params.agentId,
     existingSnapshot: params.existingSnapshot,
+    librarySelections: params.librarySelections,
     skillFilter,
     eligibility: {
       nodeSkills,
