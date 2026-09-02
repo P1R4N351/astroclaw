@@ -2,10 +2,9 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { pluginPackageMetadata } from "../../lib/plugin-manifest-filenames.mjs";
 import { assertPathInside, findPackageJson, readJson } from "./codex-install-utils.mjs";
 
-const EXPECTED_CODEX_VERSION = "0.151.0";
+const EXPECTED_CODEX_VERSION = "0.152.1";
 const CODEX_PLATFORM_TARGETS = new Map([
   ["linux:x64", { alias: "@openai/codex-linux-x64", os: "linux", cpu: "x64" }],
   ["linux:arm64", { alias: "@openai/codex-linux-arm64", os: "linux", cpu: "arm64" }],
@@ -40,8 +39,7 @@ export function assertCodexReleasePackageContract(params) {
       `@openclaw/codex must depend on @openai/codex ${EXPECTED_CODEX_VERSION}; found ${String(expectedDependency)}`,
     );
   }
-  const requiredPlatformPackages =
-    pluginPackageMetadata(pluginPackage)?.install?.requiredPlatformPackages;
+  const requiredPlatformPackages = pluginPackage.openclaw?.install?.requiredPlatformPackages;
   if (
     !Array.isArray(requiredPlatformPackages) ||
     !requiredPlatformPackages.includes(target.alias)
