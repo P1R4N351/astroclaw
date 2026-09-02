@@ -9,6 +9,12 @@ import {
 import { shouldBuildBundledCluster } from "./lib/optional-bundled-clusters.mjs";
 import { assertRealOutputRoot } from "./lib/output-root-guard.mjs";
 import {
+  findPluginManifestPath,
+  PLUGIN_MANIFEST_FILENAME,
+  pluginPackageMetadata,
+  withPluginPackageMetadata,
+} from "./lib/plugin-manifest-filenames.mjs";
+import {
   mergeGeneratedChannelConfigs,
   readGeneratedBundledChannelConfigs,
 } from "./lib/plugin-npm-package-manifest.mts";
@@ -282,7 +288,7 @@ export function copyBundledPluginMetadata(params: CopyMetadataParams = {}): void
     }
 
     const pluginDir = path.join(extensionsRoot, dirent.name);
-    const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
+    const manifestPath = findPluginManifestPath(pluginDir) ?? path.join(pluginDir, PLUGIN_MANIFEST_FILENAME);
     const distPluginDir = path.join(distExtensionsRoot, dirent.name);
     const packageJsonPath = path.join(pluginDir, "package.json");
     const parsedPackageJson: unknown = fs.existsSync(packageJsonPath)
@@ -290,10 +296,11 @@ export function copyBundledPluginMetadata(params: CopyMetadataParams = {}): void
       : undefined;
     const packageJson = isRecord(parsedPackageJson) ? parsedPackageJson : undefined;
     const topLevelPublicSurfaceEntries = collectTopLevelPublicSurfaceEntries(pluginDir);
+    const packageMetadata = pluginPackageMetadata(packageJson);
     const hasExternalLocalDist =
-      isRecord(packageJson?.openclaw) &&
-      isRecord(packageJson.openclaw.build) &&
-      packageJson.openclaw.build.bundledDist === false &&
+      isRecord(packageMetadata) &&
+      isRecord(packageMetadata.build) &&
+      packageMetadata.build.bundledDist === false &&
       fs.existsSync(distPluginDir);
     if (
       !hasExternalLocalDist &&
@@ -317,7 +324,7 @@ export function copyBundledPluginMetadata(params: CopyMetadataParams = {}): void
 
     sourcePluginDirs.add(dirent.name);
 
-    const distManifestPath = path.join(distPluginDir, "openclaw.plugin.json");
+    const distManifestPath = path.join(distPluginDir, PLUGIN_MANIFEST_FILENAME);
     const distPackageJsonPath = path.join(distPluginDir, "package.json");
     if (!fs.existsSync(manifestPath) && !isManifestlessSupportPackage) {
       removePathIfExists(distPluginDir);
@@ -354,14 +361,15 @@ export function copyBundledPluginMetadata(params: CopyMetadataParams = {}): void
       removeFileIfExists(distPackageJsonPath);
       continue;
     }
-    if (packageJson && isRecord(packageJson.openclaw) && "extensions" in packageJson.openclaw) {
-      packageJson.openclaw = {
-        ...packageJson.openclaw,
-        extensions: rewritePackageExtensions(packageJson.openclaw.extensions),
-        ...(typeof packageJson.openclaw.setupEntry === "string"
-          ? { setupEntry: rewritePackageEntry(packageJson.openclaw.setupEntry) }
+    if (packageJson && isRecord(packageMetadata) && "extensions" in packageMetadata) {
+      const rewrittenMetadata = {
+        ...packageMetadata,
+        extensions: rewritePackageExtensions(packageMetadata.extensions),
+        ...(typeof packageMetadata.setupEntry === "string"
+          ? { setupEntry: rewritePackageEntry(packageMetadata.setupEntry) }
           : {}),
       };
+      Object.assign(packageJson, withPluginPackageMetadata(packageJson, rewrittenMetadata));
     }
 
     writeTextFileIfChanged(distPackageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
