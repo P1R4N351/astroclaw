@@ -18,7 +18,21 @@ const i18nAssetsDir = path.resolve(
   "../src/i18n/.i18n",
 );
 const locales = new Set(CONTROL_UI_LOCALE_ENTRIES.map(({ locale }) => locale));
-const sourceCatalog = loadControlUiSourceCatalog();
+// Mirrors scripts/control-ui-i18n.ts's SOURCE_LOCALE_PATH/ACTIVITY_SOURCE_LOCALE_PATH/
+// SESSION_PLACEMENT_SOURCE_LOCALE_PATH/PLUGIN_CONSENT_SOURCE_LOCALE_PATH -- this call site
+// had drifted to the zero-arg call the function used to take, throwing
+// ERR_INVALID_ARG_TYPE out of fs.promises.stat(undefined) the moment any vitest config
+// (even a non-UI one, via the shared workspace glob) touched this module.
+const controlUiLocalesDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../src/i18n/locales",
+);
+const sourceCatalog = await loadControlUiSourceCatalog(
+  path.join(controlUiLocalesDir, "en.ts"),
+  path.join(controlUiLocalesDir, "en-activity.ts"),
+  path.join(controlUiLocalesDir, "en-session-placement.ts"),
+  path.join(controlUiLocalesDir, "en-plugin-consent.ts"),
+);
 
 export function controlUiLocaleModulesPlugin(): Plugin {
   return {
