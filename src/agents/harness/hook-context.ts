@@ -1,7 +1,7 @@
 /**
  * Builds plugin hook context metadata for native agent harness events.
  */
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { DiagnosticTraceContext } from "../../infra/diagnostic-trace-context.js";
 import { buildAgentHookContextIdentityFields } from "../../plugins/hook-agent-context.js";
 import type {
@@ -27,6 +27,7 @@ export type AgentHarnessHookContext = {
   modelProviderId?: string;
   modelId?: string;
   messageProvider?: string;
+  accountId?: string;
   trigger?: string;
   channelId?: string;
   contextTokenBudget?: number;
@@ -52,6 +53,9 @@ export function buildAgentHookContext(params: AgentHarnessHookContext): PluginHo
     ...(params.modelProviderId ? { modelProviderId: params.modelProviderId } : {}),
     ...(params.modelId ? { modelId: params.modelId } : {}),
     ...(params.messageProvider ? { messageProvider: params.messageProvider } : {}),
+    // The agent's configured channel account is routing context, not requester identity.
+    // Keep it on non-user turns while the identity projection below withholds sender/chat facts.
+    ...(params.accountId ? { accountId: params.accountId } : {}),
     ...(params.channel ? { channel: params.channel } : {}),
     ...(params.trigger ? { trigger: params.trigger } : {}),
     ...(params.channelId ? { channelId: params.channelId } : {}),
