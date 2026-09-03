@@ -1,9 +1,9 @@
 // Mattermost tests cover reply delivery plugin behavior.
 import path from "node:path";
-import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { createMessageReceiptFromOutboundResults } from "openclaw/plugin-sdk/channel-outbound";
-import type { ChunkMode, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
-import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
+import type { ChunkMode, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig, PluginRuntime } from "../../runtime-api.js";
 import { deliverMattermostReplyPayload } from "./reply-delivery.js";
