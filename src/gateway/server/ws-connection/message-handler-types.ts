@@ -5,7 +5,7 @@ import type {
   RequestFrame,
   errorShape,
 } from "../../../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import type { DeviceAuthToken } from "../../../infra/device-pairing.types.js";
 import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import type { DeviceBootstrapProfile } from "../../../shared/device-bootstrap-profile.js";
@@ -18,7 +18,7 @@ import type { NodeReapprovalCoordinator } from "../../node-reapproval-coordinato
 import type { PluginNodeCapabilitySurface } from "../../plugin-node-capability.js";
 import type { GatewayRole } from "../../role-policy.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "../../server-methods/types.js";
-import type { GatewayWsClient, WsHandshakePhase } from "../ws-types.js";
+import type { GatewayWsBrowserOrigin, GatewayWsClient, WsHandshakePhase } from "../ws-types.js";
 import type { ControlUiPairingKind } from "./connect-policy.js";
 import type { resolvePairingLocality } from "./handshake-auth-helpers.js";
 import type { GatewayNodeLifecycleDispatchTracker } from "./node-lifecycle-dispatch.js";
@@ -96,7 +96,7 @@ export type GatewayConnectPhaseContext = {
   reportedClientIp?: string;
   reportedClientIpSource: NodePairingAutoApproveClientIpSource;
   hasBrowserOriginHeader: boolean;
-  enforceOriginCheckForAnyClient: boolean;
+  browserOrigin?: GatewayWsBrowserOrigin;
   browserRateLimitClientIp?: string;
   authRateLimiter?: AuthRateLimiter;
   clientLabel: string;
