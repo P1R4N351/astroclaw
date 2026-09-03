@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { OutputRuntimeEnv } from "../runtime.js";
 import { withTestDir } from "../test-helpers/temp-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -199,6 +199,68 @@ describe("agentsListCommand", () => {
         ].join("\n"),
       ],
     ]);
+  });
+
+  it.each([
+    {
+      label: "configured",
+      identity: {
+        name: " Chosen Identity ",
+        emoji: "🦉",
+        avatar: "https://example.invalid/new.png",
+      },
+      expected: {
+        identityName: "Chosen Identity",
+        identityEmoji: "🦉",
+        identityAvatarUrl: "https://example.invalid/new.png",
+        identitySource: "config",
+      },
+    },
+    {
+      label: "partially configured",
+      identity: { name: "Chosen Identity" },
+      expected: {
+        identityName: "Chosen Identity",
+        identityEmoji: "🦞",
+        identityAvatarUrl: "https://example.invalid/workspace.png",
+        identitySource: "config",
+      },
+    },
+    ...[
+      { label: "workspace-only", identity: undefined },
+      { label: "blank configured", identity: { name: " ", emoji: "\t", avatar: " " } },
+      { label: "unsupported configured avatar", identity: { avatar: "slack://avatar.png" } },
+    ].map(({ label, identity }) => ({
+      label,
+      identity,
+      expected: {
+        identityName: "Workspace Identity",
+        identityEmoji: "🦞",
+        identityAvatarUrl: "https://example.invalid/workspace.png",
+        identitySource: "identity",
+      },
+    })),
+  ])("lists $label identity values with workspace fallback", async ({ identity, expected }) => {
+    await withTestDir({ prefix: "openclaw-agent-identity-list-" }, async (workspace) => {
+      const identityPath = path.join(workspace, "IDENTITY.md");
+      const identityFile =
+        "# Identity\n\n- Name: Workspace Identity\n- Emoji: 🦞\n- Avatar: https://example.invalid/workspace.png\n";
+      fs.writeFileSync(identityPath, identityFile);
+      requireValidConfigMock.mockResolvedValue({
+        agents: { entries: { proof: { workspace, identity } } },
+      } satisfies OpenClawConfig);
+      const jsonRuntime = createRuntime();
+      await agentsListCommand({ json: true }, jsonRuntime);
+      expect(jsonRuntime.json[0]).toEqual([expect.objectContaining(expected)]);
+
+      const textRuntime = createRuntime();
+      await agentsListCommand({}, textRuntime);
+      const source = expected.identitySource === "config" ? "config" : "IDENTITY.md";
+      expect(vi.mocked(textRuntime.log).mock.calls.flat().join("\n")).toContain(
+        `Identity: ${expected.identityEmoji} ${expected.identityName} (${source})`,
+      );
+      expect(fs.readFileSync(identityPath, "utf8")).toBe(identityFile);
+    });
   });
 
   it("sanitizes configured agent text without changing JSON summaries", async () => {
