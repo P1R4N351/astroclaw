@@ -1,7 +1,7 @@
 // Covers reconnect-triggered queue drain selection, active claims, backoff
 // bypass, and concurrent drain suppression.
 import path from "node:path";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { controlNextRecoverySleep } from "../../../test/helpers/infra/delivery-recovery.js";
 import type { OpenClawConfig } from "../../config/config.js";
@@ -346,6 +346,50 @@ describe("drainPendingDeliveriesCore for reconnect", () => {
 
     await drain();
     expect(deliver).toHaveBeenCalledTimes(channels.length);
+  });
+
+  it("bounds stop admission independently of queued backlog size", async () => {
+    for (const index of Array.from({ length: 64 }, (_, position) => position)) {
+      const id = await enqueueDelivery(
+        {
+          channel: "directchat",
+          to: `+1${String(index).padStart(3, "0")}`,
+          payloads: [{ text: `queued ${index}` }],
+        },
+        tmpDir,
+      );
+      setQueuedEntryState(tmpDir, id, { retryCount: 0, enqueuedAt: index + 1 });
+    }
+    const pendingBefore = await loadPendingDeliveries(tmpDir);
+    let releaseFirst!: () => void;
+    const firstBlocked = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const deliver = vi.fn<DeliverFn>(async () => {
+      if (deliver.mock.calls.length === 1) {
+        await firstBlocked;
+      }
+    });
+    let shouldContinue = true;
+
+    const drain = drainPendingDeliveriesCore({
+      drainKey: "gateway:outbound",
+      logLabel: "Outbound delivery retry",
+      cfg: stubCfg,
+      log: createRecoveryLog(),
+      stateDir: tmpDir,
+      deliver,
+      selectEntry: () => ({ match: true, bypassBackoff: false }),
+      shouldContinue: () => shouldContinue,
+    });
+    await vi.waitFor(() => expect(deliver).toHaveBeenCalledOnce());
+
+    shouldContinue = false;
+    releaseFirst();
+    await drain;
+
+    expect(deliver).toHaveBeenCalledOnce();
+    expect(await loadPendingDeliveries(tmpDir)).toEqual(pendingBefore.slice(1));
   });
 
   it("rejects recovered delivery when the current channel config disables its account", async () => {
