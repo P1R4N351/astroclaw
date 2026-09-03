@@ -9,7 +9,7 @@ import {
   parseFrontmatterBlock,
   stripFrontmatterBlock,
 } from "../../packages/markdown-core/src/frontmatter.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { readRootJsonObjectSync } from "../infra/json-files.js";
 import { readRegularFileSync } from "../infra/regular-file.js";
@@ -170,6 +170,7 @@ export function loadEnabledClaudeBundleCommands(params: {
     const activationState = resolveEffectivePluginActivationState({
       id: record.id,
       origin: record.origin,
+      channelIds: record.channels,
       config: normalizedPlugins,
       rootConfig: params.cfg,
     });
