@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { afterEach, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type {
   ProviderModelRouteAuthRequirement,
   ProviderModelRouteCandidate,
@@ -10,7 +10,7 @@ import type {
 import {
   type OpenClawTestState,
   withOpenClawTestState,
-} from "../../test-utils/astroclaw-test-state.js";
+} from "../../test-utils/openclaw-test-state.js";
 import type { AuthProfileStore } from "./types.js";
 
 export const TEST_PRIMARY_PROFILE_ID = "openai:primary@example.test";
@@ -35,16 +35,6 @@ const authStoreMocks = vi.hoisted(() => {
       ({ provider, modelId }: { provider: string; modelId?: string }) =>
         state.routeResolutions.get(`${provider}\0${modelId ?? ""}`) ?? null,
     ),
-    resolveProviderIdForAuth: vi.fn((provider: string) => {
-      const normalized = provider.trim().toLowerCase();
-      return (
-        {
-          "claude-cli": "anthropic",
-          "codex-cli": "openai",
-          "z.ai": "zai",
-        }[normalized] ?? normalized
-      );
-    }),
     reset() {
       state.hasSource = false;
       state.routeResolutions.clear();
@@ -56,10 +46,6 @@ const authStoreMocks = vi.hoisted(() => {
 vi.mock("./store.js", () => ({
   ensureAuthProfileStore: authStoreMocks.ensureAuthProfileStore,
   hasAnyAuthProfileStoreSource: authStoreMocks.hasAnyAuthProfileStoreSource,
-}));
-
-vi.mock("../provider-auth-aliases.js", () => ({
-  resolveProviderIdForAuth: authStoreMocks.resolveProviderIdForAuth,
 }));
 
 vi.mock("./usage.js", () => ({
@@ -87,18 +73,6 @@ export async function withAuthState<T>(run: (state: OpenClawTestState) => Promis
     },
     run,
   );
-}
-
-export function createAuthStore(): AuthProfileStore {
-  return {
-    version: 1,
-    profiles: {
-      "zai:work": { type: "api_key", provider: "zai", key: "sk-test" },
-    },
-    order: {
-      zai: ["zai:work"],
-    },
-  };
 }
 
 export function createAuthStoreWithProfiles(params: {
