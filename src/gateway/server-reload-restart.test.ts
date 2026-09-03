@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { GatewayReloadPlan } from "./config-reload.js";
 import { nextGatewayReloadGeneration } from "./server-reload-contracts.js";
 import { createGatewayRestartCoordinator } from "./server-reload-restart.js";
@@ -23,7 +23,6 @@ const restartPlan = {
   restartGmailWatcher: false,
   restartCron: false,
   restartHeartbeat: false,
-  restartHealthMonitor: false,
   reloadPlugins: false,
   restartChannels: new Set(),
   disposeMcpRuntimes: false,
