@@ -32,7 +32,7 @@ vi.mock("../media/media-probe.js", () => ({
 }));
 
 import { MAX_IMAGE_BYTES } from "@astroclaw/media-core/constants";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   resolveChatAttachmentMaxBytes,
   resolveChatAttachmentPolicy,
