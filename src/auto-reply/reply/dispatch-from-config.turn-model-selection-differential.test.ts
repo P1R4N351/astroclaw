@@ -4,7 +4,7 @@ import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js"
 import type { AgentHarness } from "../../agents/harness/types.js";
 import { replaceSessionEntrySync } from "../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createSessionConversationTestRegistry } from "../../test-utils/session-conversation-registry.js";
 import {
@@ -99,6 +99,39 @@ describe("turn model selection harness-path differential", () => {
   it.each(TURN_MODEL_DIFFERENTIAL_FIXTURES)("pins observed $name behavior", (fixture) => {
     expect(observeHarnessSelection(fixture)).toEqual(fixture.expected.harness);
   });
+
+  it.each([
+    { pluginOwnerId: "model-owner", expectedPin: undefined, expectedOverride: "openclaw" },
+    { pluginOwnerId: undefined, expectedPin: "codex", expectedOverride: "codex" },
+  ])(
+    "preserves the delivery-policy owner with pluginOwnerId=$pluginOwnerId",
+    ({ pluginOwnerId, expectedPin, expectedOverride }) => {
+      selectAgentHarnessMock.mockClear();
+      resolveVisibleRepliesPolicy({
+        cfg: {
+          agents: { defaults: { model: { primary: "openai/dispatch-model" } } },
+        },
+        chatType: "direct",
+        ctx: buildTestCtx({ Provider: "openai" }),
+        entry: {
+          sessionId: "owned-session",
+          updatedAt: 100,
+          agentHarnessId: "codex",
+          agentRuntimeOverride: "openclaw",
+          modelSelectionLocked: true,
+          pluginOwnerId,
+        },
+        sessionAgentId: "main",
+      });
+
+      expect(selectAgentHarnessMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          agentHarnessId: expectedPin,
+          agentHarnessRuntimeOverride: expectedOverride,
+        }),
+      );
+    },
+  );
 
   it("resolves turn aliases in the session agent scope", () => {
     const sessionKey = "agent:worker:telegram:group:selection";
