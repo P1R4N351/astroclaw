@@ -1,13 +1,20 @@
 // Workshop policy helpers validate generated skill drafts against workspace policy.
 import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { getRuntimeConfig } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { PLUGIN_APPROVAL_DESCRIPTION_MAX_LENGTH } from "../../infra/plugin-approvals.js";
 import { logDebug } from "../../logger.js";
 import type { PluginHookBeforeToolCallResult } from "../../plugins/hook-before-tool-call-result.js";
+import { createLazyRuntimeNamedExport } from "../../shared/lazy-runtime.js";
 import { resolveSkillWorkshopConfig } from "./config.js";
-import { resolvePendingSkillProposal } from "./service.js";
+
+// Proposal reconciliation and skill-install dependencies belong to actual approval-detail lookup.
+const loadPendingSkillProposalResolver = createLazyRuntimeNamedExport(
+  () => import("./policy.runtime.js"),
+  "resolvePendingSkillProposal",
+);
 
 const SKILL_WORKSHOP_LIFECYCLE_ACTIONS = new Set([
   "apply",
@@ -64,14 +71,6 @@ function lifecycleApprovalText(action: SkillWorkshopLifecycleAction): {
   };
 }
 
-function readOptionalString(
-  record: Record<string, unknown> | null,
-  key: string,
-): string | undefined {
-  const value = record?.[key];
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
 function formatBodySizeKb(content: string): string {
   return (Buffer.byteLength(content, "utf8") / 1024).toFixed(1);
 }
@@ -125,9 +124,10 @@ async function resolveLifecycleApprovalDescription(params: {
   }
   const toolParams = asNullableRecord(params.toolParams);
   try {
+    const resolvePendingSkillProposal = await loadPendingSkillProposalResolver();
     const proposal = await resolvePendingSkillProposal({
-      proposalId: readOptionalString(toolParams, "proposal_id"),
-      name: readOptionalString(toolParams, "name"),
+      proposalId: normalizeOptionalString(toolParams?.proposal_id),
+      name: normalizeOptionalString(toolParams?.name),
       workspaceDir: params.workspaceDir,
     });
     const record = proposal.record;
