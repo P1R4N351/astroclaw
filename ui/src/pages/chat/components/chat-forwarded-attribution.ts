@@ -62,7 +62,9 @@ export function renderForwardedAttribution(group: MessageGroup, opts: ForwardedA
           ? html`<span>${t("chat.messages.forwardedFrom")}</span> <span>${sourceSessionKey}</span>`
           : html`<span
               >${group.senderSession?.agentId
-                ? t("chat.messages.forwardedFromAgent", { agentId: group.senderSession.agentId })
+                ? t("chat.messages.forwardedFromAgent", {
+                    agentId: group.senderSession.agentId,
+                  })
                 : t("chat.messages.forwardedMessage")}</span
             >`}
     </div>
