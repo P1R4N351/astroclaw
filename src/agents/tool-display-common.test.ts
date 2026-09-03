@@ -4,7 +4,7 @@
  * -> resolveDetailFromKeys).
  */
 import { describe, expect, it } from "vitest";
-import { resolveToolVerbAndDetailForArgs } from "./tool-display-common.js";
+import { defaultTitle, resolveToolVerbAndDetailForArgs } from "./tool-display-common.js";
 
 function isHighSurrogate(codeUnit: number): boolean {
   return codeUnit >= 0xd800 && codeUnit <= 0xdbff;
@@ -77,5 +77,23 @@ describe("coerceDisplayValue surrogate-safe truncation", () => {
       detailMode: "first",
     });
     expect(detail).toBe("short value with no emoji");
+  });
+});
+
+describe("defaultTitle", () => {
+  it("collapses a server-name token the tool name already repeats", () => {
+    // Regression for the Discord-visible "Eidetic Eidetic Recall" bug: the
+    // MCP bundle joins server + tool as `${server}__${tool}` (agent-bundle-mcp-names
+    // TOOL_NAME_SEPARATOR), and when the tool itself is already prefixed with
+    // the server name (e.g. eidetic's `eidetic_recall`), the naive
+    // underscore-split title-caser rendered the shared token twice.
+    expect(defaultTitle("eidetic__eidetic_recall")).toBe("Eidetic Recall");
+    expect(defaultTitle("memory__memory_search")).toBe("Memory Search");
+  });
+
+  it("leaves non-repeating and single-repeat tool names unaffected", () => {
+    expect(defaultTitle("eidetic_recall")).toBe("Eidetic Recall");
+    expect(defaultTitle("list_pull_requests")).toBe("List Pull Requests");
+    expect(defaultTitle("")).toBe("Tool");
   });
 });
