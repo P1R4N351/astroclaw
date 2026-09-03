@@ -8,7 +8,7 @@ import {
   createAgentPatchedSessionModelFallback,
   type AgentPatchedSessionModelFallback,
 } from "../config/sessions/session-model-fallback.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveFailoverReasonFromError } from "./failover-error.js";
 import type { FailoverReason } from "./failover/signal.js";
 import { resolveSessionModelRef } from "./session-model-ref.js";
@@ -166,6 +166,10 @@ export function createAgentPatchedSessionModelRunGuard(params: {
   let failure: { error?: unknown; reason?: FailoverReason } = {};
   let reconciled = false;
   const captureFailure = (error: unknown, reason?: string) => {
+    // Only the patch captured when this guard was created can be reconciled.
+    if (markerTs === undefined) {
+      return false;
+    }
     const classifiedReason = reason
       ? (reason as FailoverReason)
       : resolveFailoverReasonFromError(error);
