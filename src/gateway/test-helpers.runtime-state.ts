@@ -9,8 +9,8 @@ import type { ReplyPayload } from "../auto-reply/reply-payload.js";
 import type { InternalGetReplyOptions } from "../auto-reply/reply/get-reply.types.js";
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { AgentBinding } from "../config/types.agents.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { HooksConfig } from "../config/types.hooks.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { RunCronAgentTurnResult } from "../cron/isolated-agent/run.types.js";
 import type { TailscaleWhoisIdentity } from "../infra/tailscale.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
@@ -63,7 +63,13 @@ type GatewayTestHoistedState = {
     resolveEndBeforeTimeoutIds: Set<string>;
     compactEmbeddedAgentSession: Mock<CompactEmbeddedAgentSessionFn>;
   };
-  testTailscaleWhois: { value: TailscaleWhoisIdentity | null };
+  testTailscaleWhois: {
+    value: TailscaleWhoisIdentity | null;
+    calls: Array<{
+      ip: string;
+      opts?: { timeoutMs?: number; cacheTtlMs?: number; errorTtlMs?: number };
+    }>;
+  };
   getReplyFromConfig: Mock<GetReplyFromConfigFn>;
   sendWhatsAppMock: Mock<SendWhatsAppFn>;
   testState: {
@@ -125,7 +131,7 @@ const gatewayTestHoisted = vi.hoisted(() => {
         },
       }),
     },
-    testTailscaleWhois: { value: null },
+    testTailscaleWhois: { value: null, calls: [] },
     getReplyFromConfig: vi.fn<GetReplyFromConfigFn>().mockResolvedValue(undefined),
     sendWhatsAppMock: vi.fn().mockResolvedValue({ messageId: "msg-1", toJid: "jid-1" }),
     testState: {
