@@ -2,6 +2,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { RuntimeEnv } from "../runtime.js";
 
 type FakeFsEntry = { kind: "file"; content: string } | { kind: "dir" };
 
@@ -70,7 +71,7 @@ vi.mock("./control-ui-assets.fs.runtime.js", async () => {
   return wrapped;
 });
 
-vi.mock("./astroclaw-root.js", () => ({
+vi.mock("./openclaw-root.js", () => ({
   resolveOpenClawPackageRoot: vi.fn(async () => null),
   resolveOpenClawPackageRootSync: vi.fn(() => null),
 }));
@@ -84,7 +85,7 @@ let resolveControlUiAssetHealth: typeof import("./control-ui-assets.js").resolve
 let isPackageProvenControlUiRootSync: typeof import("./control-ui-assets.js").isPackageProvenControlUiRootSync;
 let resolveControlUiRootOverrideSync: typeof import("./control-ui-assets.js").resolveControlUiRootOverrideSync;
 let resolveControlUiRootSync: typeof import("./control-ui-assets.js").resolveControlUiRootSync;
-let openclawRoot: typeof import("./astroclaw-root.js");
+let openclawRoot: typeof import("./openclaw-root.js");
 
 describe("control UI assets helpers (fs-mocked)", () => {
   beforeAll(async () => {
@@ -96,7 +97,7 @@ describe("control UI assets helpers (fs-mocked)", () => {
       resolveControlUiRootOverrideSync,
       resolveControlUiRootSync,
     } = await import("./control-ui-assets.js"));
-    openclawRoot = await import("./astroclaw-root.js");
+    openclawRoot = await import("./openclaw-root.js");
   });
 
   beforeEach(() => {
@@ -316,12 +317,20 @@ describe("control UI assets helpers (fs-mocked)", () => {
       return { stdout: "", stderr: "", code: 0, signal: null, killed: false, termination: "exit" };
     });
 
+    const runtime = { log: vi.fn<RuntimeEnv["log"]>(), error: vi.fn(), exit: vi.fn() };
     await expect(
-      ensureControlUiAssetsBuilt(undefined, {
+      ensureControlUiAssetsBuilt(runtime, {
         argv1: path.join(packagedRoot, "dist", "entry.js"),
         cwd: checkoutRoot,
       }),
     ).resolves.toEqual({ ok: true, built: true });
+    const message = runtime.log.mock.calls.flat().join("\n");
+    const commands = [...message.matchAll(/`(pnpm [^`]+)`/gu)].map((match) => match[1]);
+    expect(commands).toHaveLength(2);
+    for (const command of commands) {
+      expect(command).toContain(checkoutRoot);
+      expect(command).not.toContain(packagedRoot);
+    }
     expect(state.runCommandWithTimeout).toHaveBeenCalledWith(
       [process.execPath, path.join(checkoutRoot, "scripts", "ui.js"), "build"],
       expect.objectContaining({ cwd: checkoutRoot }),
