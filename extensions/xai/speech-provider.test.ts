@@ -22,7 +22,9 @@ const {
   })),
   isProviderAuthProfileConfiguredMock: vi.fn(() => false),
   resolveApiKeyForProviderMock: vi.fn(
-    async (): Promise<{ apiKey: string | undefined }> => ({ apiKey: undefined }),
+    async (): Promise<{ apiKey: string | undefined }> => ({
+      apiKey: undefined,
+    }),
   ),
 }));
 
@@ -39,11 +41,11 @@ vi.mock("./tts.js", () => ({
   xaiTTSStream: xaiTTSStreamMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
   isProviderAuthProfileConfigured: isProviderAuthProfileConfiguredMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
