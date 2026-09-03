@@ -4,27 +4,11 @@ import type { IsolatedCompletionResult } from "../../agents/isolated-completion.
 import { buildConfiguredModelCatalog } from "../../agents/model-selection-shared.js";
 import { resolveEffectiveAgentRuntime } from "../../agents/thinking-runtime.js";
 import { resolveThinkingProfile } from "../../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
-import type {
-  LlmCompleteErrorCode,
-  LlmCompleteParams,
-  LlmIsolatedAgentRuntimeCompleteParams,
-} from "./types-core.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { createLlmCompleteError as completionError } from "./runtime-llm-error.js";
+import type { LlmCompleteParams, LlmIsolatedAgentRuntimeCompleteParams } from "./types-core.js";
 
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
-
-function completionError(
-  code: LlmCompleteErrorCode,
-  message: string,
-  cause?: unknown,
-): Error & { code: LlmCompleteErrorCode } {
-  const error = new Error(message, cause === undefined ? undefined : { cause }) as Error & {
-    code: LlmCompleteErrorCode;
-  };
-  error.name = "LlmCompleteError";
-  error.code = code;
-  return error;
-}
 
 function requireIsolatedUserPrompt(params: LlmCompleteParams): string {
   if (
