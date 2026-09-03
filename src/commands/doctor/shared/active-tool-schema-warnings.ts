@@ -15,12 +15,12 @@ import {
 // Doctor warnings for active tools whose schemas cannot be projected to the selected runtime.
 import { buildReadableToolsByName } from "../../../agents/tools-effective-inventory-build.js";
 import type { AnyAgentTool } from "../../../agents/tools/common.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../../infra/errors.js";
 import type { PluginMetadataSnapshotScopeRunner } from "../../../plugins/current-plugin-metadata-snapshot.js";
 import { extractModelCompat } from "../../../plugins/provider-model-compat.js";
 import type { ProviderRuntimeModel } from "../../../plugins/provider-runtime-model.types.js";
-import { getPluginToolMeta } from "../../../plugins/tools.js";
+import { getPluginToolMeta } from "../../../plugins/tool-metadata.js";
 import { resolveDoctorPrimaryModelRef } from "./primary-model-ref.js";
 
 type RuntimeModelContext = {
