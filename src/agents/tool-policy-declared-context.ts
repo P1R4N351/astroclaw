@@ -1,7 +1,7 @@
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { uniqueStrings } from "@astroclaw/normalization-core/string-normalization";
 import { normalizeConfiguredMcpServers } from "../config/mcp-config-normalize.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizePluginsConfig } from "../plugins/config-state.js";
 import { getCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
 import { isManifestPluginAvailableForControlPlane } from "../plugins/manifest-contract-eligibility.js";
@@ -57,17 +57,6 @@ function denylistBlocksPlugin(params: { pluginId: string; denylist: ToolDenylist
   );
 }
 
-function denylistBlocksPluginTool(params: {
-  pluginId: string;
-  toolName: string;
-  denylist: ToolDenylist;
-}): boolean {
-  return (
-    denylistBlocksPlugin({ pluginId: params.pluginId, denylist: params.denylist }) ||
-    denylistBlocksName(params.toolName, params.denylist)
-  );
-}
-
 function collectConfiguredMcpServerNames(params: {
   config?: OpenClawConfig;
   toolDenylist?: string[];
@@ -101,14 +90,7 @@ function collectAvailableManifestToolNames(params: {
   denylist: ToolDenylist;
 }): string[] {
   return (params.plugin.contracts?.tools ?? [])
-    .filter(
-      (toolName) =>
-        !denylistBlocksPluginTool({
-          pluginId: params.plugin.id,
-          toolName,
-          denylist: params.denylist,
-        }),
-    )
+    .filter((toolName) => !denylistBlocksName(toolName, params.denylist))
     .filter((toolName) =>
       hasManifestToolAvailability({
         plugin: params.plugin,
@@ -163,9 +145,8 @@ function collectDeclaredPluginContext(params: {
         snapshot,
         plugin,
         config: params.config,
+        normalizedConfig: normalizedPlugins,
       }) ||
-      normalizedPlugins.entries[plugin.id]?.enabled === false ||
-      normalizedPlugins.deny.includes(plugin.id) ||
       denylistBlocksPlugin({ pluginId: plugin.id, denylist })
     ) {
       continue;
