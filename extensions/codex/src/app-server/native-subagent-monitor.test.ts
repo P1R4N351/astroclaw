@@ -163,7 +163,10 @@ function createRuntime() {
     ...taskRuntime,
     createAgentHarnessTaskRuntime: vi.fn(() => taskRuntime),
     deliverAgentHarnessTaskCompletion: vi.fn(
-      async (): Promise<DeliveryResult> => ({ delivered: true, path: "direct" }),
+      async (): Promise<DeliveryResult> => ({
+        delivered: true,
+        path: "direct",
+      }),
     ),
   };
 }
