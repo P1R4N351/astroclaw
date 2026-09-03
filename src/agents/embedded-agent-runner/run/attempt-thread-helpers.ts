@@ -2,8 +2,12 @@ import { normalizeStructuredPromptSection } from "@openclaw/ai/internal/shared";
 /**
  * Handles per-attempt thread prompt composition and cache TTL markers.
  */
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { joinPresentTextSegments } from "../../../shared/text/join-segments.js";
+import {
+  serializeCacheTtlToolResultProjections,
+  type ToolResultPromptProjectionState,
+} from "../session-prompt-state.js";
 
 /** Custom transcript marker used to preserve cache-TTL pruning state across attempts. */
 const ATTEMPT_CACHE_TTL_CUSTOM_TYPE = "openclaw.cache-ttl";
@@ -91,6 +95,7 @@ export function appendAttemptCacheTtlIfNeeded(params: {
   modelApi?: string;
   isCacheTtlEligibleProvider: (provider: string, modelId: string, modelApi?: string) => boolean;
   now?: number;
+  toolResultPromptProjectionState: ToolResultPromptProjectionState;
 }): boolean {
   if (!shouldAppendAttemptCacheTtl(params)) {
     return false;
@@ -99,6 +104,7 @@ export function appendAttemptCacheTtlIfNeeded(params: {
     timestamp: params.now ?? Date.now(),
     provider: params.provider,
     modelId: params.modelId,
+    ...serializeCacheTtlToolResultProjections(params.toolResultPromptProjectionState),
   });
   return true;
 }
