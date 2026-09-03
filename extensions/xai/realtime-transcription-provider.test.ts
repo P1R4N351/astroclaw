@@ -9,7 +9,9 @@ import { buildXaiRealtimeTranscriptionProvider } from "./realtime-transcription-
 const { isProviderAuthProfileConfiguredMock, resolveApiKeyForProviderMock } = vi.hoisted(() => ({
   isProviderAuthProfileConfiguredMock: vi.fn(() => false),
   resolveApiKeyForProviderMock: vi.fn(
-    async (): Promise<{ apiKey: string | undefined }> => ({ apiKey: undefined }),
+    async (): Promise<{ apiKey: string | undefined }> => ({
+      apiKey: undefined,
+    }),
   ),
 }));
 
