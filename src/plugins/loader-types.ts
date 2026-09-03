@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
 import type { PluginDiscoveryResult } from "./discovery.js";
@@ -41,7 +41,7 @@ export type PluginLoadOptions = {
   requireSetupEntryForSetupOnlyChannelPlugins?: boolean;
   /** Select full runtime registration or the lightweight unconfigured-channel setup path. */
   channelPluginLoadIntent?: ChannelPluginLoadIntent;
-  /** Prefer bundled JavaScript artifacts over source TypeScript entrypoints. */
+  /** Built hosts prefer canonical checkout artifacts by default; false retains source execution. */
   preferBuiltPluginArtifacts?: boolean;
   toolDiscovery?: boolean;
   activate?: boolean;
