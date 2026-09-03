@@ -3,12 +3,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { note } from "../../packages/terminal-core/src/note.js";
 import type { HealthFinding, HealthRepairEffect } from "../flows/health-checks.js";
-import { resolveOpenClawPackageRoot } from "../infra/astroclaw-root.js";
 import {
   ensureControlUiAssetsBuilt,
+  formatControlUiSourceCommand,
   resolveControlUiAssetHealth,
   resolveControlUiDistIndexPathForRoot,
 } from "../infra/control-ui-assets.js";
+import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
@@ -124,7 +125,7 @@ export function uiProtocolFreshnessIssueToHealthFinding(
     fixHint: issue.canBuild
       ? issue.kind === "missing-assets"
         ? "Run `openclaw doctor --fix` to build Control UI assets."
-        : "Run `openclaw doctor --fix --force` to rebuild Control UI assets, or run `pnpm ui:build`."
+        : `Run \`openclaw doctor --fix --force\` to rebuild Control UI assets, or run \`${formatControlUiSourceCommand(issue.root, "build")}\`.`
       : "Reinstall OpenClaw to restore bundled Control UI assets.",
   };
 }
@@ -152,7 +153,7 @@ function formatUiProtocolFreshnessIssue(issue: UiProtocolFreshnessIssue): string
     return [
       "- Control UI assets are missing.",
       issue.canBuild
-        ? "- Run: pnpm ui:build"
+        ? `- Run: ${formatControlUiSourceCommand(issue.root, "build")}`
         : "- Reinstall OpenClaw to restore bundled Control UI assets.",
     ].join("\n");
   }
