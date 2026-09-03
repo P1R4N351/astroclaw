@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { Model } from "../../llm/types.js";
 import type { PluginMetadataSnapshotOwnerMaps } from "../../plugins/plugin-metadata-snapshot.types.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
@@ -16,6 +16,7 @@ import {
   findConfiguredProviderModel,
   hasConfiguredFallbackSurface,
   mergeConfiguredRuntimeModelParams,
+  mergeConfiguredModelCost,
   resolveConfiguredProviderConfig,
   resolveConfiguredProviderDefaultApi,
   shouldSuppressConfiguredModel,
@@ -184,7 +185,12 @@ export function buildConfiguredFallbackModel(params: {
             ...(configuredModel?.thinkingLevelMap !== undefined
               ? { thinkingLevelMap: configuredModel.thinkingLevelMap }
               : {}),
-            cost: metadataModel?.cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            cost: mergeConfiguredModelCost({
+              provider,
+              cfg,
+              configuredModel,
+              catalogCost: staticCatalogModel?.cost,
+            }),
             contextWindow: resolvedFallbackContextWindow,
             contextTokens: configuredModel?.contextTokens ?? staticCatalogModel?.contextTokens,
             // maxTokens is a wire-level output cap, not a context-budget fallback.
