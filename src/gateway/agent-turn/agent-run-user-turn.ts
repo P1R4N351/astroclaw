@@ -12,7 +12,7 @@ import {
 import type { ExecElevatedDefaults } from "../../agents/bash-tools.exec-types.js";
 import { runAgentHarnessBeforeMessageWriteHook } from "../../agents/harness/hook-helpers.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { deleteMediaBuffer } from "../../media/store.js";
 import type { InputProvenance } from "../../sessions/input-provenance.js";
 import {
@@ -52,6 +52,7 @@ export type PreparedAgentRunUserTurn = {
 };
 
 export async function prepareAgentRunUserTurn(params: {
+  assertCurrent: () => void;
   request: AgentRunRequest;
   cfg: OpenClawConfig;
   cfgForAgent?: OpenClawConfig;
@@ -202,7 +203,12 @@ export async function prepareAgentRunUserTurn(params: {
           );
         },
       });
-      if (!(await recorder.persistApproved())) {
+      if (
+        !(await recorder.stageApproved!({
+          runId: params.runId,
+          assertCurrent: params.assertCurrent,
+        }))
+      ) {
         throw new Error("agent turn was not durably admitted");
       }
     }
@@ -247,9 +253,16 @@ export function finalizePreparedAgentRunUserTurn(prepared: PreparedAgentRunUserT
   }
 }
 
-export function releasePreparedAgentRunUserTurn(prepared: PreparedAgentRunUserTurn): void {
-  releaseExecApprovalFollowupRuntimeHandoff({
-    handoffId: prepared.claimedExecApprovalFollowupHandoffId,
-    claimId: prepared.execApprovalFollowupHandoffClaimId,
-  });
+export function releasePreparedAgentRunUserTurn(
+  prepared: PreparedAgentRunUserTurn,
+  disposition: "cancelled" | "interrupted" = "interrupted",
+): void {
+  try {
+    prepared.recorder?.finishPendingInput?.(disposition);
+  } finally {
+    releaseExecApprovalFollowupRuntimeHandoff({
+      handoffId: prepared.claimedExecApprovalFollowupHandoffId,
+      claimId: prepared.execApprovalFollowupHandoffClaimId,
+    });
+  }
 }
