@@ -1,9 +1,9 @@
 // Discord tests cover reply delivery plugin behavior.
 import { expectDefined } from "@astroclaw/normalization-core";
-import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { createMessageReceiptFromOutboundResults } from "openclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RequestClient } from "../internal/discord.js";
 
@@ -21,9 +21,9 @@ const sendDurableMessageBatchMock = vi.hoisted(() =>
 const sendMessageDiscordMock = vi.hoisted(() => vi.fn());
 const sendVoiceMessageDiscordMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/channel-outbound", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-outbound")>(
-    "openclaw/plugin-sdk/channel-outbound",
+vi.mock("astroclaw/plugin-sdk/channel-outbound", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-outbound")>(
+    "astroclaw/plugin-sdk/channel-outbound",
   );
   return {
     ...actual,
