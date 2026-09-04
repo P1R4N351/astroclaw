@@ -12,20 +12,22 @@ const EXTENSION_PACKAGE_BOUNDARY_PATHS_CONFIG =
 const EXTENSION_PACKAGE_BOUNDARY_BASE_CONFIG =
   "extensions/tsconfig.package-boundary.base.json" as const;
 const XAI_OMITTED_BOUNDARY_PATHS = {
-  "openclaw/plugin-sdk/browser-maintenance": [
+  "astroclaw/plugin-sdk/browser-maintenance": [
     "../packages/plugin-sdk/dist/extensions/browser/browser-maintenance.d.ts",
   ],
-  "openclaw/plugin-sdk/channel-secret-owner-runtime": [
+  "astroclaw/plugin-sdk/channel-secret-owner-runtime": [
     "../packages/plugin-sdk/dist/src/plugin-sdk/channel-secret-owner-runtime.d.ts",
   ],
-  "openclaw/plugin-sdk/channel-secret-tts-runtime": [
+  "astroclaw/plugin-sdk/channel-secret-tts-runtime": [
     "../packages/plugin-sdk/dist/src/plugin-sdk/channel-secret-tts-runtime.d.ts",
   ],
   "@openclaw/matrix/test-api.js": [
     "../.artifacts/extension-package-boundary/plugins/matrix/test-api.d.ts",
   ],
   "@openclaw/discord/api.js": ["../.artifacts/extension-package-boundary/plugins/discord/api.d.ts"],
-  "@openclaw/slack/api.js": ["../.artifacts/extension-package-boundary/plugins/slack/api.d.ts"],
+  "@openclaw/slack/test-api.js": [
+    "../.artifacts/extension-package-boundary/plugins/slack/test-api.d.ts",
+  ],
   "@openclaw/telegram/api.js": [
     "../.artifacts/extension-package-boundary/plugins/telegram/api.d.ts",
   ],
@@ -185,7 +187,7 @@ describe("opt-in extension package boundaries", () => {
     if (!paths) {
       throw new Error("Missing shared extension package boundary aliases");
     }
-    expect(paths["openclaw/plugin-sdk/*"]).toEqual([
+    expect(paths["astroclaw/plugin-sdk/*"]).toEqual([
       "../packages/plugin-sdk/dist/src/plugin-sdk/*.d.ts",
     ]);
     for (const [specifier, targets] of Object.entries(XAI_OMITTED_BOUNDARY_PATHS)) {
