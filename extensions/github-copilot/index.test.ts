@@ -7,17 +7,17 @@ import {
   clearRuntimeAuthProfileStoreSnapshots,
   ensureAuthProfileStore,
   saveAuthProfileStore,
-} from "openclaw/plugin-sdk/agent-runtime";
-import { MAX_DATE_TIMESTAMP_MS, MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import { MAX_DATE_TIMESTAMP_MS, MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import type {
   OpenClawConfig,
   OpenClawPluginApi,
   ProviderAuthResult,
   ProviderCatalogResult,
   UnifiedModelCatalogEntry,
-} from "openclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
-import type { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+import type { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { runGitHubCopilotDeviceFlow } from "./login.js";
@@ -36,9 +36,9 @@ function requireAuthMethod<T>(methods: readonly T[], index: number): T {
   return expectDefined(methods[index], `GitHub Copilot auth method ${index}`);
 }
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/ssrf-runtime")>(
-    "openclaw/plugin-sdk/ssrf-runtime",
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>(
+    "astroclaw/plugin-sdk/ssrf-runtime",
   );
   return {
     ...actual,
@@ -1397,6 +1397,10 @@ describe("github-copilot plugin", () => {
         provider: "github-copilot",
         token: "refreshed-token",
       });
+      expect(result.profiles[0]?.secretStorage).toBeUndefined();
+      expect(result.notes).toContain(
+        "Plaintext secret input mode was selected, so the GitHub Copilot token will remain inline in the auth profile and openclaw secrets audit --check will report it.",
+      );
     } finally {
       vi.unstubAllGlobals();
       if (isTtyDescriptor) {
@@ -1488,7 +1492,6 @@ describe("github-copilot plugin", () => {
           prompter,
           runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
           opts: {},
-          secretInputMode: "plaintext",
           allowSecretRefPrompt: false,
           isRemote: false,
           openUrl,
@@ -1506,6 +1509,10 @@ describe("github-copilot plugin", () => {
       type: "token",
       provider: "github-copilot",
       token: "public-fresh-token",
+    });
+    expect(result.profiles[0]?.secretStorage).toEqual({
+      kind: "store",
+      namePrefix: "GITHUB_COPILOT_TOKEN",
     });
     const params = (
       result.configPatch as {
@@ -1544,7 +1551,6 @@ describe("github-copilot plugin", () => {
           prompter,
           runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
           opts: {},
-          secretInputMode: "plaintext",
           allowSecretRefPrompt: false,
           isRemote: false,
           openUrl,
@@ -1561,6 +1567,10 @@ describe("github-copilot plugin", () => {
       type: "token",
       provider: "github-copilot",
       token: "tenant-fresh-token",
+    });
+    expect(result.profiles[0]?.secretStorage).toEqual({
+      kind: "store",
+      namePrefix: "GITHUB_COPILOT_TOKEN",
     });
     const params = (
       result.configPatch as {
