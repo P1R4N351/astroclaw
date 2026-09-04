@@ -5,10 +5,10 @@ import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { afterEach, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { loadEnabledBundleMcpConfig } from "../plugins/bundle-mcp.js";
 import { clearPluginMetadataLifecycleCaches } from "../plugins/plugin-metadata-lifecycle.js";
-import { getPluginToolMeta } from "../plugins/tools.js";
+import { getPluginToolMeta } from "../plugins/tool-metadata.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import {
   disposeAllSessionMcpRuntimes,
