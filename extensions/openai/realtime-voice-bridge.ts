@@ -1,18 +1,18 @@
 import { randomUUID } from "node:crypto";
-import { coerceErrorMessage, toStringifiedError } from "openclaw/plugin-sdk/error-runtime";
-import { resolveProviderRequestHeaders } from "openclaw/plugin-sdk/provider-http";
+import { coerceErrorMessage, toStringifiedError } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveProviderRequestHeaders } from "astroclaw/plugin-sdk/provider-http";
 import {
   captureWsEvent,
   createDebugProxyWebSocketAgent,
   resolveDebugProxySettings,
-} from "openclaw/plugin-sdk/proxy-capture";
+} from "astroclaw/plugin-sdk/proxy-capture";
 import type {
   RealtimeVoiceBridge,
   RealtimeVoiceSessionConnection,
   RealtimeVoiceToolResultOptions,
-} from "openclaw/plugin-sdk/realtime-voice";
-import { RealtimeVoiceSessionLifecycle } from "openclaw/plugin-sdk/realtime-voice";
-import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/realtime-voice";
+import { RealtimeVoiceSessionLifecycle } from "astroclaw/plugin-sdk/realtime-voice";
+import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
 import WebSocket from "ws";
 import {
   captureOpenAIRealtimeWsClose,
@@ -119,8 +119,9 @@ export class OpenAIRealtimeBridge extends OpenAIRealtimeEvents implements Realti
   sendUserMessage(text: string, options?: OpenAIRealtimeUserMessageOptions): void {
     if (
       options?.toolChoice &&
-      (this.responseActive ||
-        this.responseCreateInFlight ||
+      (this.interruptingPlayback ||
+        this.responseActive ||
+        this.responseCreateState !== "idle" ||
         this.responseCancelInFlight ||
         this.pendingToolCallIds.size > 0)
     ) {
@@ -670,12 +671,12 @@ export class OpenAIRealtimeBridge extends OpenAIRealtimeEvents implements Realti
   }
 
   protected sendEvent(event: unknown, detail?: string): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    const ws = this.ws;
+    if (ws?.readyState === WebSocket.OPEN) {
       const type =
         event && typeof event === "object" && typeof (event as { type?: unknown }).type === "string"
           ? (event as { type: string }).type
           : "unknown";
-      this.config.onEvent?.({ direction: "client", type, ...(detail ? { detail } : {}) });
       const payload = JSON.stringify(event);
       captureWsEvent({
         url: this.connectionUrl,
@@ -688,7 +689,9 @@ export class OpenAIRealtimeBridge extends OpenAIRealtimeEvents implements Realti
           capability: "realtime-voice",
         },
       });
-      this.ws.send(payload);
+      ws.send(payload);
+      // Observers report a sent frame, so nested control cannot overtake it.
+      this.config.onEvent?.({ direction: "client", type, ...(detail ? { detail } : {}) });
     }
   }
 
