@@ -8,7 +8,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import type { DiagnosticSecurityEvent } from "../infra/diagnostic-events.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
@@ -685,9 +685,12 @@ describe("installPluginFromGitSpec", () => {
       });
 
       expect(result.ok).toBe(true);
-      expect(mkdtempSpy).toHaveBeenCalledTimes(2);
-      const targetPrefix = mkdtempSpy.mock.calls[0]?.[0];
-      const fallbackPrefix = mkdtempSpy.mock.calls[1]?.[0];
+      const cloneWorkspaceCalls = mkdtempSpy.mock.calls.filter(([prefix]) =>
+        path.basename(prefix).startsWith("openclaw-git-plugin-"),
+      );
+      expect(cloneWorkspaceCalls).toHaveLength(2);
+      const targetPrefix = cloneWorkspaceCalls[0]?.[0];
+      const fallbackPrefix = cloneWorkspaceCalls[1]?.[0];
       const persistentRepoDir = expectedGitRepoDir({
         gitDir,
         normalizedSpec: "git:https://github.com/acme/demo.git",
@@ -695,11 +698,11 @@ describe("installPluginFromGitSpec", () => {
       expect(path.dirname(expectDefined(targetPrefix, "targetPrefix test invariant"))).toBe(
         await fs.realpath(path.dirname(persistentRepoDir)),
       );
-      // withTempDir roots fallback staging at resolvePreferredOpenClawTmpDir(), which
+      // withTempDir roots fallback staging at resolvePreferredAstroclawTmpDir(), which
       // prefers /tmp/openclaw and only degrades to a uid-scoped os.tmpdir path when
       // that is unsafe. Recompute it here so the assertion holds on every host.
       expect(path.dirname(expectDefined(fallbackPrefix, "fallbackPrefix test invariant"))).toBe(
-        await fs.realpath(resolvePreferredOpenClawTmpDir()),
+        await fs.realpath(resolvePreferredAstroclawTmpDir()),
       );
       expect(runCommandWithTimeoutMock).toHaveBeenCalledTimes(3);
     } finally {
