@@ -1,4 +1,4 @@
-import { html, type TemplateResult } from "lit";
+import { html, nothing, type TemplateResult } from "lit";
 import { isKernelOwnedChannelConfigKey } from "../../../../src/config/channel-config-keys.js";
 import type { ConfigUiHints } from "../../api/types.ts";
 import { hintForPath, humanize, type JsonSchema } from "../../components/config-form.shared.ts";
@@ -159,6 +159,7 @@ export function renderConfigAccordionNav(
                   class="config-accordion-group__item ${props.activeSection === section.key
                     ? "config-accordion-group__item--active"
                     : ""}"
+                  aria-current=${props.activeSection === section.key ? "true" : nothing}
                   @click=${(event: Event) => {
                     props.onSectionChange(section.key);
                     resetContentScroll(event.currentTarget);
