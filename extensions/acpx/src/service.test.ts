@@ -1,18 +1,18 @@
 // ACPX tests cover service plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import {
-  resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir,
   tempWorkspace,
   type TempWorkspace,
-} from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { runtimeRegistry } = vi.hoisted(() => ({
@@ -158,7 +158,7 @@ function restoreEnv(name: keyof typeof previousEnv): void {
 
 beforeEach(async () => {
   testWorkspace = await tempWorkspace({
-    rootDir: resolvePreferredOpenClawTmpDir(),
+    rootDir: resolvePreferredAstroclawTmpDir(),
     prefix: "openclaw-acpx-service-",
   });
 });
@@ -700,6 +700,11 @@ describe("createAcpxRuntimeService", () => {
     const workspaceDir = testWorkspace.dir;
     const ctx = createServiceContext(workspaceDir);
     const service = createAcpxRuntimeService(ctx);
+    const sessionsDir = path.join(workspaceDir, "state", "sessions");
+    await fs.mkdir(sessionsDir, { recursive: true });
+    for (const id of ["global", "openclaw-owner-v1-existing", "agent:free:acp:test"]) {
+      await fs.writeFile(path.join(sessionsDir, `${encodeURIComponent(id)}.json`), "{}");
+    }
 
     await service.start(ctx);
 
@@ -732,7 +737,10 @@ describe("createAcpxRuntimeService", () => {
 
     expect(acpxRuntimeConstructorMock).toHaveBeenCalledOnce();
     expect(acpxRuntimeConstructorMock).toHaveBeenCalledWith(
-      expect.objectContaining({ elicitationModes: ["form", "url"] }),
+      expect.objectContaining({
+        elicitationModes: ["form", "url"],
+        openclawLegacyBareSessionKeys: new Set(["global", "openclaw-owner-v1-existing"]),
+      }),
     );
     expect(backend.healthy).toBeUndefined();
     const turn = backendRuntime.startTurn({
