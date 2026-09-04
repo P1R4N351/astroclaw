@@ -1,7 +1,7 @@
 /** Tests primitive cache-key helpers used by plugin descriptor and metadata caches. */
 import { describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../test/helpers/promise.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   PluginLruCache,
   createConfigScopedPromiseLoader,
@@ -26,13 +26,13 @@ describe("PluginLruCache", () => {
     expect(cache.get("c")).toBe("charlie");
   });
 
-  it("returns hit state for cached null values", () => {
+  it("distinguishes cached null values from misses", () => {
     const cache = new PluginLruCache<string | null>(2);
 
     cache.set("missing", null);
 
-    expect(cache.getResult("missing")).toEqual({ hit: true, value: null });
-    expect(cache.getResult("unknown")).toEqual({ hit: false });
+    expect(cache.get("missing")).toBeNull();
+    expect(cache.get("unknown")).toBeUndefined();
   });
 });
 
