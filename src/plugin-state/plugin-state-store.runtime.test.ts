@@ -6,7 +6,7 @@ import { createPluginRegistry } from "../plugins/registry.js";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
 import { closeOpenClawAgentDatabasesForTest } from "../state/openclaw-agent-db.js";
 import { openOpenClawStateDatabase } from "../state/openclaw-state-db.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { resetPluginBlobStoreForTests, type OpenBlobStoreOptions } from "./plugin-blob-store.js";
 import { resetPluginStateStoreForTests } from "./plugin-state-store.js";
 
@@ -161,6 +161,33 @@ describe("plugin runtime state proxy", () => {
           maxBytesPerNamespace: 4096,
         });
       await expect(otherStore.lookup("viewer")).resolves.toBeUndefined();
+    });
+  });
+
+  it("keeps blob and keyed namespace option policies independent", async () => {
+    await withOpenClawTestState({ label: "plugin-state-policy-independence" }, async () => {
+      const registry = createTestPluginRegistry();
+      const record = createPluginRecord("diffs", "bundled");
+      registry.registry.plugins.push(record);
+      const state = registry.createApi(record, { config: {} }).runtime.state;
+
+      const blob = state.openBlobStore({
+        namespace: "shared-policy",
+        maxEntries: 2,
+        maxBytesPerEntry: 8,
+        maxBytesPerNamespace: 16,
+        overflowPolicy: "reject-new",
+        defaultTtlMs: 100,
+      });
+      const keyed = state.openKeyedStore({
+        namespace: "shared-policy",
+        maxEntries: 3,
+        overflowPolicy: "evict-oldest",
+        defaultTtlMs: 200,
+      });
+
+      await expect(blob.register("blob", new Uint8Array([1]), {})).resolves.toBeUndefined();
+      await expect(keyed.register("keyed", { ok: true })).resolves.toBeUndefined();
     });
   });
 
