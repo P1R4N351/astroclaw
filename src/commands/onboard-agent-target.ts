@@ -17,7 +17,7 @@ import {
 } from "../config/model-input.js";
 import type { OptionalBootstrapFileName } from "../config/types.agent-defaults.js";
 import type { AgentEntryConfig } from "../config/types.agents.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { applyPrimaryModel } from "../plugins/provider-model-primary.js";
 import { normalizeAgentId } from "../routing/session-key.js";
@@ -109,6 +109,26 @@ function replaceOnboardingAgentEntry(
     agents: {
       ...agents,
       entries: toAgentEntriesRecord(nextEntries),
+    },
+  };
+}
+
+export function applyOnboardingWorkspace(
+  config: OpenClawConfig,
+  target: OnboardingAgentTarget,
+  workspace: string,
+): OpenClawConfig {
+  const entry = resolveMutableAgentEntry(config, target.agentId);
+  // Explicit fleets own workspace at the selected entry even when it inherited
+  // the global default; legacy owners stay global until they author an override.
+  if (entry?.workspace !== undefined || (config.agents?.ownership === "explicit" && entry)) {
+    return replaceOnboardingAgentEntry(config, config, target, { ...entry, workspace });
+  }
+  return {
+    ...config,
+    agents: {
+      ...config.agents,
+      defaults: { ...config.agents?.defaults, workspace },
     },
   };
 }
