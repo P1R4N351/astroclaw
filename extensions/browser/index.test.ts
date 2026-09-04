@@ -1,7 +1,7 @@
 // Browser tests cover index plugin behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   browserPluginNodeHostCommands,
@@ -161,7 +161,18 @@ describe("browser plugin", () => {
   it("exposes static browser metadata on the plugin definition", () => {
     expect(browserPluginReload).toEqual({
       restartPrefixes: ["browser"],
-      hotPrefixes: ["browser.profiles"],
+      hotPrefixes: [
+        "browser.profiles",
+        "browser.defaultProfile",
+        "browser.headless",
+        "browser.executablePath",
+        "browser.attachOnly",
+        "browser.cdpUrl",
+        "browser.noSandbox",
+        "browser.extraArgs",
+        "browser.snapshotDefaults",
+        "browser.tabCleanup",
+      ],
     });
     expect(browserPluginNodeHostCommands.map((entry) => entry.command)).toEqual([
       "browser.proxy",
