@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resetTaskRegistryForTests } from "../tasks/task-runtime.test-helpers.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import {
   loadRunCronIsolatedAgentTurn,
   mockRunCronFallbackPassthrough,
@@ -20,7 +20,7 @@ type SendCronFailureAlertParams = Parameters<
   NonNullable<CronServiceParams["sendCronFailureAlert"]>
 >[0];
 
-describe.sequential("CronService silent failure alerts", () => {
+describe("CronService silent failure alerts", { concurrent: false }, () => {
   beforeEach(() => {
     resetRunCronIsolatedAgentTurnHarness();
   });
