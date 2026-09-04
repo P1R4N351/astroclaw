@@ -1,7 +1,7 @@
 // Verifies guarded provider fetch wiring, stream cleanup, proxy, and local service behavior.
 import { MAX_TIMER_TIMEOUT_MS } from "@astroclaw/normalization-core/number-coercion";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import { Stream } from "openai/streaming";
-import type { Model } from "openclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SsrFBlockedError } from "../infra/net/ssrf.js";
 import { mintSecretSentinel } from "../secrets/sentinel.js";
@@ -2127,7 +2127,6 @@ describe("buildGuardedModelFetch", () => {
         retryAfter: "Sun Nov 99 99:99:99 9999",
       },
       { title: "keeps short retry-after 429 responses retryable", status: 429, retryAfter: "30" },
-      { title: "leaves short retry-after values untouched", status: 429, retryAfter: "30" },
       { title: "ignores retry-after on non-retryable responses", status: 400, retryAfter: "239" },
     ])("$title", async ({ status, retryAfter }) => {
       fetchWithSsrFGuardMock.mockResolvedValue({
