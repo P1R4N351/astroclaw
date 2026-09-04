@@ -3,7 +3,7 @@ import { normalizeOptionalString } from "@astroclaw/normalization-core/string-co
 import { resolveSessionStorePathCore } from "../config/sessions/paths.js";
 import { loadSessionEntryReadOnly } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeOptionalAccountId } from "../routing/account-id.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import {
@@ -18,10 +18,14 @@ import {
 } from "./approval-types.js";
 import type { ExecApprovalRequest } from "./exec-approvals.js";
 import type { PluginApprovalRequest } from "./plugin-approvals.js";
+import type { SystemAgentApprovalRequest } from "./system-agent-approvals.js";
 
 export type ApprovalRequestLike = {
   id: string;
-  request: ExecApprovalRequest["request"] | PluginApprovalRequest["request"];
+  request:
+    | ExecApprovalRequest["request"]
+    | PluginApprovalRequest["request"]
+    | SystemAgentApprovalRequest["request"];
   createdAtMs: number;
   expiresAtMs: number;
 };
