@@ -4,7 +4,7 @@ import {
   createOpenAICompletionsTransportStreamFn,
   createOpenAIResponsesTransportStreamFn,
 } from "@openclaw/ai/transports";
-import type { Model } from "openclaw/plugin-sdk/llm";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it, vi } from "vitest";
 import {
   classifyAssistantFailoverReason,
@@ -109,7 +109,7 @@ describe("openai transport stream", () => {
             messages: [{ role: "user", content: "Reply OK", timestamp: Date.now() }],
             tools: [],
           },
-          { apiKey: "test-key", timeoutMs: 1_234, maxRetries: 0 },
+          { apiKey: "test-key", timeoutMs: 1_234 },
         );
 
         const eventTypes: string[] = [];
