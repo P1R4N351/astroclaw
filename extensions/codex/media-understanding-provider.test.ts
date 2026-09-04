@@ -1,5 +1,5 @@
 // Codex tests cover media understanding provider plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildCodexMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import type { CodexAppServerClient } from "./src/app-server/client.js";
@@ -347,7 +347,6 @@ describe("codex media understanding provider", () => {
         { type: "image", url: "data:image/png;base64,aW1hZ2UtYnl0ZXM=" },
       ],
       approvalPolicy: "on-request",
-      model: "gpt-5.4",
       effort: "low",
     });
   });
@@ -691,14 +690,13 @@ describe("codex media understanding provider", () => {
       | {
           threadId?: unknown;
           approvalPolicy?: unknown;
-          model?: unknown;
           input?: Array<{ type?: unknown; text?: unknown; text_elements?: unknown; url?: unknown }>;
           effort?: unknown;
         }
       | undefined;
     expect(turnParams?.threadId).toBe("thread-1");
     expect(turnParams?.approvalPolicy).toBe("on-request");
-    expect(turnParams?.model).toBe("gpt-5.4");
+    expect(turnParams).not.toHaveProperty("model");
     expect(turnParams).not.toHaveProperty("cwd");
     expect(turnParams?.effort).toBe("low");
     expect(turnParams?.input).toHaveLength(3);
