@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 // Covers plugin registry assembly, contribution lookup, and reset behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
@@ -403,6 +403,16 @@ describe("plugin registry facade", () => {
           "demo",
         ]);
       }
+    }
+
+    const withoutInstalledOwners = {
+      lookUpTable: { ...lookUpTable, index: { ...index, plugins: [] } },
+      contribution: "modelCatalogProviders" as const,
+      includeDisabled: true,
+    };
+    expect(listPluginContributionIds(withoutInstalledOwners)).toEqual([]);
+    for (const matches of ["demo-alias", (id: string) => id === "demo-alias"]) {
+      expect(resolvePluginContributionOwners({ ...withoutInstalledOwners, matches })).toEqual([]);
     }
   });
 
