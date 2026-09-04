@@ -1,8 +1,8 @@
-import { wrapToolWithBeforeToolCallHook } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { wrapToolWithBeforeToolCallHook } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   createTerminalPresentationContractTool,
   textToolResult,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 // Covers embedded runner extension factories and tool-result middleware bridge.
 import {
   AuthStorage,
@@ -12,7 +12,7 @@ import {
   loadExtensionFromFactory,
   ModelRegistry,
   SessionManager,
-} from "openclaw/plugin-sdk/agent-sessions";
+} from "astroclaw/plugin-sdk/agent-sessions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   AgentToolResultMiddlewareContext,
@@ -62,6 +62,7 @@ describe("buildEmbeddedExtensionFactories", () => {
         result: {
           content: [{ type: "text" as const, text: "middleware-observed" }],
           details: { observedTool: event.toolName },
+          terminate: true,
         },
       }),
     );
@@ -127,6 +128,7 @@ describe("buildEmbeddedExtensionFactories", () => {
     expect(result).toMatchObject({
       content: [{ type: "text", text: "middleware-observed" }],
       details: { observedTool: "read" },
+      terminate: true,
     });
   });
 
