@@ -2,11 +2,12 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 // Web search runtime tests cover provider resolution and search execution.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearRuntimeAuthProfileStoreSnapshots,
   getRuntimeAuthProfileStoreCredentialsRevision,
+  getRuntimeAuthProfileStoreSnapshotsRevision,
   replaceRuntimeAuthProfileStoreSnapshots,
 } from "../agents/auth-profiles/runtime-snapshots.js";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
@@ -585,6 +586,7 @@ describe("web search runtime", () => {
       config: resolvedConfig,
       authStores: [],
       authStoreCredentialsRevision: getRuntimeAuthProfileStoreCredentialsRevision(),
+      authStoreSnapshotsRevision: getRuntimeAuthProfileStoreSnapshotsRevision(),
       warnings: [],
       webTools: {
         search: {
@@ -762,6 +764,7 @@ describe("web search runtime", () => {
       config: {},
       authStores: [],
       authStoreCredentialsRevision: getRuntimeAuthProfileStoreCredentialsRevision(),
+      authStoreSnapshotsRevision: getRuntimeAuthProfileStoreSnapshotsRevision(),
       warnings: [],
       webTools: {
         search: {
@@ -804,6 +807,7 @@ describe("web search runtime", () => {
       config: {},
       authStores: [],
       authStoreCredentialsRevision: getRuntimeAuthProfileStoreCredentialsRevision(),
+      authStoreSnapshotsRevision: getRuntimeAuthProfileStoreSnapshotsRevision(),
       warnings: [],
       webTools: {
         search: {
@@ -849,6 +853,7 @@ describe("web search runtime", () => {
       config: structuredClone(config),
       authStores: [],
       authStoreCredentialsRevision: getRuntimeAuthProfileStoreCredentialsRevision(),
+      authStoreSnapshotsRevision: getRuntimeAuthProfileStoreSnapshotsRevision(),
       warnings: [],
       webTools: {
         search: {
