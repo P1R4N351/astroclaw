@@ -1,13 +1,16 @@
 // Gateway node connect reconciliation.
 // Computes approved runtime surfaces and pending pairing upgrades on reconnect.
 import type { ConnectParams } from "../../packages/gateway-protocol/src/index.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   PairedDeviceNode,
   NodePairingRequestInput,
   RequestNodePairingResult,
 } from "../infra/device-pairing-node.js";
-import { normalizeNodeApprovalSurfaceList } from "../infra/node-pairing-surface.js";
+import {
+  intersectNodePermissionSurface,
+  normalizeNodeApprovalSurfaceList,
+} from "../infra/node-pairing-surface.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   parseComputerUseCapabilityDescriptor,
@@ -69,28 +72,6 @@ function intersectApprovalSurfaceList(params: {
 }): string[] {
   const approved = new Set(normalizeNodeApprovalSurfaceList(params.approved));
   return normalizeNodeApprovalSurfaceList(params.declared).filter((entry) => approved.has(entry));
-}
-
-function intersectPermissionSurface(params: {
-  approved: Record<string, boolean> | undefined;
-  declared: Record<string, boolean> | undefined;
-}): Record<string, boolean> | undefined {
-  const entries: Array<[string, boolean]> = [];
-  for (const [key, declaredValue] of Object.entries(params.declared ?? {})) {
-    const approvedValue = params.approved?.[key];
-    if (!declaredValue) {
-      entries.push([key, false]);
-      continue;
-    }
-    if (approvedValue === true) {
-      entries.push([key, true]);
-      continue;
-    }
-    if (approvedValue === false) {
-      entries.push([key, false]);
-    }
-  }
-  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 function hasPermissionUpgrade(params: {
@@ -225,7 +206,7 @@ export async function reconcileNodePairingOnConnect(params: {
     approved: approvedCommands,
     declared,
   });
-  const effectiveApprovedDeclaredPermissions = intersectPermissionSurface({
+  const effectiveApprovedDeclaredPermissions = intersectNodePermissionSurface({
     approved: approvedPermissions,
     declared: declaredPermissions,
   });
