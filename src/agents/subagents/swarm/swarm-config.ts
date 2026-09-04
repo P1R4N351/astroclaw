@@ -1,5 +1,5 @@
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { clampNumber } from "../../../utils.js";
 import { resolveAgentConfig } from "../../agent-scope-config.js";
 
@@ -13,7 +13,7 @@ type ResolvedSwarmConfig = {
 };
 
 const DEFAULT_SWARM_CONFIG: ResolvedSwarmConfig = {
-  enabled: false,
+  enabled: true,
   maxConcurrent: 8,
   maxChildrenPerGroup: 50,
   maxTotalPerGroup: 200,
