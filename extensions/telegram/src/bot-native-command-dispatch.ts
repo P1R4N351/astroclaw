@@ -1,24 +1,20 @@
-// Telegram plugin module implements native command admission and dispatch behavior.
-import type { Bot, Context } from "grammy";
 import {
   isChannelPartialDeliveryError,
   type ChannelInboundTurnPlan,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { resolveChannelStreamingBlockEnabled } from "openclaw/plugin-sdk/channel-outbound";
-import { resolveNativeCommandSessionTargets } from "openclaw/plugin-sdk/command-auth-native";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { resolveChannelStreamingBlockEnabled } from "astroclaw/plugin-sdk/channel-outbound";
+import { resolveNativeCommandSessionTargets } from "astroclaw/plugin-sdk/command-auth-native";
 import type {
   ChannelGroupPolicy,
   OpenClawConfig,
   TelegramAccountConfig,
-} from "openclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
-import {
-  PLUGIN_COMMAND_DISPATCH,
-  type PluginCommandCatalogDecision,
-} from "openclaw/plugin-sdk/plugin-command-runtime";
-import { danger, logVerbose, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
+import { PLUGIN_COMMAND_DISPATCH } from "astroclaw/plugin-sdk/plugin-command-runtime";
+import { danger, logVerbose, type RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import type { Bot, Context } from "grammy";
 import { expandTelegramAllowFromWithAccessGroups } from "./access-groups.js";
 import { resolveTelegramAccountOwnerAgentId } from "./account-owner.js";
 import { resolveTelegramAccount } from "./accounts.js";
@@ -65,10 +61,6 @@ import { resolveTelegramCommandIngressAuthorization } from "./ingress.js";
 import { getTopicName, resolveTopicNameCacheScope } from "./topic-name-cache.js";
 
 const EMPTY_RESPONSE_FALLBACK = "No response generated. Please try again.";
-const NON_PLUGIN_COMMAND_DISPATCH = Object.freeze({
-  kind: "non-plugin",
-}) satisfies PluginCommandCatalogDecision;
-
 const loadTelegramNativeCommandDeliveryRuntime = createLazyRuntimeModule(
   () => import("./bot-native-commands.delivery.runtime.js"),
 );
@@ -109,6 +101,7 @@ export type TelegramCommandExecutorParams = {
     | "groupAllowFrom"
     | "replyToMode"
     | "accountAbortSignal"
+    | "dispatchReplyFromConfig"
   >;
 };
 
@@ -496,7 +489,7 @@ export async function prepareTelegramCommandDispatch(
 export async function dispatchTelegramBuiltinTurn(params: {
   dispatch: TelegramCommandDispatch;
   prompt: string;
-  commandArgs?: import("openclaw/plugin-sdk/command-auth-native").CommandArgs;
+  commandArgs?: import("astroclaw/plugin-sdk/command-auth-native").CommandArgs;
 }): Promise<boolean> {
   const { dispatch } = params;
   const { skillFilter, groupSystemPrompt } = resolveTelegramGroupPromptSettings({
@@ -600,6 +593,7 @@ export async function dispatchTelegramBuiltinTurn(params: {
     accountId: dispatch.route.accountId,
     route: { agentId: dispatch.route.agentId, sessionKey: commandSessionKey },
     ctxPayload,
+    dispatchReplyFromConfig: dispatch.opts.dispatchReplyFromConfig,
     record: {
       sessionKey: commandTargetSessionKey,
       trackSessionMetaTask: (task) => {
@@ -647,6 +641,7 @@ export async function dispatchTelegramBuiltinTurn(params: {
           silent:
             dispatch.runtimeTelegramCfg.silentErrorReplies === true && payload.isError === true,
           onPlatformSendDispatch: info.onPlatformSendDispatch,
+          assertPlatformSendAuthorized: info.assertPlatformSendAuthorized,
         });
         if (result.delivered) {
           deliveryState.delivered = true;
@@ -690,7 +685,7 @@ export async function dispatchTelegramBuiltinTurn(params: {
         const enabled = resolveChannelStreamingBlockEnabled(dispatch.runtimeTelegramCfg);
         return typeof enabled === "boolean" ? !enabled : undefined;
       })(),
-      [PLUGIN_COMMAND_DISPATCH]: NON_PLUGIN_COMMAND_DISPATCH,
+      [PLUGIN_COMMAND_DISPATCH]: { kind: "non-plugin" },
     },
   };
   const turnResult = await (
