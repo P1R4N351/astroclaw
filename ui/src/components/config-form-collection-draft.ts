@@ -23,6 +23,19 @@ export type ConfigFormCollectionDraftCommit = {
   value: unknown;
 };
 
+export function openCollectionDraft(event: Event, draftId: string): void {
+  const target = event.currentTarget;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  const block = target.closest(".cfg-block");
+  // Nested collection drafts belong to their own block, not this control.
+  const draft = Array.from(
+    block?.getElementsByTagName("openclaw-config-form-collection-draft") ?? [],
+  ).find((child) => child.parentElement === block && child.id === draftId);
+  draft?.openDraft?.();
+}
+
 export class ConfigFormCollectionDraft extends OpenClawLightDomElement {
   @property({ attribute: false }) props?: ConfigFormCollectionDraftProps;
 
@@ -293,4 +306,10 @@ export class ConfigFormCollectionDraft extends OpenClawLightDomElement {
 
 if (!customElements.get("openclaw-config-form-collection-draft")) {
   customElements.define("openclaw-config-form-collection-draft", ConfigFormCollectionDraft);
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "openclaw-config-form-collection-draft": ConfigFormCollectionDraft;
+  }
 }
