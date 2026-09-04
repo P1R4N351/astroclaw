@@ -107,7 +107,9 @@ const unhandledRejectionHandlerState = vi.hoisted(() => {
   };
 });
 
-vi.mock("@opentelemetry/api", () => ({
+vi.mock("@opentelemetry/api", async (importOriginal) => ({
+  createNoopMeter: (await importOriginal<typeof import("@opentelemetry/api")>()).createNoopMeter,
+  ROOT_CONTEXT: (await importOriginal<typeof import("@opentelemetry/api")>()).ROOT_CONTEXT,
   context: {
     active: () => ({}),
   },
@@ -171,11 +173,11 @@ vi.mock("@opentelemetry/exporter-logs-otlp-proto", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   registerUnhandledRejectionHandler: unhandledRejectionHandlerState.register,
 }));
 
-vi.mock("openclaw/plugin-sdk/fetch-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/fetch-runtime", () => ({
   createNodeProxyAgent: createNodeProxyAgentMock,
 }));
 
@@ -250,7 +252,7 @@ import {
   resetDiagnosticEventsForTest,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPrivateData,
-} from "openclaw/plugin-sdk/diagnostic-runtime";
+} from "astroclaw/plugin-sdk/diagnostic-runtime";
 import {
   emitDiagnosticEventWithTrustedTraceContext,
   emitInternalDiagnosticEventForTest,
@@ -258,7 +260,7 @@ import {
   logMessageDispatchStarted,
   logMessageProcessed,
   runWithDiagnosticTraceContext,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { emitDiagnosticEvent, type DiagnosticEventPayload } from "../api.js";
 import { MAX_RETAINED_TRUSTED_SPAN_CONTEXTS } from "./service-constants.js";
 import {
@@ -851,7 +853,7 @@ afterAll(() => {
   vi.doUnmock("@opentelemetry/sdk-logs");
   vi.doUnmock("@opentelemetry/sdk-metrics");
   vi.doUnmock("@opentelemetry/sdk-trace-base");
-  vi.doUnmock("openclaw/plugin-sdk/fetch-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/fetch-runtime");
   vi.doUnmock("@opentelemetry/resources");
   vi.doUnmock("@opentelemetry/semantic-conventions");
   vi.resetModules();
@@ -1793,16 +1795,12 @@ describe("diagnostics-otel service", () => {
       { transport: "otlp-http-protobuf", status: "started" },
       { transport: "stdout", status: "started" },
     ]);
-    expect(
-      telemetryState.counters.get("openclaw.telemetry.exporter.events")?.add,
-    ).toHaveBeenCalledTimes(1);
+    expect(telemetryState.counters.has("openclaw.telemetry.exporter.events")).toBe(false);
 
     await service.stop?.(ctx);
     await waitForDiagnosticEventsDrained();
     expect(events.map((event) => event.status)).toEqual(["started", "dropped"]);
-    expect(
-      telemetryState.counters.get("openclaw.telemetry.exporter.events")?.add,
-    ).toHaveBeenCalledTimes(1);
+    expect(telemetryState.counters.has("openclaw.telemetry.exporter.events")).toBe(false);
     unsubscribe();
   });
 
@@ -2734,7 +2732,7 @@ describe("diagnostics-otel service", () => {
         throw new TypeError("repeated private failure");
       });
 
-    const { ctx } = await startServiceFixture(["logs"]);
+    const { ctx } = await startServiceFixture(["metrics", "logs"]);
     for (const message of ["first failure", "second failure", "recovery"]) {
       await emitEventAndFlush("log.record", {
         message,
@@ -4763,7 +4761,7 @@ describe("diagnostics-otel service", () => {
   });
 
   test("exports model failover spans", async () => {
-    await startServiceFixture(["traces"]);
+    await startServiceFixture(["traces", "metrics"]);
 
     await emitTrustedEventAndFlush("model.failover", {
       sessionId: "session-1",
