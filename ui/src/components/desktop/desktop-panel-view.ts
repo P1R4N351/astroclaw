@@ -1,11 +1,36 @@
 import type { EnvironmentSummary, WorkerDesktopAppId } from "@astroclaw/gateway-protocol";
 import { html, nothing, type TemplateResult } from "lit";
 import { t } from "../../i18n/index.ts";
+import { registerDesktopEnglish } from "../../i18n/locales/en-desktop.ts";
 import { icons } from "../icons.ts";
 import { renderPanelLoadingSkeleton } from "../panel-loading-skeleton.ts";
 import { desktopAppIcon, desktopAppLabel } from "./desktop-app-presentation.ts";
 import type { DesktopPanelState } from "./desktop-panel-state.ts";
 import { desktopSourceForEnvironment } from "./desktop-source.ts";
+
+registerDesktopEnglish();
+
+export function renderDesktopPanelContent(options: {
+  state: DesktopPanelState;
+  notice: TemplateResult | typeof nothing;
+  picker: TemplateResult;
+  credentials: TemplateResult;
+  recovery: TemplateResult;
+  connection: TemplateResult;
+}) {
+  return html`
+    <div class="desktop-content">
+      ${options.notice}
+      ${options.state === "picker"
+        ? options.picker
+        : options.state === "inventory-error" || options.state === "disconnected"
+          ? options.recovery
+          : options.state === "credentials"
+            ? options.credentials
+            : options.connection}
+    </div>
+  `;
+}
 
 export function renderDesktopPanelHeader(options: {
   dock: "bottom" | "right";
@@ -234,7 +259,10 @@ export function renderDesktopConnection(options: {
   `;
 }
 
-export function renderDesktopNotice(errorText: string | null, noticeText: string | null) {
+export function renderDesktopNotice(
+  errorText: string | null,
+  noticeText: string | null,
+): TemplateResult | typeof nothing {
   return errorText
     ? html`<div class="desktop-note desktop-note--error" role="alert">${errorText}</div>`
     : noticeText
