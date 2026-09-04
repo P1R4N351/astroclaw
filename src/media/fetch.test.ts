@@ -259,6 +259,7 @@ describe("readRemoteMediaBuffer", () => {
       const params = paramsUnknown as {
         url: string;
         fetchImpl?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+        beforeRequest?: () => void;
         init?: RequestInit;
         signal?: AbortSignal;
       };
@@ -269,6 +270,7 @@ describe("readRemoteMediaBuffer", () => {
       if (!fetcher) {
         throw new Error("fetch is not available");
       }
+      params.beforeRequest?.();
       return {
         response: await fetcher(params.url, {
           ...params.init,
@@ -1411,6 +1413,26 @@ describe("readRemoteMediaBuffer", () => {
       fileName: "fallback.csv",
     },
     {
+      name: "unusable extended filename dot before plain",
+      header: "attachment; filename*=UTF-8''.; filename=fallback.csv",
+      fileName: "fallback.csv",
+    },
+    {
+      name: "unusable extended filename dot after plain",
+      header: "attachment; filename=fallback.csv; filename*=UTF-8''.",
+      fileName: "fallback.csv",
+    },
+    {
+      name: "unusable extended filename encoded parent before plain",
+      header: "attachment; filename*=UTF-8''%2E%2E; filename=fallback.csv",
+      fileName: "fallback.csv",
+    },
+    {
+      name: "unusable extended filename encoded parent after plain",
+      header: "attachment; filename=fallback.csv; filename*=UTF-8''%2E%2E",
+      fileName: "fallback.csv",
+    },
+    {
       name: "unsupported extended charset falls back to plain filename",
       header: "attachment; filename*=UTF-16''bad.csv; filename=fallback.csv",
       fileName: "fallback.csv",
@@ -1746,16 +1768,19 @@ describe("readRemoteMediaBuffer", () => {
         }),
       );
     const onRetry = vi.fn();
+    const beforeRequest = vi.fn();
 
     const saved = await saveRemoteMedia({
       url: "https://example.com/retry.png",
       fetchImpl,
+      beforeRequest,
       lookupFn: makeLookupFn(),
       maxBytes: 8,
       retry: { attempts: 2, minDelayMs: 0, maxDelayMs: 0, jitter: 0, onRetry },
     });
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(beforeRequest).toHaveBeenCalledTimes(2);
     expect(onRetry).toHaveBeenCalledTimes(1);
     expect(saved.contentType).toBe("image/png");
     await expect(fs.readFile(saved.path)).resolves.toStrictEqual(Buffer.from([5, 6]));
