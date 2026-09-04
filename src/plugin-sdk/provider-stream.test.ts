@@ -1,7 +1,7 @@
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { Model } from "openclaw/plugin-sdk/llm";
+import type { ProviderWrapStreamFnContext } from "astroclaw/plugin-sdk/core";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 // Provider stream tests cover shared stream-wrapper families and payload compatibility.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { createAssistantMessageEventStream } from "../llm/utils/event-stream.js";
 import { VERSION } from "../version.js";
@@ -25,6 +25,8 @@ import {
   OPENROUTER_THINKING_STREAM_HOOKS,
   TOOL_STREAM_DEFAULT_ON_HOOKS,
 } from "./provider-stream.js";
+
+type StreamFn = NonNullable<ProviderWrapStreamFnContext["streamFn"]>;
 
 function requireWrapStreamFn(
   wrapStreamFn: ReturnType<typeof buildProviderStreamFamilyHooks>["wrapStreamFn"],
@@ -258,7 +260,8 @@ describe("composeProviderStreamWrappers", () => {
 
   it("applies wrappers left to right", () => {
     const order: string[] = [];
-    const baseStreamFn: StreamFn = (_model, _context, _options) => {
+    const baseStreamFn: StreamFn = (_model, _context, options) => {
+      expect(options?.maxRetries).toBe(0);
       order.push("base");
       return {} as never;
     };
@@ -268,7 +271,7 @@ describe("composeProviderStreamWrappers", () => {
       (streamFn: StreamFn | undefined): StreamFn =>
       (model, context, options) => {
         order.push(`${label}:before`);
-        const result = (streamFn ?? baseStreamFn)(model, context, options);
+        const result = (streamFn ?? baseStreamFn)(model, context, { ...options, maxRetries: 0 });
         order.push(`${label}:after`);
         return result;
       };
