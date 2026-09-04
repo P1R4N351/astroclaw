@@ -9,7 +9,7 @@ import {
 import type { OpenClawConfig } from "../config/config.js";
 import { createAgentRunStaleLifecycleError } from "../infra/agent-lifecycle-error.js";
 import { resetTaskRegistryForTests } from "../tasks/task-runtime.test-helpers.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import {
   loadRunCronIsolatedAgentTurn,
   dispatchCronDeliveryMock,
@@ -148,7 +148,7 @@ async function runPersistedDiagnosticCase(params: {
   );
 }
 
-describe.sequential("cron execution diagnostics", () => {
+describe("cron execution diagnostics", { concurrent: false }, () => {
   const servers: Server[] = [];
 
   beforeEach(() => {
