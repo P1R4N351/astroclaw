@@ -9,7 +9,7 @@ const { isDebugProxyGlobalFetchPatchInstalledMock } = vi.hoisted(() => ({
   isDebugProxyGlobalFetchPatchInstalledMock: vi.fn(() => false),
 }));
 
-vi.mock("openclaw/plugin-sdk/proxy-capture", () => ({
+vi.mock("astroclaw/plugin-sdk/proxy-capture", () => ({
   isDebugProxyGlobalFetchPatchInstalled: isDebugProxyGlobalFetchPatchInstalledMock,
 }));
 
@@ -474,6 +474,50 @@ describe("slack proxy dispatcher", () => {
   it("attaches the shared fetch when no proxy env var is configured", () => {
     expect(resolveSlackProxyDispatcher()).toBeUndefined();
     expect(requireFetch(resolveSlackWebClientOptions())).toBeTypeOf("function");
+  });
+
+  it("omits explicit empty bodies from Slack SDK requests", async () => {
+    const globalFetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(null, { status: 200 }));
+    try {
+      const fetch = requireFetch(resolveSlackWebClientOptions());
+      await fetch("https://slack.com/api/auth.test", {
+        body: "",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        method: "POST",
+      });
+
+      expect(globalFetch).toHaveBeenCalledWith("https://slack.com/api/auth.test", {
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        method: "POST",
+      });
+    } finally {
+      globalFetch.mockRestore();
+    }
+  });
+
+  it("preserves nonempty Slack SDK request bodies", async () => {
+    const globalFetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(null, { status: 200 }));
+    try {
+      const fetch = requireFetch(resolveSlackWebClientOptions());
+      await fetch("https://slack.com/api/chat.postMessage", {
+        body: "channel=C123&text=hello",
+        method: "POST",
+      });
+
+      expect(globalFetch).toHaveBeenCalledWith(
+        "https://slack.com/api/chat.postMessage",
+        expect.objectContaining({
+          body: "channel=C123&text=hello",
+          method: "POST",
+        }),
+      );
+    } finally {
+      globalFetch.mockRestore();
+    }
   });
 
   it("preserves an explicitly provided fetch", async () => {
