@@ -3,7 +3,7 @@
  * Covers provider plugin profiles, external CLI scoped discovery, persistence
  * rules, and external CLI bootstrap policy.
  */
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderExternalAuthProfile } from "../../plugins/types.js";
 import { resolveAgentCredentialMapFromStore } from "../agent-auth-credentials.js";
@@ -323,7 +323,11 @@ describe("auth external oauth helpers", () => {
       expect(getRuntimeAuthProfileStoreSnapshot(agentDir)?.profiles["openai:default"]?.type).toBe(
         "oauth",
       );
-      expect(listener).toHaveBeenCalledWith({ agentDir, affectsInheritedStores: false });
+      expect(listener).toHaveBeenCalledWith({
+        agentDir,
+        affectsInheritedStores: false,
+        profileSetChanged: true,
+      });
     } finally {
       unregister();
     }
