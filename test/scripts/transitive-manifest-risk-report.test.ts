@@ -53,6 +53,10 @@ describe("transitive-manifest-risk-report", () => {
               floating: "^1.2.3",
               exact: "2.0.0",
               gitdep: "github:owner/repo#main",
+              malformedSemver: "01.2.3",
+              fragmentlessGitPath:
+                "git+https://github.com/owner/repo/commit/0123456789abcdef0123456789abcdef01234567",
+              pinnedGit: "github:owner/repo#0123456789abcdef0123456789abcdef01234567",
             },
             optionalDependencies: {
               optionalFloating: "~3.0.0",
@@ -66,8 +70,8 @@ describe("transitive-manifest-risk-report", () => {
     });
 
     expect(report.byType).toEqual({
-      "exotic-source": 2,
-      "floating-transitive-spec": 3,
+      "exotic-source": 4,
+      "floating-transitive-spec": 5,
       "lifecycle-script": 1,
       "recently-published-version": 1,
     });
@@ -147,7 +151,7 @@ describe("transitive-manifest-risk-report", () => {
   it("documents JSON completeness and renders grouped Markdown summaries", async () => {
     const report = await createTransitiveManifestRiskReport({
       packageVersions: [
-        { packageName: "openclaw/plugin-sdk/llm", version: "0.74.0" },
+        { packageName: "astroclaw/plugin-sdk/llm", version: "0.74.0" },
         { packageName: "aaa-package", version: "1.0.0" },
         { packageName: "recent-package", version: "1.0.0" },
       ],
@@ -158,7 +162,7 @@ describe("transitive-manifest-risk-report", () => {
         publishedAt:
           packageName === "recent-package" ? "2026-05-11T23:00:00Z" : "2026-04-01T00:00:00Z",
         manifest:
-          packageName === "openclaw/plugin-sdk/llm"
+          packageName === "astroclaw/plugin-sdk/llm"
             ? {
                 dependencies: {
                   "@mistralai/mistralai": "^2.2.0",
