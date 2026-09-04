@@ -1,5 +1,5 @@
 // Discord tests cover account inspect plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { inspectDiscordAccount } from "./account-inspect.js";
 
@@ -50,6 +50,7 @@ describe("inspectDiscordAccount", () => {
     expect(inspected.token).toBe("");
     expect(inspected.tokenSource).toBe("config");
     expect(inspected.tokenStatus).toBe("configured_unavailable");
+    expect(inspected.enabled).toBe(true);
     expect(inspected.configured).toBe(true);
   });
 
@@ -73,6 +74,7 @@ describe("inspectDiscordAccount", () => {
     expect(inspected.token).toBe("");
     expect(inspected.tokenSource).toBe("none");
     expect(inspected.tokenStatus).toBe("missing");
+    expect(inspected.enabled).toBe(true);
     expect(inspected.configured).toBe(false);
   });
 
