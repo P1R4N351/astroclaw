@@ -111,6 +111,7 @@ export class CustodianPage extends OpenClawLightDomElement {
     this.storeCleanup?.();
     this.subscribedStore = this.store;
     this.storeCleanup = this.store.subscribe(() => this.requestUpdate());
+    void this.store.refreshTranscriptIfIdle();
   }
 
   private synchronizeHistoryClient(): void {
@@ -245,6 +246,9 @@ export class CustodianPage extends OpenClawLightDomElement {
                 </div>
               </div>`}
           <div class="custodian__header-actions">
+            ${this.onboarding
+              ? html`<openclaw-sidebar-attention></openclaw-sidebar-attention>`
+              : nothing}
             ${this.historyAvailable
               ? html`<button
                   class="btn btn--ghost custodian__history-toggle"
