@@ -1,5 +1,5 @@
 // Imported by register.test.ts to keep its mocked suite in one Vitest module graph.
-import { runDoctorLintChecks } from "openclaw/plugin-sdk/health";
+import { runDoctorLintChecks } from "astroclaw/plugin-sdk/health";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectPolicyEvidence } from "../policy-state.js";
 import { registerPolicyDoctorChecks } from "./register.js";
@@ -845,6 +845,32 @@ describe("registerPolicyDoctorChecks", () => {
         },
         elevated: { allow: false },
         denyTools: ["exec", "write", "edit", "apply_patch"],
+      },
+    });
+
+    registerPolicyDoctorChecks();
+    const result = await runDoctorLintChecks(ctx(configPath, cfg));
+
+    expect(result.findings).toEqual([]);
+  });
+
+  it("accepts agent exec mode posture that matches policy", async () => {
+    const cfg = cfgWithPolicyOverrides({
+      agents: {
+        list: [{ id: "reviewer", tools: { exec: { mode: "ask" } } }],
+      },
+    });
+    const configPath = await writePolicyFixture({
+      scopes: {
+        reviewer: {
+          agentIds: ["reviewer"],
+          tools: {
+            exec: {
+              allowSecurity: ["allowlist"],
+              requireAsk: ["on-miss"],
+            },
+          },
+        },
       },
     });
 
