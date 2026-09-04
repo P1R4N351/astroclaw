@@ -10,7 +10,7 @@ import {
   type InternalSessionEntry,
   type SessionEntry,
 } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
 import { sessionDeliveryChannel, sessionDeliveryOrigin } from "../utils/delivery-context.shared.js";
 import { resolveSessionStoreAgentId } from "./session-store-key.js";
@@ -115,6 +115,7 @@ export function resolveSessionListSearchModelFields(params: {
     : getSessionDisplaySubagentRunByChildSessionKey(params.key);
   const selectedModel = resolveSessionSelectedModelRef({
     cfg: params.cfg,
+    sessionKey: params.key,
     entry: params.entry,
     agentId,
     rowContext: params.rowContext,
@@ -171,7 +172,6 @@ function loadGatewaySessionSnapshot(
     return { row: null };
   }
   const storeChildSessionsByKey = buildSingleRowStoreChildSessionsByKey({
-    storePath,
     store,
     key: canonicalKey,
     now,
@@ -223,7 +223,6 @@ export function buildGatewaySessionInfo(params: {
 }): GatewaySessionRow {
   const now = params.now ?? Date.now();
   const storeChildSessionsByKey = buildSingleRowStoreChildSessionsByKey({
-    storePath: params.storePath,
     store: params.store,
     key: params.key,
     now,
