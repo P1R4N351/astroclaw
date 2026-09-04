@@ -2,7 +2,7 @@ import { coerceErrorMessage } from "@astroclaw/normalization-core/error-coercion
 import { setConfiguredMcpServer, unsetConfiguredMcpServer } from "../agents/mcp-config-mutation.js";
 import { withClawMcpLifecycleLease } from "../agents/mcp-lifecycle-lease.js";
 import { normalizeConfiguredMcpServers } from "../config/mcp-config-normalize.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { OpenClawStateDatabaseOptions } from "../state/openclaw-state-db.js";
 import {
   CLAW_MCP_REF_SCHEMA_VERSION,
@@ -16,6 +16,7 @@ import {
 } from "./mcp.js";
 import type { ClawManifest } from "./types.js";
 import type { ClawUpdatePlan } from "./update-plan.js";
+import { collectClawRollbackFailures } from "./update-rollback.js";
 
 export type ClawMcpUpdateExecution = {
   appliedNames: string[];
@@ -71,14 +72,7 @@ export async function applyClawMcpUpdate(
   let configMutationUncertain = false;
 
   const rollback = async () => {
-    const failures: string[] = [];
-    for (const revert of undo.toReversed()) {
-      try {
-        await revert();
-      } catch (error) {
-        failures.push(coerceErrorMessage(error));
-      }
-    }
+    const failures = await collectClawRollbackFailures(undo.toReversed());
     if (failures.length > 0) {
       throw new ClawMcpUpdateError(failures.join("; "));
     }
