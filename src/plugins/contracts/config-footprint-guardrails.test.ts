@@ -228,7 +228,7 @@ describe("config footprint guardrails", () => {
       expect(source).not.toContain(schemaName);
     }
     expect(bundledSource).toContain("Bundled-channel config schemas");
-    expect(bundledSource).toContain("openclaw/plugin-sdk/channel-config-schema");
+    expect(bundledSource).toContain("astroclaw/plugin-sdk/channel-config-schema");
     expect(bundledSource).toMatch(
       /loadBundledConfigSchema<[^;]+?>\(\s*"imessage",\s*"IMessageConfigSchema",?\s*\)/u,
     );
@@ -249,8 +249,7 @@ describe("config footprint guardrails", () => {
     // channel-config-schema is the canonical internal module; the primitives
     // and bundled shells stay export-compatible for plugins only.
     const allowedShellImporters = new Set([
-      // The facade's focused regression tests are its only internal consumers.
-      "src/plugin-sdk/bundled-channel-config-schema.test.ts",
+      // The compatibility test exercises the shipped facade exports.
       "src/plugin-sdk/shipped-channel-compat.test.ts",
       // This guardrail file embeds facade specifiers in shell-shape assertions.
       "src/plugins/contracts/config-footprint-guardrails.test.ts",
