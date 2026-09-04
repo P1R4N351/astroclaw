@@ -4,6 +4,7 @@ import type {
   ProviderThinkingProfile,
 } from "openclaw/plugin-sdk/plugin-entry";
 import { normalizeLowercaseStringOrEmpty as normalizeModelId } from "openclaw/plugin-sdk/string-coerce-runtime";
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
   OPENAI_GPT_53_CODEX_SPARK_MODEL_ID,
   OPENAI_GPT_54_MINI_MODEL_ID,
@@ -13,6 +14,7 @@ import {
   OPENAI_GPT_55_MODEL_ID,
   OPENAI_GPT_55_PRO_MODEL_ID,
   OPENAI_GPT_56_MODEL_ID,
+  OPENAI_GPT_6_ASTRA_MODEL_ID,
   resolveOpenAICodexReasoningEfforts,
 } from "./model-route-contract.js";
 
@@ -93,6 +95,14 @@ function buildOpenAIThinkingProfile(params: {
   const modelId = normalizeModelId(params.modelId);
   const agentRuntime = normalizeModelId(params.agentRuntime ?? "");
   const codexEfforts = params.compat?.supportedReasoningEfforts?.map(normalizeModelId);
+  if (modelId === OPENAI_GPT_6_ASTRA_MODEL_ID) {
+    const efforts =
+      codexEfforts ??
+      manifest.modelCatalog.providers.openai.models.find((model) => model.id === modelId)?.compat
+        ?.supportedReasoningEfforts ??
+      [];
+    return { levels: buildCodexLevels(efforts) };
+  }
   const resolvedCodexEfforts =
     params.api === undefined || params.api === "openai-chatgpt-responses"
       ? resolveOpenAICodexReasoningEfforts(modelId, codexEfforts)
