@@ -1,12 +1,12 @@
 // Zalo tests cover api plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { resolvePinnedHostnameWithPolicyMock } = vi.hoisted(() => ({
   resolvePinnedHostnameWithPolicyMock: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   resolvePinnedHostnameWithPolicy: (...args: unknown[]) =>
     resolvePinnedHostnameWithPolicyMock(...args),
 }));
@@ -280,12 +280,7 @@ describe("Zalo API request methods", () => {
   });
 
   it("caps oversized sendChatAction timeouts before scheduling the timer", async () => {
-    const setTimeoutMock = vi
-      .spyOn(globalThis, "setTimeout")
-      .mockReturnValue(1 as unknown as ReturnType<typeof setTimeout>);
-    const clearTimeoutMock = vi
-      .spyOn(globalThis, "clearTimeout")
-      .mockImplementation(() => undefined);
+    const setTimeoutMock = vi.spyOn(globalThis, "setTimeout");
     try {
       const fetcher = vi.fn<ZaloFetch>(
         async () => new Response(JSON.stringify({ ok: true, result: {} })),
@@ -304,17 +299,11 @@ describe("Zalo API request methods", () => {
       expect(setTimeoutMock).toHaveBeenCalledWith(expect.any(Function), MAX_TIMER_TIMEOUT_MS);
     } finally {
       setTimeoutMock.mockRestore();
-      clearTimeoutMock.mockRestore();
     }
   });
 
   it("keeps getUpdates on the long-poll request timeout", async () => {
-    const setTimeoutMock = vi
-      .spyOn(globalThis, "setTimeout")
-      .mockReturnValue(1 as unknown as ReturnType<typeof setTimeout>);
-    const clearTimeoutMock = vi
-      .spyOn(globalThis, "clearTimeout")
-      .mockImplementation(() => undefined);
+    const setTimeoutMock = vi.spyOn(globalThis, "setTimeout");
     try {
       const fetcher = createOkFetcher();
 
@@ -325,17 +314,11 @@ describe("Zalo API request methods", () => {
       expect(init?.body).toBe(JSON.stringify({ timeout: "45" }));
     } finally {
       setTimeoutMock.mockRestore();
-      clearTimeoutMock.mockRestore();
     }
   });
 
   it("validates outbound photo URLs against the SSRF guard before posting", async () => {
-    const setTimeoutMock = vi
-      .spyOn(globalThis, "setTimeout")
-      .mockReturnValue(1 as unknown as ReturnType<typeof setTimeout>);
-    const clearTimeoutMock = vi
-      .spyOn(globalThis, "clearTimeout")
-      .mockImplementation(() => undefined);
+    const setTimeoutMock = vi.spyOn(globalThis, "setTimeout");
     const fetcher = createOkFetcher();
     try {
       await sendPhoto(
@@ -364,7 +347,6 @@ describe("Zalo API request methods", () => {
       );
     } finally {
       setTimeoutMock.mockRestore();
-      clearTimeoutMock.mockRestore();
     }
   });
 
