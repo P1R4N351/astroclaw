@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveGatewayScopedTools } from "./tool-resolution.js";
 
 describe("resolveGatewayScopedTools", () => {
@@ -57,6 +57,31 @@ describe("resolveGatewayScopedTools", () => {
     const messageTool = result.tools.find((tool) => tool.name === "message");
     expect(messageTool?.description).toContain("This turn visible reply");
   });
+
+  it.each(["profile", "gateway-deny", "surface-exclusion"] as const)(
+    "rejects collector mode after %s removes its reader",
+    async (restriction) => {
+      const result = resolveGatewayScopedTools({
+        cfg: {
+          agents: { entries: { main: { default: true } } },
+          tools: { profile: restriction === "profile" ? "messaging" : "coding" },
+          ...(restriction === "gateway-deny"
+            ? { gateway: { tools: { deny: ["agents_wait"] } } }
+            : {}),
+        },
+        sessionKey: "agent:main:main",
+        surface: "loopback",
+        ...(restriction === "surface-exclusion" ? { excludeToolNames: ["agents_wait"] } : {}),
+      });
+      const spawn = result.tools.find((tool) => tool.name === "sessions_spawn");
+      expect(spawn).toBeDefined();
+      expect(result.tools.some((tool) => tool.name === "agents_wait")).toBe(false);
+      expect(spawn?.parameters).not.toHaveProperty("properties.collect");
+      await expect(
+        spawn!.execute("uncollectable", { task: "inspect", collect: true }),
+      ).rejects.toThrow("Collector results are unavailable");
+    },
+  );
 
   it("keeps ordinary loopback turns under the configured profile", () => {
     const result = resolveGatewayScopedTools({
