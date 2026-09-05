@@ -1,10 +1,10 @@
-import { createApiRegistry, createLlmRuntime, getAiTransportHost } from "@openclaw/ai";
 import type {
   AssistantMessage,
   AssistantMessageEventStreamContract,
   Context,
   Model,
 } from "@astroclaw/llm-core";
+import { createApiRegistry, createLlmRuntime, getAiTransportHost } from "@openclaw/ai";
 import { describe, expect, it, vi } from "vitest";
 import { bindModelLlmRuntime } from "./model-runtime-binding.js";
 import { stream, streamSimple } from "./stream.js";
@@ -73,5 +73,17 @@ describe("LLM synchronous stream transport host", () => {
       message,
     ]);
     expect(providerStream).toHaveBeenCalledTimes(2);
+
+    providerStream.mockImplementation(() => {
+      throw Object.assign(new Error("private native detail"), {
+        code: "ERR_SQLITE_ERROR",
+        errcode: 5,
+      });
+    });
+    await expect(stream(boundModel, { messages: [] }).result()).resolves.toMatchObject({
+      stopReason: "error",
+      errorCode: "SQLITE_BUSY",
+      errorMessage: "private native detail",
+    });
   });
 });
