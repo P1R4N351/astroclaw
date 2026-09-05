@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { note } from "../../packages/terminal-core/src/note.js";
 import { listAgentIds, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginMetadataSnapshotScopeRunner } from "../plugins/current-plugin-metadata-snapshot.js";
 import type { SkillStatusEntry } from "../skills/discovery/status.js";
 import { buildWorkspaceSkillStatus } from "../skills/discovery/status.js";
@@ -147,7 +147,8 @@ export async function maybeRepairSkillReadiness(params: {
     return params.cfg;
   }
 
-  const shouldDisable = await params.prompter.confirmAutoFix({
+  // Updating may migrate required state, but must not disable optional skills for this environment.
+  const shouldDisable = await params.prompter.confirmRuntimeRepair({
     message:
       agentIds.length === 1
         ? `Disable ${fleetUnavailable.length} unavailable skill${fleetUnavailable.length === 1 ? "" : "s"} in config?`
