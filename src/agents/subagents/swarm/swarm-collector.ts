@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { consumeSwarmStructuredOutput } from "../../tools/structured-output-tool.js";
 import { ensureCompletionState } from "../registry/subagent-delivery-state.js";
 import { SUBAGENT_ENDED_REASON_KILLED } from "../registry/subagent-lifecycle-events.js";
@@ -64,15 +64,11 @@ export function updateSwarmCollectorCompletion(
         }
       : undefined;
   const resolvedStatus = resolveStatus(entry, captured?.structured !== undefined);
-  const next = {
+  entry.collectorCompletion = {
     status: schemaError && resolvedStatus === "done" ? ("failed" as const) : resolvedStatus,
     ...(captured?.structured !== undefined ? { structured: captured.structured } : {}),
     ...(schemaError ? { schemaError } : {}),
     ...(usage ? { usage } : {}),
   };
-  if (JSON.stringify(entry.collectorCompletion) === JSON.stringify(next)) {
-    return false;
-  }
-  entry.collectorCompletion = next;
   return true;
 }
