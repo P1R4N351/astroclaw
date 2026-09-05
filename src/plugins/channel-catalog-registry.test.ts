@@ -1,5 +1,5 @@
 // Covers channel catalog registry loading and reset behavior.
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import type { PluginCandidate, PluginDiscoveryResult } from "./discovery.js";
@@ -183,7 +183,6 @@ describe("listChannelCatalogEntries", () => {
 
     expect(
       module.listChannelCatalogEntries({
-        installRecords: {},
         discovery: {
           candidates: [createChannelCandidate({ pluginId: "package-plugin" })],
           diagnostics: [],
