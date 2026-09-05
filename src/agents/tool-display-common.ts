@@ -50,8 +50,23 @@ export function defaultTitle(name: string): string {
   if (!cleaned) {
     return "Tool";
   }
+  // MCP tool names are commonly server-prefixed (e.g. `eidetic__eidetic_recall`
+  // from the server+tool safe-name join), so the split-on-underscore words can
+  // repeat the same token back-to-back. Collapse adjacent duplicate words
+  // (case-insensitive) before title-casing so the display label doesn't
+  // render e.g. "Eidetic Eidetic Recall" for a server whose tools are already
+  // named with the server as a prefix.
+  const words = cleaned.split(/\s+/);
+  const deduped: string[] = [];
+  for (const word of words) {
+    const prev = deduped.at(-1);
+    if (prev !== undefined && prev.toLowerCase() === word.toLowerCase()) {
+      continue;
+    }
+    deduped.push(word);
+  }
   const parts: string[] = [];
-  for (const part of cleaned.split(/\s+/)) {
+  for (const part of deduped) {
     parts.push(
       part.length <= 2 && part.toUpperCase() === part
         ? part
