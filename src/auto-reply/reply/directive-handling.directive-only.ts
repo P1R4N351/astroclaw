@@ -1,5 +1,5 @@
 /** Detects directive-only turns that should skip the model. */
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { MsgContext } from "../templating.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
@@ -27,8 +27,8 @@ export function isDirectiveOnly(params: {
   ) {
     return false;
   }
-  // Native arguments belong to their command even when the inline parser leaves invalid prose.
-  if (directives.nativeCommand) {
+  // Command-owned arguments stay out of the agent prompt even when parsing leaves invalid prose.
+  if (directives.command) {
     return true;
   }
   const stripped = stripStructuralPrefixes(cleanedBody ?? "");
