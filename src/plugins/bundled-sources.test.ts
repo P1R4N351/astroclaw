@@ -1,6 +1,6 @@
 /** Covers bundled plugin source overlays and packaged load-path decisions. */
 import { expectDefined } from "@astroclaw/normalization-core";
-import { bundledPluginRootAt } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRootAt } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   findBundledPluginSource,
@@ -25,7 +25,8 @@ vi.mock("./discovery.js", () => ({
   discoverOpenClawPlugins: (...args: unknown[]) => discoverOpenClawPluginsMock(...args),
 }));
 
-vi.mock("./manifest.js", () => ({
+vi.mock("./manifest.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./manifest.js")>()),
   loadPluginManifest: (...args: unknown[]) => loadPluginManifestMock(...args),
 }));
 
