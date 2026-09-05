@@ -43,8 +43,7 @@ private class FakePebbleApi : PebbleApi {
     return if (actionOutcomes.isEmpty()) uiOutcome else actionOutcomes.removeAt(0)
   }
 
-  override suspend fun fetchPbw(): PebbleOutcome<PebblePbwPayload> =
-    PebbleOutcome.Failure(PebbleFailure.Protocol("not used"))
+  override suspend fun fetchPbw(): PebbleOutcome<PebblePbwPayload> = PebbleOutcome.Failure(PebbleFailure.Protocol("not used"))
 }
 
 private fun item(id: String): PebbleMenuItem = PebbleMenuItem(id = id, label = id, sub = null)
