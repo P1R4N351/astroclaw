@@ -1,5 +1,5 @@
 /** Shared type contracts for doctor-owned session SQLite migration reports. */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 export type DoctorSessionSqliteIssue = {
   code: string;
@@ -67,13 +67,11 @@ export type SessionSqliteMigrationFailureIssue = {
   body: string;
   bodyPath?: string;
   github?: {
-    fallbackUrl?: string;
     message?: string;
     status: "created" | "failed" | "skipped";
     url?: string;
   };
   title: string;
-  url: string;
 };
 
 export type DoctorSessionSqliteMode =
