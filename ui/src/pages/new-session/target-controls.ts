@@ -187,11 +187,7 @@ export function renderNewSessionPlaceControls({
         pendingPlacement,
         ...browser.popoverCallbacks("project"),
         browserOpen: browser.browserOpen,
-        browserListing: browser.browserListing,
-        browserLoading: browser.browserLoading,
-        browserError: browser.browserError,
-        browserPathDraft: browser.browserPathDraft,
-        usableBrowserPath: browser.usableBrowserPath(),
+        browser: browser.browser,
         registerProjectPath: browser.browserProjectPath,
         registeringProject: browser.browserRegistering,
         onSelectProject: (projectId) => place.selectProjectId(projectId),
@@ -199,10 +195,6 @@ export function renderNewSessionPlaceControls({
         onSelectRemoteProject: (project) => place.selectRemoteProject(project),
         onApplyFolder: (folder) => place.applyFolder(folder),
         onBrowse: () => browser.selectGatewayBrowser(place.folder.trim() || place.workspacePath()),
-        onBrowserPathDraftChange: (value) => {
-          browser.browserPathDraft = value;
-        },
-        onBrowserNavigate: (path) => browser.loadBrowser(path),
         onBrowserBack: () => browser.showRoot(),
         onRegisterProject: (path) => void browser.registerBrowserProject(path),
         onClose: () => browser.close(),
