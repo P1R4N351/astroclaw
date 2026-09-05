@@ -4,8 +4,9 @@
  * prefixes, and human-delay settings.
  */
 import type { HumanDelayConfig, IdentityConfig } from "../config/types.base.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
-import { resolveAgentConfig } from "./agent-scope.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizeAgentId } from "../routing/session-key.js";
+import { resolveAgentEntry } from "./agent-scope-config.js";
 
 const DEFAULT_ACK_REACTION = "👀";
 
@@ -14,7 +15,8 @@ export function resolveAgentIdentity(
   cfg: OpenClawConfig,
   agentId: string,
 ): IdentityConfig | undefined {
-  return resolveAgentConfig(cfg, agentId)?.identity;
+  // Keep merged-config request normalization for raw Plugin SDK agent ids.
+  return resolveAgentEntry(cfg, normalizeAgentId(agentId))?.identity;
 }
 
 /** Resolve the acknowledgement reaction using account, channel, global, then identity fallback. */
@@ -168,7 +170,7 @@ export function resolveHumanDelayConfig(
   agentId: string,
 ): HumanDelayConfig | undefined {
   const defaults = cfg.agents?.defaults?.humanDelay;
-  const overrides = resolveAgentConfig(cfg, agentId)?.humanDelay;
+  const overrides = resolveAgentEntry(cfg, normalizeAgentId(agentId))?.humanDelay;
   if (!defaults && !overrides) {
     return undefined;
   }
