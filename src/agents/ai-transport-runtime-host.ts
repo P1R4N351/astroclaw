@@ -3,7 +3,7 @@ import {
   getAiTransportHost,
   type AiProviderRequestCapabilities,
 } from "@openclaw/ai";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import "../llm/ai-transport-host.js";
 import { getModelProviderRuntimePluginHandle } from "../plugins/provider-hook-runtime.js";
 import type { ProviderRuntimeModel } from "../plugins/provider-runtime-model.types.js";
@@ -45,6 +45,7 @@ export function configureAiTransportRuntimeHost(): void {
         resolveProviderStreamFn({
           ...params,
           config: params.config as OpenClawConfig | undefined,
+          runtimeHandle: getModelProviderRuntimePluginHandle(params.context.model),
           context: {
             ...params.context,
             config: params.context.config as OpenClawConfig | undefined,
@@ -65,6 +66,7 @@ export function configureAiTransportRuntimeHost(): void {
         wrapProviderSimpleCompletionStreamFn({
           ...params,
           config: params.config as OpenClawConfig | undefined,
+          runtimeHandle: getModelProviderRuntimePluginHandle(params.context.model),
           context: {
             ...params.context,
             config: params.context.config as OpenClawConfig | undefined,
