@@ -5,7 +5,7 @@ import type {
   ChannelPlugin,
   ChannelThreadingToolContext,
 } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { executeMessagePoll } from "./message-action-execution.js";
@@ -157,6 +157,24 @@ describe("executeMessagePoll", () => {
       messageId: "poll-test",
       receipt: { primaryPlatformMessageId: "poll-test", threadId: "42" },
     });
+  });
+
+  it.each([
+    { message: "    poll body  ", expected: "    poll body  " },
+    { message: " \n\t ", expected: "" },
+    { message: undefined, expected: undefined },
+  ])("preserves meaningful poll message whitespace: $expected", async ({ message, expected }) => {
+    const { call } = await runPollAction({
+      actionParams: {
+        target: "poller:123",
+        message,
+        pollQuestion: " Lunch? ",
+        pollOption: [" Pizza ", " Sushi "],
+      },
+    });
+    expect(call.content).toBe(expected);
+    expect(call.poll.question).toBe("Lunch?");
+    expect(call.poll.options).toEqual(["Pizza", "Sushi"]);
   });
 
   it.each([0, -1, 1.5, "1.5", "soon"])(
