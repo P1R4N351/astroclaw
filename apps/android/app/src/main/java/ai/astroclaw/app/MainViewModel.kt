@@ -103,6 +103,8 @@ class MainViewModel(
   val onboardingCompleted: StateFlow<Boolean> = prefs.onboardingCompleted
   val canvasDebugStatusEnabled: StateFlow<Boolean> = prefs.canvasDebugStatusEnabled
   val speakerEnabled: StateFlow<Boolean> = prefs.speakerEnabled
+  val pebbleBaseUrl: StateFlow<String> = prefs.pebbleBaseUrl
+  val pebbleToken: StateFlow<String> = prefs.pebbleToken
   val voiceCaptureMode: StateFlow<VoiceCaptureMode> = runtimeState(initial = VoiceCaptureMode.Off) { it.voiceCaptureMode }
   val micEnabled: StateFlow<Boolean> = runtimeState(initial = false) { it.micEnabled }
 
@@ -263,6 +265,17 @@ class MainViewModel(
   fun setVoiceScreenActive(active: Boolean) {
     ensureRuntime().setVoiceScreenActive(active)
   }
+
+  fun setPebbleBaseUrl(value: String) {
+    prefs.setPebbleBaseUrl(value)
+  }
+
+  fun setPebbleToken(value: String) {
+    prefs.setPebbleToken(value)
+  }
+
+  /** Hydrates the Pebble token flow from encrypted storage; returns "" when unset. */
+  fun loadPebbleToken(): String = prefs.loadPebbleToken()
 
   fun handleAssistantLaunch(request: AssistantLaunchRequest) {
     _requestedHomeDestination.value = HomeDestination.Chat
