@@ -5,15 +5,15 @@ import path from "node:path";
 import {
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveMatrixAccountStorageRoot } from "../../storage-paths.js";
 import { installMatrixTestRuntime } from "../../test-runtime.js";
 import { SqliteBackedMatrixSyncStore } from "./file-sync-store.js";
+import { openMatrixStorageMetaStoreOptions } from "./storage-metadata.js";
 import {
   claimCurrentTokenStorageState,
   maybeMigrateLegacyStorage,
-  openMatrixStorageMetaStoreOptions,
   recordCurrentStorageMetaDeviceId,
   repairCurrentTokenStorageMetaDeviceId,
   resolveMatrixStateFilePath,
