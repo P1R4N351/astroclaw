@@ -140,7 +140,11 @@ class PebbleClient(
         ?: return configFailure()
     // Health is deliberately unauthenticated: it has to stay answerable when the token is the
     // thing that is broken.
-    val request = Request.Builder().url(url).get().build()
+    val request = Request
+      .Builder()
+      .url(url)
+      .get()
+      .build()
     return textRequest(request) { body ->
       val parsed = PebbleProtocol.parseHealth(body)
       if (parsed == null) {
@@ -213,9 +217,17 @@ class PebbleClient(
     return PebbleOutcome.Success(
       PebblePbwPayload(
         bytes = bytes,
-        declaredSha256 = response.header("X-Pbw-Sha256")?.trim()?.lowercase().orEmpty(),
+        declaredSha256 = response
+          .header("X-Pbw-Sha256")
+          ?.trim()
+          ?.lowercase()
+          .orEmpty(),
         declaredVersion = response.header("X-Pbw-Version")?.trim().orEmpty(),
-        declaredEtag = response.header("ETag")?.trim()?.trim('"').orEmpty(),
+        declaredEtag = response
+          .header("ETag")
+          ?.trim()
+          ?.trim('"')
+          .orEmpty(),
       ),
     )
   }
@@ -237,8 +249,7 @@ class PebbleClient(
     return null
   }
 
-  private fun truncated(): PebbleOutcome<Nothing> =
-    PebbleOutcome.Failure(PebbleFailure.Integrity("Watchapp exceeds the size ceiling."))
+  private fun truncated(): PebbleOutcome<Nothing> = PebbleOutcome.Failure(PebbleFailure.Integrity("Watchapp exceeds the size ceiling."))
 
   private fun envelopeOf(body: String): PebbleOutcome<PebbleEnvelope> =
     when (val parsed = PebbleProtocol.parseEnvelope(body)) {
@@ -246,14 +257,11 @@ class PebbleClient(
       is PebbleParse.Unsupported -> PebbleOutcome.Failure(PebbleFailure.Protocol(parsed.reason))
     }
 
-  private fun authenticated(builder: Request.Builder): Request.Builder =
-    builder.header(TOKEN_HEADER, config.token)
+  private fun authenticated(builder: Request.Builder): Request.Builder = builder.header(TOKEN_HEADER, config.token)
 
-  private fun <T> notConfigured(): PebbleOutcome<T> =
-    PebbleOutcome.Failure(PebbleFailure.Protocol("Pebble Iris is not configured."))
+  private fun <T> notConfigured(): PebbleOutcome<T> = PebbleOutcome.Failure(PebbleFailure.Protocol("Pebble Iris is not configured."))
 
-  private fun <T> configFailure(): PebbleOutcome<T> =
-    PebbleOutcome.Failure(PebbleFailure.Protocol("Base URL is not a valid http(s) URL."))
+  private fun <T> configFailure(): PebbleOutcome<T> = PebbleOutcome.Failure(PebbleFailure.Protocol("Base URL is not a valid http(s) URL."))
 
   private suspend fun <T> textRequest(
     request: Request,

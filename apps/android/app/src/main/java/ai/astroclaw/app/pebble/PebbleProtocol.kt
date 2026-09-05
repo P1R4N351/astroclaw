@@ -105,7 +105,11 @@ object PebbleProtocol {
   private fun parsePbw(node: JsonObject?): PebblePbwInfo? {
     if (node == null) return null
     val version = node.stringField("version")?.trim().orEmpty()
-    val sha = node.stringField("sha256")?.trim()?.lowercase().orEmpty()
+    val sha = node
+      .stringField("sha256")
+      ?.trim()
+      ?.lowercase()
+      .orEmpty()
     if (version.isEmpty()) return null
     if (!isSha256Hex(sha)) return null
     return PebblePbwInfo(version = version, sha256 = sha)
