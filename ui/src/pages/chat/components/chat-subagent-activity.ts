@@ -5,7 +5,6 @@ import { icons } from "../../../components/icons.ts";
 import { t } from "../../../i18n/index.ts";
 import { isActiveTask, sortTasks, taskTimestampMs, taskTitle } from "../../../lib/tasks/data.ts";
 import type { TaskSummary } from "../../../lib/tasks/task-summary.ts";
-import { renderDiffStatChips } from "./chat-diff-render.ts";
 
 const SUBAGENT_ACTIVITY_LIMIT = 5;
 const SUBAGENT_ACTIVITY_TERMINAL_RETENTION_MS = 60_000;
@@ -130,7 +129,6 @@ function renderSubagentActivityRow(
           >`,
         )
       : nothing}
-    ${task.diffStat ? renderDiffStatChips(task.diffStat) : nothing}
   `;
   if (!onOpenTaskDetail) {
     return html`<div
