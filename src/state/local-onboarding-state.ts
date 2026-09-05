@@ -1,9 +1,10 @@
 // Durable local onboarding ownership; inference configuration alone does not prove setup finished.
 import path from "node:path";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { sha256Hex } from "../infra/crypto-digest.js";
-import { readConfigMachineState, updateConfigMachineState } from "./config-machine-state.js";
+import { updateConfigMachineState } from "./config-machine-state-write.js";
+import { readConfigMachineState } from "./config-machine-state.js";
 import type { OpenClawStateDatabaseOptions } from "./openclaw-state-db.js";
 
 export type LocalOnboardingState = {
