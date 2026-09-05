@@ -1,6 +1,7 @@
 package ai.astroclaw.app.pebble
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -74,6 +75,7 @@ private class SequenceIds : PebbleRequestIdSource {
   }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PebbleControllerTest {
   @Test
   fun openLoadsHealthAndRootMenu() =
