@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { buildTestCtx } from "./test-ctx.js";
 
 const { handleApproveCommandFromContextMock } = vi.hoisted(() => ({
@@ -74,6 +74,19 @@ describe("tryFastApproveFromMessage", () => {
       }),
       true,
     );
+  });
+
+  it("never submits a suppressed approval command even when command access allows it", async () => {
+    const ctx = buildTestCtx({
+      Body: "/approve exec-1 allow-once",
+      CommandBody: "/approve exec-1 allow-once",
+      CommandInterpretationSuppressed: true,
+      CommandAuthorized: true,
+    });
+    const cfg = { commands: { allowFrom: { "*": ["*"] } } } satisfies OpenClawConfig;
+
+    await expect(tryFastApproveFromMessage({ ctx, cfg })).resolves.toEqual({ handled: false });
+    expect(handleApproveCommandFromContextMock).not.toHaveBeenCalled();
   });
 
   it("uses the canonical command text instead of iMessage reply context", async () => {
