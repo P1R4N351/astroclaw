@@ -8,14 +8,14 @@ import { getRuntimeConfig } from "../../../config/config.js";
 import {
   resolveAgentIdFromSessionKey,
   resolveSessionStorePathCore,
-  type SessionEntry,
+  type InternalSessionEntry as SessionEntry,
 } from "../../../config/sessions.js";
 import {
   listSessionEntriesReadOnly,
   loadSessionEntryReadOnly,
 } from "../../../config/sessions/session-accessor.js";
 import { normalizeStoreSessionKey } from "../../../config/sessions/store-entry.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import type { SubagentRunOutcome } from "../announce/subagent-announce-output.js";
 import {
   SUBAGENT_ENDED_REASON_COMPLETE,
