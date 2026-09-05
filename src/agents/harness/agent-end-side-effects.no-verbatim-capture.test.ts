@@ -9,7 +9,7 @@ import { listSkillProposals } from "../../skills/workshop/service.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/astroclaw-test-state.js";
+} from "../../test-utils/openclaw-test-state.js";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import { awaitAgentEndSideEffects } from "./agent-end-side-effects.js";
 
@@ -78,7 +78,7 @@ describe("agent-end proposal provenance", () => {
 
     await runAgentEndTurn(workspaceDir, sessionKey, userText);
 
-    const manifest = await listSkillProposals({ workspaceDir });
+    const manifest = await listSkillProposals({ config: CONFIG, agentId: "main" });
     expect(manifest.proposals).toEqual([]);
   });
 });
