@@ -7,6 +7,7 @@ import type { Context, Model } from "astroclaw/plugin-sdk/llm";
 import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { buildManifestModelProviderConfig } from "astroclaw/plugin-sdk/provider-catalog-shared";
 import { buildOpenAICompletionsParams } from "astroclaw/plugin-sdk/provider-transport-runtime";
+import { createZeroUsageFixture } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import plugin from "./index.js";
@@ -545,14 +546,7 @@ describe("zai provider plugin", () => {
             },
             { type: "text", text: "visible reply" },
           ],
-          usage: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-            totalTokens: 0,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-          },
+          usage: createZeroUsageFixture(),
           stopReason: "stop",
           timestamp: 2,
         },
