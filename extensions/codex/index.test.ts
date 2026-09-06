@@ -2,6 +2,12 @@
 import fs from "node:fs";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+import { createCapturedPluginRegistration } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import {
+  ensureAuthProfileStore,
+  resolveAuthProfileOrder,
+} from "astroclaw/plugin-sdk/provider-auth";
+import { resolveProviderIdForAuth } from "astroclaw/plugin-sdk/provider-auth-aliases";
 import { describe, expect, it, vi } from "vitest";
 import openAIPlugin from "../openai/index.js";
 import { createCodexAppServerAgentHarness } from "./harness.js";
@@ -25,11 +31,14 @@ const explicitAgentConfig = {
   },
 } as OpenClawConfig;
 
+const modelAuth = { ensureAuthProfileStore, resolveAuthProfileOrder, resolveProviderIdForAuth };
+
 function createCodexTestRuntime(
   current?: () => unknown,
   stateStore = createCodexTestBindingStateStore(),
 ) {
   return {
+    modelAuth,
     ...(current ? { config: { current } } : {}),
     state: {
       openSyncKeyedStore: () => stateStore,
@@ -81,7 +90,7 @@ describe("codex plugin", () => {
           source: "test",
           config: explicitAgentConfig,
           pluginConfig: {},
-          runtime: { state: { openSyncKeyedStore } } as never,
+          runtime: { modelAuth, state: { openSyncKeyedStore } } as never,
         }),
       ),
     ).not.toThrow();
@@ -348,7 +357,7 @@ describe("codex plugin", () => {
         name: "OpenAI Provider",
         source: "test",
         config: {},
-        runtime: {} as never,
+        runtime: createCapturedPluginRegistration({ id: "openai" }).api.runtime,
         registerProvider,
       }),
     );
