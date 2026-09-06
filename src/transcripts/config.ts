@@ -1,4 +1,3 @@
-// Resolves transcript source configuration from OpenClaw config.
 import { normalizeOptionalString as readString } from "@astroclaw/normalization-core/string-coerce";
 
 /**
