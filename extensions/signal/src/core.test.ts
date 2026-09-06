@@ -1,17 +1,17 @@
-import { buildExecApprovalPendingReplyPayload } from "openclaw/plugin-sdk/approval-reply-runtime";
+import { buildExecApprovalPendingReplyPayload } from "astroclaw/plugin-sdk/approval-reply-runtime";
 // Signal tests cover core plugin behavior.
 import {
   createMessageReceiptFromOutboundResults,
   verifyChannelMessageAdapterCapabilityProofs,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { installChannelDmPolicyContractSuite } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { installChannelDmPolicyContractSuite } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   createPluginSetupWizardStatus,
   createTestWizardPrompter,
   type WizardPrompter,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { listSignalAccountIds } from "./accounts.js";
 import {
@@ -391,6 +391,55 @@ describe("probeSignal", () => {
 
     expect(input.helpLines).toBeUndefined();
     expect(input.helpTitle).toBeUndefined();
+  });
+});
+
+describe("signalPlugin pairing.notifyApproval", () => {
+  const pairingCfg = {
+    channels: {
+      signal: {
+        defaultAccount: "alpha",
+        accounts: {
+          alpha: {
+            account: "+15550000001",
+            transport: { kind: "external-native" as const, url: "http://alpha.test" },
+          },
+          beta: {
+            account: "+15550000002",
+            transport: { kind: "external-native" as const, url: "http://beta.test" },
+          },
+        },
+      },
+    },
+  } as OpenClawConfig;
+
+  it.each([
+    {
+      name: "the approved account",
+      accountId: "beta",
+      account: "+15550000002",
+      baseUrl: "http://beta.test",
+    },
+    {
+      name: "the default account when no account was approved",
+      accountId: undefined,
+      account: "+15550000001",
+      baseUrl: "http://alpha.test",
+    },
+  ])("sends the approval from $name", async ({ accountId, account, baseUrl }) => {
+    const signalRpcRequest = vi
+      .spyOn(clientModule, "signalRpcRequest")
+      .mockResolvedValue({ timestamp: 1_700_000_000_000 } as never);
+
+    await signalPlugin.pairing!.notifyApproval!({
+      cfg: pairingCfg,
+      id: "+15551234567",
+      ...(accountId ? { accountId } : {}),
+    });
+
+    expect(signalRpcRequest).toHaveBeenCalledTimes(1);
+    expect(signalRpcRequest.mock.calls[0]?.[1]).toMatchObject({ account });
+    expect(signalRpcRequest.mock.calls[0]?.[2]).toMatchObject({ baseUrl });
   });
 });
 
