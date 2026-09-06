@@ -1,3 +1,4 @@
+import { truncateCodePoints } from "@astroclaw/normalization-core/code-points";
 import { OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH } from "@openclaw/ai/providers";
 
 export function resolveSessionBoundaryPromptCacheKey(params: {
@@ -20,5 +21,5 @@ export function resolveSessionBoundaryPromptCacheKey(params: {
   // Reserve the lifecycle suffix inside OpenAI's 64-code-point limit for proxy runtimes.
   const suffix = `:${params.boundaryCount}`;
   const maxSessionIdLength = OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH - suffix.length;
-  return `${Array.from(params.sessionId).slice(0, maxSessionIdLength).join("")}${suffix}`;
+  return `${truncateCodePoints(params.sessionId, maxSessionIdLength)}${suffix}`;
 }
