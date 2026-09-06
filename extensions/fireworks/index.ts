@@ -6,9 +6,9 @@ import {
   DEFAULT_CONTEXT_TOKENS,
   normalizeModelCompat,
 } from "openclaw/plugin-sdk/provider-model-shared";
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { isFireworksKimiModelId } from "./model-id.js";
 import { applyFireworksConfig } from "./onboard.js";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
   FIREWORKS_BASE_URL,
   FIREWORKS_DEFAULT_CONTEXT_WINDOW,
@@ -82,6 +82,7 @@ export default defineSingleProviderPluginEntry({
     docsPath: "/providers/fireworks",
     manifestAuth: { applyConfig: applyFireworksConfig },
     catalog: {
+      discoveryMode: "strict",
       allowExplicitBaseUrl: true,
       liveModelDiscovery: true,
     },
