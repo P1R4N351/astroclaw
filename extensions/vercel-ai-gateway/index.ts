@@ -1,7 +1,7 @@
 // Vercel Ai Gateway plugin entrypoint registers its OpenClaw integration.
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
-import { applyVercelAiGatewayConfig, VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF } from "./onboard.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { applyVercelAiGatewayConfig, VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF } from "./onboard.js";
 import {
   buildStaticVercelAiGatewayProvider,
   buildVercelAiGatewayProvider,
@@ -24,7 +24,8 @@ export default defineSingleProviderPluginEntry({
       applyConfig: applyVercelAiGatewayConfig,
     },
     catalog: {
-      buildProvider: buildVercelAiGatewayProvider,
+      discoveryMode: "strict",
+      buildProvider: () => buildVercelAiGatewayProvider({ discoveryMode: "strict" }),
       buildStaticProvider: buildStaticVercelAiGatewayProvider,
     },
     resolveDynamicModel: ({ modelId }) => resolveVercelAiGatewayModel(modelId),
