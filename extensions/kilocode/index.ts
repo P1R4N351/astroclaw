@@ -2,8 +2,8 @@
 import { readConfiguredProviderCatalogEntries } from "openclaw/plugin-sdk/provider-catalog-shared";
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
 import { buildProviderReplayFamilyHooks } from "openclaw/plugin-sdk/provider-model-shared";
-import { applyKilocodeConfig, KILOCODE_DEFAULT_MODEL_REF } from "./onboard.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { applyKilocodeConfig, KILOCODE_DEFAULT_MODEL_REF } from "./onboard.js";
 import { buildKilocodeProvider, buildKilocodeProviderWithDiscovery } from "./provider-catalog.js";
 import { wrapKilocodeProviderStream } from "./stream.js";
 
@@ -22,7 +22,8 @@ export default defineSingleProviderPluginEntry({
       applyConfig: applyKilocodeConfig,
     },
     catalog: {
-      buildProvider: buildKilocodeProviderWithDiscovery,
+      discoveryMode: "strict",
+      buildProvider: () => buildKilocodeProviderWithDiscovery({ discoveryMode: "strict" }),
       buildStaticProvider: buildKilocodeProvider,
     },
     augmentModelCatalog: ({ config }) =>
