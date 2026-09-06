@@ -628,7 +628,7 @@ vi.mock("./auth-profiles.js", () => ({
   ensureAuthProfileStore: () => ({ profiles: {} }),
 }));
 
-vi.mock("./auth-profiles/store.js", () => ({
+vi.mock("./auth-profiles/store-runtime.js", () => ({
   ensureAuthProfileStore: () => state.authProfileStoreMock,
 }));
 
