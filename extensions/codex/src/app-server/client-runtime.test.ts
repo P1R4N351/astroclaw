@@ -1,4 +1,4 @@
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CodexAppServerClient } from "./client.js";
 import { createClientHarness } from "./test-support.js";
@@ -45,6 +45,24 @@ describe("Codex app-server client runtime", () => {
     vi.useRealTimers();
     mocks.refreshAuth.mockClear();
     mocks.mergeRateLimitUpdate.mockClear();
+  });
+
+  it("retains ephemeral policy and history beyond persistent idle and capacity limits", async () => {
+    vi.useFakeTimers();
+    const { client } = createClientHarness();
+    clients.push(client);
+    ensureCodexAppServerClientRuntime(client, { agentDir: "/tmp/agent" });
+    const release = vi.fn(async (_threadId: string) => undefined);
+    await retainCodexAppServerLiveThread(client, "ephemeral", release, "creation-config", null, "");
+    for (let i = 0; i <= EXPECTED_MAX_IDLE_LIVE_THREADS; i++) {
+      await retainCodexAppServerLiveThread(client, `persistent-${i}`, release);
+    }
+    await vi.advanceTimersByTimeAsync(EXPECTED_LIVE_THREAD_IDLE_TIMEOUT_MS + 1);
+    const ownership = await consumeCodexAppServerLiveThread(client, "ephemeral");
+    expect(ownership).toMatchObject({ configFingerprint: "creation-config", ephemeralPolicy: "" });
+    expect(release.mock.calls.some(([threadId]) => threadId === "ephemeral")).toBe(false);
+    await ownership?.release("ephemeral");
+    expect(hasCodexAppServerLiveThread(client, "ephemeral")).toBe(false);
   });
 
   it("installs shared handlers once per physical client", async () => {
