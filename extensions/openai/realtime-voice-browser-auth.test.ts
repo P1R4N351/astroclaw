@@ -26,14 +26,20 @@ vi.mock("ws", () => ({
   default: mocks.FakeWebSocket,
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: mocks.fetchWithSsrFGuardMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
-  isProviderAuthProfileConfigured: mocks.isProviderAuthProfileConfiguredMock,
-  resolveProviderAuthProfileApiKey: mocks.resolveProviderAuthProfileApiKeyMock,
-}));
+vi.mock("astroclaw/plugin-sdk/provider-auth", async () => {
+  const { resolveOpenAICodexAuthIdentity } = await vi.importActual<
+    typeof import("astroclaw/plugin-sdk/provider-oauth-runtime")
+  >("astroclaw/plugin-sdk/provider-oauth-runtime");
+  return {
+    isProviderAuthProfileConfigured: mocks.isProviderAuthProfileConfiguredMock,
+    resolveProviderAuthProfileApiKey: mocks.resolveProviderAuthProfileApiKeyMock,
+    resolveOpenAICodexAuthIdentity,
+  };
+});
 import { createOpenAIRealtimeTestSupport } from "./realtime-voice-test-support.js";
 
 const {
