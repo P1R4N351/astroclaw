@@ -8,8 +8,8 @@ import type {
   ProviderReplaySessionEntry,
   ProviderSanitizeReplayHistoryContext,
 } from "astroclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import {
+  createCapturedPluginRegistration,
   registerProviderPlugin,
   requireRegisteredProvider,
 } from "astroclaw/plugin-sdk/plugin-test-runtime";
@@ -17,7 +17,6 @@ import { createCapturedThinkingConfigStream } from "astroclaw/plugin-sdk/provide
 import type {
   RealtimeVoiceBridge,
   RealtimeVoiceBridgeCreateRequest,
-  RealtimeVoiceProviderPlugin,
 } from "astroclaw/plugin-sdk/realtime-voice";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerGoogleGeminiCliProvider } from "./gemini-cli-provider.js";
@@ -72,13 +71,10 @@ function createLazyRealtimeBridge(
   onReady?: () => void,
   onClose?: (reason: "completed" | "error") => void,
 ) {
-  let realtimeProvider: RealtimeVoiceProviderPlugin | undefined;
-  googlePlugin.register(
-    createTestPluginApi({
-      registerRealtimeVoiceProvider(provider) {
-        realtimeProvider = provider;
-      },
-    }),
+  const captured = createCapturedPluginRegistration({ id: "google" });
+  googlePlugin.register(captured.api);
+  const realtimeProvider = captured.realtimeVoiceProviders.find(
+    (provider) => provider.id === "google",
   );
   const bridge = realtimeProvider?.createBridge({
     providerConfig: { apiKey: "gemini-key" },
