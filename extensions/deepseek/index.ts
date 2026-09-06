@@ -4,8 +4,8 @@ import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-en
 import { buildProviderReplayFamilyHooks } from "openclaw/plugin-sdk/provider-model-shared";
 import { buildProviderToolCompatFamilyHooks } from "openclaw/plugin-sdk/provider-tools";
 import { fetchDeepSeekUsage } from "openclaw/plugin-sdk/provider-usage";
-import { applyDeepSeekConfig } from "./onboard.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { applyDeepSeekConfig } from "./onboard.js";
 import { buildDeepSeekProvider } from "./provider-catalog.js";
 import { createDeepSeekV4ThinkingWrapper } from "./stream.js";
 import { resolveDeepSeekV4ThinkingProfile } from "./thinking.js";
@@ -22,6 +22,7 @@ export default defineSingleProviderPluginEntry({
     docsPath: "/providers/deepseek",
     manifestAuth: { applyConfig: applyDeepSeekConfig },
     catalog: {
+      discoveryMode: "strict",
       buildProvider: buildDeepSeekProvider,
       buildStaticProvider: buildDeepSeekProvider,
       liveModelDiscovery: true,
