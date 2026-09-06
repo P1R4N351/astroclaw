@@ -7,8 +7,8 @@ import { Agent, createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
-import { rawDataToString } from "openclaw/plugin-sdk/webhook-ingress";
+import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { rawDataToString } from "astroclaw/plugin-sdk/webhook-ingress";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocketServer } from "ws";
 
@@ -35,7 +35,7 @@ const { registerManagedProxyBrowserCdpBypassMock } = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime-internal", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime-internal", () => ({
   registerManagedProxyBrowserCdpBypass: registerManagedProxyBrowserCdpBypassMock,
 }));
 
@@ -47,8 +47,8 @@ vi.mock("../infra/ports.js", () => ({
   ensurePortAvailable: ensurePortAvailableMock,
 }));
 
-vi.mock("../infra/tmp-openclaw-dir.js", () => ({
-  resolvePreferredOpenClawTmpDir: () => "/tmp/openclaw-browser-test",
+vi.mock("../infra/tmp-astroclaw-dir.js", () => ({
+  resolvePreferredAstroclawTmpDir: () => "/tmp/openclaw-browser-test",
 }));
 
 // Shrink long launch/bootstrap timeouts so tests don't wait 15s for
@@ -289,22 +289,27 @@ function mockLinuxManagedChromeOwnership(params: {
     ...(params.extraArgs ?? []),
   ];
   const readFileSync = fs.readFileSync.bind(fs);
-  vi.spyOn(fs, "readFileSync").mockImplementation(((filePath, options) => {
-    const s = String(filePath);
-    if (s === `/proc/${params.pid}/cmdline`) {
-      return Buffer.from(`${argv.join("\0")}\0`);
-    }
-    if (s === `/proc/${params.pid}/stat`) {
-      return linuxProcStatLine(params.pid, "1234567");
-    }
-    if (s === "/proc/net/tcp") {
-      return ownsPort ? linuxTcpTableForPort(params.port, inode) : linuxTcpTableForPort(1, inode);
-    }
-    if (s === "/proc/net/tcp6") {
-      return "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode";
-    }
-    return readFileSync(filePath, options as never);
-  }) as typeof fs.readFileSync);
+  vi.spyOn(fs, "readFileSync").mockImplementation(
+    (filePath, options?: BufferEncoding | fs.ReadFileSyncOptions | null) => {
+      const s = String(filePath);
+      if (s === `/proc/${params.pid}/cmdline`) {
+        return Buffer.from(`${argv.join("\0")}\0`);
+      }
+      if (s === `/proc/${params.pid}/stat`) {
+        return linuxProcStatLine(params.pid, "1234567");
+      }
+      if (s === "/proc/net/tcp") {
+        return ownsPort ? linuxTcpTableForPort(params.port, inode) : linuxTcpTableForPort(1, inode);
+      }
+      if (s === "/proc/net/tcp6") {
+        return "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode";
+      }
+      return readFileSync(
+        filePath,
+        typeof options === "string" ? { encoding: options } : (options ?? {}),
+      );
+    },
+  );
 
   const readdirSync = fs.readdirSync.bind(fs);
   vi.spyOn(fs, "readdirSync").mockImplementation(((dirPath, options) => {
