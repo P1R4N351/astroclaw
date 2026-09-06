@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
 import { streamSimple, type Context, type Model } from "astroclaw/plugin-sdk/llm";
 import { buildCopilotIdeHeaders } from "astroclaw/plugin-sdk/provider-auth";
+import { createZeroUsageFixture } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { wrapCopilotProviderStream } from "./stream.js";
 
@@ -419,14 +420,7 @@ describe("wrapCopilotAnthropicStream", () => {
             name: "read",
             arguments: {},
           })),
-          usage: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-            totalTokens: 0,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-          },
+          usage: createZeroUsageFixture(),
           stopReason: "toolUse",
           timestamp: 2,
         },
