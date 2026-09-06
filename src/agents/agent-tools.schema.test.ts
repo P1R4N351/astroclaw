@@ -5,8 +5,8 @@ import { normalizeToolParameterSchema } from "@openclaw/ai/internal/openai";
  * Protects caching, ref inlining, OpenAPI keyword cleanup, and no-parameter
  * tool behavior used by model providers.
  */
-import { runAgentLoop, type AgentEvent, type StreamFn } from "openclaw/plugin-sdk/agent-core";
-import { createAssistantMessageEventStream, validateToolArguments } from "openclaw/plugin-sdk/llm";
+import { runAgentLoop, type AgentEvent, type StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import { createAssistantMessageEventStream, validateToolArguments } from "astroclaw/plugin-sdk/llm";
 import { Type, type TSchema } from "typebox";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -56,9 +56,7 @@ describe("direct exec tool schema", () => {
     expect(describeField("timeoutSeconds")).toContain("seconds");
     expect(describeField("pty")).toContain("PTY");
     expect(describeField("elevated")).toContain("if allowed");
-    expect(describeField("security")).toContain("tools.exec.security");
-    expect(describeField("security")).toContain("host approvals");
-    expect(describeField("ask")).toContain("tools.exec.ask");
+    expect(describeField("ask")).toContain("tools.exec.mode");
     expect(describeField("ask")).toContain("channel-origin");
     expect(describeField("ask")).toContain("ask=off");
   });
