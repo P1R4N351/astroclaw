@@ -1283,6 +1283,7 @@ describe("mcp loopback server", () => {
         "x-openclaw-account-id": "work",
         "x-openclaw-message-channel": "telegram",
         "x-openclaw-client-caps": "tool-events,inline-widgets",
+        "x-openclaw-pinned-widget-authoring": "true",
         "x-openclaw-current-channel-id": "telegram:chat123",
         "x-openclaw-current-thread-ts": "42",
         "x-openclaw-current-message-id": "reply-message-1",
@@ -1302,6 +1303,7 @@ describe("mcp loopback server", () => {
     expect(call.accountId).toBe("work");
     expect(call.messageProvider).toBe("telegram");
     expect(call.clientCaps).toEqual(["tool-events", "inline-widgets"]);
+    expect(call.pinnedWidgetAuthoring).toBeUndefined();
     expect(call.currentChannelId).toBe("telegram:chat123");
     expect(call.currentThreadTs).toBe("42");
     expect(call.currentMessageId).toBe("reply-message-1");
@@ -1359,6 +1361,7 @@ describe("mcp loopback server", () => {
         "x-session-key": "agent:main:SPOOFED-other-session",
         "x-openclaw-message-channel": "telegram",
         "x-openclaw-client-caps": "inline-widgets",
+        "x-openclaw-pinned-widget-authoring": "true",
         "x-openclaw-account-id": "victim-account",
         "x-openclaw-current-channel-id": "telegram:victim-chat",
         "x-openclaw-current-thread-ts": "999",
@@ -1377,6 +1380,7 @@ describe("mcp loopback server", () => {
     expect(call.surface).toBe("loopback");
     expect(call.messageProvider).toBeUndefined();
     expect(call.clientCaps).toBeUndefined();
+    expect(call.pinnedWidgetAuthoring).toBeUndefined();
     expect(call.accountId).toBeUndefined();
     expect(call.currentChannelId).toBeUndefined();
     expect(call.currentThreadTs).toBeUndefined();
@@ -1419,6 +1423,7 @@ describe("mcp loopback server", () => {
       modelHasVision: true,
       messageProvider: "discord",
       clientCaps: ["tool-events"],
+      pinnedWidgetAuthoring: true,
       currentChannelId: "discord:bound",
       currentThreadTs: "bound-thread",
       currentMessageId: "bound-message",
@@ -1485,6 +1490,7 @@ describe("mcp loopback server", () => {
           "x-openclaw-session-id": "session-spoofed",
           "x-openclaw-message-channel": "telegram",
           "x-openclaw-client-caps": "inline-widgets,admin",
+          "x-openclaw-pinned-widget-authoring": "false",
           "x-openclaw-account-id": "spoofed-account",
           "x-openclaw-current-channel-id": "telegram:spoofed",
           "x-openclaw-current-thread-ts": "spoofed-thread",
