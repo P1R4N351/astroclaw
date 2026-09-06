@@ -1,10 +1,10 @@
-import { setReplyPayloadMetadata } from "openclaw/plugin-sdk/reply-payload-testing";
+import { setReplyPayloadMetadata } from "astroclaw/plugin-sdk/reply-payload-testing";
 import { beforeEach, expect, it, vi } from "vitest";
 
 const registerChannelDelivery = vi.hoisted(() => vi.fn());
-vi.mock("openclaw/plugin-sdk/question-gateway-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/question-gateway-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/question-gateway-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/question-gateway-runtime")>();
   return {
     ...actual,
     questionGatewayRuntime: { ...actual.questionGatewayRuntime, registerChannelDelivery },
@@ -62,7 +62,9 @@ describeTelegramDispatch("dispatchTelegramMessage progress-rendering", () => {
     await dispatchWithContext({
       context: createContext(),
       streamMode: "progress",
-      telegramCfg: { streaming: { mode: "progress", progress: { label: false } } },
+      telegramCfg: {
+        streaming: { mode: "progress", progress: { toolProgress: true, label: false } },
+      },
     });
 
     expect(draftStream.updatePreview).toHaveBeenLastCalledWith(
@@ -90,7 +92,9 @@ describeTelegramDispatch("dispatchTelegramMessage progress-rendering", () => {
     await dispatchWithContext({
       context: createContext(),
       streamMode: "progress",
-      telegramCfg: { streaming: { mode: "progress", progress: { label: false } } },
+      telegramCfg: {
+        streaming: { mode: "progress", progress: { toolProgress: true, label: false } },
+      },
     });
 
     expect(draftStream.updatePreview).toHaveBeenLastCalledWith(
@@ -118,7 +122,7 @@ describeTelegramDispatch("dispatchTelegramMessage progress-rendering", () => {
       context: createContext(),
       streamMode: "progress",
       telegramCfg: {
-        streaming: { mode: "progress", progress: { label: "Shelling" } },
+        streaming: { mode: "progress", progress: { toolProgress: true, label: "Shelling" } },
       },
     });
 
@@ -152,7 +156,7 @@ describeTelegramDispatch("dispatchTelegramMessage progress-rendering", () => {
     await dispatchWithContext({
       context: createContext(),
       streamMode: "progress",
-      telegramCfg: { streaming: { mode: "progress" } },
+      telegramCfg: { streaming: { mode: "progress", progress: { toolProgress: true } } },
     });
 
     const preview = draftStream.updatePreview.mock.calls.at(-1)?.[0];
@@ -235,7 +239,7 @@ describeTelegramDispatch("dispatchTelegramMessage progress-rendering", () => {
         telegramCfg: {
           streaming: {
             mode: "progress",
-            progress,
+            progress: { toolProgress: true, ...progress },
           },
         },
       });
@@ -310,7 +314,9 @@ describeTelegramDispatch("dispatchTelegramMessage progress-rendering", () => {
         statusReactionController: statusReactionController as never,
       }),
       streamMode: "progress",
-      telegramCfg: { streaming: { mode: "progress", progress: { label: "Shelling" } } },
+      telegramCfg: {
+        streaming: { mode: "progress", progress: { toolProgress: true, label: "Shelling" } },
+      },
     });
 
     expect(statusReactionController.setTool).toHaveBeenCalledWith("exec");
@@ -337,7 +343,9 @@ describeTelegramDispatch("dispatchTelegramMessage progress-rendering", () => {
       await dispatchWithContext({
         context: createContext(),
         streamMode: "progress",
-        telegramCfg: { streaming: { mode: "progress", progress: { label: "Shelling" } } },
+        telegramCfg: {
+          streaming: { mode: "progress", progress: { toolProgress: true, label: "Shelling" } },
+        },
       });
 
       expect(draftStream.updatePreview).toHaveBeenCalledWith(
