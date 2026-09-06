@@ -4,8 +4,8 @@ import { readManifestProviderDefaultModelRef } from "openclaw/plugin-sdk/provide
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
 import { ensureModelAllowlistEntry } from "openclaw/plugin-sdk/provider-onboard";
 import { applyVolcengineToolSchemaCompat } from "./api.js";
-import { VOLCENGINE_PROVIDER_CATALOG } from "./models.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { VOLCENGINE_PROVIDER_CATALOG } from "./models.js";
 import { buildVolcengineSpeechProvider } from "./speech-provider.js";
 
 const PROVIDER_ID = "volcengine";
@@ -29,6 +29,7 @@ export default defineSingleProviderPluginEntry({
         ensureModelAllowlistEntry({ cfg, modelRef: VOLCENGINE_DEFAULT_MODEL_REF }),
     },
     ...buildOpenAICompatibleProviderFamilyCatalog({
+      discoveryMode: "strict",
       credentialProviderId: PROVIDER_ID,
       entries: VOLCENGINE_PROVIDER_CATALOG.entries,
       staticCatalog: VOLCENGINE_PROVIDER_CATALOG.staticCatalog,
