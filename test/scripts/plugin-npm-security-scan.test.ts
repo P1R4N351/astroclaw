@@ -39,11 +39,22 @@ function initGitRepo(root: string): void {
   execFileSync("git", ["-C", root, "config", "user.name", "OpenClaw Test"]);
 }
 
+/**
+ * Write a publishable `extensions/<id>/package.json`.
+ *
+ * The metadata key defaults to the canonical `astroclaw`, which is what every shipped manifest
+ * in this repo actually carries. These fixtures previously wrote the pre-rebrand `openclaw` key,
+ * so the suite agreed with itself while disagreeing with the repo: the scanner's gate read
+ * `packageJson.openclaw?.release?.publishToNpm`, matched 0 of 122 real manifests, and every
+ * fixture-driven assertion still passed. `metadataKey: "openclaw"` exercises the deliberate
+ * read-only legacy fallback for externally authored plugin packages.
+ */
 function writePublishableManifest(
   root: string,
   extensionId: string,
   packageName: string,
   extra: Record<string, unknown> = {},
+  metadataKey: "astroclaw" | "openclaw" = "astroclaw",
 ): void {
   const packageDir = join(root, "extensions", extensionId);
   mkdirSync(packageDir, { recursive: true });
@@ -51,7 +62,7 @@ function writePublishableManifest(
     join(packageDir, "package.json"),
     `${JSON.stringify({
       name: packageName,
-      openclaw: { release: { publishToNpm: true } },
+      [metadataKey]: { release: { publishToNpm: true } },
       version: "1.0.0",
       ...extra,
     })}\n`,
@@ -407,6 +418,30 @@ describe("scripts/lib/plugin-npm-security-scan.mts", () => {
     await expect(
       listPublishablePluginPackages(manifestRoot, { maxManifestBytes: 256 }),
     ).rejects.toThrow("manifest exceeds the byte limit");
+  });
+
+  it("collects publishable packages under the canonical key and the legacy key alike", async () => {
+    const root = tempDirs.make("openclaw-plugin-npm-security-metadata-key-");
+    initGitRepo(root);
+    writePublishableManifest(root, "canonical", "@openclaw/canonical", {}, "astroclaw");
+    writePublishableManifest(root, "legacy", "@openclaw/legacy", {}, "openclaw");
+
+    // A manifest carrying NEITHER key is not publishable and must be skipped, so a green
+    // result can never be produced by a gate that simply matches nothing.
+    const unkeyedDir = join(root, "extensions", "unkeyed");
+    mkdirSync(unkeyedDir, { recursive: true });
+    writeFileSync(
+      join(unkeyedDir, "package.json"),
+      `${JSON.stringify({ name: "@openclaw/unkeyed", version: "1.0.0" })}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["-C", root, "add", "extensions/unkeyed/package.json"]);
+
+    const packages = await listPublishablePluginPackages(root);
+    expect(packages.map((plugin) => plugin.packageName)).toEqual([
+      "@openclaw/canonical",
+      "@openclaw/legacy",
+    ]);
   });
 
   it("fails closed on truncated scans, candidate package escapes, and tarball symlinks", () => {
@@ -860,8 +895,12 @@ describe("scripts/lib/plugin-npm-security-scan.mts", () => {
 
   it("retains the complete current-root publishable plugin inventory contract", async () => {
     const packages = await listPublishablePluginPackages(process.cwd());
+    // Measured on this tree: 30 of 122 `extensions/*\/package.json` set
+    // `astroclaw.release.publishToNpm: true`, and every shipped package name carries the
+    // canonical `@astroclaw/` scope. The previous `@openclaw/acpx` expectation named a
+    // package this repo does not publish -- a second stale-fixture layer of the same drift.
     expect(packages.length).toBeGreaterThan(0);
-    expect(packages.map((plugin) => plugin.packageName)).toContain("@openclaw/acpx");
+    expect(packages.map((plugin) => plugin.packageName)).toContain("@astroclaw/acpx");
     expect(new Set(packages.map((plugin) => plugin.packageName)).size).toBe(packages.length);
     expect(packages).toEqual(
       packages.toSorted((left, right) =>

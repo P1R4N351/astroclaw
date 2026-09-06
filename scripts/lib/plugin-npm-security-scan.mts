@@ -24,6 +24,20 @@ import {
   inspectPackageTarballBytes,
   readBoundedRegularFile,
 } from "../plugin-publication-artifact.mjs";
+import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
+
+/**
+ * Build/release metadata block of an `extensions/*\/package.json`. Every shipped manifest
+ * carries it under the canonical `astroclaw` key; the pre-rebrand `openclaw` key is accepted
+ * read-only for external plugin packages authored against the old contract. Readers MUST go
+ * through `pluginPackageMetadata()` rather than indexing either key directly -- see
+ * scripts/lib/plugin-manifest-filenames.mjs.
+ */
+type PluginPackageReleaseMetadata = {
+  release?: {
+    publishToNpm?: unknown;
+  };
+};
 
 export type PublishablePluginPackage = {
   extensionId: string;
@@ -382,9 +396,18 @@ export async function listPublishablePluginPackages(
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
       name?: unknown;
       version?: unknown;
-      openclaw?: { release?: { publishToNpm?: unknown } };
+      astroclaw?: PluginPackageReleaseMetadata;
+      /** Pre-rebrand key; accepted read-only via pluginPackageMetadata(), never written. */
+      openclaw?: PluginPackageReleaseMetadata;
     };
-    if (packageJson.openclaw?.release?.publishToNpm !== true) {
+    // Reading `packageJson.openclaw?.release?.publishToNpm` directly matched ZERO in-repo
+    // manifests -- measured on this tree: of 122 `extensions/*\/package.json`, 0 declare the
+    // pre-rebrand `openclaw` key and 30 declare `astroclaw.release.publishToNpm === true`.
+    // The predicate evaluated `undefined !== true` for every package, so this security scan
+    // collected no publishable packages, scanned nothing, and exited green. A scan that scans
+    // nothing looks exactly like a scan with nothing to find.
+    const releaseMetadata = pluginPackageMetadata<PluginPackageReleaseMetadata>(packageJson);
+    if (releaseMetadata?.release?.publishToNpm !== true) {
       return [];
     }
     const packageName = assertCanonicalNpmPackageName(packageJson.name, packageFile);
