@@ -1,7 +1,7 @@
 // Together plugin entrypoint registers its OpenClaw integration.
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
-import { applyTogetherConfig } from "./onboard.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { applyTogetherConfig } from "./onboard.js";
 import { buildTogetherVideoGenerationProvider } from "./video-generation-provider.js";
 
 const PROVIDER_ID = "together";
@@ -15,7 +15,7 @@ export default defineSingleProviderPluginEntry({
     label: "Together",
     docsPath: "/providers/together",
     manifestAuth: { applyConfig: applyTogetherConfig },
-    catalog: { liveModelDiscovery: true },
+    catalog: { liveModelDiscovery: true, discoveryMode: "strict" },
     classifyFailoverReason: ({ errorMessage }) =>
       /\bconcurrency limit\b.*\b(?:breached|reached)\b/i.test(errorMessage)
         ? "rate_limit"
