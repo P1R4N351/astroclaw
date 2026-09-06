@@ -4,7 +4,7 @@ export {
   getMemoryEmbeddingProvider,
   listMemoryEmbeddingProviders,
   listRegisteredMemoryEmbeddingProviderAdapters,
-} from "./host/astroclaw-runtime-memory.js";
+} from "./host/openclaw-runtime-memory.js";
 export type {
   MemoryEmbeddingBatchChunk,
   MemoryEmbeddingBatchOptions,
@@ -14,7 +14,7 @@ export type {
   MemoryEmbeddingProviderCreateOptions,
   MemoryEmbeddingProviderCreateResult,
   MemoryEmbeddingProviderRuntime,
-} from "./host/astroclaw-runtime-memory.js";
+} from "./host/openclaw-runtime-memory.js";
 export {
   EmbeddingBatchUnavailableError,
   extractBatchErrorMessage,
@@ -39,6 +39,7 @@ export {
   resolveCompletedBatchResult,
   throwIfBatchCompletionError,
   throwIfBatchTerminalFailure,
+  waitForEmbeddingBatch,
   type BatchCompletionResult,
 } from "./host/batch-status.js";
 export { uploadBatchJsonlFile } from "./host/batch-upload.js";
