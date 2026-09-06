@@ -1,26 +1,28 @@
 // Slack plugin module implements context behavior.
 import type { App } from "@slack/bolt";
-import { formatAllowlistMatchMeta } from "openclaw/plugin-sdk/allow-from";
-import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
-import type { PluginRuntime } from "openclaw/plugin-sdk/channel-core";
-import type { ChannelInboundTurnPlan } from "openclaw/plugin-sdk/channel-inbound";
+import { formatAllowlistMatchMeta } from "astroclaw/plugin-sdk/allow-from";
+import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/channel-core";
+import type { ChannelInboundTurnPlan } from "astroclaw/plugin-sdk/channel-inbound";
 import type {
   OpenClawConfig,
   SlackReactionNotificationMode,
   SessionScope,
   DmPolicy,
   GroupPolicy,
-} from "openclaw/plugin-sdk/config-contracts";
-import { createDedupeCache } from "openclaw/plugin-sdk/dedupe-runtime";
-import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
-import { logVerbose, getChildLogger } from "openclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/config-contracts";
+import { createDedupeCache } from "astroclaw/plugin-sdk/dedupe-runtime";
+import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import { logVerbose, getChildLogger } from "astroclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { formatSlackError } from "../errors.js";
 import { buildSlackChannelIdCandidates } from "../group-policy.js";
+import { renameSlackSession, setSlackSessionStatus } from "../session-status.js";
 import type { SlackMessageEvent } from "../types.js";
 import { createSlackAgentViewState } from "./agent-view-state.js";
 import { normalizeAllowList, normalizeAllowListLower, normalizeSlackSlug } from "./allow-list.js";
@@ -39,14 +41,12 @@ import { isSlackChannelAllowedByPolicy } from "./policy.js";
 import { isGovSlackClient } from "./slack-client-kind.js";
 import {
   type SlackSuggestedPromptsInput,
+  type SlackSuggestedPromptsOutcome,
   updateSlackSuggestedPrompts,
 } from "./suggested-prompts.js";
 import { createSlackSystemEventRouteResolver } from "./system-event-session.js";
 
-export {
-  buildSlackAssistantThreadMetadata,
-  parseSlackAssistantThreadMetadata,
-} from "./assistant-thread-context.js";
+export { buildSlackAssistantThreadMetadata } from "./assistant-thread-context.js";
 export type { SlackAssistantThreadContext } from "./assistant-thread-context.js";
 export { normalizeSlackChannelType, resolveSlackChatType } from "./channel-type.js";
 export { DEFAULT_SLACK_SUGGESTED_PROMPTS } from "./suggested-prompts.js";
@@ -65,7 +65,7 @@ type SlackChannelCacheEntry = {
 
 type SlackUserInfo = { name?: string; imageUrl?: string; error?: unknown };
 type BuildChannelInboundContext =
-  typeof import("openclaw/plugin-sdk/channel-inbound").buildChannelInboundEventContext;
+  typeof import("astroclaw/plugin-sdk/channel-inbound").buildChannelInboundEventContext;
 const SLACK_CHANNEL_CACHE_MAX_ENTRIES = 1024;
 const SLACK_USER_CACHE_MAX_ENTRIES = 2048;
 const SLACK_AVATAR_CACHE_MAX_ENTRIES = 128;
@@ -116,9 +116,8 @@ export type SlackMonitorContext = {
   replyToMode: "off" | "first" | "all" | "batched";
   threadHistoryScope: "thread" | "channel";
   threadInheritParent: boolean;
-  slashCommand: Required<import("openclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
+  slashCommand: Required<import("astroclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
   textLimit: number;
-  ackReactionScope: string;
   typingReaction: string;
   mediaMaxBytes: number;
 
@@ -154,13 +153,19 @@ export type SlackMonitorContext = {
   ) => SlackMessageEvent["channel_type"] | undefined;
   resolveUserName: (userId: string, eventScope?: SlackEventScope) => Promise<SlackUserInfo>;
   resolveUserAvatar: (userId: string, eventScope?: SlackEventScope) => string | undefined;
-  setSlackThreadStatus: (params: {
+  setSlackSessionStatus: (params: {
     channelId: string;
     threadTs?: string;
-    status: string;
-    loadingMessages?: string[];
+    status: "processing" | "active" | "suspended";
+    title?: string;
     eventScope?: SlackEventScope;
   }) => Promise<void>;
+  recordSlackSessionTitle: (params: {
+    channelId: string;
+    threadTs: string;
+    title: string;
+    eventScope?: SlackEventScope;
+  }) => void;
   getSlackAssistantThreadContext: (
     channelId: string | undefined,
     threadTs: string | undefined,
@@ -170,7 +175,9 @@ export type SlackMonitorContext = {
     context: Omit<SlackAssistantThreadContext, "updatedAt">,
     eventScope?: SlackEventScope,
   ) => void;
-  setSlackSuggestedPrompts: (params: SlackSuggestedPromptsInput) => Promise<boolean>;
+  setSlackSuggestedPrompts: (
+    params: SlackSuggestedPromptsInput,
+  ) => Promise<SlackSuggestedPromptsOutcome>;
   recordSlackAgentView: () => Promise<void>;
   isSlackAgentView: () => Promise<boolean>;
   recordSlackManagedViewThread: (channelId: string, threadTs: string) => Promise<void>;
@@ -214,7 +221,6 @@ export function createSlackMonitorContext(params: {
   threadInheritParent: SlackMonitorContext["threadInheritParent"];
   slashCommand: SlackMonitorContext["slashCommand"];
   textLimit: number;
-  ackReactionScope: string;
   typingReaction: string;
   mediaMaxBytes: number;
 }): SlackMonitorContext {
@@ -405,26 +411,49 @@ export function createSlackMonitorContext(params: {
     return undefined;
   };
 
-  const setSlackThreadStatus = async (p: {
-    channelId: string;
-    threadTs?: string;
-    status: string;
-    loadingMessages?: string[];
-    eventScope?: SlackEventScope;
-  }) => {
-    if (!p.threadTs) {
+  const sessionTitles = new Map<string, string>();
+  const recordSlackSessionTitle: SlackMonitorContext["recordSlackSessionTitle"] = (p) => {
+    writeLruMapEntry(
+      sessionTitles,
+      scopedKey(`${p.channelId}:${p.threadTs}`, p.eventScope),
+      truncateUtf16Safe(p.title, 200),
+      1024,
+    );
+  };
+  const updateSessionStatus: SlackMonitorContext["setSlackSessionStatus"] = async (p) => {
+    const key = scopedKey(`${p.channelId}:${p.threadTs}`, p.eventScope);
+    const previousTitle = readLruMapEntry(sessionTitles, key);
+    const client = p.eventScope?.client ?? params.app.client;
+    const updated = await setSlackSessionStatus({
+      ...p,
+      client,
+      token: params.botToken,
+      runtime: params.runtime,
+    });
+    if (!updated.ok || p.status !== "processing" || !p.threadTs || p.title === undefined) {
       return;
     }
-    try {
-      await (p.eventScope?.client ?? params.app.client).assistant.threads.setStatus({
-        token: params.botToken,
-        channel_id: p.channelId,
-        thread_ts: p.threadTs,
-        status: p.status,
-        ...(p.loadingMessages?.length ? { loading_messages: p.loadingMessages.slice(0, 10) } : {}),
-      });
-    } catch (err) {
-      logVerbose(`slack status update failed for channel ${p.channelId}: ${formatSlackError(err)}`);
+    const title = truncateUtf16Safe(p.title, 200);
+    // A user rename received while the status request was in flight wins.
+    if (readLruMapEntry(sessionTitles, key) !== previousTitle) {
+      return;
+    }
+    // setStatus only names newly created sessions. Rename existing sessions once
+    // per display-name change; inbound user renames update this same cache.
+    if (
+      updated.title === title ||
+      (previousTitle !== title &&
+        (await renameSlackSession({
+          client,
+          token: params.botToken,
+          channelId: p.channelId,
+          threadTs: p.threadTs,
+          title,
+        })))
+    ) {
+      if (readLruMapEntry(sessionTitles, key) === previousTitle) {
+        recordSlackSessionTitle({ ...p, threadTs: p.threadTs, title });
+      }
     }
   };
 
@@ -601,7 +630,6 @@ export function createSlackMonitorContext(params: {
     threadInheritParent: params.threadInheritParent,
     slashCommand: params.slashCommand,
     textLimit: params.textLimit,
-    ackReactionScope: params.ackReactionScope,
     typingReaction: params.typingReaction,
     mediaMaxBytes: params.mediaMaxBytes,
     logger,
@@ -613,7 +641,8 @@ export function createSlackMonitorContext(params: {
     recallSlackChannelType,
     resolveUserName,
     resolveUserAvatar,
-    setSlackThreadStatus,
+    setSlackSessionStatus: updateSessionStatus,
+    recordSlackSessionTitle,
     getSlackAssistantThreadContext: assistantThreadContextStore.get,
     saveSlackAssistantThreadContext: assistantThreadContextStore.save,
     setSlackSuggestedPrompts,
