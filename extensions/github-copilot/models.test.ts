@@ -1,7 +1,7 @@
 // Github Copilot tests cover models plugin behavior.
 import { expectDefined } from "@astroclaw/normalization-core";
 import { streamSimpleOpenAIResponses } from "@openclaw/ai/internal/openai";
-import { createProviderUsageFetch, makeResponse } from "openclaw/plugin-sdk/test-env";
+import { createProviderUsageFetch, makeResponse } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
 import { resolveThinkingProfile } from "./provider-policy-api.js";
 import { CopilotRuntimeAuthError } from "./runtime-auth-error.js";
@@ -9,8 +9,8 @@ import { resolveCopilotRuntimeAuth } from "./runtime-auth.js";
 import { resolveCopilotStarterModel } from "./starter-model.js";
 import { fetchCopilotUsage } from "./usage.js";
 
-vi.mock("openclaw/plugin-sdk/provider-model-shared", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/provider-model-shared")>()),
+vi.mock("astroclaw/plugin-sdk/provider-model-shared", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/provider-model-shared")>()),
   normalizeModelCompat: (model: Record<string, unknown>) => model,
   resolveProviderEndpoint: (baseUrl: string) => ({
     baseUrl,
@@ -19,11 +19,11 @@ vi.mock("openclaw/plugin-sdk/provider-model-shared", async (importOriginal) => (
   }),
 }));
 
-vi.mock("openclaw/plugin-sdk/state-paths", () => ({
+vi.mock("astroclaw/plugin-sdk/state-paths", () => ({
   resolveStateDir: () => "/tmp/openclaw-state",
 }));
 
-import type { ProviderResolveDynamicModelContext } from "openclaw/plugin-sdk/core";
+import type { ProviderResolveDynamicModelContext } from "astroclaw/plugin-sdk/core";
 import {
   fetchCopilotModelCatalog,
   resolveCopilotForwardCompatModel,
@@ -150,7 +150,11 @@ describe("resolveCopilotForwardCompatModel", () => {
   it("creates synthetic Gemini models with Chat Completions compatibility", () => {
     const result = requireResolvedModel(createMockCtx("gemini-3.1-pro-preview"));
     expect((result as unknown as Record<string, unknown>).api).toBe("openai-completions");
+    // The manifest row now declares its conservative code-mode tier explicitly
+    // (shared-upstream-model contract), and the static override passes the full
+    // manifest compat through to the resolved model.
     expect((result as unknown as Record<string, unknown>).compat).toEqual({
+      codeMode: "capable",
       supportsStore: false,
       supportsDeveloperRole: false,
       supportsUsageInStreaming: false,
