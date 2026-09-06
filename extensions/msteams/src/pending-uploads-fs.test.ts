@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prepareFileConsentActivityFs } from "./file-consent-helpers.js";
 import {
@@ -109,9 +109,7 @@ describe("msteams pending uploads (fs-backed)", () => {
     // Confirm SQLite-backed plugin state was created instead of a new JSON store.
     const storePath = path.join(stateDir, "msteams-pending-uploads.json");
     await expect(fs.promises.access(storePath)).rejects.toThrow();
-    await expect(
-      fs.promises.access(path.join(stateDir, "state", "openclaw.sqlite")),
-    ).resolves.toBeUndefined();
+    await fs.promises.access(path.join(stateDir, "state", "openclaw.sqlite"));
 
     // Second "process": reader using the same state dir
     const reader = await getPendingUploadFs("upload-x", { env });
@@ -233,7 +231,7 @@ describe("msteams pending uploads (fs-backed)", () => {
     );
 
     expect(await getPendingUploadFs("cached", { env })).toBeUndefined();
-    await expect(fs.promises.access(storePath)).resolves.toBeUndefined();
+    await fs.promises.access(storePath);
   });
 });
 
