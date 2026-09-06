@@ -3,6 +3,7 @@ import type { BaseProbeResult } from "../channels/plugins/types.public.js";
 import { withTimeout } from "../utils/with-timeout.js";
 
 export { estimateStringChars } from "@astroclaw/normalization-core/cjk-chars";
+export { truncateCodePoints } from "@astroclaw/normalization-core/code-points";
 
 export {
   estimateToolResultTextChars,
