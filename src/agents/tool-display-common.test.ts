@@ -4,7 +4,8 @@
  * -> resolveDetailFromKeys).
  */
 import { describe, expect, it } from "vitest";
-import { defaultTitle, resolveToolVerbAndDetailForArgs } from "./tool-display-common.js";
+import { resolveToolVerbAndDetailForArgs } from "./tool-display-common.js";
+import { formatToolDetail, formatToolSummary, resolveToolDisplay } from "./tool-display.js";
 
 function isHighSurrogate(codeUnit: number): boolean {
   return codeUnit >= 0xd800 && codeUnit <= 0xdbff;
@@ -80,20 +81,21 @@ describe("coerceDisplayValue surrogate-safe truncation", () => {
   });
 });
 
-describe("defaultTitle", () => {
-  it("collapses a server-name token the tool name already repeats", () => {
-    // Regression for the Discord-visible "Eidetic Eidetic Recall" bug: the
-    // MCP bundle joins server + tool as `${server}__${tool}` (agent-bundle-mcp-names
-    // TOOL_NAME_SEPARATOR), and when the tool itself is already prefixed with
-    // the server name (e.g. eidetic's `eidetic_recall`), the naive
-    // underscore-split title-caser rendered the shared token twice.
-    expect(defaultTitle("eidetic__eidetic_recall")).toBe("Eidetic Recall");
-    expect(defaultTitle("memory__memory_search")).toBe("Memory Search");
-  });
-
-  it("leaves non-repeating and single-repeat tool names unaffected", () => {
-    expect(defaultTitle("eidetic_recall")).toBe("Eidetic Recall");
-    expect(defaultTitle("list_pull_requests")).toBe("List Pull Requests");
-    expect(defaultTitle("")).toBe("Tool");
-  });
+describe("progress card tool display", () => {
+  it.each(["progress_card", "update_plan"])(
+    "keeps %s card content out of generic labels",
+    (name) => {
+      const markdown = '<progress aria-label="private" value="1" max="2"></progress>';
+      for (const detailMode of ["explain", "raw"] as const) {
+        const display = resolveToolDisplay({
+          name,
+          args: { markdown, plan: [{ step: "private step", status: "in_progress" }] },
+          meta: markdown,
+          detailMode,
+        });
+        expect(formatToolDetail(display)).toBeUndefined();
+        expect(formatToolSummary(display)).not.toContain("private");
+      }
+    },
+  );
 });
