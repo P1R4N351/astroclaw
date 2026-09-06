@@ -65,8 +65,8 @@ android {
     applicationId = "ai.astroclaw.app"
     minSdk = 31
     targetSdk = 36
-    versionCode = 2026051700
-    versionName = "2026.5.17"
+    versionCode = 2026090500
+    versionName = "2026.9.5"
     ndk {
       // Support all major ABIs — native libs are tiny (~47 KB per ABI)
       abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
