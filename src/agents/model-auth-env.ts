@@ -2,11 +2,14 @@
  * Resolves model provider API keys from explicit environment variables.
  */
 import { normalizeProviderIdForAuth } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
 import { resolvePluginSetupProviderCore } from "../plugins/setup-registry.js";
 import { resolveLocalProviderAuthEvidence } from "../secrets/provider-auth-evidence.js";
-import type { ProviderAuthEvidence } from "../secrets/provider-env-vars.js";
+import type {
+  ProviderAuthEvidence,
+  ProviderEnvVarLookupParams,
+} from "../secrets/provider-env-vars.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import { resolveProviderEnvAuthLookupMaps } from "./model-auth-env-vars.js";
 import { GCP_VERTEX_CREDENTIALS_MARKER } from "./model-auth-markers.js";
@@ -104,7 +107,7 @@ export function resolveProviderEnvAuthEvidence(
 export function resolveProviderDirectAuthPlanningEvidence(
   provider: string,
   env: NodeJS.ProcessEnv = process.env,
-  options: EnvApiKeyLookupOptions = {},
+  options: EnvApiKeyLookupOptions & Pick<ProviderEnvVarLookupParams, "metadataSnapshot"> = {},
 ): ProviderDirectAuthPlanningEvidence | null {
   const lookupMaps =
     !options.aliasMap ||
@@ -115,6 +118,7 @@ export function resolveProviderDirectAuthPlanningEvidence(
           config: options.config,
           workspaceDir: options.workspaceDir,
           env,
+          metadataSnapshot: options.metadataSnapshot,
         })
       : undefined;
   const aliasMap = options.aliasMap ?? lookupMaps?.aliasMap ?? {};
