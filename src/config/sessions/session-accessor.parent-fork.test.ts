@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
+import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
 import { afterEach, describe, expect, it } from "vitest";
 import { SessionManager } from "../../agents/sessions/session-manager.js";
 import { parseSqliteSessionFileMarker } from "./legacy-sqlite-marker.js";
@@ -72,6 +72,45 @@ afterEach(async () => {
 });
 
 describe("forkSessionFromParentTranscript", () => {
+  it.each(["existing-entry", "decision-skip"])(
+    "checks authority before applying a %s child patch",
+    async (reason) => {
+      const root = await makeRoot("openclaw-parent-fork-skip-guard-");
+      const storePath = path.join(root, "sessions.json");
+      const parentKey = "agent:main:main";
+      const childKey = "agent:main:child";
+      await replaceSessionEntry(
+        { sessionKey: parentKey, storePath },
+        {
+          sessionId: "parent-guarded",
+          updatedAt: 1,
+          totalTokens: 200_000,
+          totalTokensFresh: true,
+          totalTokensVersion: 1,
+        },
+      );
+      await replaceSessionEntry(
+        { sessionKey: childKey, storePath },
+        { sessionId: "child-guarded", updatedAt: 1, label: "original" },
+      );
+      const original = loadSessionEntry({ sessionKey: childKey, storePath });
+      await expect(
+        forkSessionEntryFromParentTarget({
+          storePath,
+          parentTarget: { canonicalKey: parentKey, storeKeys: [parentKey] },
+          sessionTarget: { canonicalKey: childKey, storeKeys: [childKey] },
+          skipForkWhen: () => reason === "existing-entry",
+          skipPatch: () => ({ label: "unauthorized" }),
+          decisionSkipPatch: () => ({ label: "unauthorized" }),
+          commitGuard: () => {
+            throw new Error("parent authority closed");
+          },
+        }),
+      ).rejects.toThrow("parent authority closed");
+      expect(loadSessionEntry({ sessionKey: childKey, storePath })).toEqual(original);
+    },
+  );
+
   it("checks authority inside same- and cross-database transcript commits", async () => {
     const root = await makeRoot("openclaw-parent-fork-guard-");
     const storePath = path.join(root, "sessions.json");
