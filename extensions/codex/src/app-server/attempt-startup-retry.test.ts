@@ -8,7 +8,7 @@ import {
   embeddedAgentLog,
   type CodexBundleMcpThreadConfig,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { startCodexAttemptThread } from "./attempt-startup.js";
 import { CodexAppServerClient, isCodexAppServerConnectionClosedError } from "./client.js";
@@ -25,7 +25,6 @@ import {
   testCodexAppServerBindingStore,
 } from "./session-binding.test-helpers.js";
 import {
-  clearSharedCodexAppServerClient,
   clearSharedCodexAppServerClientAndWait,
   createIsolatedCodexAppServerClient,
   getLeasedSharedCodexAppServerClient,
@@ -196,7 +195,7 @@ describe("Codex app-server startup retry", () => {
     vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
     vi.stubEnv("CODEX_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
-    clearSharedCodexAppServerClient();
+    await clearSharedCodexAppServerClientAndWait();
     defaultCodexPluginMetadataCache.clear();
     resetCodexTestBindingStore();
   });
@@ -357,7 +356,7 @@ describe("Codex app-server startup retry", () => {
       for (const failure of ["snapshot", "command", "commit"] as const) {
         const fixture = await createStartupFailureFixture("refusal");
         const { createPluginStateSyncKeyedStore } =
-          await import("openclaw/plugin-sdk/plugin-state-store-runtime");
+          await import("astroclaw/plugin-sdk/plugin-state-store-runtime");
         const store = createPluginStateSyncKeyedStore("codex", {
           namespace: "app-server-processes",
           maxEntries: 512,
