@@ -1,6 +1,6 @@
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 // Discord tests cover draft stream plugin behavior.
 import { MessageFlags, Routes } from "discord-api-types/v10";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import { describe, expect, it, vi } from "vitest";
 import { createDiscordDraftStream } from "./draft-stream.js";
 
@@ -98,7 +98,7 @@ describe("createDiscordDraftStream", () => {
     expect(rest.delete).toHaveBeenCalledWith("/channels/parent/messages/parent-draft");
   });
 
-  it("holds the first preview until minInitialChars is reached", async () => {
+  it("holds answer deltas below minInitialChars but sends a complete progress update", async () => {
     const rest = {
       post: vi.fn(async () => ({ id: "m1" })),
       patch: vi.fn(async () => undefined),
@@ -116,6 +116,14 @@ describe("createDiscordDraftStream", () => {
 
     expect(rest.post).not.toHaveBeenCalled();
     expect(stream.messageId()).toBeUndefined();
+
+    stream.update("hey", { complete: true });
+    await stream.flush();
+    expect(rest.post).toHaveBeenCalledTimes(1);
+    await stream.deleteCurrentMessage();
+    stream.update("hey");
+    await stream.flush();
+    expect(rest.post).toHaveBeenCalledTimes(1);
   });
 
   it("sends a reply preview, then edits the same message on later flushes", async () => {
