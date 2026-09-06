@@ -1,7 +1,7 @@
 // Defines external auth contracts for provider plugins.
 import type { AuthProfileStore, OAuthCredential } from "../agents/auth-profiles/types.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { SecretInputMode } from "./provider-auth-types.js";
 
 export type ProviderAuthOptionBag = {
@@ -41,3 +41,11 @@ export type ProviderExternalAuthProfile = {
   credential: OAuthCredential;
   persistence?: "runtime-only" | "persisted";
 };
+
+/** Internal synchronous resolver shared by provider hooks and auth-store overlays. */
+export type ProviderExternalAuthProfileResolver = (params: {
+  config?: OpenClawConfig;
+  workspaceDir?: string;
+  env?: NodeJS.ProcessEnv;
+  context: ProviderResolveExternalAuthProfilesContext;
+}) => ProviderExternalAuthProfile[];
