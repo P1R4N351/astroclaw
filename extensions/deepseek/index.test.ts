@@ -7,6 +7,7 @@ import {
 } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { buildOpenAICompletionsParams } from "astroclaw/plugin-sdk/provider-transport-runtime";
 import { createProviderUsageFetch, makeResponse } from "astroclaw/plugin-sdk/test-env";
+import { createZeroUsageFixture } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { runSingleProviderCatalog } from "../test-support/provider-model-test-helpers.js";
 import deepseekPlugin from "./index.js";
@@ -34,14 +35,7 @@ type ReplayToolCall = {
 
 type RegisteredProvider = Awaited<ReturnType<typeof registerSingleProviderPlugin>>;
 
-const emptyUsage = {
-  input: 0,
-  output: 0,
-  cacheRead: 0,
-  cacheWrite: 0,
-  totalTokens: 0,
-  cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-};
+const emptyUsage = createZeroUsageFixture();
 
 function requireThinkingProfileResolver(
   provider: RegisteredProvider,
