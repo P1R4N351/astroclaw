@@ -3,13 +3,13 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { SandboxBackendHandle } from "openclaw/plugin-sdk/sandbox";
+import type { SandboxBackendHandle } from "astroclaw/plugin-sdk/sandbox";
 import {
-  resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir,
   tempWorkspace,
   type TempWorkspace,
-} from "openclaw/plugin-sdk/temp-path";
-import { createSandboxTestContext } from "openclaw/plugin-sdk/test-fixtures";
+} from "astroclaw/plugin-sdk/temp-path";
+import { createSandboxTestContext } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createOpenShellSandboxBackendFactory } from "./backend.js";
 import { resolveOpenShellPluginConfig } from "./config.js";
@@ -26,8 +26,8 @@ const cliMocks = vi.hoisted(() => ({
   createOpenShellSshSession: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/sandbox", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/sandbox")>();
+vi.mock("astroclaw/plugin-sdk/sandbox", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/sandbox")>();
   return {
     ...actual,
     runSshSandboxCommand: sdkMocks.runSshSandboxCommand,
@@ -83,7 +83,7 @@ async function createOpenShellBackendFixture(params: {
 
 async function createWorkspace(prefix = "workspace") {
   const workspace = await tempWorkspace({
-    rootDir: resolvePreferredOpenClawTmpDir(),
+    rootDir: resolvePreferredAstroclawTmpDir(),
     prefix: `openclaw-openshell-${prefix}-`,
   });
   tempWorkspaces.push(workspace);
@@ -142,7 +142,7 @@ describe("openshell backend exec workdir validation", () => {
     vi.stubEnv("LANG", "en_US.UTF-8");
     vi.stubEnv("NODE_ENV", "test");
     const workspace = await tempWorkspace({
-      rootDir: resolvePreferredOpenClawTmpDir(),
+      rootDir: resolvePreferredAstroclawTmpDir(),
       prefix: "openclaw-openshell-workspace-",
     });
     tempWorkspaces.push(workspace);
@@ -168,27 +168,25 @@ describe("openshell backend exec workdir validation", () => {
       usePty: false,
     });
 
-    const uploadCalls = cliMocks.runOpenShellCli.mock.calls.filter(
-      ([params]) => params.args[0] === "sandbox" && params.args[1] === "upload",
-    );
-    expect(uploadCalls).toHaveLength(1);
-    expect(uploadCalls[0]?.[0]).toMatchObject({
-      args: [
-        "sandbox",
-        "upload",
-        "--no-git-ignore",
-        backend.runtimeId,
-        expect.stringMatching(/\/seed\.txt$/),
-        "/sandbox/",
-      ],
-      cwd: workspaceDir,
-    });
-    await backend.finalizeExec?.({
-      status: "completed",
-      exitCode: 0,
-      timedOut: false,
-      token: execSpec.finalizeToken,
-    });
+    try {
+      const uploadCalls = cliMocks.runOpenShellCli.mock.calls.filter(
+        ([params]) => params.args[0] === "sandbox" && params.args[1] === "upload",
+      );
+      expect(uploadCalls).toHaveLength(1);
+      expect(uploadCalls[0]?.[0]).toMatchObject({
+        args: [
+          "sandbox",
+          "upload",
+          "--no-git-ignore",
+          backend.runtimeId,
+          expect.stringMatching(/\/seed\.txt$/),
+          "/sandbox/",
+        ],
+        cwd: workspaceDir,
+      });
+    } finally {
+      await finalize(backend, execSpec.finalizeToken);
+    }
     const nestedFile = path.join(workspaceDir, "nested", "note.txt");
     const bridge = backend.createFsBridge?.({
       sandbox: createSandboxTestContext({
@@ -655,42 +653,52 @@ describe("openshell backend exec workdir validation", () => {
     },
   );
 
-  it("rejects an aborted file write after waiting for mirror publication", async () => {
-    const workspaceDir = await createWorkspace();
-    const backend = await createOpenShellBackendFixture({
-      workspaceDir,
-      scopeKey: "agent:aborted-write",
-    });
-    const bridge = expectDefined(
-      backend.createFsBridge?.({
-        sandbox: createSandboxTestContext({
-          overrides: {
-            workspaceDir,
-            agentWorkspaceDir: workspaceDir,
-            containerWorkdir: backend.workdir,
-            backend,
-          },
+  it.each(["file write", "directory read"])(
+    "rejects an aborted %s after waiting for mirror publication",
+    async (operation) => {
+      const workspaceDir = await createWorkspace();
+      const backend = await createOpenShellBackendFixture({
+        workspaceDir,
+        scopeKey: "agent:aborted-write",
+      });
+      const bridge = expectDefined(
+        backend.createFsBridge?.({
+          sandbox: createSandboxTestContext({
+            overrides: {
+              workspaceDir,
+              agentWorkspaceDir: workspaceDir,
+              containerWorkdir: backend.workdir,
+              backend,
+            },
+          }),
         }),
-      }),
-      "mirror bridge",
-    );
-    const exec = await backend.buildExecSpec({ command: "true", env: {}, usePty: false });
-    const controller = new AbortController();
-    const write = bridge.writeFile({
-      filePath: "cancelled.txt",
-      data: "cancelled",
-      signal: controller.signal,
-    });
-    const rejected = expect(write).rejects.toThrow("cancelled while queued");
-    controller.abort(new Error("cancelled while queued"));
-    await finalize(backend, exec.finalizeToken);
-    await rejected;
-    await expect(fs.stat(path.join(workspaceDir, "cancelled.txt"))).rejects.toMatchObject({
-      code: "ENOENT",
-    });
-    await bridge.writeFile({ filePath: "next.txt", data: "next" });
-    await expect(fs.readFile(path.join(workspaceDir, "next.txt"), "utf8")).resolves.toBe("next");
-  });
+        "mirror bridge",
+      );
+      const readDirectory = expectDefined(bridge.readDirectory?.bind(bridge), "directory reader");
+      const exec = await backend.buildExecSpec({ command: "true", env: {}, usePty: false });
+      const controller = new AbortController();
+      const pending =
+        operation === "file write"
+          ? bridge.writeFile({
+              filePath: "cancelled.txt",
+              data: "cancelled",
+              signal: controller.signal,
+            })
+          : readDirectory({ filePath: ".", signal: controller.signal });
+      const rejected = expect(pending).rejects.toThrow("cancelled while queued");
+      controller.abort(new Error("cancelled while queued"));
+      await finalize(backend, exec.finalizeToken);
+      await rejected;
+      await expect(fs.stat(path.join(workspaceDir, "cancelled.txt"))).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      await bridge.writeFile({ filePath: "next.txt", data: "next" });
+      await expect(fs.readFile(path.join(workspaceDir, "next.txt"), "utf8")).resolves.toBe("next");
+      await expect(readDirectory({ filePath: "." })).resolves.toEqual([
+        { name: "next.txt", isDirectory: false },
+      ]);
+    },
+  );
 
   it.each([
     {
@@ -705,7 +713,7 @@ describe("openshell backend exec workdir validation", () => {
     },
   ])("creates compatible persistent sandboxes for $label CLIs", async (scenario) => {
     const workspace = await tempWorkspace({
-      rootDir: resolvePreferredOpenClawTmpDir(),
+      rootDir: resolvePreferredAstroclawTmpDir(),
       prefix: "openclaw-openshell-create-",
     });
     tempWorkspaces.push(workspace);
@@ -755,7 +763,7 @@ describe("openshell backend exec workdir validation", () => {
     const workspaces = await Promise.all(
       ["first", "second"].map(async (label) =>
         tempWorkspace({
-          rootDir: resolvePreferredOpenClawTmpDir(),
+          rootDir: resolvePreferredAstroclawTmpDir(),
           prefix: `openclaw-openshell-${label}-`,
         }),
       ),
@@ -783,35 +791,30 @@ describe("openshell backend exec workdir validation", () => {
 
     const firstExec = await first.buildExecSpec({ command: "first", env: {}, usePty: false });
     const secondPreparation = second.buildExecSpec({ command: "second", env: {}, usePty: false });
-
+    // Observe rejection while the first lease is held; cleanup still awaits and rethrows it.
+    const secondSettled = Promise.allSettled([secondPreparation]);
     try {
-      await new Promise<void>((resolve) => {
-        setImmediate(resolve);
-      });
+      try {
+        await new Promise<void>((resolve) => {
+          setImmediate(resolve);
+        });
+        expect(cliMocks.runOpenShellCli.mock.calls.map(([params]) => params.args[1])).toEqual([
+          "get",
+        ]);
+      } finally {
+        await finalize(first, firstExec.finalizeToken);
+      }
+      await secondPreparation;
       expect(cliMocks.runOpenShellCli.mock.calls.map(([params]) => params.args[1])).toEqual([
+        "get",
+        "download",
         "get",
       ]);
     } finally {
-      await first.finalizeExec?.({
-        status: "completed",
-        exitCode: 0,
-        timedOut: false,
-        token: firstExec.finalizeToken,
-      });
+      await secondSettled;
+      const secondExec = await secondPreparation;
+      await finalize(second, secondExec.finalizeToken);
     }
-
-    const secondExec = await secondPreparation;
-    expect(cliMocks.runOpenShellCli.mock.calls.map(([params]) => params.args[1])).toEqual([
-      "get",
-      "download",
-      "get",
-    ]);
-    await second.finalizeExec?.({
-      status: "completed",
-      exitCode: 0,
-      timedOut: false,
-      token: secondExec.finalizeToken,
-    });
   });
 
   it.each(["exec preparation", "mirror publication", "SSH cleanup"])(
@@ -847,15 +850,8 @@ describe("openshell backend exec workdir validation", () => {
           failure === "SSH cleanup" ? "cleanup failed" : "download failed",
         );
       }
-      let secondExec: Awaited<ReturnType<SandboxBackendHandle["buildExecSpec"]>> | undefined;
-      const secondPreparation = second
-        .buildExecSpec({ command: "second", env: {}, usePty: false })
-        .then((prepared) => {
-          secondExec = prepared;
-          return prepared;
-        });
-      await vi.waitFor(() => expect(secondExec).toBeDefined());
-      await finalize(second, (await secondPreparation).finalizeToken);
+      const secondExec = await second.buildExecSpec({ command: "second", env: {}, usePty: false });
+      await finalize(second, secondExec.finalizeToken);
     },
   );
 
@@ -863,7 +859,7 @@ describe("openshell backend exec workdir validation", () => {
     const workspaces = await Promise.all(
       ["first", "second"].map(async (label) =>
         tempWorkspace({
-          rootDir: resolvePreferredOpenClawTmpDir(),
+          rootDir: resolvePreferredAstroclawTmpDir(),
           prefix: `openclaw-openshell-${label}-`,
         }),
       ),
@@ -881,29 +877,19 @@ describe("openshell backend exec workdir validation", () => {
     const second = expectDefined(backends[1], "second OpenShell backend");
     const firstExec = await first.buildExecSpec({ command: "first", env: {}, usePty: false });
     const secondPreparation = second.buildExecSpec({ command: "second", env: {}, usePty: false });
-    let secondExec: Awaited<typeof secondPreparation> | undefined;
     try {
-      await vi.waitFor(() => {
-        const startedRuntimeIds = cliMocks.runOpenShellCli.mock.calls
-          .filter(([params]) => params.args[1] === "get")
-          .map(([params]) => params.args[2]);
-        expect(startedRuntimeIds).toEqual([first.runtimeId, second.runtimeId]);
-      });
-      secondExec = await secondPreparation;
+      await secondPreparation;
+      const startedRuntimeIds = cliMocks.runOpenShellCli.mock.calls
+        .filter(([params]) => params.args[1] === "get")
+        .map(([params]) => params.args[2]);
+      expect(startedRuntimeIds).toEqual([first.runtimeId, second.runtimeId]);
     } finally {
-      await first.finalizeExec?.({
-        status: "completed",
-        exitCode: 0,
-        timedOut: false,
-        token: firstExec.finalizeToken,
-      });
-      secondExec ??= await secondPreparation;
-      await second.finalizeExec?.({
-        status: "completed",
-        exitCode: 0,
-        timedOut: false,
-        token: secondExec.finalizeToken,
-      });
+      try {
+        await finalize(first, firstExec.finalizeToken);
+      } finally {
+        const secondExec = await secondPreparation;
+        await finalize(second, secondExec.finalizeToken);
+      }
     }
   });
 });
