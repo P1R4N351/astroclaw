@@ -1,4 +1,3 @@
-// Media Generation Core module implements catalog behavior.
 import { normalizeUniqueTrimmedStringList } from "@astroclaw/normalization-core/string-normalization";
 
 // Shared media-generation catalog contracts and static entry synthesis.
