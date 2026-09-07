@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { shouldLoadChannelPluginInSetupRuntime } from "./loader-channel-setup.js";
 import type { ChannelPluginLoadIntent } from "./loader-types.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";
@@ -20,8 +20,6 @@ export type PluginRegistrationPlan = {
 /** Converts loader intent into explicit entrypoint and activation behavior. */
 export function resolvePluginRegistrationPlan(params: {
   canLoadScopedSetupOnlyChannelPlugin: boolean;
-  scopedSetupOnlyChannelPluginRequested: boolean;
-  requireSetupEntryForSetupOnlyChannelPlugins: boolean;
   enableStateEnabled: boolean;
   shouldLoadModules: boolean;
   validateOnly: boolean;
@@ -40,12 +38,6 @@ export function resolvePluginRegistrationPlan(params: {
       runRuntimeCapabilityPolicy: false,
       runFullActivationOnlyRegistrations: false,
     };
-  }
-  if (
-    params.scopedSetupOnlyChannelPluginRequested &&
-    params.requireSetupEntryForSetupOnlyChannelPlugins
-  ) {
-    return null;
   }
   if (!params.enableStateEnabled) {
     return null;
