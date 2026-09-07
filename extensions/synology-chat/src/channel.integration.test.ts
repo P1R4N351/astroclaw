@@ -1,5 +1,5 @@
 // Synology Chat tests cover channel.integration plugin behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildChannelInboundEventContextMock,
@@ -58,6 +58,45 @@ describe("Synology channel wiring integration", () => {
     tryHandleSynologyHostedMediaRequestMock.mockClear();
     tryHandleSynologyHostedMediaRequestMock.mockResolvedValue(false);
     setSynologyRuntimeConfigForTest({});
+  });
+
+  it("re-enables a configured named account without replacing root or sibling credentials", async () => {
+    const { synologyChatSetupAdapter } = await import("./setup-surface.js");
+    const input = { token: "replacement", url: "https://nas.example.com/alerts" };
+    const configured = synologyChatSetupAdapter.applyAccountConfig({
+      cfg: {
+        channels: {
+          "synology-chat": {
+            enabled: false,
+            token: "root-token",
+            accounts: {
+              alerts: { enabled: false, token: "old-alerts", webhookPath: "/alerts" },
+              sibling: { enabled: false, token: "sibling-token" },
+            },
+          },
+        },
+      },
+      accountId: "alerts",
+      input,
+    });
+
+    expect(configured).toEqual({
+      channels: {
+        "synology-chat": {
+          enabled: true,
+          token: "root-token",
+          accounts: {
+            alerts: {
+              enabled: true,
+              token: "replacement",
+              webhookPath: "/alerts",
+              incomingUrl: "https://nas.example.com/alerts",
+            },
+            sibling: { enabled: false, token: "sibling-token" },
+          },
+        },
+      },
+    });
   });
 
   it("registers real webhook handler with resolved account config and enforces allowlist", async () => {
