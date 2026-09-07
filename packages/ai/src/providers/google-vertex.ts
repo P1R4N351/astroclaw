@@ -1,18 +1,18 @@
-// Google Vertex provider wires Google shared streaming through Vertex credentials.
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import {
   type GenerateContentParameters,
   GoogleGenAI,
   type HttpOptions,
   ResourceScope,
 } from "@google/genai";
-import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { getAiTransportHost, resolveAiTransportHeaderSentinels } from "../host.js";
+// Google Vertex provider wires Google shared streaming through Vertex credentials.
+import { createAssistantOutput } from "../transports/assistant-output.js";
 import type { Context, Model, SimpleStreamOptions, StreamFunction } from "../types.js";
 import { AssistantMessageEventStream } from "../utils/event-stream.js";
 import {
   buildGoogleGenerateContentParams,
   buildGoogleSimpleThinking,
-  createGoogleAssistantOutput,
   type GoogleProviderOptions,
   runGoogleGenerateContentLifecycle,
 } from "./google-shared.js";
@@ -35,7 +35,7 @@ export const streamGoogleVertex: StreamFunction<"google-vertex", GoogleVertexOpt
   options?: GoogleVertexOptions,
 ) => {
   const stream = new AssistantMessageEventStream();
-  const output = createGoogleAssistantOutput(model, "google-vertex");
+  const output = createAssistantOutput(model, "google-vertex");
 
   void runGoogleGenerateContentLifecycle({
     stream,
