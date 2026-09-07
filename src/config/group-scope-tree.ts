@@ -1,8 +1,9 @@
 // Resolves canonical group policy scopes prepared by channel plugins.
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import type { ChannelId } from "../channels/plugins/channel-id.types.js";
-import { resolveChannelGroups, resolveToolsBySender } from "./group-policy.js";
-import type { OpenClawConfig } from "./types.astroclaw.js";
+import { resolveChannelGroups } from "./channel-groups.js";
+import { resolveToolsBySender } from "./tools-by-sender.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 import type { GroupToolPolicyBySenderConfig, GroupToolPolicyConfig } from "./types.tools.js";
 
 export type ScopeNode = {
