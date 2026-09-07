@@ -1,4 +1,3 @@
-// Agent Core module implements messages behavior.
 import type { ImageContent, Message, TextContent } from "@astroclaw/llm-core";
 import { parseDateStringTimestampMs as parseSessionTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
