@@ -2,6 +2,7 @@ import http from "node:http";
 import net from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebSocket, WebSocketServer } from "ws";
+import { mockIpv4OnlyLocalhostLookup } from "../../test/helpers/loopback-dns.js";
 import { invokeNodeWorkerPortalStream } from "./portal-stream-command.js";
 
 const TICKET = "a".repeat(48);
@@ -18,7 +19,9 @@ async function listenGateway(
   });
   wss.on("connection", onConnection);
   await new Promise<void>((resolve) => {
-    server.listen(0, "127.0.0.1", resolve);
+    // Reserve both families so this HTTP peer cannot take the IPv6 target's
+    // numeric port on IPv4 and win localhost connection selection.
+    server.listen({ port: 0, host: "::", ipv6Only: false }, resolve);
   });
   const address = server.address();
   if (!address || typeof address === "string") {
@@ -79,6 +82,9 @@ describe("node worker portal stream command", () => {
   ])(
     "attaches %s loopback through Gateway context %j and closes on cancellation",
     async (host, contextPath) => {
+      if (host === "::1") {
+        mockIpv4OnlyLocalhostLookup();
+      }
       const peers = new Set<net.Socket>();
       const local = net.createServer((socket) => {
         peers.add(socket);
