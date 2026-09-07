@@ -1,7 +1,8 @@
+import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 /**
  * Resolves provider/model prompt-cache retention behavior.
  */
-import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import { resolveOpenAIPromptCacheKeySupport } from "@openclaw/ai/transports";
 import { resolveAnthropicCacheRetentionFamily } from "../../llm/providers/stream-wrappers/anthropic-family-cache-semantics.js";
 import type { OpenAICompletionsCompat } from "../../llm/types.js";
 
@@ -28,6 +29,7 @@ export function resolveCacheRetention(
   modelApi?: string,
   modelId?: string,
   compat?: Pick<OpenAICompletionsCompat, "supportsPromptCacheKey" | "cacheControlFormat">,
+  baseUrl?: string,
 ): CacheRetention | undefined {
   const hasExplicitCacheConfig =
     extraParams?.cacheRetention !== undefined || extraParams?.cacheControlTtl !== undefined;
@@ -37,13 +39,18 @@ export function resolveCacheRetention(
     modelId,
     hasExplicitCacheConfig,
   });
+  const openAIEligible =
+    (modelApi === "openai-responses" ||
+      modelApi === "openai-chatgpt-responses" ||
+      modelApi === "openai-completions") &&
+    resolveOpenAIPromptCacheKeySupport({ provider, api: modelApi, baseUrl, compat });
   const googleEligible = isGooglePromptCacheEligible({ modelApi, modelId });
   // Marker-based caches accept retention without accepting OpenAI cache-key fields.
   // Keep these capabilities independent so explicit "none" can suppress markers.
   const compatEligible =
     compat?.supportsPromptCacheKey === true || compat?.cacheControlFormat === "anthropic";
 
-  if (!family && !googleEligible && !compatEligible) {
+  if (!family && !googleEligible && !openAIEligible && !compatEligible) {
     return undefined;
   }
 
