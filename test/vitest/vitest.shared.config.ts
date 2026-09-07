@@ -20,7 +20,7 @@ import {
   BUNDLED_PLUGIN_ROOT_DIR,
   BUNDLED_PLUGIN_TEST_GLOB,
 } from "./vitest.bundled-plugin-paths.ts";
-import { loadVitestExperimentalConfig } from "./vitest.performance-config.ts";
+import { loadVitestPerformanceConfig } from "./vitest.performance-config.ts";
 import { shouldPrintVitestThrottle } from "./vitest.system-load.ts";
 import { DEFAULT_VITEST_TEST_TIMEOUT_MS } from "./vitest.timeouts.ts";
 
@@ -596,6 +596,6 @@ export const sharedVitestConfig = {
         "src/infra/tailscale.ts",
       ],
     },
-    ...loadVitestExperimentalConfig(),
+    ...loadVitestPerformanceConfig(process.env, process.platform, repoRoot),
   },
 };

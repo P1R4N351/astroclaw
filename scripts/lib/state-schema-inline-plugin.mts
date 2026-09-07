@@ -32,10 +32,14 @@ export function createStateSchemaInlinePlugin(rootDir = process.cwd()) {
 
   return {
     name: STATE_SCHEMA_INLINE_PLUGIN_NAME,
+    // Vitest 4.1.6 (this repo's pin) exposes the cache-key hook prefixed;
+    // the unprefixed spelling only exists from Vitest 5, so calling it here
+    // throws "context.defineCacheKeyGenerator is not a function" and no
+    // project can start.
     configureVitest(context: {
-      defineCacheKeyGenerator(callback: typeof cacheKeyForSchema): void;
+      experimental_defineCacheKeyGenerator(callback: typeof cacheKeyForSchema): void;
     }) {
-      context.defineCacheKeyGenerator(cacheKeyForSchema);
+      context.experimental_defineCacheKeyGenerator(cacheKeyForSchema);
     },
     load(this: { addWatchFile(id: string): void }, id: string) {
       const schema = schemasByModulePath.get(path.resolve(id));
