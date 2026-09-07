@@ -10,14 +10,16 @@ import "../../components/tooltip.ts";
 import { icons } from "../../components/icons.ts";
 import { highlightJsonHtml } from "../../components/markdown-code-blocks.ts";
 import { t } from "../../i18n/index.ts";
+import { registerSettingsEnglish } from "../../i18n/locales/en-settings.ts";
 import { isJson5Warm, warmJson5 } from "../../lib/json5-runtime.ts";
 import { renderNotificationsSection } from "./notifications-section.ts";
+import { renderSetupSection } from "./setup.ts";
 import { renderAppearanceSection } from "./view-appearance.ts";
 import { computeRawDiff, formatConfigDiffPath, renderRawDiffValue } from "./view-diff.ts";
 import {
   CATEGORISED_KEYS,
   getChannelConfigGroups,
-  getSectionIcon,
+  renderConfigAccordionNav,
   SECTION_CATEGORIES,
   type SectionCategory,
 } from "./view-navigation.ts";
@@ -35,6 +37,8 @@ import {
 } from "./view-state.ts";
 import type { ConfigProps } from "./view-types.ts";
 
+registerSettingsEnglish();
+
 export { createConfigViewState } from "./view-state.ts";
 export type { ConfigProps, ConfigViewState } from "./view-types.ts";
 
@@ -48,6 +52,7 @@ function renderAppearance(props: ConfigProps) {
       <input
         class="settings-input"
         data-settings-chat-message-width
+        aria-label=${t("configView.chatPrefs.messageWidth")}
         type="text"
         spellcheck="false"
         placeholder="48rem"
@@ -82,6 +87,7 @@ function renderAppearance(props: ConfigProps) {
 }
 
 export function renderConfig(props: ConfigProps) {
+  const renderSection = props.renderSection ?? ((editor) => editor);
   const viewState = props.viewState;
   const showModeToggle = props.showModeToggle ?? false;
   const showRootTab = props.showRootTab ?? true;
@@ -213,6 +219,16 @@ export function renderConfig(props: ConfigProps) {
           },
         }
       : analysis.schema;
+  const setupSchema = formSchema?.properties?.wizard;
+  const showSetup = setupSchema && (!props.activeSection || props.activeSection === "wizard");
+  const editorSchema = setupSchema
+    ? {
+        ...formSchema,
+        properties: Object.fromEntries(
+          Object.entries(formSchema.properties ?? {}).filter(([key]) => key !== "wizard"),
+        ),
+      }
+    : formSchema;
   const topTabs = [
     ...(showRootTab
       ? [{ key: null as string | null, label: props.navRootLabel ?? t("nav.settings") }]
@@ -223,69 +239,6 @@ export function renderConfig(props: ConfigProps) {
   ];
   const settingsLayout = props.settingsLayout ?? "tabs";
   const allCategories = [...visibleCategories, ...(otherCategory ? [otherCategory] : [])];
-
-  function renderAccordionNav() {
-    return html`
-      <div class="config-accordion-nav">
-        ${allCategories.map((category) => {
-          const expanded = category.sections.some((section) => section.key === props.activeSection);
-          const panelId = `config-accordion-panel-${category.id}`;
-          return html`
-            <div class="config-accordion-group">
-              <button
-                class="config-accordion-group__header ${expanded
-                  ? "config-accordion-group__header--active"
-                  : ""}"
-                aria-expanded=${expanded ? "true" : "false"}
-                aria-controls=${panelId}
-                @click=${(event: Event) => {
-                  const firstKey = category.sections[0]?.key ?? null;
-                  props.onSectionChange(expanded ? null : firstKey);
-                  resetContentScroll(event.currentTarget);
-                }}
-              >
-                <span class="config-accordion-group__icon">
-                  ${getSectionIcon(category.sections[0]?.key ?? "default")}
-                </span>
-                <span>${category.label}</span>
-                <svg
-                  class="config-accordion-group__chevron ${expanded
-                    ? "config-accordion-group__chevron--open"
-                    : ""}"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  width="14"
-                  height="14"
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              <div id=${panelId} class="config-accordion-group__items" ?hidden=${!expanded}>
-                ${category.sections.map(
-                  (section) => html`<button
-                    class="config-accordion-group__item ${props.activeSection === section.key
-                      ? "config-accordion-group__item--active"
-                      : ""}"
-                    @click=${(event: Event) => {
-                      props.onSectionChange(section.key);
-                      resetContentScroll(event.currentTarget);
-                    }}
-                  >
-                    <span class="config-accordion-group__item-icon">
-                      ${getSectionIcon(section.key)}
-                    </span>
-                    ${section.label}
-                  </button>`,
-                )}
-              </div>
-            </div>
-          `;
-        })}
-      </div>
-    `;
-  }
 
   // Raw mode keeps an explicit diff + save flow; form edits auto-save.
   const hasRawChanges = formMode === "raw" && props.raw !== props.originalRaw;
@@ -401,6 +354,7 @@ export function renderConfig(props: ConfigProps) {
             ? html`<div class="config-mode-toggle">
                 <button
                   class="config-mode-toggle__btn ${formMode === "form" ? "active" : ""}"
+                  aria-pressed=${formMode === "form" ? "true" : "false"}
                   ?disabled=${props.schemaLoading || !props.schema || rawDraftPending}
                   title=${rawDraftPending
                     ? t("configView.rawDraftPendingFormTitle")
@@ -413,6 +367,7 @@ export function renderConfig(props: ConfigProps) {
                 </button>
                 <button
                   class="config-mode-toggle__btn ${formMode === "raw" ? "active" : ""}"
+                  aria-pressed=${formMode === "raw" ? "true" : "false"}
                   ?disabled=${!rawAvailable}
                   title=${rawAvailable
                     ? t("configView.rawTitle")
@@ -426,7 +381,9 @@ export function renderConfig(props: ConfigProps) {
           ${sectionTabs}
         </div>`
       : nothing}
-    ${settingsLayout === "accordion" ? renderAccordionNav() : nothing}
+    ${settingsLayout === "accordion"
+      ? renderConfigAccordionNav(props, allCategories, resetContentScroll)
+      : nothing}
     ${channelGroup && formMode === "form"
       ? html`<div class="config-toolbar">
           <label class="field">
@@ -525,50 +482,60 @@ export function renderConfig(props: ConfigProps) {
                       <div class="config-loading__spinner"></div>
                       <span>${t("configView.loadingSchema")}</span>
                     </div>`
-                  : renderConfigForm({
-                      schema: formSchema,
-                      uiHints: props.uiHints,
-                      value: props.formValue,
-                      embedded: props.embeddedEditor === true,
-                      rawAvailable,
-                      disabled: configBusy || !props.formValue || !mutationAllowed,
-                      unsupportedPaths: analysis.unsupportedPaths,
-                      onPatch: props.onFormPatch,
-                      onRemove: props.onFormRemove,
-                      activeSection: props.activeSection,
-                      activeSubsection: null,
-                      showAdvanced: effectiveShowAdvanced,
-                      forceAdvancedSection: props.forceAdvancedSection,
-                      onShowAdvanced: () => props.setShowAdvancedSettings(true),
-                      onHideAdvanced: props.forceShowAdvanced
-                        ? undefined
-                        : () => props.setShowAdvancedSettings(false),
-                      sectionActions:
-                        props.activeSection === "env"
-                          ? html`<button
-                              class="btn btn--sm ${envSensitiveVisible ? "active" : ""}"
-                              aria-pressed=${envSensitiveVisible ? "true" : "false"}
-                              title=${envSensitiveVisible
-                                ? t("configView.hideEnvValues")
-                                : t("configView.revealEnvValues")}
-                              @click=${() => {
-                                viewState.envRevealed = !viewState.envRevealed;
-                                requestUpdate();
-                              }}
-                            >
-                              ${envSensitiveVisible ? icons.eyeOff : icons.eye}
-                              ${t("configView.peek")}
-                            </button>`
-                          : undefined,
-                      showSectionDocs: props.showSectionDocs,
-                      sectionPrelude: props.sectionPrelude,
-                      revealSensitive: props.activeSection === "env" ? envSensitiveVisible : false,
-                      isSensitivePathRevealed: (path) => isSensitivePathRevealed(viewState, path),
-                      onToggleSensitivePath: (path) => {
-                        toggleSensitivePathReveal(viewState, path);
-                        requestUpdate();
-                      },
-                    })}
+                  : renderSection(
+                      renderConfigForm({
+                        schema: editorSchema,
+                        uiHints: props.uiHints,
+                        value: props.formValue,
+                        embedded: props.embeddedEditor === true || Boolean(showSetup),
+                        rawAvailable,
+                        disabled: configBusy || !props.formValue || !mutationAllowed,
+                        unsupportedPaths: analysis.unsupportedPaths,
+                        onPatch: props.onFormPatch,
+                        onRemove: props.onFormRemove,
+                        activeSection: props.activeSection,
+                        activeSubsection: null,
+                        showAdvanced: effectiveShowAdvanced,
+                        forceAdvancedSection: props.forceAdvancedSection,
+                        onShowAdvanced: () => props.setShowAdvancedSettings(true),
+                        onHideAdvanced: props.forceShowAdvanced
+                          ? undefined
+                          : () => props.setShowAdvancedSettings(false),
+                        sectionActions:
+                          props.activeSection === "env"
+                            ? html`<button
+                                class="btn btn--sm ${envSensitiveVisible ? "active" : ""}"
+                                aria-pressed=${envSensitiveVisible ? "true" : "false"}
+                                title=${envSensitiveVisible
+                                  ? t("configView.hideEnvValues")
+                                  : t("configView.revealEnvValues")}
+                                @click=${() => {
+                                  viewState.envRevealed = !viewState.envRevealed;
+                                  requestUpdate();
+                                }}
+                              >
+                                ${envSensitiveVisible ? icons.eyeOff : icons.eye}
+                                ${t("configView.peek")}
+                              </button>`
+                            : undefined,
+                        showSectionDocs: props.showSectionDocs,
+                        sectionPrelude: props.sectionPrelude,
+                        revealSensitive:
+                          props.activeSection === "env" ? envSensitiveVisible : false,
+                        isSensitivePathRevealed: (path) => isSensitivePathRevealed(viewState, path),
+                        onToggleSensitivePath: (path) => {
+                          toggleSensitivePathReveal(viewState, path);
+                          requestUpdate();
+                        },
+                      }),
+                    )}
+                ${showSetup && !props.schemaLoading
+                  ? renderSetupSection(
+                      setupSchema,
+                      props,
+                      configBusy || !props.formValue || !mutationAllowed,
+                    )
+                  : nothing}
               `
             : (() => {
                 const sensitiveCount = countSensitiveConfigValues(
