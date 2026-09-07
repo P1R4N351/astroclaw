@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { summarizeMigrationItems } from "../plugin-sdk/migration.js";
 import type { MigrationApplyResult, MigrationPlan } from "../plugins/types.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -53,9 +53,9 @@ vi.mock("../config/io.js", () => ({
 
 vi.mock("../config/config.js", () => ({
   ConfigMutationConflictError: class ConfigMutationConflictError extends Error {},
-  replaceConfigFile: async ({ nextConfig }: { nextConfig: OpenClawConfig }) => {
-    configStore.set(configPath(), structuredClone(nextConfig));
-    return { nextConfig };
+  replaceConfigFile: async ({ sourceConfig }: { sourceConfig: OpenClawConfig }) => {
+    configStore.set(configPath(), structuredClone(sourceConfig));
+    return { nextConfig: sourceConfig };
   },
   resolveGatewayPort: (config: OpenClawConfig) => config.gateway?.port ?? 18789,
 }));
