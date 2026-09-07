@@ -1,7 +1,7 @@
 // Run fallback policy tests cover isolated agent fallback behavior after run failures.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { CronJob } from "../types.js";
 import {
   resolveCronFallbacksOverride,
@@ -479,7 +479,7 @@ describe("resolveCronFallbacksOverride", () => {
 
   it("documents that cron preflight walks fallbacks before skipping", () => {
     const cliDocs = readFileSync("docs/cli/cron.md", "utf8");
-    const automationDocs = readFileSync("docs/automation/cron-jobs.md", "utf8");
+    const automationDocs = readFileSync("docs/automation/cron-jobs/payloads.md", "utf8");
 
     expect(cliDocs).toContain("Local-provider preflight checks walk configured fallbacks");
     expect(automationDocs).toContain("This preflight walks the job's configured fallback chain");
