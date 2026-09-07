@@ -21,8 +21,8 @@ import {
   copyConfigResolutionFacts,
   copyConfigResolutionFactsExcept,
 } from "../config/resolution-facts.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayAuthConfig, GatewayTailscaleConfig } from "../config/types.gateway.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import {
   GATEWAY_AUTH_SURFACE_PATHS,
@@ -166,6 +166,7 @@ export function assertRuntimeGatewayAuthNotKnownWeak(config: OpenClawConfig): vo
       env: process.env,
       tailscaleMode: config.gateway?.tailscale?.mode ?? "off",
     }),
+    config.gateway?.auth?.token,
   );
 }
 
