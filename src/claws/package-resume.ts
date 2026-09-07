@@ -1,5 +1,5 @@
 import { stableStringify } from "@astroclaw/normalization-core";
-import { normalizeClawHubSha256Integrity } from "../infra/clawhub-artifacts.js";
+import { normalizeClawHubSha256Integrity } from "../infra/clawhub-integrity.js";
 import {
   openExistingOpenClawStateDatabaseReadOnly,
   type OpenClawStateDatabaseOptions,
