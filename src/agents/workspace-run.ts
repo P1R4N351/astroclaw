@@ -3,9 +3,9 @@
  *
  * Selects per-run workspace directories and redacts run identifiers for logs/prompts.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import { redactIdentifier } from "@astroclaw/normalization-core/node-crypto";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { logWarn } from "../logger.js";
-import { redactIdentifier } from "../logging/redact-identifier.js";
 import {
   classifySessionKeyShape,
   normalizeAgentId,
