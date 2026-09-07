@@ -1,4 +1,3 @@
-// ACP Core module implements meta behavior.
 import {
   asFiniteNumber,
   asSafeIntegerInRange,
