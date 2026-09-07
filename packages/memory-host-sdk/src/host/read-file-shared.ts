@@ -1,4 +1,3 @@
-// Memory Host SDK module implements read file shared behavior.
 import { resolveIntegerOption } from "@astroclaw/normalization-core/number-coercion";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import type { MemoryReadResult } from "./types.js";
