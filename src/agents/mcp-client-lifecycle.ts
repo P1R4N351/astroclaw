@@ -1,9 +1,8 @@
-import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPError } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { settlesWithin } from "../shared/settle-within.js";
+import { isMcpRequestTimeoutError } from "./mcp-error.js";
 import { OpenClawStreamableHTTPClientTransport } from "./mcp-http-transport.js";
 import { OpenClawStdioClientTransport } from "./mcp-stdio-transport.js";
 import { recordAgentCleanupFailure } from "./run-cleanup-timeout.js";
@@ -59,7 +58,7 @@ export async function connectMcpClient(params: {
       aborted,
     ]);
   } catch (error) {
-    if (deadline.aborted || (isRecord(error) && error.code === ErrorCode.RequestTimeout)) {
+    if (deadline.aborted || isMcpRequestTimeoutError(error)) {
       await disposeMcpClient(
         {
           client: params.client,
