@@ -1,17 +1,17 @@
 import { mkdirSync, rmSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { EmbeddingInput } from "openclaw/plugin-sdk/embedding-providers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
-import { clearEmbeddingProviders as clearRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
+import type { EmbeddingInput } from "astroclaw/plugin-sdk/embedding-providers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+import { clearEmbeddingProviders as clearRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
 import {
   closeOpenClawAgentDatabasesForTest,
   closeOpenClawStateDatabaseForTest,
-} from "openclaw/plugin-sdk/sqlite-runtime-testing";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 import {
   configureMemoryCoreDreamingStateForTests,
@@ -25,7 +25,7 @@ type GetMemorySearchManager = typeof import("./index.js").getMemorySearchManager
 type ManagerConfig = Parameters<GetMemorySearchManager>[0]["cfg"];
 type ManagerResult = Awaited<ReturnType<GetMemorySearchManager>>;
 
-export type ManagerIndexFixtureConfig = {
+type ManagerIndexFixtureConfig = {
   extraPaths?: string[];
   sources?: Array<"memory" | "sessions">;
   sessionMemory?: boolean;
@@ -45,13 +45,6 @@ export type ManagerIndexFixtureConfig = {
   ftsTokenizer?: "unicode61" | "trigram";
   cacheEnabled?: boolean;
   minScore?: number;
-  onSearch?: boolean;
-  hybrid?: {
-    enabled: boolean;
-    vectorWeight?: number;
-    textWeight?: number;
-    temporalDecay?: { enabled: boolean };
-  };
 };
 
 type ProviderCall = {
@@ -69,6 +62,7 @@ type ProviderControls = {
   embeddedBatchInputs: EmbeddingInput[][];
   providerRuntimeBatchCalls: string[][];
   providerRuntimeBatchGate: Promise<void> | null;
+  providerRuntimeBatchEntered: ((activeCalls: number, texts: readonly string[]) => void) | null;
   providerRuntimeBatchErrors: unknown[];
   providerRuntimeBatchFailuresRemaining: number;
   providerRuntimeActiveBatchCalls: number;
@@ -131,6 +125,9 @@ const providerState = vi.hoisted(() => ({
   embeddedBatchInputs: [] as EmbeddingInput[][],
   providerRuntimeBatchCalls: [] as string[][],
   providerRuntimeBatchGate: null as Promise<void> | null,
+  providerRuntimeBatchEntered: null as
+    | ((activeCalls: number, texts: readonly string[]) => void)
+    | null,
   providerRuntimeBatchErrors: [] as unknown[],
   providerRuntimeBatchFailuresRemaining: 0,
   providerRuntimeActiveBatchCalls: 0,
@@ -335,6 +332,10 @@ vi.mock("./embeddings.js", async (importOriginal) => {
                       providerState.providerRuntimeActiveBatchCalls,
                     );
                     try {
+                      providerState.providerRuntimeBatchEntered?.(
+                        providerState.providerRuntimeActiveBatchCalls,
+                        batch.chunks.map((chunk) => chunk.text),
+                      );
                       await providerState.providerRuntimeBatchGate;
                       providerState.providerRuntimeBatchCalls.push(
                         batch.chunks.map((chunk) => chunk.text),
@@ -521,7 +522,6 @@ export function createManagerIndexFixture(deps: {
       sources: ["memory", "sessions"],
       sessionMemory: true,
       minScore: 0,
-      hybrid: { enabled: true, vectorWeight: 0.7, textWeight: 0.3 },
     });
     const manager = requireManager(await deps.getMemorySearchManager({ cfg, agentId: "main" }));
     trackManager(manager);
@@ -531,7 +531,7 @@ export function createManagerIndexFixture(deps: {
 
   beforeAll(async () => {
     const rawRoot = await fs.mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "openclaw-mem-fixtures-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "openclaw-mem-fixtures-"),
     );
     root = await fs.realpath(rawRoot);
     workspace = path.join(root, "workspace");
@@ -568,6 +568,7 @@ export function createManagerIndexFixture(deps: {
     providerState.embeddedBatchInputs = [];
     providerState.providerRuntimeBatchCalls = [];
     providerState.providerRuntimeBatchGate = null;
+    providerState.providerRuntimeBatchEntered = null;
     providerState.providerRuntimeBatchErrors = [];
     providerState.providerRuntimeBatchFailuresRemaining = 0;
     providerState.providerRuntimeActiveBatchCalls = 0;
