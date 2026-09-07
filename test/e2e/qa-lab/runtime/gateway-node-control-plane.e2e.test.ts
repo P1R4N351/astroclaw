@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import { GatewayClient } from "openclaw/plugin-sdk/gateway-runtime";
+import { GatewayClient } from "astroclaw/plugin-sdk/gateway-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type RawData, WebSocketServer } from "ws";
 import { createQaGatewayChild, type QaGatewayChild } from "../../../../extensions/qa-lab/api.js";
@@ -105,22 +105,21 @@ describe("Gateway node control plane", () => {
         repoRoot: process.cwd(),
         command: {
           executablePath: process.execPath,
-          argsPrefix: ["--import", "tsx", "src/entry.ts"],
+          argsPrefix: ["dist/entry.js"],
           cwd: process.cwd(),
           usePackagedPlugins: true,
         },
         transportBaseUrl: "http://127.0.0.1",
         controlUiEnabled: false,
         runtimeEnvPatch: {
-          OPENCLAW_DISABLE_BUNDLED_PLUGINS: "1",
           OPENCLAW_SKIP_CHANNELS: "1",
           OPENCLAW_SKIP_PROVIDERS: "1",
           OPENCLAW_TEST_MINIMAL_GATEWAY: "1",
         },
         mutateConfig: (cfg) => {
-          const { plugins: _plugins, ...withoutPlugins } = cfg;
           return {
-            ...withoutPlugins,
+            ...cfg,
+            plugins: { enabled: false },
             gateway: {
               ...cfg.gateway,
               nodes: {
@@ -522,26 +521,25 @@ describe("Gateway node control plane", () => {
           repoRoot: process.cwd(),
           command: {
             executablePath: process.execPath,
-            argsPrefix: ["--import", "tsx", "src/entry.ts"],
+            argsPrefix: ["dist/entry.js"],
             cwd: process.cwd(),
             usePackagedPlugins: true,
           },
           transportBaseUrl: "http://127.0.0.1",
           controlUiEnabled: false,
           runtimeEnvPatch: {
-            OPENCLAW_DISABLE_BUNDLED_PLUGINS: "1",
             OPENCLAW_SKIP_CHANNELS: "1",
             OPENCLAW_SKIP_PROVIDERS: "1",
             OPENCLAW_TEST_MINIMAL_GATEWAY: "1",
           },
           mutateConfig: (cfg) => {
             // This control-plane fixture must not request unrelated QA runtime plugin installs.
-            const { plugins: _plugins, ...withoutPlugins } = cfg;
             return {
-              ...withoutPlugins,
+              ...cfg,
               plugins: {
                 enabled: true,
                 allow: [FIXTURE_PLUGIN_ID],
+                slots: { memory: "none" },
                 load: { paths: [fixture.pluginDir] },
                 entries: { [FIXTURE_PLUGIN_ID]: { enabled: true } },
               },
