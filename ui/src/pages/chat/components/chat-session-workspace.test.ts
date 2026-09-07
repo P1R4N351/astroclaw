@@ -2,6 +2,7 @@ import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
 import {
   createSessionWorkspaceProps,
+  isSessionWorkspaceItemLoading,
   openSessionWorkspaceFile,
   refreshSessionWorkspace,
   renderSessionWorkspaceRail,
@@ -48,6 +49,68 @@ describe("session workspace state", () => {
     workspace.onSetDock("right");
     expect(createSessionWorkspaceProps(state).dock).toBe("right");
     expect(state.settings?.chatWorkspaceDock).toBe("right");
+  });
+
+  it("shows the Files skeleton only while a slow cloud workspace request is pending", async () => {
+    let resolveList!: (value: {
+      sessionKey: string;
+      root: string;
+      files: Array<{ kind: "modified"; name: string; path: string; missing: false }>;
+    }) => void;
+    const listFiles = vi.fn(
+      () =>
+        new Promise<{
+          sessionKey: string;
+          root: string;
+          files: Array<{ kind: "modified"; name: string; path: string; missing: false }>;
+        }>((resolve) => {
+          resolveList = resolve;
+        }),
+    );
+    const state = {
+      client: { request: vi.fn().mockResolvedValue({ artifacts: [] }) },
+      connected: true,
+      connectionEpoch: 1,
+      handleOpenSidebar: vi.fn(),
+      hello: null,
+      agentsList: { agents: [] },
+      requestUpdate: vi.fn(),
+      sessionKey: "agent:main:cloud",
+      sidebarContent: null,
+      sessions: { listFiles },
+    } as unknown as SessionWorkspaceHost;
+    const mount = document.createElement("div");
+
+    render(
+      renderSessionWorkspaceRail(createSessionWorkspaceProps(state, { expanded: true }), {
+        embedded: true,
+      }),
+      mount,
+    );
+
+    expect(listFiles).toHaveBeenCalledOnce();
+    const skeleton = mount.querySelector<HTMLElement & { variant: string }>(
+      "openclaw-panel-loading-skeleton",
+    );
+    expect(skeleton).not.toBeNull();
+    expect(skeleton?.variant).toBe("files");
+    expect(mount.textContent).not.toContain("Loading session workspace");
+
+    resolveList({
+      sessionKey: state.sessionKey,
+      root: "/workspace/cloud",
+      files: [{ kind: "modified", name: "slow.ts", path: "src/slow.ts", missing: false }],
+    });
+    await vi.waitFor(() => expect(createSessionWorkspaceProps(state).loading).toBe(false));
+    render(
+      renderSessionWorkspaceRail(createSessionWorkspaceProps(state, { expanded: true }), {
+        embedded: true,
+      }),
+      mount,
+    );
+
+    expect(mount.querySelector("openclaw-panel-loading-skeleton")).toBeNull();
+    expect(mount.textContent).toContain("src/slow.ts");
   });
 
   it("rotates Files and Review ownership across a same-client reconnect", async () => {
@@ -308,6 +371,65 @@ describe("session workspace artifacts", () => {
     return { handleOpenSidebar, request, state };
   }
 
+  it("keeps nested code literal in a decoded text artifact preview", async () => {
+    const source = [
+      "Résumé 東京 🦀",
+      "",
+      "```ts",
+      "const x = 1;",
+      "```",
+      "",
+      "**literal after**",
+    ].join("\n");
+    const { handleOpenSidebar, state } = createArtifactHost({
+      data: btoa(String.fromCharCode(...new TextEncoder().encode(source))),
+      mimeType: "text/markdown",
+      title: "Source notes",
+    });
+    createSessionWorkspaceProps(state).onOpenArtifact("artifact-1");
+    const content = await loadedSidebarContent(handleOpenSidebar);
+    expect(content).toMatchObject({ kind: "markdown", rawText: source });
+    const panel = document.createElement("openclaw-chat-detail-panel") as HTMLElement & {
+      content: SidebarContent;
+      updateComplete: Promise<unknown>;
+    };
+    panel.content = content;
+    document.body.append(panel);
+    const originalClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+    const schedule = vi.spyOn(globalThis, "setTimeout");
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    try {
+      await panel.updateComplete;
+      const reader = panel.querySelector(".sidebar-markdown-reader");
+      expect(reader?.querySelector("h1")?.textContent).toBe("Source notes");
+      expect.soft(reader?.querySelectorAll("pre code")).toHaveLength(1);
+      expect.soft(reader?.querySelector("pre code")?.textContent).toBe(`${source}\n`);
+      expect.soft(reader?.querySelector("strong")).toBeNull();
+      const copyButton = reader?.querySelector<HTMLButtonElement>(".code-block-copy");
+      expect(copyButton).toBeInstanceOf(HTMLButtonElement);
+      copyButton!.click();
+      await vi.waitFor(() => expect(copyButton!.getAttribute("aria-label")).toBe("Copied!"));
+      expect(writeText).toHaveBeenCalledWith(source);
+    } finally {
+      for (const [index, [, delay]] of schedule.mock.calls.entries()) {
+        if (delay === 1_500) {
+          globalThis.clearTimeout(schedule.mock.results[index]?.value);
+        }
+      }
+      schedule.mockRestore();
+      if (originalClipboard) {
+        Object.defineProperty(navigator, "clipboard", originalClipboard);
+      } else {
+        Reflect.deleteProperty(navigator, "clipboard");
+      }
+      panel.remove();
+    }
+  });
+
   it.each([
     {
       content: "Résumé 東京 🦀",
@@ -403,6 +525,7 @@ describe("openSessionWorkspaceFile", () => {
     expect(getFile).not.toHaveBeenCalled();
     expect(handleOpenSidebar).not.toHaveBeenCalled();
     expect(sidebarContent).toBe(existingContent);
+    expect(isSessionWorkspaceItemLoading(state)).toBe(false);
   });
 
   it("opens Markdown with a canonical Gateway- and pane-scoped draft identity", async () => {
@@ -434,6 +557,7 @@ describe("openSessionWorkspaceFile", () => {
 
     openSessionWorkspaceFile(state, { path: "readme.md" });
 
+    expect(isSessionWorkspaceItemLoading(state)).toBe(true);
     expect(await loadedSidebarContent(handleOpenSidebar)).toMatchObject({
       kind: "file",
       name: "README.md",
@@ -442,6 +566,7 @@ describe("openSessionWorkspaceFile", () => {
         "wss://gateway-a.example\u0000pane-left\u0000agent:main:current\u0000/workspace\u0000README.md",
       edit: { hash: "a".repeat(64) },
     });
+    expect(isSessionWorkspaceItemLoading(state)).toBe(false);
   });
 
   it.each([
