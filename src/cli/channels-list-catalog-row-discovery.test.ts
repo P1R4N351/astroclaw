@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeEach, expect, it, vi } from "vitest";
 import type { ChannelPluginCatalogEntry } from "../channels/plugins/catalog.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const testState = vi.hoisted(() => ({
   config: {} as OpenClawConfig,
@@ -31,9 +31,6 @@ vi.mock("../plugins/plugin-registry-contributions.js", async (importOriginal) =>
 vi.mock("./command-execution-startup.js", () => ({
   applyCliExecutionStartupPresentation: vi.fn(async () => {}),
   ensureCliExecutionBootstrap: vi.fn(async () => {}),
-  resolveCliExecutionStartupContext: vi.fn(() => ({
-    startupPolicy: { loadPlugins: false, suppressDoctorStdout: true },
-  })),
 }));
 
 vi.mock("../commands/channels/shared.js", () => ({
