@@ -817,6 +817,7 @@ describe("runCodexAppServerAttempt steering", () => {
       expect.anything(),
       params.sessionKey,
       params.sessionFile,
+      "main",
     );
 
     await waitAndQueueActiveRunMessage(params.sessionId, "session-file registered", {
