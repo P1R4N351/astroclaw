@@ -2,10 +2,10 @@ import { stableStringify } from "@astroclaw/normalization-core";
 /**
  * Builds structured observations for embedded-agent API/text failures.
  */
+import { redactIdentifier } from "@astroclaw/normalization-core/node-crypto";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { readLoggingConfig } from "../logging/config.js";
-import { redactIdentifier } from "../logging/redact-identifier.js";
 import { getDefaultRedactPatterns, redactSensitiveText } from "../logging/redact.js";
 import {
   classifyProviderRuntimeFailureKind,
