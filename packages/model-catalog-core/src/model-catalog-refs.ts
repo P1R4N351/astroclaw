@@ -1,4 +1,3 @@
-// Model Catalog Core module implements model catalog refs behavior.
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeProviderId } from "./provider-id.js";
 
