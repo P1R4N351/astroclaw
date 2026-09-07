@@ -1,10 +1,9 @@
-// Memory Host SDK module implements remote http behavior.
 import {
   fetchWithSsrFGuard,
   shouldUseEnvHttpProxyForUrl,
   ssrfPolicyFromHttpBaseUrlAllowedHostname,
-} from "./astroclaw-runtime-network.js";
-import type { SsrFPolicy } from "./astroclaw-runtime-network.js";
+} from "./openclaw-runtime-network.js";
+import type { SsrFPolicy } from "./openclaw-runtime-network.js";
 
 // Remote memory HTTP wrapper that applies SSRF policy and releases guarded sockets.
 
