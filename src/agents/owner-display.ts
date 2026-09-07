@@ -3,7 +3,7 @@
  *
  * Owner ids are rendered raw; no config or secret is required.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const MAX_OWNER_PROMPT_SENDERS = 16;
 export const MAX_OWNER_PROMPT_CONTENT_BYTES = 980;
@@ -18,11 +18,6 @@ function exceedsOwnerPromptContentBudget(ownerNumbers: string[]): boolean {
   }
   return false;
 }
-
-type OwnerDisplaySetting = {
-  ownerDisplay?: "raw" | "hash";
-  ownerDisplaySecret?: string;
-};
 
 type OwnerDisplaySecretResolution = {
   config: OpenClawConfig;
@@ -59,14 +54,6 @@ export function resolveOwnerPromptNumbers(params: {
     }
   }
   return promptOwners;
-}
-
-/**
- * Resolve owner display settings for prompt rendering.
- * Keep auth secrets decoupled from owner hash secrets.
- */
-export function resolveOwnerDisplaySetting(_config?: OpenClawConfig): OwnerDisplaySetting {
-  return { ownerDisplay: "raw", ownerDisplaySecret: undefined };
 }
 
 /**
