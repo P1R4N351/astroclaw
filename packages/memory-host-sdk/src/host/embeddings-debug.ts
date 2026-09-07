@@ -1,4 +1,3 @@
-// Memory Host SDK module implements embeddings debug behavior.
 import { parseBoolean } from "@astroclaw/normalization-core/boolean-coercion";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 
