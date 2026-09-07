@@ -1,4 +1,3 @@
-// OpenClaw SDK module implements transport behavior.
 import { GatewayClient, type GatewayClientOptions } from "@astroclaw/gateway-client";
 import { EventHub } from "./event-hub.js";
 import type {
