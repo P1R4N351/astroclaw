@@ -5,17 +5,17 @@ import type { ChannelId } from "../../channels/plugins/types.public.js";
 import { resolveCommandConfigWithSecrets } from "../../cli/command-config-resolution.js";
 import type { CommandSecretResolutionMode } from "../../cli/command-secret-gateway.js";
 import { getChannelsCommandSecretTargetIds } from "../../cli/command-secret-targets.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../../runtime.js";
-import { requireValidConfig, requireValidConfigFileSnapshot } from "../config-validation.js";
+import { requireValidConfig, requireValidConfigForWrite } from "../config-validation.js";
 
 export type ChatChannel = ChannelId;
 
 export const NO_CONFIGURED_CHAT_CHANNELS_LINE =
   "- no configured chat channels (run `openclaw channels list --all` to see installable channels)";
 
-export { requireValidConfigFileSnapshot };
+export { requireValidConfigForWrite };
 
 /** Load valid channel command config with read-only secret resolution applied. */
 export async function requireValidChannelConfig(
