@@ -1,4 +1,3 @@
-// ACP Core module implements session lineage meta behavior.
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 
 const SUBAGENT_ROLES = ["orchestrator", "leaf"] as const;
