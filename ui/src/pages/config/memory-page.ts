@@ -132,12 +132,7 @@ class MemorySettingsPage extends OpenClawLightDomElement {
     .watch(
       () => this.context?.agents,
       (agents, notify) => agents.subscribe(notify),
-      (agents) => {
-        if (!agents.state.agentsList && !agents.state.agentsLoading) {
-          void agents.ensureList().catch(() => undefined);
-        }
-        void this.loadOverviewStatus();
-      },
+      () => void this.loadOverviewStatus(),
     );
 
   override disconnectedCallback() {
@@ -635,6 +630,7 @@ class MemorySettingsPage extends OpenClawLightDomElement {
       this.mutationDisabled || (this.catalog.kind === "ready" && !this.catalog.mutationAllowed);
     const activeTab = this.activeTab();
     const agentId = this.resolveAgentId();
+    const agentError = agentId ? null : this.context.agents.state.agentsError;
     return renderMemory({
       activeTab,
       onTabChange: (tab) => this.navigateTab(tab),
@@ -666,9 +662,12 @@ class MemorySettingsPage extends OpenClawLightDomElement {
         agentId,
         engineSelection,
         engineDisabled: this.engineState(engineSelection) === "disabled",
-        status: this.overviewStatus,
+        status: agentError ? { kind: "error", message: agentError } : this.overviewStatus,
         probingEmbeddings: this.probingEmbeddings,
-        onRefresh: () => void this.loadOverviewStatus({ force: true }),
+        onRefresh: () =>
+          agentId
+            ? void this.loadOverviewStatus({ force: true })
+            : void this.context.agents.ensureList(),
         onProbeEmbeddings: () =>
           void this.loadOverviewStatus({ force: true, probeEmbeddings: true }),
         onNavigate: (tab) => this.navigateTab(tab),
