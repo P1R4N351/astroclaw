@@ -3,7 +3,6 @@ import {
   findNormalizedProviderValue,
   normalizeProviderId,
 } from "@astroclaw/model-catalog-core/provider-id";
-// Ollama API module exposes the plugin public contract.
 import type {
   ProviderDefaultThinkingPolicyContext,
   ProviderNormalizeResolvedModelContext,
