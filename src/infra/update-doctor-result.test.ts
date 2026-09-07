@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
 import {
   consumeUpdatePostInstallDoctorResult,
   createDeferredConfiguredPluginRepairDoctorResult,
@@ -16,13 +16,17 @@ afterEach(async () => {
 });
 
 describe("post-install doctor result IPC", () => {
-  it("round-trips typed advisory results and consumes the file", async () => {
+  it.each([
+    { status: "ok" as const, configHash: "unchanged" },
+    { status: "error" as const, configHash: "a".repeat(64), configInputHash: "b".repeat(64) },
+    {
+      ...createDeferredConfiguredPluginRepairDoctorResult(["deferred repair"]),
+      configHash: "b".repeat(64),
+    },
+    createDeferredConfiguredPluginRepairDoctorResult(["legacy child advisory"]),
+  ])("round-trips $status results and consumes the file", async (result) => {
     const resultPath = createUpdatePostInstallDoctorResultPath();
     resultPaths.push(resultPath);
-    const result = createDeferredConfiguredPluginRepairDoctorResult([
-      "deferred configured plugin repair",
-    ]);
-
     await writeUpdatePostInstallDoctorResult({ resultPath, result });
 
     await expect(consumeUpdatePostInstallDoctorResult(resultPath)).resolves.toEqual(result);
@@ -30,7 +34,7 @@ describe("post-install doctor result IPC", () => {
   });
 
   it("rejects result paths outside the secure OpenClaw temp root", async () => {
-    const tempRoot = resolvePreferredAstroclawTmpDir();
+    const tempRoot = resolvePreferredOpenClawTmpDir();
     const resultPath = path.join(
       `${tempRoot}-outside`,
       `openclaw-update-doctor-${process.pid}-00000000-0000-4000-8000-000000000000.json`,
