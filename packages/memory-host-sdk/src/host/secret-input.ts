@@ -1,8 +1,7 @@
-// Memory Host SDK module implements secret input behavior.
 import {
   hasConfiguredSecretInput,
   normalizeResolvedSecretInputString,
-} from "./astroclaw-runtime-config.js";
+} from "./openclaw-runtime-config.js";
 
 // Memory-specific facade for consuming gateway-resolved provider secret input.
 
