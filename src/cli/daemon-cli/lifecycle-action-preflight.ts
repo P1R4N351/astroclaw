@@ -2,7 +2,7 @@ import { readConfigFileSnapshot } from "../../config/config.js";
 import { resolveFutureConfigActionBlock } from "../../config/future-version-guard.js";
 import { renderConfigValidationIssueLines } from "../../config/issue-location.js";
 import { isPluginPackagingRuntimeOutputInvalidConfigSnapshot } from "../../config/recovery-policy.js";
-import type { ConfigFileSnapshot } from "../../config/types.astroclaw.js";
+import type { ConfigFileSnapshot } from "../../config/types.openclaw.js";
 import { formatPluginPackagingRuntimeOutputRecoveryHint } from "../config-recovery-hints.js";
 
 /** Service lifecycle actions; only start/restart bring the gateway up. */
@@ -30,7 +30,12 @@ export async function getServiceActionPreflightFailure(
 ): Promise<ServiceActionPreflightFailure | null> {
   let snapshot: ConfigFileSnapshot;
   try {
-    snapshot = await readConfigFileSnapshot({ observe: false });
+    // Stop must remain available before Doctor migrates newly installed plugins.
+    // Core validation and the newer-writer guard still protect service selection.
+    snapshot = await readConfigFileSnapshot({
+      observe: false,
+      pluginValidation: action === "stop" ? "core-only" : undefined,
+    });
     if (snapshot.exists && !snapshot.valid) {
       const message =
         snapshot.issues.length > 0
