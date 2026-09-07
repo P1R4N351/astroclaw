@@ -1,4 +1,3 @@
-// Terminal Core module implements health style behavior.
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { theme } from "./theme.js";
 
