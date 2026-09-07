@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { commitPluginInstallRecordsWithConfig } from "./install-record-commit.js";
 import { listRecoveredManagedNpmInstallCandidates } from "./installed-plugin-index-record-reader.js";
 import {
@@ -67,7 +67,7 @@ describe("retained managed npm record commits", () => {
         await commitPluginInstallRecordsWithConfig({
           previousInstallRecords: { "retained-active": npmRecord(packageName, installPath) },
           nextInstallRecords: {
-            "active-alias": {
+            "retained-active": {
               source: "path",
               sourcePath: activePath,
               installPath: activePath,
@@ -77,6 +77,7 @@ describe("retained managed npm record commits", () => {
         });
 
         expect(hasRetainedManagedNpmInstallMarker(installPath)).toBe(false);
+        expect(fs.existsSync(activePath)).toBe(true);
       });
     },
   );
