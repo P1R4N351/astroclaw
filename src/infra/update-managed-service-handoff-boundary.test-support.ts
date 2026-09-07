@@ -155,6 +155,7 @@ export function createManagedServiceManagerBoundary({
         parentPid,
         statePath,
         commandsPath,
+        configPath: path.join(root, "openclaw.json"),
         options,
       }),
       {
@@ -252,12 +253,20 @@ export function createManagedServiceManagerBoundary({
           });
           ledger.recordUpdateRunVerification(${JSON.stringify(run.runId)}, {
             serviceRunning: false, pid: ${parentPid}, readyz: false, settled: false,
-            channelsReady: false, pluginErrors: ["candidate plugin failed"], inferenceProbe: "passed",
+            channelsReady: false, pluginErrors: ["candidate plugin failed"],
           });
           const managerFs = require("node:fs");
           const managerState = JSON.parse(managerFs.readFileSync(${JSON.stringify(statePath)}, "utf8"));
           managerState.previousGenerationRestored = true;
           managerFs.writeFileSync(${JSON.stringify(statePath)}, JSON.stringify(managerState));
+          ${updaterScript}
+        })().catch((error) => { console.error(error); process.exit(18); });`;
+      }
+      if (run) {
+        updaterScript = `void (async () => {
+          ${ledgerRuntimeImport}
+          ledger.recordUpdateRunPhase(${JSON.stringify(run.runId)}, "staging");
+          ledger.recordUpdateRunPhase(${JSON.stringify(run.runId)}, "validating");
           ${updaterScript}
         })().catch((error) => { console.error(error); process.exit(18); });`;
       }
@@ -430,9 +439,10 @@ export function createManagedServiceManagerBoundary({
         }
       };
       expect(readLease()).toEqual({
-        version: 1,
-        pid: runningHelper.pid,
-        startIdentity: expect.any(String),
+        version: 2,
+        executor: { pid: runningHelper.pid, startIdentity: expect.any(String) },
+        helper: { pid: runningHelper.pid, startIdentity: expect.any(String) },
+        action: { kind: "update" },
       });
       await expect(pathExists(commandsPath)).resolves.toBe(false);
       if (options?.controlDisconnect) {
