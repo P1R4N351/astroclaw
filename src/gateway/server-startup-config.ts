@@ -5,8 +5,8 @@ import { hasLegacyAuthProfileSourcesForStartup } from "../agents/auth-profiles/l
 import { inheritLegacyDefaultAgentId } from "../config/legacy.default-agent-owner.js";
 import { copyConfigResolutionFacts, hasUnresolvedConfigPath } from "../config/resolution-facts.js";
 import { applyConfigOverrides } from "../config/runtime-overrides.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayAuthConfig, GatewayTailscaleConfig } from "../config/types.gateway.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
 import { measureDiagnosticsTimelineSpan } from "../infra/diagnostics-timeline.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
@@ -37,7 +37,6 @@ import {
 } from "../secrets/runtime-state.js";
 import { logRuntimeSecretWarnings } from "../secrets/runtime-warning-log.js";
 import { createLazyPromise } from "../shared/lazy-runtime.js";
-import type { ChannelAutostartSuppression } from "./server-channels.js";
 import {
   applyGatewayAuthOverridesForStartupPreflight,
   assertRuntimeGatewayAuthNotKnownWeak,
@@ -51,10 +50,7 @@ import {
   logPreparedSecretDegradations,
   logThrownSecretDegradations,
 } from "./server-startup-secret-diagnostics.js";
-import {
-  resolveGatewayStartupSecretProjection,
-  resolveGatewayStartupSourceConfig,
-} from "./server-startup-secret-surfaces.js";
+import { resolveGatewayStartupSourceConfig } from "./server-startup-secret-surfaces.js";
 import { ensureGatewayStartupAuth } from "./startup-auth.js";
 export {
   loadGatewayStartupConfigSnapshot,
@@ -139,7 +135,6 @@ export function createRuntimeSecretsActivator(params: {
   activateRuntimeSecretsSnapshot?: ActivateRuntimeSecretsSnapshot;
   manifestRegistry?: Pick<PluginManifestRegistry, "plugins">;
   pluginMetadataSnapshot?: Pick<PluginMetadataSnapshot, "plugins" | "manifestRegistry">;
-  channelAutostartSuppression?: ChannelAutostartSuppression | null;
 }): ActivateRuntimeSecrets {
   let secretsDegraded = false;
   let degradationGeneration = 0;
@@ -358,12 +353,10 @@ export function createRuntimeSecretsActivator(params: {
     await runWithSecretsActivationLock(async () => {
       let activationSourceConfig = config;
       try {
-        const { sourceConfig, assignmentConfig } = resolveGatewayStartupSecretProjection({
+        const sourceConfig = resolveGatewayStartupSourceConfig(
           config,
-          reason: activationParams.reason,
-          channelAutostartSuppression: params.channelAutostartSuppression,
-          ...(activationParams.env ? { env: activationParams.env } : {}),
-        });
+          activationParams.env ?? process.env,
+        );
         activationSourceConfig = sourceConfig;
         const startupPreflight =
           activationParams.reason === "startup" || activationParams.reason === "restart-check";
@@ -371,8 +364,7 @@ export function createRuntimeSecretsActivator(params: {
           activationParams.reason === "startup" &&
           activationParams.activate &&
           !params.prepareRuntimeSecretsSnapshot &&
-          !params.activateRuntimeSecretsSnapshot &&
-          assignmentConfig === undefined
+          !params.activateRuntimeSecretsSnapshot
         ) {
           const startupEnv = activationParams.env ?? process.env;
           const fastPath = hasLegacyAuthProfileSourcesForStartup({
@@ -423,7 +415,6 @@ export function createRuntimeSecretsActivator(params: {
           () =>
             prepareRuntimeSecretsSnapshot({
               config: sourceConfig,
-              ...(assignmentConfig !== undefined ? { assignmentConfig } : {}),
               allowUnavailableSecretOwners,
               ...(activationParams.env ? { env: activationParams.env } : {}),
               includeAuthStoreRefs: activationParams.includeAuthStoreRefs,
