@@ -25,14 +25,14 @@ vi.mock("../internal/voice.js", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/dangerous-name-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/dangerous-name-runtime", () => ({
   isDangerousNameMatchingEnabled: () => false,
 }));
 
 // Suite runs isolate=false: a partial factory here poisons the shared module
 // cache for later files in the worker (#123025), so spread the real module.
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     danger: (value: string) => value,
@@ -393,50 +393,14 @@ describe("registerDiscordMonitorListeners", () => {
     });
   }
 
-  it("skips reaction listeners when every configured guild disables reactions and DMs are off", () => {
+  it("keeps reaction listeners available when startup policy suppresses all reactions", () => {
     registerDiscordMonitorListeners(createListenerParams());
 
-    expect(registeredListenerTypes()).toEqual([
-      "interaction",
-      "message",
-      "GUILD_CREATE",
-      "thread-update",
-      "thread-delete",
-    ]);
-  });
-
-  it("keeps reaction listeners when direct messages can emit reaction notifications", () => {
-    registerDiscordMonitorListeners(
-      createListenerParams({
-        dmEnabled: true,
-      }),
-    );
-
     expect(registeredListenerTypes()).toContain("reaction-add");
     expect(registeredListenerTypes()).toContain("reaction-remove");
   });
 
-  it("keeps reaction listeners when a configured guild enables reaction notifications", () => {
-    registerDiscordMonitorListeners(
-      createListenerParams({
-        guildEntries: {
-          "guild-1": {
-            id: "guild-1",
-            reactionNotifications: "off",
-          },
-          "guild-2": {
-            id: "guild-2",
-            reactionNotifications: "own",
-          },
-        },
-      }),
-    );
-
-    expect(registeredListenerTypes()).toContain("reaction-add");
-    expect(registeredListenerTypes()).toContain("reaction-remove");
-  });
-
-  it("resets presence transition state on fresh ready gateway sessions", () => {
+  it("registers presence lifecycle listeners when the presence intent is enabled", () => {
     registerDiscordMonitorListeners(
       createListenerParams({ discordConfig: { intents: { presence: true } } }),
     );
@@ -445,6 +409,8 @@ describe("registerDiscordMonitorListeners", () => {
       "interaction",
       "message",
       "GUILD_CREATE",
+      "reaction-add",
+      "reaction-remove",
       "thread-update",
       "thread-delete",
       "presence",
