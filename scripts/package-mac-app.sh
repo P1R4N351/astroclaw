@@ -4,7 +4,13 @@ set -euo pipefail
 # Build and bundle Astroclaw into a minimal .app we can open.
 # Outputs to dist/Astroclaw.app
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# `pwd -P` (not bare `pwd`) is load-bearing: on macOS /tmp is a symlink to
+# /private/tmp, so invoking this script through /tmp yields a different
+# ROOT_DIR than invoking it through /private/tmp. BUILD_ROOT below seeds the
+# SwiftPM scratch path, and two spellings of the same tree split its
+# ModuleCache -> fatal "module _DarwinFoundationN is defined in both ...".
+# Resolving symlinks here makes the scratch path canonical for every caller.
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd -P)"
 APP_ROOT="$ROOT_DIR/dist/Astroclaw.app"
 BUILD_ROOT="$ROOT_DIR/apps/macos/.build"
 PRODUCT="Astroclaw"

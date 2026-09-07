@@ -8,7 +8,11 @@ set -euo pipefail
 # - dist/Astroclaw-<version>.zip
 # - dist/Astroclaw-<version>.dmg
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# `pwd -P` (not bare `pwd`): resolves /tmp -> /private/tmp on macOS so the
+# SwiftPM scratch path under BUILD_ROOT is canonical no matter which spelling
+# of the tree the caller used. Mixed spellings split the ModuleCache and the
+# next build dies with "module _DarwinFoundationN is defined in both ...".
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd -P)"
 BUILD_ROOT="$ROOT_DIR/apps/macos/.build"
 PRODUCT="Astroclaw"
 BUILD_CONFIG="${BUILD_CONFIG:-release}"
