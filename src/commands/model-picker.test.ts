@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { NormalizedModelCatalogRow } from "@astroclaw/model-catalog-core/model-catalog-types";
 // Model picker tests cover catalog rows, provider metadata, backend defaults, and prompt choices.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { testing as cliBackendsTesting } from "../agents/cli-backends.test-support.js";
 import type { ModelCatalogEntry, ModelCatalogSnapshot } from "../agents/model-catalog.types.js";
@@ -1494,6 +1494,36 @@ describe("promptModelAllowlist", () => {
     const options = pickerOptions(multiselect as MockCallSource);
     expect(optionValues(options)).toEqual(["anthropic/claude-opus-4-6"]);
     expect(result.scopeKeys).toEqual(["anthropic/claude-opus-4-6"]);
+  });
+
+  it("seeds scoped choices with a fallback-only agent's inherited primary", async () => {
+    const multiselect = createSelectAllMultiselect();
+    const config = {
+      agents: {
+        defaults: {
+          model: "openai/global-model",
+          models: { "anthropic/outside-scope": {} },
+        },
+        entries: { ops: { model: { fallbacks: ["openai/backup-model"] } } },
+      },
+    } satisfies OpenClawConfig;
+    const before = structuredClone(config);
+    const allowedKeys = ["openai/global-model", "openai/backup-model"];
+
+    const result = await promptModelAllowlist({
+      config,
+      prompter: makePrompter({ multiselect }),
+      agentId: "ops",
+      agentDir: "/tmp/ops-agent",
+      allowedKeys,
+      loadCatalog: false,
+    });
+
+    const prompt = multiselect.mock.calls[0]?.[0];
+    expect(optionValues(prompt.options)).toEqual(allowedKeys);
+    expect(prompt.initialValues).toEqual(allowedKeys);
+    expect(result).toEqual({ models: allowedKeys, scopeKeys: allowedKeys });
+    expect(config).toEqual(before);
   });
 
   it("localizes the model allowlist picker", async () => {
