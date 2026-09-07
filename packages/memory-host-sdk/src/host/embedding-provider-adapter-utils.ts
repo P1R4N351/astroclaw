@@ -1,4 +1,3 @@
-// Memory Host SDK helper module supports embedding provider adapter utils behavior.
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 
 // Adapter helpers shared by remote embedding provider implementations.
