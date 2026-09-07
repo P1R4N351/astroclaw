@@ -2,9 +2,9 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { WebClient } from "@slack/web-api";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
-import { createPluginStateSyncKeyedStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { createPluginStateSyncKeyedStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { assertSlackDetachedTargetAllowed } from "../detached-target-admission.js";
 import { getSlackInstallationKind } from "../installation-identity-state.js";
@@ -148,6 +148,36 @@ describe("auth.test boot call", () => {
     const firstArg = client.auth.test.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
     if (firstArg != null) {
       expect(firstArg).not.toHaveProperty("token");
+    }
+  });
+
+  it("omits the empty body on the shipped Socket Mode startup path", async () => {
+    for (const key of PROXY_ENV_KEYS) {
+      vi.stubEnv(key, "");
+    }
+    const actualClient = await vi.importActual<typeof import("../client.js")>("../client.js");
+    useSlackStartupAuthClientOnce(actualClient.createSlackStartupAuthClient);
+    const globalFetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          bot_id: "BBOT",
+          is_enterprise_install: false,
+          ok: true,
+          team_id: "T1",
+          user_id: "UBOT",
+        }),
+        { headers: { "content-type": "application/json" }, status: 200 },
+      ),
+    );
+    const monitor = startSlackMonitor(monitorSlackProvider);
+    try {
+      await stopSlackMonitor(monitor);
+
+      expect(globalFetch).toHaveBeenCalledOnce();
+      expect(globalFetch.mock.calls[0]?.[1]).toMatchObject({ method: "POST" });
+      expect(globalFetch.mock.calls[0]?.[1]).not.toHaveProperty("body");
+    } finally {
+      globalFetch.mockRestore();
     }
   });
 
@@ -705,6 +735,7 @@ describe("user identity provider transport", () => {
     });
     await flush();
 
+    expect(replyMock).toHaveBeenCalledTimes(1);
     expect(sendMock).toHaveBeenCalledTimes(1);
     await stopSlackMonitor(monitor);
   });
