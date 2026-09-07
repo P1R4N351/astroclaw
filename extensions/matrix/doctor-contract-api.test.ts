@@ -5,26 +5,26 @@ import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   createPersistentDedupeImportEntry,
   type PersistentDedupeEntry,
-} from "openclaw/plugin-sdk/persistent-dedupe";
+} from "astroclaw/plugin-sdk/persistent-dedupe";
 import type {
   OpenKeyedStoreOptions,
   PluginStateKeyedStore,
-} from "openclaw/plugin-sdk/plugin-state-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   getPluginStateCapacityForTests,
   importPluginStateEntriesForDoctorForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import type { PluginDoctorStateMigrationContext } from "openclaw/plugin-sdk/runtime-doctor-migrations";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import type { PluginDoctorStateMigrationContext } from "astroclaw/plugin-sdk/runtime-doctor-migrations";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stateMigrations } from "./doctor-contract-api.js";
 import { SqliteBackedMatrixSyncStore } from "./src/matrix/client/file-sync-store.js";
-import { openMatrixStorageMetaStoreOptions } from "./src/matrix/client/storage.js";
+import { openMatrixStorageMetaStoreOptions } from "./src/matrix/client/storage-metadata.js";
 import {
   MATRIX_IDB_SNAPSHOT_FILENAME,
   MATRIX_RECOVERY_KEY_FILENAME,
@@ -105,7 +105,7 @@ describe("matrix doctor contract state migrations", () => {
       "accounts",
       "default",
       "matrix.example.org__bot",
-      "token-hash",
+      "0123456789abcdef",
     );
     fs.mkdirSync(storageRootDir, { recursive: true });
     fs.writeFileSync(
@@ -198,7 +198,7 @@ describe("matrix doctor contract state migrations", () => {
       "accounts",
       "default",
       "matrix.example.org__bot",
-      "token-hash",
+      "0123456789abcdef",
     );
     fs.mkdirSync(storageRootDir, { recursive: true });
     fs.writeFileSync(
@@ -207,7 +207,7 @@ describe("matrix doctor contract state migrations", () => {
         homeserver: "https://matrix.example.org",
         userId: "@bot:example.org",
         accountId: "default",
-        accessTokenHash: "token-hash",
+        accessTokenHash: "0123456789abcdef",
         deviceId: "DEVICE",
         currentTokenStateClaimed: true,
       }),
@@ -267,7 +267,7 @@ describe("matrix doctor contract state migrations", () => {
       "accounts",
       "default",
       "matrix.example.org__bot",
-      "token-hash",
+      "0123456789abcdef",
     );
     fs.mkdirSync(storageRootDir, { recursive: true });
     fs.writeFileSync(
@@ -491,7 +491,7 @@ describe("matrix doctor contract state migrations", () => {
       "accounts",
       "ops",
       "matrix.example.org__bot",
-      "token-a",
+      "0123456789abcdef",
     );
     const jsonRoot = path.join(
       stateDir,
@@ -499,7 +499,7 @@ describe("matrix doctor contract state migrations", () => {
       "accounts",
       "home",
       "matrix.example.org__bot",
-      "token-b",
+      "fedcba9876543210",
     );
     fs.mkdirSync(sqliteRoot, { recursive: true });
     fs.mkdirSync(jsonRoot, { recursive: true });
@@ -701,7 +701,7 @@ describe("matrix doctor contract state migrations", () => {
       "accounts",
       "late",
       "matrix.example.org__bot",
-      "token-a",
+      "0123456789abcdef",
       "state",
       "openclaw.sqlite",
     );
@@ -717,7 +717,7 @@ describe("matrix doctor contract state migrations", () => {
   it("withholds completion after a directory read failure and imports the source on retry", async () => {
     const stateDir = tempDirs.make("openclaw-matrix-doctor-");
     const blockedDir = path.join(stateDir, "matrix", "accounts", "home");
-    const jsonRoot = path.join(blockedDir, "matrix.example.org__bot", "token-a");
+    const jsonRoot = path.join(blockedDir, "matrix.example.org__bot", "0123456789abcdef");
     const jsonPath = path.join(jsonRoot, "inbound-dedupe.json");
     const roomId = "!room:example.org";
     const eventId = "$found-on-retry";
@@ -803,7 +803,7 @@ describe("matrix doctor contract state migrations", () => {
       "accounts",
       "home",
       "matrix.example.org__bot",
-      "token-a",
+      "0123456789abcdef",
     );
     fs.mkdirSync(jsonRoot, { recursive: true });
     const jsonPath = path.join(jsonRoot, "inbound-dedupe.json");
@@ -834,7 +834,7 @@ describe("matrix doctor contract state migrations", () => {
       "accounts",
       "home",
       "matrix.example.org__bot",
-      "token-a",
+      "0123456789abcdef",
     );
     fs.mkdirSync(jsonRoot, { recursive: true });
     const jsonPath = path.join(jsonRoot, "inbound-dedupe.json");
