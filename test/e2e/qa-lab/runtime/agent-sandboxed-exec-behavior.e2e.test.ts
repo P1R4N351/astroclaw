@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
 import { createOpenClawCodingTools } from "../../../../src/agents/agent-tools.js";
-import { resolveAttemptWorkspaceSandbox } from "../../../../src/agents/embedded-agent-runner/run/attempt-setup.js";
-import type { OpenClawConfig } from "../../../../src/config/types.astroclaw.js";
+import { resolveAttemptWorkspaceSandbox } from "../../../../src/agents/workspace-sandbox.js";
+import type { OpenClawConfig } from "../../../../src/config/types.openclaw.js";
 import { captureEnv, setTestEnvValue } from "../../../../src/test-utils/env.js";
 
 function createConfig(params: {
