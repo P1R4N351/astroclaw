@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.astroclaw.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/types.openclaw.js";
 import type { WizardPrompter } from "./prompts.js";
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +14,7 @@ vi.mock("../plugins/install-record-commit.js", async (importOriginal) => ({
 }));
 
 import {
+  formatQuickstartGatewaySummary,
   requestTelemetryConsent,
   resolveQuickstartGatewayDefaults,
   writeWizardConfigFile,
@@ -73,6 +74,22 @@ describe("resolveQuickstartGatewayDefaults", () => {
       },
     },
   };
+
+  it.each([
+    { config: {}, expected: "Gateway secret (generated)", mode: "token" },
+    {
+      config: { gateway: { auth: { mode: "password" as const, password: "saved-password" } } },
+      expected: "Password",
+      mode: "password",
+    },
+  ])(
+    "summarizes the resolved $mode secret without offering an auth choice",
+    ({ config, expected, mode }) => {
+      const defaults = resolveQuickstartGatewayDefaults(config);
+      expect(defaults.authMode).toBe(mode);
+      expect(formatQuickstartGatewaySummary(defaults, defaults.hasExisting)).toContain(expected);
+    },
+  );
 
   it("overlays every explicitly supplied classic quickstart gateway option", () => {
     const result = resolveQuickstartGatewayDefaults(storedConfig, {
