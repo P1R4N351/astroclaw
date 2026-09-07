@@ -1,17 +1,17 @@
 // Zalo test support covers monitor.polling.media reply plugin behavior.
 import type { ServerResponse } from "node:http";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   createEmptyPluginRegistry,
   createRuntimeEnv,
   setActivePluginRegistry,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { createReplyDispatcher } from "openclaw/plugin-sdk/reply-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { createReplyDispatcher } from "astroclaw/plugin-sdk/reply-runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 import { setZaloRuntime } from "./runtime.js";
@@ -624,7 +624,7 @@ describe("Zalo polling media replies", () => {
     },
   );
 
-  it("registers each active registry and cleans both on final release", async () => {
+  it("cleans each active registry when its own route holder stops", async () => {
     const firstRegistry = createEmptyPluginRegistry();
     setActivePluginRegistry(firstRegistry);
     getUpdatesMock.mockImplementation(() => new Promise(() => {}));
@@ -669,7 +669,7 @@ describe("Zalo polling media replies", () => {
       expect(secondRegistry.httpRoutes).toHaveLength(1);
       firstAbort.abort();
       await firstRun;
-      expect(firstRegistry.httpRoutes).toHaveLength(1);
+      expect(firstRegistry.httpRoutes).toHaveLength(0);
       expect(secondRegistry.httpRoutes).toHaveLength(1);
     } finally {
       firstAbort.abort();
