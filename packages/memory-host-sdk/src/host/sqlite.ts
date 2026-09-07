@@ -1,8 +1,7 @@
-// Memory Host SDK module implements sqlite behavior.
 import { createRequire } from "node:module";
 import type { DatabaseSync } from "node:sqlite";
 import { formatErrorMessage } from "./error-utils.js";
-import { installProcessWarningFilter } from "./astroclaw-runtime-io.js";
+import { installProcessWarningFilter } from "./openclaw-runtime-io.js";
 import {
   configureSqliteConnectionPragmas,
   configureSqliteWalMaintenance,
