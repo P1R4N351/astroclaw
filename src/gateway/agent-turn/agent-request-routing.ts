@@ -4,7 +4,7 @@ import { listAgentIds } from "../../agents/agent-scope.js";
 import { isExecApprovalFollowupSessionRebound } from "../../agents/bash-tools.exec-approval-followup-state.js";
 import { resolveExistingSessionKeyForRequest } from "../../agents/command/session.js";
 import { resolveExplicitAgentSessionKey } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { emitDiagnosticEvent } from "../../infra/diagnostic-events.js";
 import { resolveAgentExplicitRecipientSession } from "../../infra/outbound/agent-delivery.js";
 import { classifySessionKeyShape, normalizeAgentId } from "../../routing/session-key.js";
@@ -120,7 +120,6 @@ export async function prepareAgentRequestRouting(params: {
         cfg: params.cfg,
         sessionId: requestedSessionId,
         agentId,
-        clone: false,
       });
       agentId = sessionIdTarget.agentId ?? agentId;
     } catch (error) {
@@ -233,6 +232,7 @@ export async function prepareAgentRequestRouting(params: {
     ? loadSessionEntry(requestedSessionKey, {
         ...(agentId ? { agentId } : {}),
         clone: false,
+        projection: "list",
       })
     : undefined;
   return {
@@ -279,6 +279,7 @@ function dropReboundExecApprovalFollowup(params: {
       loadSessionEntry(params.requestedSessionKeyRaw, {
         ...(params.agentId ? { agentId: params.agentId } : {}),
         clone: false,
+        projection: "list",
       }).entry?.sessionId,
     );
   } catch {
