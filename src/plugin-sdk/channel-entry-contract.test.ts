@@ -3,7 +3,7 @@ import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import type { PluginModuleLoaderFactory } from "../plugins/plugin-module-loader-cache.js";
@@ -349,6 +349,8 @@ function runCompiledEsmSidecarFastPathProbe(): SpawnSyncReturns<string> {
     },
   });
   fs.writeFileSync(path.join(tempRoot, "openclaw.mjs"), "#!/usr/bin/env node\n", "utf8");
+  fs.mkdirSync(path.join(tempRoot, "src"));
+  fs.mkdirSync(path.join(tempRoot, "extensions"));
   fs.mkdirSync(path.join(tempRoot, "dist", "plugin-sdk"), { recursive: true });
   fs.writeFileSync(
     path.join(tempRoot, "dist", "plugin-sdk", "channel-outbound.js"),
@@ -362,7 +364,7 @@ function runCompiledEsmSidecarFastPathProbe(): SpawnSyncReturns<string> {
   fs.writeFileSync(importerPath, "export default {};\n", "utf8");
   fs.writeFileSync(
     path.join(pluginRoot, "sidecar.js"),
-    'import { defineChannelMessageAdapter } from "openclaw/plugin-sdk/channel-outbound";\nexport const sentinel = defineChannelMessageAdapter();\n',
+    'import { defineChannelMessageAdapter } from "astroclaw/plugin-sdk/channel-outbound";\nexport const sentinel = defineChannelMessageAdapter();\n',
     "utf8",
   );
 
@@ -383,7 +385,11 @@ function runCompiledEsmSidecarFastPathProbe(): SpawnSyncReturns<string> {
   return spawnSync(process.execPath, ["--import", "tsx", probePath], {
     cwd: process.cwd(),
     encoding: "utf8",
-    env: { ...process.env, OPENCLAW_DIAGNOSTICS: "plugin.load-profile" },
+    env: {
+      ...process.env,
+      OPENCLAW_DIAGNOSTICS: "plugin.load-profile",
+      OPENCLAW_DEV_SOURCE_ROOT: tempRoot,
+    },
   });
 }
 
@@ -661,7 +667,7 @@ describe("loadBundledEntryExportSync", () => {
   it("keeps compiled ESM sidecars with SDK imports on the nodeRequire fast-path", async () => {
     const result = compiledEsmSidecarFastPathResult;
 
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
     expect(result.stdout.trim()).toBe("adapter");
     expect(result.stderr).toMatch(/sourceLoaderCreateMs=0(?:\.0+)?(?:\s|$)/u);
     expect(result.stderr).toMatch(/sourceLoaderCallMs=0(?:\.0+)?(?:\s|$)/u);
