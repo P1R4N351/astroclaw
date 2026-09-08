@@ -8,7 +8,7 @@ import {
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { mistralMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import { mistralMemoryEmbeddingProviderAdapter } from "./memory-embedding-adapter.js";
-import { applyMistralConfig } from "./onboard.js";
+import { applyMistralConnectionConfig } from "./onboard.js";
 import { buildMistralRealtimeTranscriptionProvider } from "./realtime-transcription-provider.js";
 
 const PROVIDER_ID = "mistral";
@@ -27,7 +27,7 @@ export default defineSingleProviderPluginEntry({
   provider: {
     label: "Mistral",
     docsPath: "/providers/models",
-    manifestAuth: { applyConfig: applyMistralConfig },
+    manifestAuth: { applyConfig: applyMistralConnectionConfig },
     catalog: {
       discoveryMode: "strict",
       allowExplicitBaseUrl: true,
