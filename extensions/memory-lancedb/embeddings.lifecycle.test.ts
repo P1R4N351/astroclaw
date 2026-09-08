@@ -3,9 +3,9 @@ import {
   clearRuntimeAuthProfileStoreSnapshots,
   ensureAuthProfileStore,
   replaceRuntimeAuthProfileStoreSnapshots,
-} from "openclaw/plugin-sdk/agent-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { MemoryEmbeddingProvider } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { MemoryEmbeddingProvider } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi } from "./api.js";
 import type { MemoryConfig } from "./config.js";
@@ -13,13 +13,19 @@ import type { MemoryConfig } from "./config.js";
 const providerMocks = vi.hoisted(() => ({
   getMemoryEmbeddingProvider: vi.fn(),
   authMutationListeners: new Set<
-    (event: { agentDir?: string; affectsInheritedStores: boolean }) => void
+    (event: {
+      agentDir?: string;
+      affectsInheritedStores: boolean;
+      profileSetChanged: boolean;
+    }) => void
   >(),
 }));
 
-vi.mock("openclaw/plugin-sdk/memory-core-host-engine-embeddings", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-embeddings", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/memory-core-host-engine-embeddings")>();
+    await importOriginal<
+      typeof import("astroclaw/plugin-sdk/memory-core-host-engine-embeddings")
+    >();
   return {
     ...actual,
     getMemoryEmbeddingProvider: providerMocks.getMemoryEmbeddingProvider,
@@ -206,6 +212,7 @@ describe("memory-lancedb provider lifecycle", () => {
     listener?.({
       agentDir: "/tmp/agent-private/../agent-private",
       affectsInheritedStores: false,
+      profileSetChanged: false,
     });
 
     await embed(embeddings, "other", "other warm provider");
