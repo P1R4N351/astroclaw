@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resetFileLockStateForTest } from "../infra/file-lock.js";
 import { isPluginRegistryLoadInFlight } from "../plugins/loader-cache.js";
 import {
@@ -12,12 +12,9 @@ import {
   useNoBundledPlugins,
   writePlugin,
 } from "../plugins/loader.test-fixtures.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
-import {
-  oauthCred,
-  readAuthProfileStoreForTest,
-  storeWith,
-} from "./auth-profiles/oauth-test-utils.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { oauthCred } from "./auth-profiles/credential-fixtures.test-support.js";
+import { readAuthProfileStoreForTest, storeWith } from "./auth-profiles/oauth-test-utils.js";
 import { resolveApiKeyForProfile } from "./auth-profiles/oauth.js";
 import { clearRuntimeAuthProfileStoreSnapshots } from "./auth-profiles/runtime-snapshots.js";
 
