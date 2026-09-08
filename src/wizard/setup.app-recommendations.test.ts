@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { refreshOnboardRecommendationsCommand } from "../commands/onboard-recommendations.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type {
   OnboardingRecommendationMatch,
@@ -203,7 +203,7 @@ describe("setupAppRecommendations", () => {
     const log = vi.fn();
     const prompter = createPrompter();
 
-    refreshOnboardRecommendationsCommand(runtime, { clear });
+    refreshOnboardRecommendationsCommand({}, runtime, { clear });
     await setupAppRecommendations({
       config: {},
       prompter,
