@@ -27,7 +27,7 @@ const UPDATE_DIALOG_OPEN_CLASS = "update-dialog-open";
 type DialogPhase =
   | { kind: "confirm" }
   | { kind: "working"; connected: boolean }
-  | { kind: "run"; run: UpdateRunRecord; connected: boolean }
+  | { kind: "run"; run: UpdateRunRecord; connected: boolean; readError?: string | null }
   | { kind: "failed"; message: string };
 
 let updateDialogOpen = false;
@@ -145,6 +145,7 @@ export async function confirmAndStartUpdateRuntime(
       }
       const current = phase;
       const run = current.kind === "run" ? current.run : null;
+      const readError = current.kind === "run" ? current.readError : null;
       const working = current.kind === "working" || run?.status === "running";
       const failed =
         current.kind === "failed" ||
@@ -152,7 +153,7 @@ export async function confirmAndStartUpdateRuntime(
       const finished = run !== null && run.status !== "running";
       const body =
         current.kind === "run"
-          ? ""
+          ? (readError ?? "")
           : current.kind === "failed"
             ? current.message
             : current.kind === "working"
@@ -171,15 +172,15 @@ export async function confirmAndStartUpdateRuntime(
               ${details && current.kind === "confirm"
                 ? html`<div class="exec-approval-command mono">${details}</div>`
                 : nothing}
-              ${run && current.kind === "run"
+              ${current.kind === "run"
                 ? html`<openclaw-update-run-view
-                    .run=${run}
+                    .run=${current.run}
                     .connected=${current.connected}
                   ></openclaw-update-run-view>`
                 : nothing}
               <div class="exec-approval-actions">
-                ${failed || finished
-                  ? html` ${failed && params.onCheckStatus
+                ${failed || finished || readError
+                  ? html` ${(failed || readError) && params.onCheckStatus
                         ? html`<button
                             type="button"
                             class="btn"
@@ -276,12 +277,18 @@ export async function confirmAndStartUpdateRuntime(
         }
         if (progress.run && (!staleFailure || progress.run.status === "running")) {
           sawBusy = true;
-          phase = { kind: "run", run: progress.run, connected: progress.connected };
+          phase = {
+            kind: "run",
+            run: progress.run,
+            connected: progress.connected,
+            readError: progress.readError,
+          };
           draw();
           return;
         }
-        if (progress.failure && !staleFailure) {
-          phase = { kind: "failed", message: progress.failure };
+        const failure = progress.failure ?? progress.readError;
+        if (failure && !staleFailure) {
+          phase = { kind: "failed", message: failure };
           draw();
           return;
         }
@@ -304,7 +311,12 @@ export async function confirmAndStartUpdateRuntime(
     if (params.existingRun && params.watchUpdateProgress) {
       watchProgress(params.watchUpdateProgress, (progress) => {
         if (progress.run) {
-          phase = { kind: "run", run: progress.run, connected: progress.connected };
+          phase = {
+            kind: "run",
+            run: progress.run,
+            connected: progress.connected,
+            readError: progress.readError,
+          };
           draw();
         }
       });
