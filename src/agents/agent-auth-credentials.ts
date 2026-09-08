@@ -2,9 +2,10 @@
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { asDateTimestampMs } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { coerceSecretRef } from "../config/types.secrets.js";
 import type { PreparedAgentCredentialModes } from "./agent-auth-credential-modes.js";
+import { isOAuthRefreshFence } from "./auth-profiles/oauth-refresh-marker.js";
 import { resolveAuthProfileOrder } from "./auth-profiles/order.js";
 import type { AuthProfileCredential, AuthProfileStore } from "./auth-profiles/types.js";
 import type { AuthStorageData } from "./sessions/auth-storage.js";
@@ -55,6 +56,7 @@ export function resolveUsableAgentCredentialModes(
       modes[provider] = "token";
     } else if (
       credential.type === "oauth" &&
+      !isOAuthRefreshFence(credential) &&
       credential.access &&
       credential.refresh &&
       credential.expires > 0
@@ -107,6 +109,9 @@ function convertAuthProfileCredentialToAgent(
   }
 
   if (cred.type === "oauth") {
+    if (isOAuthRefreshFence(cred)) {
+      return null;
+    }
     const access = normalizeOptionalString(cred.access) ?? "";
     const refresh = normalizeOptionalString(cred.refresh) ?? "";
     const expires = asDateTimestampMs(cred.expires);
