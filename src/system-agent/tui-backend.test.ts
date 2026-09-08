@@ -1,7 +1,7 @@
 // OpenClaw TUI backend tests cover rescue status integration with the TUI backend.
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import * as preparedModelCatalog from "../agents/prepared-model-catalog.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { SystemAgentInferenceUnavailableError } from "./inference-error.js";
 import type { SystemAgentCommandDeps, SystemAgentOperation } from "./operations.js";
@@ -130,16 +130,14 @@ function createRuntime(): RuntimeEnv {
 }
 
 describe("runSystemAgentTui", () => {
-  it("rejects a missing inference binding before overview, planner, TUI, or setup", async () => {
+  it("rejects a missing inference binding before overview, TUI, or setup", async () => {
     const loadOverview = vi.fn(async () => overview);
-    const planWithAssistant = vi.fn(async () => ({ reply: "ready" }));
     const runTui = vi.fn(async () => ({ exitReason: "exit" as const }));
     const runChannelsAdd = vi.fn(async () => undefined);
     const fixture = sharedVerifiedFixture;
     const options: SystemAgentTuiOptions = {
       verifiedInference: fixture.binding,
       deps: { loadOverview },
-      planWithAssistant,
       runTui,
       runChannelsAdd,
     };
@@ -150,7 +148,6 @@ describe("runSystemAgentTui", () => {
     );
 
     expect(loadOverview).not.toHaveBeenCalled();
-    expect(planWithAssistant).not.toHaveBeenCalled();
     expect(runTui).not.toHaveBeenCalled();
     expect(runChannelsAdd).not.toHaveBeenCalled();
   });
