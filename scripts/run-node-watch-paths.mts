@@ -4,7 +4,6 @@ import {
   BUNDLED_PLUGIN_PATH_PREFIX,
   BUNDLED_PLUGIN_ROOT_DIR,
 } from "./lib/bundled-plugin-paths.mjs";
-import { PLUGIN_MANIFEST_FILENAMES } from "./lib/plugin-manifest-filenames.mjs";
 import { listGeneratedExtensionAssetSources } from "./lib/static-extension-assets.mts";
 
 const RUN_NODE_PACKAGE_SOURCE_ROOTS = [
@@ -37,10 +36,7 @@ export const runNodeConfigFiles = ["tsconfig.json", "package.json", "tsdown.conf
 /** Combined watch list used by the run-node wrapper. */
 export const runNodeWatchedPaths = [...runNodeSourceRoots, ...runNodeConfigFiles];
 /** Plugin metadata files that require a runtime restart even without source edits. */
-export const extensionRestartMetadataFiles = new Set([
-  ...PLUGIN_MANIFEST_FILENAMES,
-  "package.json",
-]);
+export const extensionRestartMetadataFiles = new Set(["openclaw.plugin.json", "package.json"]);
 
 const ignoredRunNodeRepoPathPatterns = [
   /^extensions\/[^/]+\/src\/host\/.+\/\.bundle\.hash$/u,
@@ -48,30 +44,23 @@ const ignoredRunNodeRepoPathPatterns = [
 ];
 const extensionSourceFilePattern = /\.(?:[cm]?[jt]sx?)$/;
 
-/** Normalizes watch paths to repository-style POSIX separators. */
+/** Canonicalizes native paths without treating POSIX filename backslashes as separators. */
 export const normalizeRunNodePath = (filePath: unknown): string =>
-  (typeof filePath === "string" ? filePath : "").replaceAll("\\", "/");
+  (typeof filePath === "string" ? filePath : "").replaceAll(path.sep, "/").replace(/^\.\/+/, "");
 
-const isIgnoredSourcePath = (relativePath: string): boolean => {
-  const normalizedPath = normalizeRunNodePath(relativePath);
-  return (
-    normalizedPath.endsWith(".test.ts") ||
-    normalizedPath.endsWith(".test.tsx") ||
-    normalizedPath.endsWith("test-helpers.ts")
-  );
-};
+const isIgnoredSourcePath = (relativePath: string): boolean =>
+  relativePath.endsWith(".test.ts") ||
+  relativePath.endsWith(".test.tsx") ||
+  relativePath.endsWith("test-helpers.ts");
 
-const isBuildRelevantSourcePath = (relativePath: string): boolean => {
-  const normalizedPath = normalizeRunNodePath(relativePath);
-  return extensionSourceFilePattern.test(normalizedPath) && !isIgnoredSourcePath(normalizedPath);
-};
+const isBuildRelevantSourcePath = (relativePath: string): boolean =>
+  extensionSourceFilePattern.test(relativePath) && !isIgnoredSourcePath(relativePath);
 
 const isRestartRelevantExtensionPath = (relativePath: string): boolean => {
-  const normalizedPath = normalizeRunNodePath(relativePath);
-  if (extensionRestartMetadataFiles.has(path.posix.basename(normalizedPath))) {
+  if (extensionRestartMetadataFiles.has(path.posix.basename(relativePath))) {
     return true;
   }
-  return isBuildRelevantSourcePath(normalizedPath);
+  return isBuildRelevantSourcePath(relativePath);
 };
 
 const isRelevantRunNodePath = (
@@ -79,7 +68,7 @@ const isRelevantRunNodePath = (
   isRelevantBundledPluginPath: (relativePath: string) => boolean,
   generatedPluginAssetPaths: ReadonlySet<string>,
 ): boolean => {
-  const normalizedPath = normalizeRunNodePath(repoPath).replace(/^\.\/+/, "");
+  const normalizedPath = normalizeRunNodePath(repoPath);
   if (
     generatedPluginAssetPaths.has(normalizedPath) ||
     ignoredRunNodeRepoPathPatterns.some((pattern) => pattern.test(normalizedPath))
