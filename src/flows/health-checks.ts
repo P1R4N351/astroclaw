@@ -1,5 +1,5 @@
 // Health check types define doctor checks, results, and repair metadata.
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 
 // Public doctor health contracts shared by core checks, plugin checks, lint, and repair.
@@ -112,4 +112,9 @@ export interface HealthCheck {
     ctx: HealthRepairContext,
     findings: readonly HealthFinding[],
   ): Promise<HealthRepairResult>;
+}
+
+/** Opt-in diagnostics stay out of routine lint and repair passes. */
+export function isHealthCheckEnabledByDefault(check: HealthCheck): boolean {
+  return !("defaultEnabled" in check && check.defaultEnabled === false);
 }
