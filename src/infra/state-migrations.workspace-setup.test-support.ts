@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import { captureEnv, setTestEnvValue } from "../test-utils/env.js";
 import {
@@ -41,7 +41,13 @@ export function useWorkspaceMigrationTestFixture() {
     };
   }
 
-  function detect(context: ReturnType<typeof setup>) {
+  function detect(context: {
+    cfg: OpenClawConfig;
+    env: NodeJS.ProcessEnv;
+    homeDir: string;
+    stateDir: string;
+    workspaceDir: string;
+  }) {
     return detectLegacyWorkspaceState({
       cfg: context.cfg,
       stateDir: context.stateDir,
@@ -51,7 +57,7 @@ export function useWorkspaceMigrationTestFixture() {
     });
   }
 
-  async function migrate(context: ReturnType<typeof setup>) {
+  async function migrate(context: Parameters<typeof detect>[0]) {
     return await migrateLegacyWorkspaceState({
       detected: detect(context),
       env: context.env,
