@@ -10,7 +10,7 @@ import {
 } from "../../../../src/infra/diagnostic-events.js";
 import { formatErrorMessage } from "../../../../src/infra/errors.js";
 import {
-  resetDiagnosticStabilityBundleForTest,
+  uninstallDiagnosticStabilityFatalHook,
   writeDiagnosticStabilityBundleSync,
 } from "../../../../src/logging/diagnostic-stability-bundle.js";
 import {
@@ -22,7 +22,7 @@ import {
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "../../../helpers/astroclaw-test-instance.js";
+} from "../../../helpers/openclaw-test-instance.js";
 import {
   type GatewayStabilityRuntimeOptions,
   parseGatewayStabilityRuntimeOptions,
@@ -128,7 +128,7 @@ function resetStabilityState(): void {
   stopDiagnosticStabilityRecorder();
   resetDiagnosticStabilityRecorderForTest();
   resetDiagnosticEventsForTest();
-  resetDiagnosticStabilityBundleForTest();
+  uninstallDiagnosticStabilityFatalHook();
 }
 
 function writeBoundedStabilityBundle(stateDir: string) {
