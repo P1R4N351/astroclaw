@@ -635,6 +635,7 @@ describe("lmstudio setup", () => {
     });
 
     expect(removeProviderAuthProfilesWithLockMock).toHaveBeenCalledWith({
+      cfg: expect.any(Object),
       provider: "lmstudio",
       agentDir: undefined,
     });
@@ -879,6 +880,7 @@ describe("lmstudio setup", () => {
       timeoutMs: 5000,
     });
     expect(removeProviderAuthProfilesWithLockMock).toHaveBeenCalledWith({
+      cfg: expect.any(Object),
       provider: "lmstudio",
       agentDir: undefined,
     });
@@ -944,6 +946,7 @@ describe("lmstudio setup", () => {
       timeoutMs: 5000,
     });
     expect(removeProviderAuthProfilesWithLockMock).toHaveBeenCalledWith({
+      cfg: expect.any(Object),
       provider: "lmstudio",
       agentDir: undefined,
     });
@@ -972,6 +975,7 @@ describe("lmstudio setup", () => {
       timeoutMs: 5000,
     });
     expect(removeProviderAuthProfilesWithLockMock).toHaveBeenCalledWith({
+      cfg: expect.any(Object),
       provider: "lmstudio",
       agentDir: undefined,
     });
