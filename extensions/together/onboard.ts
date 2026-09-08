@@ -1,21 +1,29 @@
 // Together setup module handles plugin onboarding behavior.
 import { readManifestProviderDefaultModelRef } from "openclaw/plugin-sdk/provider-catalog-shared";
-import { createModelCatalogPresetAppliers } from "openclaw/plugin-sdk/provider-onboard";
-import { TOGETHER_BASE_URL, TOGETHER_MODEL_CATALOG } from "./models.js";
+import {
+  createModelCatalogPresetAppliers,
+  createProviderConnectionPresetAppliers,
+} from "openclaw/plugin-sdk/provider-onboard";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { TOGETHER_BASE_URL, TOGETHER_MODEL_CATALOG } from "./models.js";
 
 export const TOGETHER_DEFAULT_MODEL_REF = readManifestProviderDefaultModelRef(
   manifest,
   "together",
 )!;
 
-export const { applyConfig: applyTogetherConfig } = createModelCatalogPresetAppliers<[]>({
+const togetherPreset = {
   primaryModelRef: TOGETHER_DEFAULT_MODEL_REF,
   resolveParams: () => ({
     providerId: "together",
     api: "openai-completions",
     baseUrl: TOGETHER_BASE_URL,
-    catalogModels: structuredClone(TOGETHER_MODEL_CATALOG),
+    catalogModels: () => structuredClone(TOGETHER_MODEL_CATALOG),
     aliases: [{ modelRef: TOGETHER_DEFAULT_MODEL_REF, alias: "Together AI" }],
   }),
-});
+} satisfies Parameters<typeof createProviderConnectionPresetAppliers<[]>>[0];
+
+export const { applyConfig: applyTogetherConfig } =
+  createModelCatalogPresetAppliers(togetherPreset);
+export const { applyConfig: applyTogetherConnectionConfig } =
+  createProviderConnectionPresetAppliers(togetherPreset);
