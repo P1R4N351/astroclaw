@@ -8,7 +8,7 @@ import {
 import { resolveProviderEntryApiKeyProfileReference } from "../../agents/model-auth-provider-config.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import { logConfigUpdated } from "../../config/logging.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   configReferencesAuthProfile,
   removeAuthProfileConfig,
@@ -100,7 +100,11 @@ export async function modelsAuthLogoutCommand(
     logConfigUpdated(runtime);
   }
 
-  const removed = await removeAuthProfilesAcrossOwnerStores({ agentDir, profileIds: [profileId] });
+  const removed = await removeAuthProfilesAcrossOwnerStores({
+    cfg,
+    agentDir,
+    profileIds: [profileId],
+  });
   if (!removed) {
     throw new Error(
       `Failed to remove auth profile "${profileId}"; the auth store lock may be busy. Wait a moment and retry.`,
