@@ -1,7 +1,7 @@
 // Nvidia plugin entrypoint registers its OpenClaw integration.
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
-import { applyNvidiaConfig, NVIDIA_DEFAULT_MODEL_REF } from "./onboard.js";
+import { applyNvidiaConnectionConfig, NVIDIA_DEFAULT_MODEL_REF } from "./onboard.js";
 import { buildLiveNvidiaProvider, buildSelectableNvidiaProvider } from "./provider-catalog.js";
 
 const PROVIDER_ID = "nvidia";
@@ -17,7 +17,7 @@ export default defineSingleProviderPluginEntry({
     preserveLiteralProviderPrefix: true,
     manifestAuth: {
       defaultModel: NVIDIA_DEFAULT_MODEL_REF,
-      applyConfig: applyNvidiaConfig,
+      applyConfig: applyNvidiaConnectionConfig,
     },
     catalog: {
       discoveryMode: "strict",
