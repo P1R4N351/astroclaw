@@ -10,7 +10,11 @@ import {
   stopHoverMarqueeFromEvent,
 } from "../lib/hover-marquee.ts";
 import { shouldHandleNavigationClick } from "../lib/navigation-click.ts";
-import { presenceMatchesProfile, type PresenceViewer } from "../lib/presence-users.ts";
+import {
+  presenceMatchesProfile,
+  presenceUserLabel,
+  type PresenceViewer,
+} from "../lib/presence-users.ts";
 import { resolveSessionDisplayName } from "../lib/session-display.ts";
 import {
   resolveSessionPreferredFace,
@@ -213,6 +217,9 @@ function renderSessions(
 
 export function renderPersonActivityCard(input: PersonCardInput) {
   const { user } = input;
+  const label = presenceUserLabel(user, t("presence.card.person"));
+  // Presence projections always have entries; roster-only owners have no live facts.
+  const offline = (user.entries?.length ?? 0) === 0;
   const entries = user.entries ?? [];
   const onlineSince = observedTimestamp(
     entries.map((entry) => entry.onlineSince),
@@ -254,7 +261,7 @@ export function renderPersonActivityCard(input: PersonCardInput) {
         presenceMatchesProfile(user, actor?.identity),
       ),
   );
-  const activity = personActivityLink(user.identity?.id, input.routing);
+  const activity = personActivityLink(user.identity?.id, input.routing, label.name);
   return html`<div class="person-activity-card">
     <header class="person-activity-card__header">
       <openclaw-viewer-avatar
@@ -264,34 +271,46 @@ export function renderPersonActivityCard(input: PersonCardInput) {
         aria-hidden="true"
       ></openclaw-viewer-avatar>
       <div>
-        <h2>${user.name ?? user.email ?? t("presence.card.person")}</h2>
-        <span class="person-activity-card__status"
-          ><span aria-hidden="true"></span>${onlineSince === undefined
-            ? t("presence.rosterTitle")
-            : html`${t("presence.card.onlineFor")} ${elapsed(onlineSince, "minute-compact")}`}</span
+        <h2>${label.name}</h2>
+        <span
+          class="person-activity-card__status ${offline
+            ? "person-activity-card__status--offline"
+            : ""}"
+          ><span aria-hidden="true"></span>${offline
+            ? t("presence.offline")
+            : onlineSince === undefined
+              ? t("presence.rosterTitle")
+              : html`${t("presence.card.onlineFor")} ${elapsed(onlineSince, "minute-compact")}`}</span
         >
       </div>
     </header>
-    <dl class="person-activity-card__facts">
-      ${where.length || zones.length
-        ? html`<div>
-            <dt>${t("presence.card.where")}</dt>
+    ${label.isSharedOwner
+      ? html`<p class="person-activity-card__hint person-activity-card__muted">
+          ${t("presence.sharedOwner.hint")}
+        </p>`
+      : nothing}
+    ${offline
+      ? nothing
+      : html`<dl class="person-activity-card__facts">
+          ${where.length || zones.length
+            ? html`<div>
+                <dt>${t("presence.card.where")}</dt>
+                <dd>
+                  ${where.map((description) => html`<span>${description}</span>`)}${zones.map(
+                    (zone) => html`<small>${t("presence.card.reportedTimeZone", { zone })}</small>`,
+                  )}
+                </dd>
+              </div>`
+            : nothing}
+          <div>
+            <dt>${t("presence.card.lastActivity")}</dt>
             <dd>
-              ${where.map((description) => html`<span>${description}</span>`)}${zones.map(
-                (zone) => html`<small>${t("presence.card.reportedTimeZone", { zone })}</small>`,
-              )}
+              ${lastActivityAt === undefined
+                ? t("presence.card.notObserved")
+                : html`<span>${elapsed(lastActivityAt)} ${t("presence.card.ago")}</span>`}
             </dd>
-          </div>`
-        : nothing}
-      <div>
-        <dt>${t("presence.card.lastActivity")}</dt>
-        <dd>
-          ${lastActivityAt === undefined
-            ? t("presence.card.notObserved")
-            : html`<span>${elapsed(lastActivityAt)} ${t("presence.card.ago")}</span>`}
-        </dd>
-      </div>
-    </dl>
+          </div>
+        </dl>`}
     ${renderSessions(viewing, input, false)}${renderSessions(recent, input, true)}
     ${activity
       ? html`<footer>
