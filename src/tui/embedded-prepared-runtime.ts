@@ -1,6 +1,6 @@
 // Owns prepared-model-runtime publication readiness for a long-lived embedded TUI host.
 import { refreshPreparedModelRuntimeSnapshots } from "../agents/prepared-model-runtime.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 export class EmbeddedPreparedModelRuntimeHost {
   private ready: Promise<void> = Promise.resolve();
@@ -8,7 +8,7 @@ export class EmbeddedPreparedModelRuntimeHost {
   publish(config: OpenClawConfig): void {
     // The runtime layer synchronously stales the prior generation and coalesces queued requests.
     // Invoke it immediately so overlapping config writes retain those latest-wins semantics.
-    this.ready = refreshPreparedModelRuntimeSnapshots(config, { catalogMode: "static" });
+    this.ready = refreshPreparedModelRuntimeSnapshots(config);
   }
 
   async waitUntilReady(): Promise<void> {
