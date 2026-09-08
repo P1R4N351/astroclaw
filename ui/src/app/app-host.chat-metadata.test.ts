@@ -3,12 +3,11 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../test/helpers/promise.js";
 import type { GatewayBrowserClient } from "../api/gateway.ts";
-import type { ModelAuthStatusResult } from "../api/types.ts";
+import type { ModelAuthStatusResult, ModelCatalogResult } from "../api/types.ts";
 import {
   invalidateChatMetadataStore,
   peekChatMetadata,
   beginChatMetadataPublication,
-  type ChatMetadataResult,
 } from "../lib/chat/chat-metadata-store.ts";
 import { loadModelAuthStatus } from "../lib/model-auth.ts";
 import { makeChatHost } from "../pages/chat/chat-host.test-support.ts";
@@ -36,9 +35,8 @@ it.each(["config.changed", "chat.metadata.changed"])(
   async (event) => {
     const model = { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", provider: "openai" };
     let ready = false;
-    const request = vi.fn(
-      async (): Promise<ChatMetadataResult> => ({
-        commands: [],
+    const catalogRequest = vi.fn(
+      async (): Promise<ModelCatalogResult> => ({
         models: [
           {
             ...model,
@@ -47,6 +45,9 @@ it.each(["config.changed", "chat.metadata.changed"])(
           },
         ],
       }),
+    );
+    const request = vi.fn((method: string) =>
+      method === "models.list" ? catalogRequest() : Promise.resolve({ commands: [] }),
     );
     const client = { request } as unknown as GatewayBrowserClient;
     const state = {
@@ -86,7 +87,7 @@ it.each(["config.changed", "chat.metadata.changed"])(
         commands: never[];
         models: typeof state.chatModelCatalog;
       }>();
-      request.mockImplementationOnce(() => pending.promise);
+      catalogRequest.mockImplementationOnce(() => pending.promise);
       shell.handleGatewayEvent({ event, payload: {} });
       expect(state.chatModelCatalog[0]?.available).toBe(false);
       pending.resolve({
@@ -96,7 +97,7 @@ it.each(["config.changed", "chat.metadata.changed"])(
       await vi.waitFor(() =>
         expect(state.chatModelCatalog[0]?.unavailableReason).toBe("auth-failed"),
       );
-      request.mockRejectedValueOnce(new Error("metadata transport failed"));
+      catalogRequest.mockRejectedValueOnce(new Error("metadata transport failed"));
       shell.handleGatewayEvent({ event, payload: {} });
       await vi.waitFor(() =>
         expect(state.chatModelCatalogError).toContain("metadata transport failed"),
@@ -110,7 +111,7 @@ it.each(["config.changed", "chat.metadata.changed"])(
       expect(state.chatMessages).toBe(messages);
       expect(state.chatQueue).toBe(queue);
       expect(state.chatRunId).toBeNull();
-      expect(request.mock.calls).toHaveLength(4);
+      expect(catalogRequest.mock.calls).toHaveLength(4);
     } finally {
       retireChatMetadataRequests(state);
     }
