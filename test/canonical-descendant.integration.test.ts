@@ -1,5 +1,5 @@
 import http from "node:http";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import {
@@ -129,7 +129,11 @@ async function withFixture(
     mcpResolver?: OpenClawPluginMcpServerConnectionResolver;
   } = {},
 ) {
-  await withOpenClawTestState({ label: "canonical-descendant" }, async (state) => {
+  // The native fixture owns source-module transport mocks, so discovery must use that graph.
+  const env = {
+    OPENCLAW_BUNDLED_PLUGINS_DIR: fileURLToPath(new URL("../extensions", import.meta.url)),
+  };
+  await withOpenClawTestState({ label: "canonical-descendant", env }, async (state) => {
     const config: OpenClawConfig = {
       agents: {
         ownership: "explicit",
