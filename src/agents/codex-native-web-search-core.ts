@@ -2,11 +2,11 @@
  * Activates and injects OpenAI/Codex native web-search tools when config,
  * model API, and auth state allow it.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isRecord } from "../utils.js";
 import { externalCliDiscoveryForProviderAuth } from "./auth-profiles/external-cli-discovery.js";
 import { listProfilesForProvider } from "./auth-profiles/profile-list.js";
-import { ensureAuthProfileStore } from "./auth-profiles/store.js";
+import { ensureAuthProfileStore } from "./auth-profiles/store-runtime.js";
 import {
   type CodexNativeSearchMode,
   resolveCodexNativeWebSearchConfig,
