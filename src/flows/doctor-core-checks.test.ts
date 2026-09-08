@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withSecureTestNodeCommand } from "../secrets/test-node-command.test-support.js";
 import type { SkillStatusEntry } from "../skills/discovery/status.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -1000,6 +1000,9 @@ describe("CORE_HEALTH_CHECKS", () => {
                 "groq/llama3-70b-8192",
                 "groq/llama-3.3-70b-versatile",
                 "openai/not-in-the-local-catalog",
+                "google/gemini-2.5-flash",
+                "google/gemini-3.8-flash",
+                "google-gemini-cli/gemini-2.5-pro",
               ],
             },
             imageModel: { primary: "no-such-provider/no-such-model" },
@@ -1012,6 +1015,7 @@ describe("CORE_HEALTH_CHECKS", () => {
       ["openai-codex/gpt-5.6-sol", "openai/gpt-5.6-sol", "warning"],
       ["codex-cli/gpt-5.6-sol", "openai/gpt-5.6-sol", "warning"],
       ["groq/llama3-70b-8192", "groq/llama-3.3-70b-versatile", "info"],
+      ["google-gemini-cli/gemini-2.5-pro", "google/gemini-2.5-pro", "info"],
     ] as const) {
       expect(findings).toContainEqual(
         expect.objectContaining({
@@ -1031,6 +1035,12 @@ describe("CORE_HEALTH_CHECKS", () => {
             "Verify the model id with the provider, or rerun with --severity-min info after refreshing the local catalog.",
         }),
         expect.objectContaining({
+          severity: "info",
+          target: "google/gemini-3.8-flash",
+          fixHint:
+            "Verify the model id with the provider, or rerun with --severity-min info after refreshing the local catalog.",
+        }),
+        expect.objectContaining({
           severity: "warning",
           target: "no-such-provider/no-such-model",
           fixHint:
@@ -1040,6 +1050,9 @@ describe("CORE_HEALTH_CHECKS", () => {
     );
     expect(findings).not.toContainEqual(
       expect.objectContaining({ target: "groq/llama-3.3-70b-versatile" }),
+    );
+    expect(findings).not.toContainEqual(
+      expect.objectContaining({ target: "google/gemini-2.5-flash" }),
     );
   });
 });
