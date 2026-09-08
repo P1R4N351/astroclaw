@@ -1,7 +1,7 @@
 import { runLiveProviderCatalog } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
-import { applyHuggingfaceConfig, HUGGINGFACE_DEFAULT_MODEL_REF } from "./onboard.js";
+import { applyHuggingfaceConnectionConfig, HUGGINGFACE_DEFAULT_MODEL_REF } from "./onboard.js";
 import { buildHuggingfaceProvider } from "./provider-catalog.js";
 
 const PROVIDER_ID = "huggingface";
@@ -23,7 +23,7 @@ export default defineSingleProviderPluginEntry({
     envVars: ["HUGGINGFACE_HUB_TOKEN", "HF_TOKEN"],
     manifestAuth: {
       defaultModel: HUGGINGFACE_DEFAULT_MODEL_REF,
-      applyConfig: applyHuggingfaceConfig,
+      applyConfig: applyHuggingfaceConnectionConfig,
     },
     catalog: {
       run: async (ctx) => {
