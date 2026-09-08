@@ -105,9 +105,7 @@ export {
   isWindowsPlatform,
   loadExecApprovals,
   matchAllowlist,
-  maxAsk,
   mergeExecApprovalsSocketDefaults,
-  minSecurity,
   normalizeExecApprovals,
   normalizeExecApprovalUnavailableDecisions,
   normalizeExecAsk,
@@ -144,9 +142,6 @@ export {
   resolveExecApprovalsSocketPath,
   resolveExecApprovalsTranscriptPath,
   resolveExecApprovalUnavailableDecisions,
-  resolveExecModeFromPolicy,
-  resolveExecModePolicy,
-  resolveExecPolicyForMode,
   resolveExecutableTrustPath,
   resolveExecutionTargetCandidatePath,
   resolveExecutionTargetResolution,
@@ -298,7 +293,7 @@ export {
   type SystemEvent,
 } from "../infra/system-events.js";
 export * from "../infra/system-message.ts";
-export * from "../infra/tmp-astroclaw-dir.js";
+export * from "../infra/tmp-openclaw-dir.js";
 export * from "../infra/transport-ready.js";
 export * from "../infra/wsl.ts";
 export * from "../utils/fetch-timeout.js";
