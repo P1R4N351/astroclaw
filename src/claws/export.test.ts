@@ -3,8 +3,8 @@ import { mkdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { McpServerConfig } from "../config/types.mcp.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { PLUGIN_ARTIFACT_ADAPTER_IDENTITY } from "../plugins/install-artifact-inspection.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import { applyClawAddPlan } from "./add.js";
@@ -166,7 +166,7 @@ async function installedFixture(
     context: { workspace: join(root, "workspace-worker") },
   });
   let config: OpenClawConfig = {};
-  await applyClawAddPlan(plan, {
+  const added = await applyClawAddPlan(plan, {
     consentPlanIntegrity: plan.planIntegrity,
     env: { OPENCLAW_STATE_DIR: join(root, "state") },
     commitConfig: async (transform) => {
@@ -183,6 +183,11 @@ async function installedFixture(
       }),
     cronGateway: { add: async () => ({ id: "scheduler-daily" }) },
   });
+  if (added.status !== "complete") {
+    throw new Error(
+      `installedFixture applyClawAddPlan incomplete (${added.error?.code ?? "unknown_error"}): ${added.error?.message ?? "missing error details"}`,
+    );
+  }
   if (options.withPackage) {
     persistClawPackageRef(
       plan,
