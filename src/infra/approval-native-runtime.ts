@@ -1,6 +1,6 @@
 // Creates channel-native approval runtimes and delivery flows.
 import type { ChannelApprovalNativeAdapter } from "../channels/plugins/approval-native.types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { getGatewayNativeApprovalRuntime } from "./approval-gateway-runtime-context.js";
 import {
@@ -27,9 +27,10 @@ import {
 } from "./exec-approval-channel-runtime.js";
 import type { ExecApprovalResolved } from "./exec-approvals.js";
 import type { PluginApprovalResolved } from "./plugin-approvals.js";
+import type { SystemAgentApprovalResolved } from "./system-agent-approvals.js";
 
 type ApprovalRequest = ApprovalRequestInput;
-type ApprovalResolved = ExecApprovalResolved | PluginApprovalResolved;
+type ApprovalResolved = ExecApprovalResolved | PluginApprovalResolved | SystemAgentApprovalResolved;
 
 export type { PreparedChannelNativeApprovalTarget } from "./approval-native-runtime-types.js";
 
