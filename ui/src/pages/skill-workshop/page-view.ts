@@ -1,4 +1,5 @@
 import { html } from "lit";
+import { pathForRoute } from "../../app-route-paths.ts";
 import { renderAgentScopeControl } from "../../components/agent-scope-control.ts";
 import {
   filterSkillWorkshopProposals,
@@ -77,6 +78,7 @@ export function renderSkillWorkshopPage(
           })}
           ${renderSkillWorkshopHeaderControls(state, {
             ...renderContext,
+            automationHref: `${pathForRoute("automation", context.basePath)}?section=cron`,
             onModeChange: selectMode,
           })}
         </div>
