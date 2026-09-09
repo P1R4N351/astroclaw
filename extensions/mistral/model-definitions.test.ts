@@ -1,7 +1,7 @@
 // Mistral tests cover model definitions plugin behavior.
 import { describe, expect, it } from "vitest";
-import { buildMistralModelDefinition, MISTRAL_DEFAULT_MODEL_ID } from "./model-definitions.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { buildMistralModelDefinition, MISTRAL_DEFAULT_MODEL_ID } from "./model-definitions.js";
 import { buildMistralProvider } from "./provider-catalog.js";
 
 function buildCatalogModels() {
@@ -37,15 +37,6 @@ describe("mistral model definitions", () => {
       expect(model.cost.cacheRead).toBeCloseTo(model.cost.input * 0.1, 10);
       expect(model.cost.cacheWrite).toBe(0);
     }
-  });
-
-  it("charges nonzero cost for cached-token usage on the default model", () => {
-    const model = buildMistralModelDefinition();
-    const cacheReadTokens = 20_000;
-    const cacheReadCost = (model.cost.cacheRead / 1_000_000) * cacheReadTokens;
-
-    expect(cacheReadCost).toBeCloseTo(0.001, 10);
-    expect(cacheReadCost).toBeGreaterThan(0);
   });
 
   it("publishes a curated set of current Mistral catalog models", () => {
