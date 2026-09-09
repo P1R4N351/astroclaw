@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModelsAuthLoginFlowOptions } from "../../commands/models/auth.js";
 import type { SessionEntryUpdateOptions } from "../../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { buildBuiltinChatCommands } from "../commands-registry.shared.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 import { buildCommandTestParams } from "./commands.test-harness.js";
@@ -63,7 +63,7 @@ function buildLoginParams(
     { workspaceDir: "/tmp/openclaw-login-test" },
   );
   params.sessionKey = overrides.sessionKey ?? "agent:main:slack:channel:C123";
-  params.agentId = overrides.agentId;
+  params.agentId = overrides.agentId ?? params.agentId;
   params.command = {
     ...params.command,
     channel: "slack",
