@@ -1,5 +1,6 @@
 import { once } from "node:events";
-import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+import { useIsolatedStateGuard } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sandboxExecServerRegistry } from "./sandbox-exec-server-registry.js";
 import {
@@ -15,8 +16,8 @@ import {
 } from "./sandbox-exec-server.test-helpers.js";
 
 const customLoggingPattern = vi.hoisted(() => ({ value: "" }));
-vi.mock("openclaw/plugin-sdk/logging-core", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/logging-core")>();
+vi.mock("astroclaw/plugin-sdk/logging-core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/logging-core")>();
   return {
     ...actual,
     redactToolPayloadText: (text: string) => {
@@ -154,6 +155,8 @@ async function expectPairedNodeHttpCredentialRejection(params: {
   expect(transport.channel.send).not.toHaveBeenCalled();
   expect(onExecutionDisconnect).not.toHaveBeenCalled();
 }
+
+useIsolatedStateGuard();
 
 afterEach(async () => {
   customLoggingPattern.value = "";
