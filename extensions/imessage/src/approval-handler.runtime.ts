@@ -7,21 +7,22 @@ import {
   createChannelApprovalNativeRuntimeAdapter,
   type PendingApprovalView,
   resolvePreparedApprovalAccountId,
-} from "openclaw/plugin-sdk/approval-handler-runtime";
-import { buildChannelApprovalNativeTargetKey } from "openclaw/plugin-sdk/approval-native-runtime";
+} from "astroclaw/plugin-sdk/approval-handler-runtime";
+import { buildChannelApprovalNativeTargetKey } from "astroclaw/plugin-sdk/approval-native-runtime";
 import {
   buildApprovalNativeControlsPromptText,
   buildApprovalReactionPendingContent,
-} from "openclaw/plugin-sdk/approval-reaction-runtime";
-import type { ExecApprovalReplyDecision } from "openclaw/plugin-sdk/approval-reply-runtime";
+} from "astroclaw/plugin-sdk/approval-reaction-runtime";
+import type { ExecApprovalReplyDecision } from "astroclaw/plugin-sdk/approval-reply-runtime";
 import type {
   ExecApprovalRequest,
   PluginApprovalRequest,
-} from "openclaw/plugin-sdk/approval-runtime";
-import { createActionGate } from "openclaw/plugin-sdk/channel-actions";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+  SystemAgentApprovalRequest,
+} from "astroclaw/plugin-sdk/approval-runtime";
+import { createActionGate } from "astroclaw/plugin-sdk/channel-actions";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeNamedExport } from "astroclaw/plugin-sdk/lazy-runtime";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
 import { resolveIMessageAccount } from "./accounts.js";
 import { getIMessageApprovalApprovers } from "./approval-auth.js";
 import { iMessageApprovalControlBindings } from "./approval-control-binding-window.js";
@@ -54,7 +55,7 @@ const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
 // gap keeps a poll posted second from sorting above the approval it follows.
 const APPROVAL_POLL_ORDERING_DELAY_MS = 1_100;
 
-type ApprovalRequest = ExecApprovalRequest | PluginApprovalRequest;
+type ApprovalRequest = ExecApprovalRequest | PluginApprovalRequest | SystemAgentApprovalRequest;
 type IMessagePendingDelivery = {
   /** Prompt text carrying the tapback hint; used when no poll will be sent. */
   text: string;
@@ -486,7 +487,7 @@ export const imessageApprovalNativeRuntime = createChannelApprovalNativeRuntimeA
   true,
   IMessageFinalPayload
 >({
-  eventKinds: ["exec", "plugin"],
+  eventKinds: ["exec", "plugin", "system-agent"],
   availability: {
     isConfigured: ({ context }) => Boolean(context),
     shouldHandle: ({ context }) => Boolean(context),
