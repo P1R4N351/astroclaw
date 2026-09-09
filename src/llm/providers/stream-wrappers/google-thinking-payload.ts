@@ -1,4 +1,9 @@
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+import {
+  isGoogleGemini3FlashModel,
+  isGoogleGemini3ProModel,
+  isGoogleGemini3ThinkingLevelModel,
+} from "@openclaw/ai/internal/google-model-family";
 import { googleFlashSupportsMinimalThinking } from "@openclaw/ai/transports";
 
 /** @deprecated Google provider-owned stream helper; do not use from third-party plugins. */
@@ -24,23 +29,6 @@ export function isGoogleThinkingRequiredModel(modelId: string): boolean {
 /** @deprecated Google provider-owned stream helper; do not use from third-party plugins. */
 export function isGoogleGemini25ThinkingBudgetModel(modelId: string): boolean {
   return /(?:^|\/)gemini-2\.5-/.test(normalizeLowercaseStringOrEmpty(modelId));
-}
-
-/** @deprecated Google provider-owned stream helper; do not use from third-party plugins. */
-export function isGoogleGemini3ProModel(modelId: string): boolean {
-  const normalized = normalizeLowercaseStringOrEmpty(modelId);
-  return /(?:^|\/)gemini-(?:3(?:\.\d+)?-pro|pro-latest)(?:-|$)/.test(normalized);
-}
-
-/** @deprecated Google provider-owned stream helper; do not use from third-party plugins. */
-export function isGoogleGemini3FlashModel(modelId: string): boolean {
-  const normalized = normalizeLowercaseStringOrEmpty(modelId);
-  return /(?:^|\/)gemini-(?:3(?:\.\d+)?-flash|flash(?:-lite)?-latest)(?:-|$)/.test(normalized);
-}
-
-/** @deprecated Google provider-owned stream helper; do not use from third-party plugins. */
-export function isGoogleGemini3ThinkingLevelModel(modelId: string): boolean {
-  return isGoogleGemini3ProModel(modelId) || isGoogleGemini3FlashModel(modelId);
 }
 
 /**
