@@ -1,7 +1,7 @@
 // Covers `models auth order get/set/clear`: read targeting, store writes, and gateway refresh.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthProfileStore } from "../../agents/auth-profiles.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { RuntimeEnv } from "../../runtime.js";
 
 const mocks = vi.hoisted(() => ({
@@ -102,7 +102,7 @@ describe("models auth order", () => {
     expect(mocks.resolveModelsTargetAgent).toHaveBeenCalledWith(expect.anything(), "ops", {
       kind: "mutation",
     });
-    expect(mocks.refreshRunningGatewayAuthState).toHaveBeenCalledWith("ops");
+    expect(mocks.refreshRunningGatewayAuthState).toHaveBeenCalledWith("ops", runtime);
     expect(runtime.logs).toContain("Auth profile order override: anthropic:b, anthropic:a");
   });
 
@@ -142,7 +142,7 @@ describe("models auth order", () => {
     expect(mocks.resolveModelsTargetAgent).toHaveBeenCalledWith(expect.anything(), undefined, {
       kind: "mutation",
     });
-    expect(mocks.refreshRunningGatewayAuthState).toHaveBeenCalledWith("main");
+    expect(mocks.refreshRunningGatewayAuthState).toHaveBeenCalledWith("main", runtime);
     expect(runtime.logs.some((line) => line.includes("Auth profile order override cleared"))).toBe(
       true,
     );
