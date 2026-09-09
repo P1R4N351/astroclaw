@@ -1,7 +1,7 @@
 // Agent scope tests cover which per-agent fields may flatten into runtime defaults.
 import { describe, expect, it, vi } from "vitest";
 import { migratePersistedImplicitMainRoster } from "../config/legacy.roster.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   AgentSelectionRequiredError,
   listAgentEntriesWithSource,
@@ -212,6 +212,20 @@ describe("agent roster resolution", () => {
 
     expect(cfg.agents?.entries?.ops?.default).toBeUndefined();
     expect(resolveAgentOperationAgentId(cfg)).toBe("ops");
+  });
+
+  it("prefers a per-agent toolProgressDetail over the roster default", () => {
+    const defaults = { toolProgressDetail: "explain" as const };
+    const entries = { main: { toolProgressDetail: "raw" as const } };
+
+    expect(resolveAgentConfig({ agents: { defaults, entries } }, "main")?.toolProgressDetail).toBe(
+      "raw",
+    );
+    expect(resolveAgentConfig({ agents: { entries } }, "main")?.toolProgressDetail).toBe("raw");
+    expect(
+      resolveAgentConfig({ agents: { defaults, entries: { main: {} } } }, "main")
+        ?.toolProgressDetail,
+    ).toBe("explain");
   });
 
   it("resolves defaults only for the rosterless implicit main agent", () => {
