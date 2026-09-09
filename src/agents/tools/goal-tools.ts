@@ -4,6 +4,7 @@
  * Provides create/get/update goal operations scoped to the current session store.
  */
 import { Type } from "typebox";
+import { SessionGoalTransitionError } from "../../config/sessions/goals-transitions.js";
 import {
   createSessionGoal,
   getSessionGoal,
@@ -11,7 +12,7 @@ import {
   updateSessionGoalStatus,
 } from "../../config/sessions/goals.js";
 import { resolveSessionStorePathCore } from "../../config/sessions/paths.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../../routing/session-key.js";
 import { stringEnum } from "../schema/typebox.js";
 import {
@@ -142,18 +143,30 @@ export function createUpdateGoalTool(options: GoalToolOptions): AnyAgentTool {
       }
       const note = readToolStringParam(params, "note");
       const scope = resolveGoalSessionScope(options);
-      const goal = await updateSessionGoalStatus({
-        ...scope,
-        actor: { type: "agent", id: scope.sessionKey },
-        status: status as (typeof MODEL_UPDATABLE_SESSION_GOAL_STATUSES)[number],
-        ...(note ? { note } : {}),
-      });
-      return jsonResult({
-        status: "updated",
-        goal,
-        nextAction:
-          "Goal status was updated, but no reply was sent to the user. Continue this turn and provide the requested visible final response.",
-      });
+      try {
+        const goal = await updateSessionGoalStatus({
+          ...scope,
+          actor: { type: "agent", id: scope.sessionKey },
+          status: status as (typeof MODEL_UPDATABLE_SESSION_GOAL_STATUSES)[number],
+          ...(note ? { note } : {}),
+        });
+        return jsonResult({
+          status: "updated",
+          goal,
+          nextAction:
+            "Goal status was updated, but no reply was sent to the user. Continue this turn and provide the requested visible final response.",
+        });
+      } catch (err) {
+        if (err instanceof SessionGoalTransitionError) {
+          return jsonResult({
+            status: "error",
+            error: err.message,
+            nextAction:
+              "Do not retry update_goal. No active goal requires a status change — continue this turn and provide your response to the user.",
+          });
+        }
+        throw err;
+      }
     },
   };
 }
