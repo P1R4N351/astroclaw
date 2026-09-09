@@ -1,7 +1,7 @@
 // Imported by register.test.ts to keep its mocked suite in one Vitest module graph.
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { runDoctorLintChecks, type OpenClawConfig } from "openclaw/plugin-sdk/health";
+import { runDoctorLintChecks, type OpenClawConfig } from "astroclaw/plugin-sdk/health";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectPolicyEvidence } from "../policy-state.js";
 import {
@@ -78,6 +78,41 @@ describe("registerPolicyDoctorChecks", () => {
     expect(result.remainingFindings).toEqual([]);
     expect(result.config.agents?.list?.[0]).toMatchObject({
       id: "reviewer",
+      tools: { deny: ["exec", "edit", "write"] },
+    });
+  });
+
+  it("repairs required keyed agent workspace deny tool findings", async () => {
+    const cfg = {
+      ...cfgWithPolicy({ workspaceRepairs: true }),
+      agents: {
+        ownership: "explicit",
+        entries: {
+          reviewer: { tools: { deny: ["exec"] } },
+        },
+      },
+    } satisfies OpenClawConfig;
+    const configPath = await writePolicyFixture({
+      scopes: {
+        reviewer: {
+          agentIds: ["reviewer"],
+          agents: { workspace: { denyTools: ["exec", "write", "edit"] } },
+        },
+      },
+    });
+
+    const result = await runPolicyRepairCheck(
+      "policy/agents-tool-not-denied",
+      repairCtx(configPath, cfg),
+    );
+
+    expect(result.status).toBe("repaired");
+    expect(result.changes).toEqual([
+      "Added edit to agents.entries.reviewer.tools.deny for policy conformance.",
+      "Added write to agents.entries.reviewer.tools.deny for policy conformance.",
+    ]);
+    expect(result.remainingFindings).toEqual([]);
+    expect(result.config.agents?.entries?.reviewer).toMatchObject({
       tools: { deny: ["exec", "edit", "write"] },
     });
   });
