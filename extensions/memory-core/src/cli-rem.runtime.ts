@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveMemoryRemDreamingConfig } from "openclaw/plugin-sdk/memory-core-host-status";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolveMemoryRemDreamingConfig } from "astroclaw/plugin-sdk/memory-core-host-status";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 import { resolveMemoryPluginConfig, withMemoryCommand } from "./cli-runtime-common.js";
 import { defaultRuntime, shortenHomePath, theme } from "./cli.host.runtime.js";
 import type { MemoryRemBackfillOptions, MemoryRemHarnessOptions } from "./cli.types.js";
-import { removeBackfillDiaryEntries, writeBackfillDiaryEntries } from "./dreaming-narrative.js";
+import { removeBackfillDiaryEntries, writeBackfillDiaryEntries } from "./dreaming-dreams-file.js";
 import { seedHistoricalDailyMemorySignals } from "./dreaming-phases.js";
 import type { MemoryCoreRuntimeHost } from "./memory/runtime-host.js";
 import { previewGroundedRemMarkdown } from "./rem-evidence.js";
@@ -25,6 +25,7 @@ export async function runMemorySessionBackfill(
     commandName: "memory session-backfill",
     agent: opts.agent,
     diagnosticsToStderr: Boolean(opts.json),
+    onUnavailable: opts.json ? defaultRuntime.writeJson : undefined,
     purpose: "status",
     ...hostOptions,
     run: async ({ manager, cfg, agentId }) => {
@@ -121,6 +122,7 @@ export async function runMemoryRemHarness(
     commandName: "memory rem-harness",
     agent: opts.agent,
     diagnosticsToStderr: Boolean(opts.json),
+    onUnavailable: opts.json ? defaultRuntime.writeJson : undefined,
     purpose: "status",
     ...hostOptions,
     run: async ({ manager, cfg, agentId }) => {
@@ -286,6 +288,7 @@ export async function runMemoryRemBackfill(
     commandName: "memory rem-backfill",
     agent: opts.agent,
     diagnosticsToStderr: Boolean(opts.json),
+    onUnavailable: opts.json ? defaultRuntime.writeJson : undefined,
     purpose: "status",
     ...hostOptions,
     run: async ({ manager, cfg, agentId }) => {
@@ -356,7 +359,7 @@ export async function runMemoryRemBackfill(
         return;
       }
       const scratchDir = await fs.mkdtemp(
-        path.join(resolvePreferredOpenClawTmpDir(), "openclaw-rem-backfill-"),
+        path.join(resolvePreferredAstroclawTmpDir(), "openclaw-rem-backfill-"),
       );
       try {
         const sourceFiles = await listHistoricalDailyFiles(opts.path);
@@ -505,7 +508,7 @@ async function createHistoricalRemHarnessWorkspace(params: {
 }> {
   const sourceFiles = await listHistoricalDailyFiles(params.inputPath);
   const workspaceDir = await fs.mkdtemp(
-    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-rem-harness-"),
+    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-rem-harness-"),
   );
   const memoryDir = path.join(workspaceDir, "memory");
   await fs.mkdir(memoryDir, { recursive: true });
