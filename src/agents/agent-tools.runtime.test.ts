@@ -2,7 +2,7 @@
 import { expectDefined } from "@astroclaw/normalization-core";
 import { describe, expect, it, vi } from "vitest";
 import "./test-helpers/fast-coding-tools.js";
-import "./test-helpers/fast-astroclaw-tools.js";
+import "./test-helpers/fast-openclaw-tools.js";
 import { wrapToolWithAbortSignal } from "./agent-tools.abort.js";
 import { createOpenClawCodingTools } from "./agent-tools.js";
 import {
@@ -108,9 +108,9 @@ describe("wrapToolWithAbortSignal", () => {
       runAbort.signal,
     );
 
-    await expect(wrapped.execute("call-yield", {})).resolves.toMatchObject({
-      details: { status: "yielded", message: "Turn yielded." },
-    });
+    const result = await wrapped.execute("call-yield", {});
+    expect(result).toMatchObject({ details: { status: "yielded" } });
+    expect(result).not.toHaveProperty("details.message");
     expect(beforeYield).toHaveBeenCalledOnce();
     expect(runAbort.signal.reason).toBe(handoffReason);
   });
