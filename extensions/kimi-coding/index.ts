@@ -3,8 +3,8 @@ import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-en
 import { normalizeProviderId } from "openclaw/plugin-sdk/provider-model-shared";
 import type { SecretInput } from "openclaw/plugin-sdk/secret-input";
 import { isRecord, normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { applyKimiCodeConfig, KIMI_CODING_MODEL_REF } from "./onboard.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+import { applyKimiCodeConfig, KIMI_CODING_MODEL_REF } from "./onboard.js";
 import { buildKimiCodingProvider, normalizeKimiCodingModelId } from "./provider-catalog.js";
 import { isKimiK3ModelId, resolveThinkingProfile } from "./provider-policy-api.js";
 import { KIMI_REPLAY_POLICY } from "./replay-policy.js";
@@ -12,6 +12,7 @@ import { wrapKimiProviderStream } from "./stream.js";
 
 const PLUGIN_ID = "kimi";
 const PROVIDER_ID = "kimi";
+const PROVIDER_ALIASES = ["kimi-code", "kimi-coding"];
 
 function findExplicitProviderConfig(
   providers: Record<string, unknown> | undefined,
@@ -34,7 +35,7 @@ export default defineSingleProviderPluginEntry({
   provider: {
     id: PROVIDER_ID,
     label: "Kimi",
-    aliases: ["kimi-code", "kimi-coding"],
+    aliases: PROVIDER_ALIASES,
     docsPath: "/providers/moonshot",
     envVars: ["KIMI_API_KEY", "KIMICODE_API_KEY"],
     manifestAuth: {
@@ -80,6 +81,20 @@ export default defineSingleProviderPluginEntry({
           },
         };
       },
+    },
+    classifyFailoverReason: ({ provider, status, errorMessage }) => {
+      if (!provider || status !== 403) {
+        return undefined;
+      }
+      const providerId = normalizeProviderId(provider);
+      if (providerId !== PROVIDER_ID && !PROVIDER_ALIASES.includes(providerId)) {
+        return undefined;
+      }
+      return /\b(?:weekly(?:\s+\(7-day\))?|(?:7|seven)[ -]day)\s+(?:usage\s+)?limit\b/i.test(
+        errorMessage,
+      ) || /\bquota\s+will\s+reset\b/i.test(errorMessage)
+        ? "rate_limit"
+        : undefined;
     },
     buildReplayPolicy: () => KIMI_REPLAY_POLICY,
     normalizeResolvedModel: ({ model }) => {
