@@ -2,34 +2,36 @@
 import { createServer } from "node:http";
 import type { IncomingMessage } from "node:http";
 import net from "node:net";
-import { InputFile } from "grammy";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { isDiagnosticsEnabled } from "openclaw/plugin-sdk/diagnostic-runtime";
+import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { isDiagnosticsEnabled } from "astroclaw/plugin-sdk/diagnostic-runtime";
 import {
   logWebhookError,
   logWebhookProcessed,
   logWebhookReceived,
-  startDiagnosticHeartbeat,
-  stopDiagnosticHeartbeat,
-} from "openclaw/plugin-sdk/logging-core";
-import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
-import type { BackoffPolicy, RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/logging-core";
+import { parseStrictNonNegativeInteger } from "astroclaw/plugin-sdk/number-runtime";
+import { createRuntimeConfigReader } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import type { BackoffPolicy, RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import {
   computeBackoff,
   defaultRuntime,
   formatDurationPrecise,
   sleepWithAbort,
-} from "openclaw/plugin-sdk/runtime-env";
-import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/runtime-env";
+import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   applyBasicWebhookRequestGuards,
   createFixedWindowRateLimiter,
   WEBHOOK_RATE_LIMIT_DEFAULTS,
-} from "openclaw/plugin-sdk/webhook-ingress";
-import { readJsonBodyWithLimit } from "openclaw/plugin-sdk/webhook-request-guards";
+} from "astroclaw/plugin-sdk/webhook-ingress";
+import {
+  readJsonBodyWithLimit,
+  sendHttpRequestRejection,
+} from "astroclaw/plugin-sdk/webhook-request-guards";
+import { InputFile } from "grammy";
 import { mergeTelegramAccountConfig } from "./account-config.js";
 import { resolveTelegramAllowedUpdates } from "./allowed-updates.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
@@ -42,6 +44,7 @@ import { createTelegramWebhookStatusPublisher } from "./webhook-status.js";
 
 const TELEGRAM_WEBHOOK_MAX_BODY_BYTES = 1024 * 1024;
 const TELEGRAM_WEBHOOK_BODY_TIMEOUT_MS = 30_000;
+const TELEGRAM_WEBHOOK_TEXT_TYPE = "text/plain; charset=utf-8";
 const TELEGRAM_WEBHOOK_ACCEPTED_HEADER = "x-openclaw-delivery-accepted";
 const TELEGRAM_WEBHOOK_ACCEPTED_VALUE = "durable";
 const TELEGRAM_WEBHOOK_SPOOLED_DRAIN_INTERVAL_MS = 500;
@@ -314,6 +317,7 @@ export async function startTelegramWebhook(opts: {
   spoolDir?: string;
   setStatus?: (patch: Omit<ChannelAccountSnapshot, "accountId">) => void;
 }) {
+  const readConfig = createRuntimeConfigReader(opts.config ?? {});
   const path = opts.path ?? "/telegram-webhook";
   const healthPath = opts.healthPath ?? "/healthz";
   if (path === healthPath) {
@@ -333,12 +337,10 @@ export async function startTelegramWebhook(opts: {
   status.noteWebhookStart();
   const webhookRegistrationRetryPolicy =
     opts.webhookRegistrationRetryPolicy ?? TELEGRAM_WEBHOOK_REGISTRATION_RETRY_POLICY;
-  const diagnosticsEnabled = isDiagnosticsEnabled(opts.config);
   const spoolDir = opts.spoolDir ?? resolveTelegramIngressSpoolDir({ accountId: opts.accountId });
   let shutDown = false;
   let ownedServer: ReturnType<typeof createServer> | undefined = undefined;
   let webhookIngressMonitor: ReturnType<typeof createTelegramTransportIngressMonitor> | undefined;
-  let diagnosticsStarted = false;
   const shutdownAbortController = new AbortController();
   const telegramAccountConfig = opts.config
     ? mergeTelegramAccountConfig(opts.config, opts.accountId ?? "default")
@@ -404,9 +406,6 @@ export async function startTelegramWebhook(opts: {
     await runShutdownPhase("transport close", closeTransportOnce);
     await runShutdownPhase("ingress drain", () => waitForWebhookIngressStop(ingressStopTask));
     await runShutdownPhase("status update", () => status.noteWebhookStop());
-    if (diagnosticsStarted) {
-      await runShutdownPhase("diagnostics stop", () => stopDiagnosticHeartbeat());
-    }
   };
   const runStartupPhase = async <T>(run: () => T | Promise<T>): Promise<T> => {
     try {
@@ -437,10 +436,6 @@ export async function startTelegramWebhook(opts: {
     maxRequests: WEBHOOK_RATE_LIMIT_DEFAULTS.maxRequests,
     maxTrackedKeys: WEBHOOK_RATE_LIMIT_DEFAULTS.maxTrackedKeys,
   });
-  if (diagnosticsEnabled) {
-    startDiagnosticHeartbeat(opts.config);
-    diagnosticsStarted = true;
-  }
 
   const log = (line: string) => runtime.log?.(line);
   const startWebhookSpoolDrain = () => {
@@ -472,7 +467,7 @@ export async function startTelegramWebhook(opts: {
       if (res.headersSent || res.writableEnded) {
         return;
       }
-      res.writeHead(statusCode, { "Content-Type": "text/plain; charset=utf-8" });
+      res.writeHead(statusCode, { "Content-Type": TELEGRAM_WEBHOOK_TEXT_TYPE });
       res.end(text);
     };
 
@@ -487,7 +482,7 @@ export async function startTelegramWebhook(opts: {
       return;
     }
     const startTime = Date.now();
-    if (diagnosticsEnabled) {
+    if (isDiagnosticsEnabled(readConfig())) {
       logWebhookReceived({ channel: "telegram", updateType: "telegram-post" });
     }
     const secretHeader = resolveSingleHeaderValue(req.headers["x-telegram-bot-api-secret-token"]);
@@ -514,14 +509,16 @@ export async function startTelegramWebhook(opts: {
         maxBytes: TELEGRAM_WEBHOOK_MAX_BODY_BYTES,
         timeoutMs: TELEGRAM_WEBHOOK_BODY_TIMEOUT_MS,
         emptyObjectOnEmpty: false,
+        // Defer destruction so the rejections below reach Telegram before the close.
+        destroyOnLimit: false,
       });
       if (!body.ok) {
         if (body.code === "PAYLOAD_TOO_LARGE") {
-          respondText(413, body.error);
+          await sendHttpRequestRejection(req, res, 413, body.error, TELEGRAM_WEBHOOK_TEXT_TYPE);
           return;
         }
         if (body.code === "REQUEST_BODY_TIMEOUT") {
-          respondText(408, body.error);
+          await sendHttpRequestRejection(req, res, 408, body.error, TELEGRAM_WEBHOOK_TEXT_TYPE);
           return;
         }
         if (body.code === "CONNECTION_CLOSED") {
@@ -544,7 +541,7 @@ export async function startTelegramWebhook(opts: {
       res.setHeader(TELEGRAM_WEBHOOK_ACCEPTED_HEADER, TELEGRAM_WEBHOOK_ACCEPTED_VALUE);
       respondText(200);
       status.noteWebhookUpdateReceived();
-      if (diagnosticsEnabled) {
+      if (isDiagnosticsEnabled(readConfig())) {
         logWebhookProcessed({
           channel: "telegram",
           updateType: "telegram-post",
@@ -553,7 +550,7 @@ export async function startTelegramWebhook(opts: {
       }
     })().catch((err: unknown) => {
       const errMsg = formatErrorMessage(err);
-      if (diagnosticsEnabled) {
+      if (isDiagnosticsEnabled(readConfig())) {
         logWebhookError({
           channel: "telegram",
           updateType: "telegram-post",
