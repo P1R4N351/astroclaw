@@ -6,7 +6,7 @@ import {
 } from "@astroclaw/normalization-core/string-coerce";
 import { DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { normalizeProviderId } from "../agents/model-selection.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { resolvePluginProvidersCore } from "./providers.runtime.js";
 import { resolvePluginSetupProviderCore } from "./setup-registry.js";
@@ -311,6 +311,7 @@ export async function runProviderModelSelectedHookCore(params: {
   agentDir?: string;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
+  preparedProvider?: ProviderPlugin;
 }): Promise<void> {
   const rawModel = params.model.trim();
   if (!rawModel) {
@@ -325,12 +326,19 @@ export async function runProviderModelSelectedHookCore(params: {
     return;
   }
 
-  const setupProvider = resolvePluginSetupProviderCore({
-    provider: selectedProviderId,
-    config: params.config,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-  });
+  const preparedProvider =
+    params.preparedProvider &&
+    normalizeProviderId(params.preparedProvider.id) === selectedProviderId
+      ? params.preparedProvider
+      : undefined;
+  const setupProvider =
+    preparedProvider ??
+    resolvePluginSetupProviderCore({
+      provider: selectedProviderId,
+      config: params.config,
+      workspaceDir: params.workspaceDir,
+      env: params.env,
+    });
   const provider =
     setupProvider ??
     resolveProviderWizardProviders({
