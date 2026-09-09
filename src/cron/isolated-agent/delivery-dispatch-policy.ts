@@ -6,7 +6,7 @@ import {
   stripLeadingSilentToken,
   stripSilentToken,
 } from "../../auto-reply/tokens.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { TtsAutoMode } from "../../config/types.tts.js";
 import { isSuppressedControlReplyText } from "../../gateway/control-reply-text.js";
 import { sleepWithAbort } from "../../infra/backoff.js";
@@ -320,8 +320,9 @@ function summarizeDirectCronDeliveryError(error: unknown): string {
 }
 
 function isTransientDirectCronDeliveryError(error: unknown): boolean {
-  if (deliveryRecovery.findPlatformMessageRejectedError(error)) {
-    return false;
+  const typedRetryability = deliveryRecovery.resolveDeliveryNotSentRetryability(error);
+  if (typedRetryability !== undefined) {
+    return typedRetryability;
   }
   const message = summarizeDirectCronDeliveryError(error);
   if (!message) {
