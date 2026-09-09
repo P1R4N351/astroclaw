@@ -17,6 +17,7 @@ import type {
 } from "astroclaw/plugin-sdk/plugin-entry";
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import type { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { markdownToIR } from "astroclaw/plugin-sdk/text-chunking";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { runGitHubCopilotDeviceFlow } from "./login.js";
@@ -1450,7 +1451,7 @@ describe("github-copilot plugin", () => {
     const prompter = {
       confirm: vi.fn(async () => false),
       text: vi.fn(async () => ""),
-      note: vi.fn(),
+      note: vi.fn(async (_message: string, _title?: string) => {}),
     };
 
     const result = await runDeviceAuthWithTty(
@@ -1479,7 +1480,15 @@ describe("github-copilot plugin", () => {
 
     // Domain switch must not offer to reuse the tenant-scoped token.
     expect(prompter.confirm).not.toHaveBeenCalled();
-    expect(prompter.note).toHaveBeenCalled();
+    const deviceNote = prompter.note.mock.calls.find(
+      ([, title]) => title === "Authorize GitHub Copilot",
+    );
+    expect(deviceNote).toBeDefined();
+    const [message] = expectDefined(deviceNote, "device-code note");
+    expect(markdownToIR(message, { linkify: false }).links.map((link) => link.href)).toEqual([
+      "https://github.com/login/device",
+    ]);
+    expect(message).toContain("\nCode: ABCD-1234\n");
     expect(result.profiles[0]?.credential).toEqual({
       type: "token",
       provider: "github-copilot",
