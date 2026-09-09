@@ -3,14 +3,14 @@ import {
   logAckFailure,
   removeAckReactionHandleAfterReply,
   type AckReactionHandle,
-} from "openclaw/plugin-sdk/channel-feedback";
+} from "astroclaw/plugin-sdk/channel-feedback";
 import {
   type buildChannelInboundEventContext,
   type ChannelInboundTurnPlan,
   formatMediaPlaceholderText,
   runChannelInboundEvent,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { bindIngressLifecycleToReplyOptions } from "openclaw/plugin-sdk/channel-outbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { bindIngressLifecycleToReplyOptions } from "astroclaw/plugin-sdk/channel-outbound";
 import {
   createInternalHookEvent,
   deriveInboundMessageHookContext,
@@ -19,10 +19,10 @@ import {
   toPluginMessageContext,
   toPluginMessageReceivedEvent,
   triggerInternalHook,
-} from "openclaw/plugin-sdk/hook-runtime";
-import { formatAudioTranscriptForAgent } from "openclaw/plugin-sdk/media-understanding-runtime";
-import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
-import { resolveBatchedReplyThreadingPolicy } from "openclaw/plugin-sdk/reply-reference";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import { formatAudioTranscriptForAgent } from "astroclaw/plugin-sdk/media-understanding-runtime";
+import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
+import { resolveBatchedReplyThreadingPolicy } from "astroclaw/plugin-sdk/reply-reference";
 import { getPrimaryIdentityId, getSelfIdentity, getSenderIdentity } from "../../identity.js";
 import {
   resolveWhatsAppCommandAuthorized,
@@ -314,9 +314,7 @@ export async function processMessage(params: {
   });
 
   let combinedBody = buildInboundLine({
-    cfg: params.cfg,
     msg: msgForAgent,
-    agentId: params.route.agentId,
     previousTimestamp,
     envelope: envelopeOptions,
     visibleReplyTo,
