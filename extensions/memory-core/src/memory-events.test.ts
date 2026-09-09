@@ -5,7 +5,7 @@ import {
   appendMemoryHostEvent,
   readMemoryHostEventRecords,
   readMemoryHostEvents,
-} from "openclaw/plugin-sdk/memory-host-events";
+} from "astroclaw/plugin-sdk/memory-host-events";
 import { describe, expect, it } from "vitest";
 import { writeDailyDreamingPhaseBlock } from "./dreaming-markdown.js";
 import {
@@ -168,6 +168,7 @@ describe("memory host event journal integration", () => {
       workspaceDir,
       phase: "light",
       bodyLines: ["- staged note", "- second note"],
+      hasContent: true,
       nowMs: Date.UTC(2026, 3, 5, 13, 0, 0),
       storage: { mode: "both", separateReports: true },
     });
