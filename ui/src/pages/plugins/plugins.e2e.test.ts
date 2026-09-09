@@ -1,7 +1,7 @@
 // Control UI tests cover plugin catalog browsing and lifecycle mutations.
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildCapabilityConsentErrorDetails } from "../../../../packages/gateway-protocol/src/capability-consent-error-details.js";
@@ -1008,10 +1008,9 @@ describeControlUiE2e("Control UI Plugins mocked Gateway E2E", () => {
       await page.goto(`${server.baseUrl}settings/plugins`);
       const workboardCard = page.locator('[data-plugin-id="workboard"]');
       await workboardCard.waitFor({ state: "visible" });
-      expect(await page.getByRole("note").textContent()).toContain("operator.admin");
-      expect(
-        await workboardCard.getByRole("button", { name: "Enable", exact: true }).isDisabled(),
-      ).toBe(true);
+      expect(await page.locator(".plugins-readonly").count()).toBe(0);
+      const enableButton = workboardCard.getByRole("button", { name: "Enable", exact: true });
+      expect(await enableButton.isDisabled()).toBe(true);
 
       await page.getByRole("tab", { name: /^Discover/u }).click();
       await page.getByRole("searchbox", { name: "Search plugins" }).fill("calendar");
