@@ -1,4 +1,3 @@
-// Signal tests cover monitor.tool result.sends tool summaries responseprefix plugin behavior.
 import { expectPairingReplyText } from "astroclaw/plugin-sdk/channel-test-helpers";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
@@ -597,7 +596,7 @@ describe("monitorSignalProvider tool results", () => {
         autoStart: false,
         replyToMode: "batched",
       }),
-      messages: { inbound: { debounceMs: 10 } },
+      messages: { visibleReplies: "automatic", inbound: { debounceMs: 10 } },
     });
     replyMock.mockResolvedValue({ text: "reply" });
     const abortController = new AbortController();
