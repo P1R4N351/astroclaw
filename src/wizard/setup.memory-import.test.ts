@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   MigrationApplyResult,
   MigrationPlan,
@@ -16,7 +16,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../commands/migrate/memory-import.js", () => ({
-  listMemoryMigrationProviders: () => mocks.providers,
+  withMemoryMigrationProviders: async (
+    _config: OpenClawConfig,
+    run: (providers: MigrationProviderPlugin[]) => Promise<unknown>,
+  ) => await run(mocks.providers),
   planProviderMemoryImport: mocks.planProviderMemoryImport,
   applyProviderMemoryImport: mocks.applyProviderMemoryImport,
 }));
