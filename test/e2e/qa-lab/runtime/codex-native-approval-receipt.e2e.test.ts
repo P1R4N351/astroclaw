@@ -16,7 +16,7 @@ import { loadBundledPluginFacade } from "../../../../src/test-utils/bundled-plug
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "../../../helpers/astroclaw-test-instance.js";
+} from "../../../helpers/openclaw-test-instance.js";
 
 const MODEL = "openai/gpt-5.6-luna";
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -219,7 +219,6 @@ describe("Codex native approval receipt", () => {
                     command: process.execPath,
                     args: [fixture],
                     requestTimeoutMs: REQUEST_TIMEOUT_MS,
-                    turnCompletionIdleTimeoutMs: REQUEST_TIMEOUT_MS,
                   },
                 },
               },
