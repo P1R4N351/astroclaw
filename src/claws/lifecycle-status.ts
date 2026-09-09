@@ -3,7 +3,7 @@ import { listAgentEntries } from "../agents/agent-scope.js";
 import { getRuntimeConfig } from "../config/config.js";
 import { normalizeConfiguredMcpServers } from "../config/mcp-config-normalize.js";
 import { listConfiguredMcpServers } from "../config/mcp-config.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   inspectBundlePluginArtifact,
   inspectNativePluginArtifact,
@@ -16,7 +16,6 @@ import {
   ClawRemoveError,
   inspectClawBootstrap,
   inspectClawWorkspaceFile,
-  readAllClawWorkspaceFiles,
   synthesizeOrphanInstall,
   type ClawManagedFileStatus,
   type ClawBootstrapStatus,
@@ -39,7 +38,7 @@ import {
   type PersistedClawPackageRef,
 } from "./provenance.js";
 import { CLAW_OUTPUT_STABILITY, type ClawPackagePreflight } from "./types.js";
-import { readClawWorkspaceFiles } from "./workspace.js";
+import { readAllClawWorkspaceFiles, readClawWorkspaceFiles } from "./workspace.js";
 
 const CLAW_STATUS_SCHEMA_VERSION = "openclaw.clawStatus.v1" as const;
 
