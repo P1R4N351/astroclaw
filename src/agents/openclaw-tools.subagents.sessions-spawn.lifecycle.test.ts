@@ -2,8 +2,8 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentRouteBinding } from "../config/types.agents.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
+import { getOrCreateSessionMcpRuntime } from "./agent-bundle-mcp-manager.test-support.js";
 import { testing as bundleMcpRuntimeTesting } from "./agent-bundle-mcp-runtime.js";
-import { getOrCreateSessionMcpRuntime } from "./agent-bundle-mcp-tools.js";
 import {
   getCallGatewayMock,
   getSessionsSpawnTool,
@@ -15,7 +15,7 @@ import {
   setupSessionsSpawnGatewayMock,
   setSessionsSpawnConfigOverride,
   waitForSessionsSpawnEvent,
-} from "./astroclaw-tools.subagents.sessions-spawn.test-harness.js";
+} from "./openclaw-tools.subagents.sessions-spawn.test-harness.js";
 import { getLatestSubagentRunByChildSessionKey } from "./subagents/registry/subagent-registry-read.js";
 import { resetSubagentRegistryForTests } from "./subagents/registry/subagent-registry.test-helpers.js";
 
