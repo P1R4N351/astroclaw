@@ -10,7 +10,7 @@ import {
 import { findNormalizedProviderValue, normalizeProviderId } from "../../agents/model-selection.js";
 import { resolveProviderIdForAuth } from "../../agents/provider-auth-aliases.js";
 import { formatCliCommand } from "../../cli/command-format.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../../runtime.js";
 import { shortenHomePath } from "../../utils.js";
 import { refreshRunningGatewayAuthState } from "./auth-refresh.js";
@@ -113,7 +113,7 @@ export async function modelsAuthOrderClearCommand(
   runtime.log(`Agent: ${agentId}`);
   runtime.log(`Provider: ${provider}`);
   runtime.log(`Auth profile order override cleared; ${describeOrderFallback(cfg, provider)}.`);
-  await refreshRunningGatewayAuthState(agentId);
+  await refreshRunningGatewayAuthState(agentId, runtime);
 }
 
 /** Sets the provider auth profile priority order after validating each profile id. */
@@ -161,5 +161,5 @@ export async function modelsAuthOrderSetCommand(
   runtime.log(`Agent: ${agentId}`);
   runtime.log(`Provider: ${provider}`);
   runtime.log(`Auth profile order override: ${describeOrder(updated, provider, cfg).join(", ")}`);
-  await refreshRunningGatewayAuthState(agentId);
+  await refreshRunningGatewayAuthState(agentId, runtime);
 }
