@@ -270,7 +270,8 @@ export function renderDevicePairSetup(props: DevicePairSetupProps) {
                 <h3>${lifecycle.deviceName ?? t("devices.pairing.pairedTitle")}</h3>
                 <p>
                   ${lifecycle.deviceName
-                    ? html`${t("devices.pairing.pairedTitle")} <span aria-hidden="true">·</span> `
+                    ? html`${t("devices.pairing.pairedTitle")}
+                        <span aria-hidden="true">·</span> `
                     : nothing}${accessLabel(lifecycle.access)}
                 </p>
                 <button class="btn primary" type="button" @click=${props.onClose}>
