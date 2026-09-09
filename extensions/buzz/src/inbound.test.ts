@@ -1,13 +1,13 @@
 import {
   buildChannelInboundEventContext,
   runPreparedInboundReply,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { resolveStableChannelMessageIngress } from "openclaw/plugin-sdk/channel-ingress-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { resolveStableChannelMessageIngress } from "astroclaw/plugin-sdk/channel-ingress-runtime";
 // Buzz tests cover inbound room admission, mention gating, and reply delivery.
-import { createPluginRuntimeMock } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BuzzBus } from "./buzz-bus.js";
 import { BuzzDirectoryState } from "./directory-state.js";
@@ -20,16 +20,28 @@ import {
 import { setBuzzRuntime } from "./runtime.js";
 import type { ResolvedBuzzAccount } from "./types.js";
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
+const logInfo = vi.hoisted(() => vi.fn());
+vi.mock("astroclaw/plugin-sdk/logging-core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/logging-core")>();
+  return {
+    ...actual,
+    createSubsystemLogger: (...args: Parameters<typeof actual.createSubsystemLogger>) => ({
+      ...actual.createSubsystemLogger(...args),
+      info: logInfo,
+    }),
+  };
+});
+
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
   return {
     ...actual,
     buildChannelInboundEventContext: vi.fn(actual.buildChannelInboundEventContext),
   };
 });
-vi.mock("openclaw/plugin-sdk/channel-ingress-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/channel-ingress-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/channel-ingress-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/channel-ingress-runtime")>();
   return {
     ...actual,
     resolveStableChannelMessageIngress: vi.fn(actual.resolveStableChannelMessageIngress),
@@ -512,19 +524,28 @@ describe("handleBuzzInbound", () => {
     expect(firstDispatch(runtime).ctxPayload.WasMentioned).toBe(true);
   });
 
-  it("drops room messages that miss required mention activation", async () => {
+  it("logs missing mentions once per account room with an account-scoped fix", async () => {
     const runtime = createPluginRuntimeMock();
     setBuzzRuntime(runtime);
-
-    await handleBuzzInbound({
-      account: createAccount(),
-      cfg: {} satisfies OpenClawConfig,
-      bus: createBus(),
-      message: createMessage(),
-      ...createLifecycle(),
-    });
+    const account = { ...createAccount(), accountId: "mention-diagnostic" };
+    for (const id of ["mention-drop-1", "mention-drop-2"]) {
+      await handleBuzzInbound({
+        account,
+        cfg: { channels: { buzz: { accounts: { [account.accountId]: account.config } } } },
+        bus: createBus(),
+        message: createMessage({ id }),
+        ...createLifecycle(),
+      });
+    }
 
     expect(runtime.channel.inbound.dispatch).not.toHaveBeenCalled();
+    expect(logInfo).toHaveBeenCalledOnce();
+    expect(logInfo).toHaveBeenCalledWith(expect.stringContaining("buzz: drop no mention"));
+    expect(logInfo).toHaveBeenCalledWith(
+      expect.stringContaining('channels.buzz.accounts["mention-diagnostic"].groups'),
+    );
+    expect(logInfo).toHaveBeenCalledWith(expect.stringContaining("requireMention=false"));
+    expect(logInfo).not.toHaveBeenCalledWith(expect.stringContaining(SENDER_PUBLIC_KEY));
   });
 
   it.each([
@@ -538,8 +559,8 @@ describe("handleBuzzInbound", () => {
       const runtime = createPluginRuntimeMock();
       setBuzzRuntime(runtime);
       const actual = await vi.importActual<
-        typeof import("openclaw/plugin-sdk/channel-ingress-runtime")
-      >("openclaw/plugin-sdk/channel-ingress-runtime");
+        typeof import("astroclaw/plugin-sdk/channel-ingress-runtime")
+      >("astroclaw/plugin-sdk/channel-ingress-runtime");
       const abort = new AbortController();
       let currentMember = true;
       let releaseAdmission: () => void = () => {};
