@@ -1,14 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { register } from "tsx/esm/api";
 import type { Plugin } from "vite";
 import {
-  loadControlUiSourceCatalog,
   loadControlUiTranslationMemory,
   materializeControlUiLocaleCatalog,
-} from "../../scripts/lib/control-ui-i18n-catalog.ts";
+} from "../../scripts/lib/control-ui-i18n-catalog-values.ts";
 import { CONTROL_UI_LOCALE_ENTRIES } from "../../scripts/lib/control-ui-i18n-config.ts";
 import { flattenTranslations } from "../../scripts/lib/control-ui-i18n-sync-plan.ts";
+import type { TranslationMap } from "../../scripts/lib/control-ui-i18n-sync-plan.ts";
 
 const localeModulePrefix = "virtual:openclaw-control-ui-locale/";
 const resolvedLocaleModulePrefix = `\0${localeModulePrefix}`;
@@ -18,21 +20,35 @@ const i18nAssetsDir = path.resolve(
   "../src/i18n/.i18n",
 );
 const locales = new Set(CONTROL_UI_LOCALE_ENTRIES.map(({ locale }) => locale));
-// Mirrors scripts/control-ui-i18n.ts's SOURCE_LOCALE_PATH/ACTIVITY_SOURCE_LOCALE_PATH/
-// SESSION_PLACEMENT_SOURCE_LOCALE_PATH/PLUGIN_CONSENT_SOURCE_LOCALE_PATH -- this call site
-// had drifted to the zero-arg call the function used to take, throwing
-// ERR_INVALID_ARG_TYPE out of fs.promises.stat(undefined) the moment any vitest config
-// (even a non-UI one, via the shared workspace glob) touched this module.
-const controlUiLocalesDir = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../src/i18n/locales",
-);
-const sourceCatalog = await loadControlUiSourceCatalog(
-  path.join(controlUiLocalesDir, "en.ts"),
-  path.join(controlUiLocalesDir, "en-activity.ts"),
-  path.join(controlUiLocalesDir, "en-session-placement.ts"),
-  path.join(controlUiLocalesDir, "en-plugin-consent.ts"),
-);
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const sourceCatalogUrl = pathToFileURL(
+  path.join(repoRoot, "scripts/lib/control-ui-i18n-catalog.ts"),
+).href;
+
+async function loadCurrentSourceCatalog(): Promise<{
+  catalog: TranslationMap;
+  watchFiles: Set<string>;
+}> {
+  const watchFiles = new Set<string>();
+  const loader = register({
+    namespace: `openclaw-control-ui-source-catalog-${randomUUID()}`,
+    onImport(url) {
+      if (url.startsWith("file:")) {
+        watchFiles.add(fileURLToPath(url));
+      }
+    },
+    tsconfig: path.join(repoRoot, "tsconfig.json"),
+  });
+  try {
+    const module = (await loader.import(
+      sourceCatalogUrl,
+      import.meta.url,
+    )) as typeof import("../../scripts/lib/control-ui-i18n-catalog.ts");
+    return { catalog: module.loadControlUiSourceCatalog(), watchFiles };
+  } finally {
+    await loader.unregister();
+  }
+}
 
 export function controlUiLocaleModulesPlugin(): Plugin {
   return {
@@ -44,7 +60,7 @@ export function controlUiLocaleModulesPlugin(): Plugin {
       }
       return null;
     },
-    load(id) {
+    async load(id) {
       if (!id.startsWith(resolvedLocaleModulePrefix)) {
         return null;
       }
@@ -53,12 +69,16 @@ export function controlUiLocaleModulesPlugin(): Plugin {
         return null;
       }
       const memoryPath = path.join(i18nAssetsDir, `${locale}.tm.jsonl`);
+      const { catalog: sourceCatalog, watchFiles } = await loadCurrentSourceCatalog();
+      for (const watchFile of watchFiles) {
+        this.addWatchFile(watchFile);
+      }
+      this.addWatchFile(memoryPath);
       // Source PRs omit generated memory until the post-merge refresh runs.
       // Existing empty or malformed memory stays fatal below so drift cannot hide.
       if (!existsSync(memoryPath)) {
         return `export default ${JSON.stringify(sourceCatalog)};`;
       }
-      this.addWatchFile(memoryPath);
       const memory = loadControlUiTranslationMemory(memoryPath);
       if (memory.size === 0) {
         throw new Error(`Control UI ${locale} translation memory is missing or empty`);
