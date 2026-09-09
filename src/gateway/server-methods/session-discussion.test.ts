@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { SessionDiscussionProvider } from "../../plugins/session-discussion-registry.js";
 import { sessionDiscussionHandlers } from "./session-discussion.js";
 
@@ -25,7 +25,8 @@ vi.mock("../../auto-reply/reply/conversation-label-generator.js", () => ({
   generateConversationLabelWithFallback: mocks.generateConversationLabelWithFallback,
 }));
 vi.mock("../../config/sessions/session-accessor.js", () => ({
-  updateSessionEntry: mocks.updateSessionEntry,
+  patchSessionEntryCore: mocks.updateSessionEntry,
+  loadSessionEntry: () => mocks.loadSessionTarget()?.entry,
 }));
 vi.mock("../dashboard-session-title.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../dashboard-session-title.js")>();
