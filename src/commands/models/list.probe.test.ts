@@ -6,7 +6,7 @@ import path from "node:path";
 import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { AgentRunResultView } from "../../agents/agent-run-result.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { acquireGatewayLock, type GatewayLockOptions } from "../../infra/gateway-lock.js";
 
 let probeModule: typeof import("./list.probe.js");
@@ -219,7 +219,7 @@ describe("runAuthProbes", () => {
       resolveProviderEntryApiKeyProfileReference: () => ({ kind: "none" }),
     }));
     vi.doMock("../../agents/prepared-model-catalog.js", () => ({
-      loadPreparedModelCatalog: async () => [{ provider: "openai", id: "gpt-5.5" }],
+      readPreparedModelCatalog: async () => [{ provider: "openai", id: "gpt-5.5" }],
     }));
     try {
       const module = await importFreshModule<typeof import("./list.probe.js")>(
@@ -356,7 +356,7 @@ describe("runAuthProbes", () => {
       }),
     }));
     vi.doMock("../../agents/prepared-model-catalog.js", () => ({
-      loadPreparedModelCatalog: async () => [{ provider: "openai", id: "gpt-5.5" }],
+      readPreparedModelCatalog: async () => [{ provider: "openai", id: "gpt-5.5" }],
     }));
     const providerConfig = {
       baseUrl: "https://api.openai.com/v1",
@@ -459,7 +459,7 @@ describe("runAuthProbes", () => {
       }),
     }));
     vi.doMock("../../agents/prepared-model-catalog.js", () => ({
-      loadPreparedModelCatalog: async () => [{ provider: "openai", id: "gpt-5.5" }],
+      readPreparedModelCatalog: async () => [{ provider: "openai", id: "gpt-5.5" }],
     }));
     const cfg = {
       models: {
