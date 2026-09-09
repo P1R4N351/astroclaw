@@ -1,10 +1,10 @@
 // Qa Lab Matrix module implements client behavior.
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
-import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
-import { uniqueValues } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
+import { uniqueValues } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   buildMatrixQaMediaMessageContent,
   buildMatrixQaMessageContent,
@@ -58,6 +58,7 @@ type MatrixQaRegisteredAccount = {
 export type MatrixQaProvisionResult = {
   driver: MatrixQaRegisteredAccount;
   observer: MatrixQaRegisteredAccount;
+  observationAccounts: Record<"driver" | "observer", MatrixQaRegisteredAccount>;
   roomId: string;
   sut: MatrixQaRegisteredAccount;
   topology: MatrixQaProvisionedTopology;
@@ -624,9 +625,22 @@ export async function provisionMatrixQaRoom(params: {
         ],
       } satisfies MatrixQaTopologySpec),
   });
+  // A /sync cursor acknowledges device messages even when a room-only reader
+  // ignores them. Passive readers must never share the encrypted actor's device.
+  const createObservationAccount = (account: MatrixQaRegisteredAccount) =>
+    anonClient.loginWithPassword({
+      deviceName: "OpenClaw Matrix QA Room Observation",
+      password: account.password,
+      userId: account.userId,
+    });
+  const [driverObservation, observerObservation] = await Promise.all([
+    createObservationAccount(driver),
+    createObservationAccount(observer),
+  ]);
   return {
     driver,
     observer,
+    observationAccounts: { driver: driverObservation, observer: observerObservation },
     roomId: topology.defaultRoomId,
     sut,
     topology,
