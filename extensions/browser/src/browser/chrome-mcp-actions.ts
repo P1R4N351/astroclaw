@@ -7,7 +7,7 @@ import {
   resolveNonNegativeIntegerOption,
 } from "openclaw/plugin-sdk/number-runtime";
 import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { resolveBrowserNavigationTimeoutMs } from "./act-policy.js";
 import {
   rethrowChromeMcpDocumentError,
@@ -359,13 +359,13 @@ export async function dragChromeMcpElement(
   }));
 }
 
-/** Upload a local file into a Chrome MCP file input by uid. */
+/** Upload local files into a Chrome MCP file input by uid. */
 export async function uploadChromeMcpFile(
-  params: ChromeMcpTargetOperation & { uid: string; filePath: string },
+  params: ChromeMcpTargetOperation & { uid: string; filePaths: string[] },
 ): Promise<void> {
   await callTargetTool(params, "upload_file", (session) => ({
     uid: resolveChromeMcpSnapshotRef(session, params.targetId, params.uid),
-    filePath: params.filePath,
+    filePaths: params.filePaths,
   }));
 }
 
