@@ -493,6 +493,9 @@ async function startThreadWithDisabledNativeSurfaceForTest(
     onYieldDetected: () => undefined,
   });
   const request = vi.fn(async (method: string, _requestParams?: unknown) => {
+    if (method === "config/read") {
+      return { config: {}, layers: [] };
+    }
     if (method === "thread/start") {
       return threadStartResult();
     }
@@ -1178,6 +1181,9 @@ describe("runCodexAppServerAttempt", () => {
       onYieldDetected: () => undefined,
     });
     const request = vi.fn(async (method: string, _requestParams?: unknown) => {
+      if (method === "config/read") {
+        return { config: {}, layers: [] };
+      }
       if (method === "thread/start") {
         return threadStartResult();
       }
