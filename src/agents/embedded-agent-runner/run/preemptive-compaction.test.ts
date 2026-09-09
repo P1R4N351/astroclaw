@@ -1,6 +1,6 @@
 // Preemptive compaction tests cover token-pressure estimates before prompt
 // submission and the route chosen to compact, truncate, or proceed.
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import "../../test-helpers/agent-session-token-mock.js";
 import { estimateToolResultReductionPotential } from "../tool-result-truncation.js";
@@ -525,8 +525,8 @@ describe("preemptive-compaction", () => {
       reserveTokens: 20_000,
     });
 
-    expect(result.effectiveReserveTokens).toBe(8_000);
-    expect(result.promptBudgetBeforeReserve).toBe(8_000);
+    expect(result.effectiveReserveTokens).toBe(4_000);
+    expect(result.promptBudgetBeforeReserve).toBe(12_000);
     expect(result.shouldCompact).toBe(false);
     expect(result.route).toBe("fits");
   });
@@ -537,11 +537,11 @@ describe("preemptive-compaction", () => {
       systemPrompt: "sys",
       prompt: "hello",
       contextTokenBudget: 32_000,
-      reserveTokens: 20_000,
+      reserveTokens: 4_000,
     });
 
-    expect(result.effectiveReserveTokens).toBe(20_000);
-    expect(result.promptBudgetBeforeReserve).toBe(12_000);
+    expect(result.effectiveReserveTokens).toBe(4_000);
+    expect(result.promptBudgetBeforeReserve).toBe(28_000);
     expect(result.shouldCompact).toBe(false);
   });
 
