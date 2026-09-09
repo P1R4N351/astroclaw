@@ -7,7 +7,7 @@ import {
   findNormalizedProviderValue,
   normalizeProviderId,
 } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveCliRuntimeExecutionProvider } from "../model-runtime-aliases.js";
 import { resolveProviderIdForAuth } from "../provider-auth-aliases.js";
 import { CLAUDE_CLI_PROFILE_ID } from "./constants.js";
@@ -191,7 +191,10 @@ function resolveExternalCliProviderIdForCompatibleAuthProfile(params: {
     workspaceDir: params.workspaceDir,
   };
   const providerAuthKey = resolveProviderIdForAuth(params.provider, authAliasParams);
-  const profileAuthKey = resolveProviderIdForAuth(profileProvider, authAliasParams);
+  const profileAuthKey = resolveProviderIdForAuth(profileProvider, {
+    ...authAliasParams,
+    storedCredential: true,
+  });
   if (!providerAuthKey || profileAuthKey !== providerAuthKey) {
     return { compatible: false };
   }
