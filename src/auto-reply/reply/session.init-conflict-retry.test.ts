@@ -7,7 +7,7 @@ import {
   upsertSessionEntryCore,
 } from "../../config/sessions/session-accessor.js";
 import { replaceSessionEntrySync } from "../../config/sessions/session-accessor.sqlite-entry.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { finalizeInboundContext } from "./inbound-context.js";
 import {
   ReplySessionInitConflictError,
@@ -260,8 +260,9 @@ describe("initSessionState conflict retry wiring", () => {
     try {
       await upsertSessionEntryCore(
         { sessionKey: SESSION_KEY, storePath },
+        // No display name seeded: the derived thread label may only initialize an
+        // unnamed session, and this test tracks the init write surviving retries.
         {
-          displayName: "before reply initialization",
           sessionId: "existing-session",
           updatedAt: Date.now(),
         },
