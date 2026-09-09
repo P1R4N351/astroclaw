@@ -1,14 +1,12 @@
 // Github Copilot plugin entrypoint registers its OpenClaw integration.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type ProviderAuthContext,
   type ProviderAuthResult,
   type ProviderAuthMethodNonInteractiveContext,
-  type UnifiedModelCatalogEntry,
-  type UnifiedModelCatalogProviderContext,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   coerceSecretRef,
@@ -17,7 +15,7 @@ import {
   normalizeOptionalSecretInput,
   resolveDefaultSecretProviderAlias,
   upsertAuthProfileWithLock,
-} from "openclaw/plugin-sdk/provider-auth";
+} from "astroclaw/plugin-sdk/provider-auth";
 import { resolveFirstGithubToken } from "./auth.js";
 import {
   normalizeGithubCopilotDomain,
@@ -49,6 +47,7 @@ const COPILOT_ENV_VARS: [string, string, string] = [
   "GITHUB_TOKEN",
 ];
 const DEFAULT_COPILOT_PROFILE_ID = "github-copilot:github";
+const COPILOT_SECRET_STORE_NAME_PREFIX = "GITHUB_COPILOT_TOKEN";
 
 type GithubCopilotPluginConfig = {
   discovery?: {
@@ -422,27 +421,6 @@ export default definePluginEntry({
       discoveryEnabled: (config) => resolveCurrentPluginConfig(config).discovery?.enabled !== false,
     });
 
-    async function runGithubCopilotUnifiedLiveCatalog(
-      ctx: UnifiedModelCatalogProviderContext,
-    ): Promise<UnifiedModelCatalogEntry[] | null> {
-      const result = await dynamicModels.runCatalog(ctx);
-      if (!result || !("provider" in result)) {
-        return null;
-      }
-      return (result.provider.models ?? []).map((model) => {
-        const entry: UnifiedModelCatalogEntry = {
-          kind: "text",
-          provider: PROVIDER_ID,
-          model: model.id,
-          source: "live",
-        };
-        if (model.name) {
-          entry.label = model.name;
-        }
-        return entry;
-      });
-    }
-
     async function promptForEnterpriseDomain(ctx: ProviderAuthContext): Promise<string | null> {
       // COPILOT_GITHUB_DOMAIN is authoritative for every runtime routing path
       // (token refresh, usage, completions). Honor it here too when it is set so
@@ -566,7 +544,7 @@ export default definePluginEntry({
             await ctx.prompter.note(
               [
                 "Open this URL in your browser and enter the code below.",
-                `URL: ${verificationUrl}`,
+                `URL: <${verificationUrl}>`,
                 `Code: ${userCode}`,
                 `Code expires in ${expiresInMinutes} minutes. Never share it.`,
                 "",
@@ -605,6 +583,15 @@ export default definePluginEntry({
         githubToken: result.accessToken,
         githubDomain: normalizedDomain,
       });
+      const persistInline = ctx.secretInputMode === "plaintext";
+      const notes = [
+        ...(starter.notes ?? []),
+        ...(persistInline
+          ? [
+              "Plaintext secret input mode was selected, so the GitHub Copilot token will remain inline in the auth profile and openclaw secrets audit --check will report it.",
+            ]
+          : []),
+      ];
       return {
         profiles: [
           {
@@ -614,9 +601,18 @@ export default definePluginEntry({
               provider: PROVIDER_ID,
               token: result.accessToken,
             },
+            ...(!persistInline
+              ? {
+                  secretStorage: {
+                    kind: "store" as const,
+                    namePrefix: COPILOT_SECRET_STORE_NAME_PREFIX,
+                  },
+                }
+              : {}),
           },
         ],
-        ...starter,
+        ...(starter.defaultModel ? { defaultModel: starter.defaultModel } : {}),
+        ...(notes.length > 0 ? { notes } : {}),
         ...(configPatch ? { configPatch } : {}),
       };
     }
@@ -738,11 +734,6 @@ export default definePluginEntry({
           }),
         );
       },
-    });
-    api.registerModelCatalogProvider({
-      provider: PROVIDER_ID,
-      kinds: ["text"],
-      liveCatalog: runGithubCopilotUnifiedLiveCatalog,
     });
   },
 });
