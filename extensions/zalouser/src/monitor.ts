@@ -1,48 +1,50 @@
-import { mergeAllowlist, summarizeMapping } from "openclaw/plugin-sdk/allow-from";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
+import { mergeAllowlist, summarizeMapping } from "astroclaw/plugin-sdk/allow-from";
+import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
 import {
   createChannelInboundEnvelopeBuilder,
   createChannelPartialDeliveryError,
   implicitMentionKindWhen,
   isChannelPartialDeliveryError,
+  logInboundDrop,
   resolveInboundMentionDecision,
-} from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
 import {
   resolveStableChannelMessageIngress,
   type ChannelIngressContextBinding,
-} from "openclaw/plugin-sdk/channel-ingress-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-runtime";
 import {
   createMessageReceiptFromOutboundResults,
   listMessageReceiptPlatformIds,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
-import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
+import { resolveChannelGroupsConfigPath } from "astroclaw/plugin-sdk/channel-policy";
+import type { MarkdownTableMode, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
 // Zalouser plugin module implements monitor behavior.
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { channelReadyPatch } from "openclaw/plugin-sdk/gateway-runtime";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { channelReadyPatch } from "astroclaw/plugin-sdk/gateway-runtime";
 import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   type HistoryEntry,
   createChannelHistoryWindow,
-} from "openclaw/plugin-sdk/reply-history";
+} from "astroclaw/plugin-sdk/reply-history";
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
   type OutboundReplyPayload,
-} from "openclaw/plugin-sdk/reply-payload";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
+} from "astroclaw/plugin-sdk/reply-payload";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
 import {
   resolveDefaultGroupPolicy,
   resolveOpenProviderRuntimeGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeStringEntries,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   buildZalouserGroupCandidates,
   findZalouserGroupEntry,
@@ -224,6 +226,7 @@ async function processMessage(
   message: ZaloInboundMessage,
   account: ResolvedZalouserAccount,
   config: OpenClawConfig,
+  groupsConfigPath: string,
   core: ZalouserCoreRuntime,
   runtime: RuntimeEnv,
   historyState: ZalouserGroupHistoryState,
@@ -544,7 +547,14 @@ async function processMessage(
             }
           : null,
     });
-    logVerbose(core, runtime, `zalouser: skip group ${chatId} (mention required, not mentioned)`);
+    logInboundDrop({
+      log: runtime.log,
+      channel: "zalouser",
+      reason: "no mention",
+      target: chatId,
+      onceKey: JSON.stringify([account.accountId, chatId]),
+      hint: `Mention patterns can be derived from the agent identity name. Set ${groupsConfigPath}[${JSON.stringify(chatId)}].requireMention=false to process messages without a mention. Preserve existing groups entries; when adding the first groups map, include "*": {} to keep other chats admitted.`,
+    });
     return;
   }
 
@@ -793,6 +803,13 @@ export async function monitorZalouserProvider(
   const { config } = options;
   let { account } = options;
   const { abortSignal, statusSink, runtime } = options;
+  // Name resolution below copies the map; retain its authored scope before that projection.
+  const groupsConfigPath = resolveChannelGroupsConfigPath({
+    cfg: config,
+    channel: "zalouser",
+    accountId: account.accountId,
+    groups: account.config.groups,
+  });
 
   const core = getZalouserRuntime();
   const historyLimit = Math.max(
@@ -907,6 +924,7 @@ export async function monitorZalouserProvider(
         message,
         account,
         config,
+        groupsConfigPath,
         core,
         runtime,
         { historyLimit, groupHistories },
