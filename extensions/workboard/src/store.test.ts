@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { type WorkboardCard, WORKBOARD_STATUSES } from "@openclaw/workboard-contract";
-import { MAX_DATE_TIMESTAMP_MS } from "openclaw/plugin-sdk/number-runtime";
-import { useAutoCleanupTempDirTracker } from "openclaw/plugin-sdk/test-env";
+import { MAX_DATE_TIMESTAMP_MS } from "astroclaw/plugin-sdk/number-runtime";
+import { useAutoCleanupTempDirTracker } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   PersistedWorkboardAttachment,
@@ -1745,6 +1745,14 @@ describe("WorkboardStore", () => {
         ownerId: "main",
         token: "token-1",
       });
+
+      await expect(
+        store.complete(claimed.card.id, {
+          ownerId: "main",
+          token: "token-1",
+          proofId: pending.metadata?.proof?.[0]?.id,
+        }),
+      ).rejects.toThrow("proof is required to resolve a pending proof.");
 
       vi.setSystemTime(6_000);
       const completed = await store.complete(claimed.card.id, {
