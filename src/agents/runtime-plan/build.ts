@@ -6,7 +6,7 @@ import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
  */
 import type { TSchema } from "typebox";
 import { isSilentReplyPayloadText, SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { hasReplyPayloadContent } from "../../interactive/payload.js";
 import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
 import {
@@ -61,7 +61,7 @@ function resolvePreparedMetadataSnapshot(
   return params.metadataSnapshot as PluginMetadataSnapshot | undefined;
 }
 
-function resolvePreparedProviderRuntimeHandle(
+export function resolvePreparedProviderRuntimeHandle(
   params: RuntimePlanMetadataParams,
 ): ProviderRuntimePluginHandle & { modelId: string; prepared: true } {
   if (
