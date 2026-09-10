@@ -6,6 +6,7 @@ import "../../components/modal-dialog.ts";
 import {
   renderDocsLink,
   renderSettingsEmpty,
+  renderSettingsLoadingSkeleton,
   renderSettingsPage,
   renderSettingsSection,
 } from "../../components/settings-ui.ts";
@@ -105,7 +106,7 @@ function renderTable(props: SecretsStoreViewProps): TemplateResult {
     return renderSettingsEmpty(t("secretsStore.unavail"));
   }
   if (props.loading && !props.entries.length) {
-    return renderSettingsEmpty(t("common.loading"));
+    return renderSettingsLoadingSkeleton();
   }
   if (!props.entries.length) {
     return html`
@@ -116,7 +117,7 @@ function renderTable(props: SecretsStoreViewProps): TemplateResult {
   }
   return html`
     <div class="secrets-store__table-wrap">
-      <table class="secrets-store__table">
+      <table class="secrets-store__table settings-table--stacked" role="table">
         <thead>
           <tr>
             <th scope="col">${t("secretsStore.name")}</th>
@@ -135,8 +136,10 @@ function renderTable(props: SecretsStoreViewProps): TemplateResult {
             (entry) => entry.name,
             (entry) => html`
               <tr tabindex="0" aria-label=${entry.name}>
-                <td><code class="secrets-store__name">${entry.name}</code></td>
-                <td>
+                <td data-label=${t("secretsStore.name")}>
+                  <code class="secrets-store__name">${entry.name}</code>
+                </td>
+                <td data-label=${t("secretsStore.access")}>
                   <span class="secrets-store__mode secrets-store__mode--${entry.kind}"
                     >${t(
                       entry.kind === "secret"
@@ -145,7 +148,7 @@ function renderTable(props: SecretsStoreViewProps): TemplateResult {
                     )}</span
                   >
                 </td>
-                <td>
+                <td data-label=${t("secretsStore.value")}>
                   <span
                     class="secrets-store__value ${entry.kind === "secret"
                       ? "secrets-store__value--secret"
@@ -154,14 +157,14 @@ function renderTable(props: SecretsStoreViewProps): TemplateResult {
                     >${entry.kind === "env" ? entry.value : SECRET_MASK}</span
                   >
                 </td>
-                <td>
+                <td data-label=${t("secretsStore.allowedHosts")}>
                   <span class="secrets-store__hosts">
                     ${entry.kind === "secret" && (entry.allowedHosts?.length ?? 0) > 0
                       ? entry.allowedHosts?.join(", ")
                       : t("secretsStore.noAllowedHosts")}
                   </span>
                 </td>
-                <td>
+                <td data-label=${t("secretsStore.updated")}>
                   <time
                     class="secrets-store__updated"
                     datetime=${new Date(entry.updatedAtMs).toISOString()}
@@ -172,7 +175,9 @@ function renderTable(props: SecretsStoreViewProps): TemplateResult {
                     >${updatedLabel(entry)}</time
                   >
                 </td>
-                <td class="secrets-store__actions-cell">${renderEntryMenu(props, entry)}</td>
+                <td class="secrets-store__actions-cell" data-label=${t("secretsStore.actions")}>
+                  ${renderEntryMenu(props, entry)}
+                </td>
               </tr>
             `,
           )}
