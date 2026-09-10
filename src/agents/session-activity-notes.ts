@@ -1,7 +1,7 @@
 import { asFiniteNumber } from "@astroclaw/normalization-core/number-coercion";
 import { readNonBlankString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
-import { HEARTBEAT_TRANSCRIPT_PROMPT } from "../auto-reply/heartbeat.js";
+import { INTERNAL_WAKE_TRANSCRIPT_PROMPTS } from "../auto-reply/heartbeat.js";
 import { HEARTBEAT_TOKEN, isSilentReplyPayloadText } from "../auto-reply/tokens.js";
 import { normalizeAgentPlanSteps } from "../channels/streaming.js";
 import type { AgentEventPayload } from "../infra/agent-events.js";
@@ -194,7 +194,7 @@ export function flushSessionActivityAssistantNote(
   if (
     !visible ||
     visible === HEARTBEAT_TOKEN ||
-    visible === HEARTBEAT_TRANSCRIPT_PROMPT ||
+    Object.values(INTERNAL_WAKE_TRANSCRIPT_PROMPTS).some((prompt) => visible === prompt) ||
     isSilentReplyPayloadText(visible)
   ) {
     return;
