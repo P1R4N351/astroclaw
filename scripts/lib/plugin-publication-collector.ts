@@ -1,40 +1,8 @@
 import { normalizeOptionalString } from "../../packages/normalization-core/src/string-coerce.js";
 import { validateExternalCodePluginPackageJson } from "../../packages/plugin-package-contract/src/index.ts";
 import { resolveNpmPublishPlan } from "./npm-publish-plan.mjs";
-import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
+import { isPluginPublicationEnabled } from "./plugin-publication-target.mjs";
 import { parseReleaseVersion } from "./release-version.mjs";
-
-/**
- * Build/release metadata block. Every shipped `extensions/*\/package.json` carries this under
- * the canonical `astroclaw` key; the pre-rebrand `openclaw` key is accepted read-only for
- * external plugin packages authored against the old contract. Readers MUST go through
- * `pluginPackageMetadata()` rather than indexing either key directly -- see
- * scripts/lib/plugin-manifest-filenames.mjs for why (a prior rewrite of this file read
- * `packageJson.openclaw?.` directly, which silently matched zero in-repo manifests and skipped
- * every publishable plugin while reporting success).
- */
-export type PluginPackageMetadataBlock = {
-  extensions?: string[];
-  install?: {
-    defaultChoice?: string;
-    minHostVersion?: string;
-    npmSpec?: string;
-  };
-  compat?: {
-    pluginApi?: string;
-    minGatewayVersion?: string;
-  };
-  build?: {
-    bundledDist?: boolean;
-    openclawVersion?: string;
-    pluginSdkVersion?: string;
-  };
-  release?: {
-    publishToClawHub?: boolean;
-    publishToNpm?: boolean;
-    requireLatestDependencies?: unknown;
-  };
-};
 
 export type PluginPackageJson = {
   name?: string;
@@ -49,9 +17,28 @@ export type PluginPackageJson = {
         type?: string;
         url?: string;
       };
-  astroclaw?: PluginPackageMetadataBlock;
-  /** Pre-rebrand key; accepted read-only via pluginPackageMetadata(), never written. */
-  openclaw?: PluginPackageMetadataBlock;
+  openclaw?: {
+    extensions?: string[];
+    install?: {
+      defaultChoice?: string;
+      minHostVersion?: string;
+      npmSpec?: string;
+    };
+    compat?: {
+      pluginApi?: string;
+      minGatewayVersion?: string;
+    };
+    build?: {
+      bundledDist?: boolean;
+      openclawVersion?: string;
+      pluginSdkVersion?: string;
+    };
+    release?: {
+      publishToClawHub?: boolean;
+      publishToNpm?: boolean;
+      requireLatestDependencies?: unknown;
+    };
+  };
 };
 
 export type PublishablePluginPackageCandidate<
@@ -91,30 +78,21 @@ type PublishablePluginPackageSource = Pick<
   "extensionId" | "packageDir" | "packageName"
 >;
 
-export const OPENCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/astroclaw/astroclaw";
+export const OPENCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/openclaw/openclaw";
 const SAFE_CLAWHUB_EXTENSION_ID = /^[a-z0-9][a-z0-9._-]*$/;
-
-/** Explicit core ownership defers staged external publication until the plugin is externalized. */
-function isPluginExternalPublicationDeferred(packageJson: PluginPackageJson): boolean {
-  return (
-    pluginPackageMetadata<PluginPackageMetadataBlock>(packageJson)?.build?.bundledDist === true
-  );
-}
 
 function collectRequiredLatestDependencies(packageJson: PluginPackageJson): {
   dependencies: RequiredLatestDependency[];
   errors: string[];
 } {
-  const configured =
-    pluginPackageMetadata<PluginPackageMetadataBlock>(packageJson)?.release
-      ?.requireLatestDependencies;
+  const configured = packageJson.openclaw?.release?.requireLatestDependencies;
   if (configured === undefined) {
     return { dependencies: [], errors: [] };
   }
   if (!Array.isArray(configured)) {
     return {
       dependencies: [],
-      errors: ["astroclaw.release.requireLatestDependencies must be an array of package names."],
+      errors: ["openclaw.release.requireLatestDependencies must be an array of package names."],
     };
   }
 
@@ -129,14 +107,14 @@ function collectRequiredLatestDependencies(packageJson: PluginPackageJson): {
   for (const value of configured) {
     if (typeof value !== "string" || !value.trim()) {
       errors.push(
-        "astroclaw.release.requireLatestDependencies must contain only non-empty package names.",
+        "openclaw.release.requireLatestDependencies must contain only non-empty package names.",
       );
       continue;
     }
     const packageName = value.trim();
     if (seen.has(packageName)) {
       errors.push(
-        `astroclaw.release.requireLatestDependencies must not contain duplicate package names; found "${packageName}".`,
+        `openclaw.release.requireLatestDependencies must not contain duplicate package names; found "${packageName}".`,
       );
       continue;
     }
@@ -145,7 +123,7 @@ function collectRequiredLatestDependencies(packageJson: PluginPackageJson): {
     const version = runtimeDependencies[packageName];
     if (typeof version !== "string" || !version.trim()) {
       errors.push(
-        `astroclaw.release.requireLatestDependencies must reference package.json dependencies or optionalDependencies; "${packageName}" is not a runtime dependency.`,
+        `openclaw.release.requireLatestDependencies must reference package.json dependencies or optionalDependencies; "${packageName}" is not a runtime dependency.`,
       );
       continue;
     }
@@ -175,21 +153,20 @@ export function collectPublishablePluginPackageErrors(
   candidate: PublishablePluginPackageCandidate,
 ): string[] {
   const { packageJson } = candidate;
-  const metadata = pluginPackageMetadata<PluginPackageMetadataBlock>(packageJson);
   const errors: string[] = [];
   const packageName = packageJson.name?.trim() ?? "";
   const packageVersion = packageJson.version?.trim() ?? "";
-  const installNpmSpec = normalizeOptionalString(metadata?.install?.npmSpec);
+  const installNpmSpec = normalizeOptionalString(packageJson.openclaw?.install?.npmSpec);
   const repositoryUrl =
     typeof packageJson.repository === "string"
       ? packageJson.repository.trim()
       : (packageJson.repository?.url?.trim() ?? "");
-  const extensions = metadata?.extensions ?? [];
+  const extensions = packageJson.openclaw?.extensions ?? [];
   const requiredLatestDependencies = collectRequiredLatestDependencies(packageJson);
 
-  if (!packageName.startsWith("@astroclaw/")) {
+  if (!packageName.startsWith("@openclaw/")) {
     errors.push(
-      `package name must start with "@astroclaw/"; found "${packageName || "<missing>"}".`,
+      `package name must start with "@openclaw/"; found "${packageName || "<missing>"}".`,
     );
   }
   if (packageJson.private === true) {
@@ -214,13 +191,13 @@ export function collectPublishablePluginPackageErrors(
     );
   }
   if (!Array.isArray(extensions) || extensions.length === 0) {
-    errors.push("astroclaw.extensions must contain at least one entry.");
+    errors.push("openclaw.extensions must contain at least one entry.");
   }
   if (extensions.some((entry) => typeof entry !== "string" || !entry.trim())) {
-    errors.push("astroclaw.extensions must contain only non-empty strings.");
+    errors.push("openclaw.extensions must contain only non-empty strings.");
   }
   if (!installNpmSpec) {
-    errors.push("astroclaw.install.npmSpec must be a non-empty string for publishable plugins.");
+    errors.push("openclaw.install.npmSpec must be a non-empty string for publishable plugins.");
   }
   errors.push(...requiredLatestDependencies.errors);
   errors.push(
@@ -285,15 +262,11 @@ export function collectPublishablePluginPackagesFromCandidates(
   validationErrors.push(
     ...collectConflictingPluginPackageSourceErrors(
       candidates
-        .filter((candidate) => {
-          if (isPluginExternalPublicationDeferred(candidate.packageJson)) {
-            return false;
-          }
-          const release = pluginPackageMetadata<PluginPackageMetadataBlock>(
-            candidate.packageJson,
-          )?.release;
-          return release?.publishToNpm === true || release?.publishToClawHub === true;
-        })
+        .filter(
+          (candidate) =>
+            isPluginPublicationEnabled(candidate.packageJson, "npm") ||
+            isPluginPublicationEnabled(candidate.packageJson, "clawhub"),
+        )
         .map((candidate) => ({
           extensionId: candidate.extensionId,
           packageDir: candidate.packageDir,
@@ -311,15 +284,7 @@ export function collectPublishablePluginPackagesFromCandidates(
     if (hasSelectedPackageNames && !selectedPackageNames.has(packageName)) {
       continue;
     }
-    if (isPluginExternalPublicationDeferred(packageJson)) {
-      continue;
-    }
-    const metadata = pluginPackageMetadata<PluginPackageMetadataBlock>(packageJson);
-    const enabled =
-      target === "npm"
-        ? metadata?.release?.publishToNpm === true
-        : metadata?.release?.publishToClawHub === true;
-    if (!enabled) {
+    if (!isPluginPublicationEnabled(packageJson, target)) {
       continue;
     }
     if (target === "clawhub" && !SAFE_CLAWHUB_EXTENSION_ID.test(extensionId)) {
@@ -361,7 +326,7 @@ export function collectPublishablePluginPackagesFromCandidates(
       channel: parsedVersion.channel,
       publishTag,
       ...(target === "npm"
-        ? { installNpmSpec: normalizeOptionalString(metadata?.install?.npmSpec) }
+        ? { installNpmSpec: normalizeOptionalString(packageJson.openclaw?.install?.npmSpec) }
         : {}),
       ...(requiredLatestDependencies.length > 0 ? { requiredLatestDependencies } : {}),
     });
