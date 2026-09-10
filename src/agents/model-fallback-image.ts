@@ -1,5 +1,5 @@
 /** Runs image model candidates through the shared fallback attempt machinery. */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {
   type ModelFallbackErrorHandler,
@@ -7,23 +7,22 @@ import {
   runFallbackAttempt,
   throwFallbackFailureSummary,
 } from "./model-fallback-attempt.js";
-import {
-  resolveImageFallbackCandidates,
-  resolveImageFallbackDefaultProvider,
-} from "./model-fallback-candidates.js";
+import { resolveImageFallbackCandidates } from "./model-fallback-candidates.js";
 import type { FallbackAttempt } from "./model-fallback.types.js";
+import type { ModelManifestNormalizationContext } from "./model-ref-shared.js";
 
 export async function runWithImageModelFallback<T>(params: {
   cfg: OpenClawConfig | undefined;
   modelOverride?: string;
+  manifestPlugins?: ModelManifestNormalizationContext["manifestPlugins"];
   run: (provider: string, model: string) => Promise<T>;
   onError?: ModelFallbackErrorHandler;
   abortSignal?: AbortSignal;
 }): Promise<ModelFallbackRunResult<T>> {
   const candidates = resolveImageFallbackCandidates({
     cfg: params.cfg,
-    defaultProvider: resolveImageFallbackDefaultProvider(params.cfg),
     modelOverride: params.modelOverride,
+    manifestPlugins: params.manifestPlugins,
   });
   if (candidates.length === 0) {
     throw new Error(
