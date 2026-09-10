@@ -14,7 +14,7 @@ const resolveLsofCommandSyncMock = vi.hoisted(() => vi.fn());
 const resolveGatewayPortMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
   return mockNodeBuiltinModule(
     () => vi.importActual<typeof import("node:child_process")>("node:child_process"),
     {
@@ -59,10 +59,6 @@ afterEach(() => {
   envSnapshot.restore();
   vi.restoreAllMocks();
 });
-
-function setPlatform(platform: NodeJS.Platform): void {
-  mockProcessPlatform(platform);
-}
 
 function requireFirstSpawnSyncCall(): [unknown, unknown, unknown] {
   const [call] = spawnSyncMock.mock.calls;
@@ -198,7 +194,7 @@ describe.runIf(process.platform !== "win32")("cleanStaleGatewayProcessesSync", (
 
 describe("triggerOpenClawRestart", () => {
   it("does not kickstart after bootstrap registers an unloaded LaunchAgent", () => {
-    setPlatform("darwin");
+    mockProcessPlatform("darwin");
     withEnv(
       { VITEST: undefined, NODE_ENV: undefined, HOME: "/Users/test", OPENCLAW_PROFILE: "default" },
       () => {
@@ -231,7 +227,7 @@ describe("triggerOpenClawRestart", () => {
   });
 
   it("continues when launchctl bootstrap reports the service is already loaded", () => {
-    setPlatform("darwin");
+    mockProcessPlatform("darwin");
     withEnv(
       { VITEST: undefined, NODE_ENV: undefined, HOME: "/Users/test", OPENCLAW_PROFILE: "default" },
       () => {
