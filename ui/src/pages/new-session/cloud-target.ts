@@ -28,6 +28,7 @@ export async function requestPlaceCatalog(
 type SessionMenuItemOptions = {
   value: string;
   label: string;
+  description?: string;
   icon?: unknown;
   sub?: string;
   facts?: readonly string[];
@@ -43,7 +44,9 @@ export function renderSessionMenuItem(params: SessionMenuItemOptions, submitting
   return html`
     <button
       type="button"
-      class="session-menu__item"
+      class=${params.description
+        ? "session-menu__item session-menu__item--described"
+        : "session-menu__item"}
       data-value=${params.value}
       data-popover=${params.keepOpen ? nothing : "close"}
       aria-pressed=${String(params.checked)}
@@ -54,7 +57,12 @@ export function renderSessionMenuItem(params: SessionMenuItemOptions, submitting
       ${params.icon
         ? html`<span class="session-menu__icon" aria-hidden="true">${params.icon}</span>`
         : nothing}
-      <span class="session-menu__text">${params.label}</span>
+      <span class="session-menu__text">
+        ${params.label}
+        ${params.description
+          ? html`<span class="session-menu__description">${params.description}</span>`
+          : nothing}
+      </span>
       ${params.facts?.length || params.meter
         ? html`<span class="new-session-page__menu-meta">
             ${params.facts?.length
@@ -173,6 +181,9 @@ export function renderCloudOsMenuItems(params: {
       {
         value: `os:${os.id}`,
         label: os.label,
+        description: os.disabledReason,
+        disabled: Boolean(os.disabledReason),
+        title: os.disabledReason,
         facts: os.default ? [t("newSession.machineDefault")] : undefined,
         checked: params.selectedId === os.id,
         keepOpen: true,
