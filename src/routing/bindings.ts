@@ -3,7 +3,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { tryResolveLegacyCompatibilityAgentId } from "../agents/agent-scope.js";
 import { listRouteBindings } from "../config/bindings.js";
 import type { AgentRouteBinding } from "../config/types.agents.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   normalizeRouteBindingChannelId,
   resolveNormalizedRouteBindingMatch,
@@ -23,7 +23,9 @@ export function listBoundAccountIds(cfg: OpenClawConfig, channelId: string): str
   }
   const ids = new Set<string>();
   for (const binding of listBindings(cfg)) {
-    const resolved = resolveNormalizedRouteBindingMatch(binding);
+    const resolved = resolveNormalizedRouteBindingMatch(binding, {
+      includeImplicitDefaultAccount: true,
+    });
     if (!resolved || resolved.channelId !== normalizedChannel) {
       continue;
     }
@@ -62,7 +64,9 @@ export function resolveDefaultAgentBoundAccountId(
 export function buildChannelAccountBindings(cfg: OpenClawConfig) {
   const map = new Map<string, Map<string, string[]>>();
   for (const binding of listBindings(cfg)) {
-    const resolved = resolveNormalizedRouteBindingMatch(binding);
+    const resolved = resolveNormalizedRouteBindingMatch(binding, {
+      includeImplicitDefaultAccount: true,
+    });
     if (!resolved) {
       continue;
     }
