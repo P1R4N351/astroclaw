@@ -16,7 +16,7 @@ import {
   DEFAULT_SUBAGENT_MAX_CHILDREN_PER_AGENT,
   DEFAULT_SUBAGENT_MAX_SPAWN_DEPTH,
 } from "../config/agent-limits.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { getSessionBindingService } from "../infra/outbound/session-binding-service.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 import { resolveChildAdmission, type ChildAdmissionCap } from "./child-admission.js";
@@ -71,26 +71,6 @@ export function resolveSpawnChannelAccountId(params: {
   }
   const channels = params.cfg.channels as Record<string, { defaultAccount?: unknown } | undefined>;
   return normalizeOptionalString(channels?.[channel]?.defaultAccount) ?? "default";
-}
-
-export function resolveConversationRefForThreadBinding(params: {
-  cfg: OpenClawConfig;
-  channel?: string;
-  accountId?: string;
-  to?: string;
-  threadId?: string | number;
-  groupId?: string;
-}): { conversationId: string; parentConversationId?: string } | null {
-  const resolution = resolveInboundConversationResolution({
-    cfg: params.cfg,
-    channel: params.channel,
-    accountId: params.accountId,
-    to: params.to,
-    threadId: params.threadId,
-    groupId: params.groupId,
-    isGroup: true,
-  });
-  return resolution?.canonical ?? null;
 }
 
 function resolveRequesterBoundConversationRef(params: {
@@ -233,7 +213,7 @@ export function prepareSpawnThreadBinding(params: {
       error: `Thread bindings do not support ${placement} placement for ${policy.channel}.`,
     };
   }
-  const fallback = resolveConversationRefForThreadBinding({
+  const fallback = resolveInboundConversationResolution({
     cfg: params.cfg,
     channel: policy.channel,
     accountId: policy.accountId,
