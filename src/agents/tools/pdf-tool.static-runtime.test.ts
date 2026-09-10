@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../../config/config.js";
 import * as pdfExtractModule from "../../media/pdf-extract.js";
 import * as webMedia from "../../media/web-media.js";
-import { withOpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../../test-utils/openclaw-test-state.js";
 import { acquireAgentRunPreparedModelRuntime } from "../prepared-model-runtime.js";
 
 const completeMock = vi.hoisted(() => vi.fn());
@@ -24,7 +24,7 @@ describe("PDF tool static prepared runtime", () => {
     vi.restoreAllMocks();
   });
 
-  it("resolves a config-inline model when the static registry is empty", async () => {
+  it("resolves a configured model from the static prepared registry", async () => {
     await withOpenClawTestState(
       {
         label: "pdf-static-inline-model",
@@ -75,7 +75,12 @@ describe("PDF tool static prepared runtime", () => {
 
         try {
           const stores = lease.snapshot.createStores();
-          expect(stores.modelRegistry.find("openai", modelId)).toBeUndefined();
+          expect(stores.modelRegistry.find("openai", modelId)).toMatchObject({
+            provider: "openai",
+            id: modelId,
+            api: "openai-responses",
+            baseUrl: "http://127.0.0.1:9/v1",
+          });
           expect(
             lease.snapshot.configuredRuntimeModels.map((entry) => ({
               provider: entry.provider,
