@@ -1,6 +1,7 @@
 // Discord tests cover gateway metadata plugin behavior.
 import { createServer, type Server } from "node:http";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createRuntimeSpies } from "../../../test-support/runtime-spies.js";
 import {
   fetchDiscordGatewayInfoWithTimeout,
   fetchDiscordGatewayMetadataGuarded,
@@ -14,7 +15,7 @@ const { mockFetchWithSsrFGuard } = vi.hoisted(() => ({
   mockFetchWithSsrFGuard: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: mockFetchWithSsrFGuard,
 }));
 
@@ -59,7 +60,7 @@ function createStalledLookup() {
   return {
     lookupFn: lookupFn as unknown as NonNullable<
       Parameters<
-        typeof import("openclaw/plugin-sdk/ssrf-runtime").fetchWithSsrFGuard
+        typeof import("astroclaw/plugin-sdk/ssrf-runtime").fetchWithSsrFGuard
       >[0]["lookupFn"]
     >,
     release: () => release?.(),
@@ -95,11 +96,7 @@ describe("Discord gateway metadata", () => {
         }),
       timeoutMs: 1_000,
     }).catch((err: unknown) => err);
-    const runtime = {
-      log: vi.fn(),
-      error: vi.fn(),
-      exit: vi.fn(),
-    };
+    const runtime = createRuntimeSpies();
 
     const resolved = resolveGatewayInfoWithFallback({ runtime, error });
 
@@ -143,8 +140,8 @@ describe("fetchDiscordGatewayMetadataGuarded bounded reads", () => {
   });
 
   it("aborts stalled DNS preflight through the gateway metadata deadline", async () => {
-    const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/ssrf-runtime")>(
-      "openclaw/plugin-sdk/ssrf-runtime",
+    const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>(
+      "astroclaw/plugin-sdk/ssrf-runtime",
     );
     const stalledLookup = createStalledLookup();
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
