@@ -4,7 +4,7 @@
  * Defines status, credentials, prompts, group access, and finalization types for setup flows.
  */
 import type { DmPolicy } from "../../config/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
 import type { ChannelOwnedSetupContract } from "./setup-contract.js";
@@ -302,6 +302,8 @@ export type ChannelSetupWizard = {
 
 /** Runtime options for selecting and configuring one or more channels. */
 export type SetupChannelsOptions = {
+  /** Workspace already selected by the caller, used for trusted plugin discovery. */
+  workspaceDir?: string;
   allowDisable?: boolean;
   allowIMessageInstall?: boolean;
   allowSignalInstall?: boolean;
