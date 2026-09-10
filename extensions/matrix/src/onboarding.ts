@@ -1,6 +1,6 @@
 // Matrix setup module handles plugin onboarding behavior.
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
+import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
 import {
   type ChannelSetupWizardAdapter,
   formatDocsLink,
@@ -9,16 +9,17 @@ import {
   normalizeAccountId,
   promptAccountId,
   promptChannelAccessConfig,
+  setSetupChannelEnabled,
   splitSetupEntries,
   type WizardPrompter,
-} from "openclaw/plugin-sdk/setup";
-import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-policy";
+} from "astroclaw/plugin-sdk/setup";
+import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-policy";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
   normalizeUniqueStringEntries,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { requiresExplicitMatrixDefaultAccount } from "./account-selection.js";
 import {
   listMatrixAccountIds,
@@ -671,11 +672,5 @@ export const matrixOnboardingAdapter: ChannelSetupWizardAdapter = {
     });
   },
   dmPolicy,
-  disable: (cfg) => ({
-    ...(cfg as CoreConfig),
-    channels: {
-      ...(cfg as CoreConfig).channels,
-      matrix: { ...(cfg as CoreConfig).channels?.["matrix"], enabled: false },
-    },
-  }),
+  disable: (cfg) => setSetupChannelEnabled(cfg, channel, false),
 };
