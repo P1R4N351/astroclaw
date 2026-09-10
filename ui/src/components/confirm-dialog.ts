@@ -24,6 +24,7 @@ export type ConfirmDialogOptions = {
   danger?: boolean;
   signal?: AbortSignal;
   skipPreference?: ConfirmDialogSkipPreference;
+  requiredAcknowledgement?: string;
 };
 
 let confirmationActive = false;
@@ -31,8 +32,9 @@ let confirmationActive = false;
 function presentConfirmDialog(options: ConfirmDialogOptions): Promise<boolean> {
   return withPromiseModalHost({ signal: options.signal, value: false }, ({ render, finish }) => {
     let skipRequested = false;
+    let acknowledged = !options.requiredAcknowledgement;
     const title = options.title ?? t("common.confirm");
-    render(() => {
+    const content = () => {
       return html`
         <openclaw-modal-dialog
           label=${title}
@@ -51,7 +53,23 @@ function presentConfirmDialog(options: ConfirmDialogOptions): Promise<boolean> {
             ${options.details
               ? html`<div class="exec-approval-command mono">${options.details}</div>`
               : nothing}
-            ${options.skipPreference
+            ${options.requiredAcknowledgement
+              ? html`<label class="field checkbox">
+                  <input
+                    type="checkbox"
+                    .checked=${acknowledged}
+                    @change=${(event: Event) => {
+                      const input = event.currentTarget;
+                      if (input instanceof HTMLInputElement) {
+                        acknowledged = input.checked;
+                        render(content);
+                      }
+                    }}
+                  />
+                  <span>${options.requiredAcknowledgement}</span>
+                </label>`
+              : nothing}
+            ${options.skipPreference && !options.requiredAcknowledgement
               ? html`<label class="field checkbox exec-approval-skip">
                   <input
                     type="checkbox"
@@ -66,7 +84,11 @@ function presentConfirmDialog(options: ConfirmDialogOptions): Promise<boolean> {
               <button
                 type="button"
                 class="btn ${options.danger ? "danger" : "primary"}"
+                ?disabled=${!acknowledged}
                 @click=${() => {
+                  if (!acknowledged) {
+                    return;
+                  }
                   if (skipRequested) {
                     options.skipPreference?.remember();
                   }
@@ -82,7 +104,8 @@ function presentConfirmDialog(options: ConfirmDialogOptions): Promise<boolean> {
           </div>
         </openclaw-modal-dialog>
       `;
-    });
+    };
+    render(content);
   });
 }
 
@@ -90,7 +113,7 @@ function presentConfirmDialog(options: ConfirmDialogOptions): Promise<boolean> {
 export function showConfirmDialog(options: ConfirmDialogOptions): Promise<boolean> {
   // An operator who opted out gets the action itself, not a modal they already
   // answered. Only callers that opted into a skip preference can reach this.
-  if (options.skipPreference?.skipped) {
+  if (options.skipPreference?.skipped && !options.requiredAcknowledgement) {
     return Promise.resolve(true);
   }
   if (confirmationActive) {
