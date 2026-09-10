@@ -1,6 +1,6 @@
 // Root help renderer that combines core, sub-CLI, and optional plugin command descriptors.
 import { Command } from "commander";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { getPluginCliCommandDescriptors } from "../../plugins/cli-root-descriptors.js";
 import type { PluginLoadOptions } from "../../plugins/loader.js";
 import { VERSION } from "../../version.js";
@@ -29,12 +29,7 @@ async function buildRootHelpProgram(renderOptions?: RootHelpRenderOptions): Prom
       : [];
   configureProgramHelp(
     program,
-    {
-      programVersion: VERSION,
-      channelOptions: [],
-      messageChannelOptions: "",
-      agentChannelOptions: "",
-    },
+    { programVersion: VERSION },
     {
       commandsWithSubcommands: new Set(
         pluginDescriptors
