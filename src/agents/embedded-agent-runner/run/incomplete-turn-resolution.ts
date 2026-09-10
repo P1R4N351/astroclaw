@@ -1,6 +1,7 @@
-/** Resolves incomplete-turn payloads, continuation evidence, and run liveness. */
 import { isProviderRefusalAssistantError } from "@astroclaw/llm-core/diagnostics";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
+/** Resolves incomplete-turn payloads, continuation evidence, and run liveness. */
+import { hasOnlyAssistantReasoningContent } from "@openclaw/ai/internal/shared";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../../../auto-reply/tokens.js";
 import {
   hasAcceptedSessionSpawn,
@@ -13,7 +14,6 @@ import { formatUserFacingAssistantErrorText } from "../../embedded-agent-helpers
 import type { MessagingToolSend } from "../../embedded-agent-messaging.types.js";
 import { renderAuthProfileFailoverCopy } from "../../failover/user-copy.js";
 import { buildProviderAuthRecoveryHint } from "../../provider-auth-recovery-hint.js";
-import { hasOnlyAssistantReasoningContent } from "../../replay-turn-classification.js";
 import type { AgentMessage } from "../../runtime/index.js";
 import { hasCommittedMessagingToolDeliveryEvidence } from "../delivery-evidence.js";
 import type { EmbeddedRunLivenessState } from "../types.js";
