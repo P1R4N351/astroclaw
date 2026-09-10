@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "./helpers/astroclaw-test-instance.js";
+} from "./helpers/openclaw-test-instance.js";
 
 const API_KEY = "clawrouter-e2e-secret";
 const MODEL_ID = "openai/gpt-5.5";
@@ -133,7 +133,7 @@ describe("ClawRouter managed gateway contract", () => {
     expect(gatewayReadiness).toMatchObject({ ready: true, failing: [] });
 
     const catalog = await instance.cli(
-      ["models", "list", "--all", "--provider", "clawrouter", "--json"],
+      ["models", "list", "--all", "--provider", "clawrouter", "--refresh", "--json"],
       { timeoutMs: 120_000 },
     );
     expect(catalog.code, catalog.stderr).toBe(0);
