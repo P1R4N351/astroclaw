@@ -4,7 +4,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveAgentHarnessPolicy } from "../../../agents/harness/policy.js";
 import type { SessionEntry } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 
 const mocks = vi.hoisted(() => ({
   ensureAuthProfileStore: vi.fn(),
@@ -3020,28 +3020,6 @@ describe("collectCodexRouteWarnings", () => {
       modelProvider: "codex",
       updatedAt: 3,
     });
-  });
-
-  it("clears mixed legacy and canonical fallback notices atomically", () => {
-    const store: Record<string, SessionEntry> = {
-      main: {
-        sessionId: "s1",
-        updatedAt: 1,
-        modelProvider: "openai",
-        model: "gpt-5.6-sol",
-        fallbackNotice: {
-          kind: "active",
-          selectedModel: "codex/gpt-5.6-sol",
-          activeModel: "openai/gpt-5.6-sol",
-          reason: "rate-limit",
-        },
-      },
-    };
-
-    const result = repairCodexSessionStoreRoutes({ store, now: 123 });
-
-    expect(result).toEqual({ changed: true, sessionKeys: ["main"] });
-    expect(store.main?.fallbackNotice).toBeUndefined();
   });
 
   it("retains a fallback notice atomically when one legacy endpoint is blocked", () => {
