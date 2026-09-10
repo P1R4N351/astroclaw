@@ -5,13 +5,14 @@ import { collectConfiguredAgentHarnessRuntimes } from "../../../agents/harness-r
 import { normalizeChatChannelId } from "../../../channels/registry.js";
 import { isChannelConfigured } from "../../../config/channel-configured.js";
 import { detectPluginAutoEnableCandidates } from "../../../config/plugin-auto-enable.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { compareOpenClawVersions } from "../../../config/version.js";
 import {
   createDeferredConfiguredPluginRepairDoctorResult,
   type UpdatePostInstallDoctorResult,
 } from "../../../infra/update-doctor-result.js";
 import { collectConfiguredSpeechProviderIds } from "../../../plugins/gateway-startup-speech-providers.js";
+import { isNativeSessionCatalogOptOutOnly } from "../../../plugins/native-session-catalog-config.js";
 import {
   getOfficialExternalPluginCatalogEntry,
   resolveOfficialExternalProviderContractPluginIds,
@@ -107,7 +108,10 @@ function collectMaterialPluginEntryIds(cfg: OpenClawConfig): string[] {
     return [];
   }
   return Object.entries(entries)
-    .filter(([, entry]) => hasMaterialPluginEntry(entry))
+    .filter(
+      ([pluginId, entry]) =>
+        !isNativeSessionCatalogOptOutOnly(pluginId, entry) && hasMaterialPluginEntry(entry),
+    )
     .map(([pluginId]) => pluginId.trim())
     .filter((pluginId) => pluginId);
 }
