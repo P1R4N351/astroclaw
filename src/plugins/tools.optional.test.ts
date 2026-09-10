@@ -373,10 +373,6 @@ function createAutoEnabledOptionalContext() {
   return { rawContext, autoEnabledConfig };
 }
 
-function expectAutoEnabledOptionalLoad(autoEnabledConfig: unknown) {
-  expectLoaderCall({ config: autoEnabledConfig });
-}
-
 function resolveAutoEnabledOptionalDemoTools() {
   setOptionalDemoRegistry();
   const { rawContext, autoEnabledConfig } = createAutoEnabledOptionalContext();
@@ -547,11 +543,6 @@ function expectResolvedToolNames(
   expectedToolNames: readonly string[],
 ) {
   expect(tools.map((tool) => tool.name)).toEqual(expectedToolNames);
-}
-
-function expectLoaderCall(overrides: Record<string, unknown>) {
-  void overrides;
-  expect(loadOpenClawPluginsMock).not.toHaveBeenCalled();
 }
 
 function mockCallParams(
@@ -2342,51 +2333,27 @@ describe("resolvePluginTools optional tools", () => {
     expect(factory).toHaveBeenCalled();
   });
 
-  it.each([
-    {
-      name: "uses loaded plugin tools with an explicit env",
-      params: {
-        env: { OPENCLAW_HOME: "/srv/openclaw-home" } as NodeJS.ProcessEnv,
-        toolAllowlist: ["optional_tool"],
-      },
-      expectedLoaderCall: {
-        env: { OPENCLAW_HOME: "/srv/openclaw-home" },
-      },
-    },
-    {
-      name: "uses loaded plugin tools with gateway subagent binding",
-      params: {
-        allowGatewaySubagentBinding: true,
-        toolAllowlist: ["optional_tool"],
-      },
-      expectedLoaderCall: {
-        runtimeOptions: {
-          allowGatewaySubagentBinding: true,
-        },
-      },
-    },
-  ])("$name", ({ params, expectedLoaderCall }) => {
+  it("uses loaded plugin tools with an explicit env", () => {
+    const env = { OPENCLAW_HOME: "/srv/openclaw-home" };
     setOptionalDemoRegistry();
-    if (params.env) {
-      installToolManifestSnapshot({
-        config: createContext().config,
-        env: params.env,
-        plugin: {
-          id: "optional-demo",
-          origin: "bundled",
-          enabledByDefault: true,
-          channels: [],
-          providers: [],
-          contracts: {
-            tools: ["optional_tool"],
-          },
-        },
-      });
-    }
+    installToolManifestSnapshot({
+      config: createContext().config,
+      env,
+      plugin: createToolManifest("optional-demo", ["optional_tool"]),
+    });
 
-    resolvePluginTools(createResolveToolsParams(params));
+    const tools = resolvePluginTools(
+      createResolveToolsParams({ env, toolAllowlist: ["optional_tool"] }),
+    );
 
-    expectLoaderCall(expectedLoaderCall);
+    expectResolvedToolNames(tools, ["optional_tool"]);
+    const actualEnv = mockCallParams(applyPluginAutoEnableMock).env;
+    const actualHome =
+      typeof actualEnv === "object" && actualEnv !== null
+        ? Reflect.get(actualEnv, "OPENCLAW_HOME")
+        : undefined;
+    expect(actualHome).toBe("/srv/openclaw-home");
+    expect(loadOpenClawPluginsMock).not.toHaveBeenCalled();
   });
 
   it("skips malformed plugin tools while keeping valid sibling tools", () => {
@@ -3554,7 +3521,7 @@ describe("resolvePluginTools optional tools", () => {
       expectedToolNames: ["optional_tool"],
     },
   ] as const)("$name", ({ expectedToolNames }) => {
-    const { rawContext, autoEnabledConfig, tools } = resolveAutoEnabledOptionalDemoTools();
+    const { rawContext, tools } = resolveAutoEnabledOptionalDemoTools();
 
     const autoEnableParams = mockCallParams(applyPluginAutoEnableMock) as {
       config?: { plugins?: { allow?: unknown; load?: unknown } };
@@ -3566,7 +3533,7 @@ describe("resolvePluginTools optional tools", () => {
     if (expectedToolNames) {
       expectResolvedToolNames(tools, expectedToolNames);
     }
-    expectAutoEnabledOptionalLoad(autoEnabledConfig);
+    expect(loadOpenClawPluginsMock).not.toHaveBeenCalled();
   });
 
   it("reuses a compatible active registry instead of loading again", () => {
@@ -3829,11 +3796,7 @@ describe("resolvePluginTools optional tools", () => {
     );
 
     expectResolvedToolNames(tools, ["optional_tool"]);
-    expectLoaderCall({
-      runtimeOptions: {
-        allowGatewaySubagentBinding: true,
-      },
-    });
+    expect(loadOpenClawPluginsMock).not.toHaveBeenCalled();
   });
 
   it("reloads when gateway binding would otherwise reuse a default-mode active registry", () => {
