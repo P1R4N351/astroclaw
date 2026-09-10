@@ -154,6 +154,12 @@ function describeVoiceCallSchemaMigration(migration: OpenClawStateDatabaseSchema
       return "cron jobs and subagent runs -> canonical JSON storage";
     case "creator-namespace-v14":
       return "cron creators -> explicit principal namespaces";
+    case "conversation-binding-targets-v15":
+      return "conversation bindings -> exact target keys without agent/session projections";
+    case "skill-workshop-directory-ownership-v16":
+      return "Skill Workshop proposals -> per-agent Workshop directory ownership";
+    case "prepared-worker-ownership-v17":
+      return "prepared workers -> one-use capacity and fixed workspace ownership";
     case "worker-placement-execution-mode-v8":
       return "cloud worker placements -> execution-mode claims";
     case "operator-approvals-system-agent":
@@ -165,8 +171,6 @@ function describeVoiceCallSchemaMigration(migration: OpenClawStateDatabaseSchema
   }
   return migration.kind satisfies never;
 }
-
-/** Return true when a path exists and is a file. */
 
 /** Build the plugin state key for one migrated event chunk. */
 function buildChunkKey(eventKey: string, index: number): string {
@@ -245,8 +249,6 @@ async function readLegacyCallRecords(filePath: string): Promise<{
   }
   return { entries, warnings };
 }
-
-/** Archive the legacy JSONL source after a complete migration. */
 
 /** Select newest missing records that fit remaining plugin state capacity. */
 async function selectEntriesForImport(params: {
