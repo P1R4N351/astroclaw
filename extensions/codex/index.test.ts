@@ -8,6 +8,7 @@ import {
   resolveAuthProfileOrder,
 } from "astroclaw/plugin-sdk/provider-auth";
 import { resolveProviderIdForAuth } from "astroclaw/plugin-sdk/provider-auth-aliases";
+import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
 import { describe, expect, it, vi } from "vitest";
 import openAIPlugin from "../openai/index.js";
 import { createCodexAppServerAgentHarness } from "./harness.js";
@@ -62,13 +63,13 @@ function mockCallArg(mock: { mock: { calls: unknown[][] } }, index = 0, argIndex
 }
 
 describe("codex plugin", () => {
-  it("is opt-in and does not advertise a text provider", () => {
+  it("is opt-in and advertises its native authentication source", () => {
     const manifest = JSON.parse(
       fs.readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf8"),
     ) as { enabledByDefault?: unknown; providers?: unknown };
 
     expect(manifest.enabledByDefault).toBeUndefined();
-    expect(manifest.providers).toBeUndefined();
+    expect(manifest.providers).toEqual(["codex"]);
   });
 
   it("keeps only Codex sub-plugin policy changes on the live thread-rotation path", () => {
@@ -259,7 +260,13 @@ describe("codex plugin", () => {
       | [unknown]
       | undefined;
 
-    expect(registerProvider).not.toHaveBeenCalled();
+    expect(registerProvider).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        id: "codex",
+        auth: [],
+        prepareSyntheticAuth: expect.any(Function),
+      }),
+    );
     expect(agentHarnessRegistration.id).toBe("codex");
     expect(agentHarnessRegistration.label).toBe("Codex agent harness");
     expect(agentHarnessRegistration.deliveryDefaults).toEqual({
@@ -334,7 +341,13 @@ describe("codex plugin", () => {
     );
 
     expect(registerAgentHarness).toHaveBeenCalledOnce();
-    expect(registerProvider).not.toHaveBeenCalled();
+    expect(registerProvider).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        id: "codex",
+        auth: [],
+        prepareSyntheticAuth: expect.any(Function),
+      }),
+    );
     const nodeCommands = registerNodeHostCommand.mock.calls.map(
       ([command]) => (command as { command: string }).command,
     );
@@ -348,9 +361,9 @@ describe("codex plugin", () => {
     expect(registerSessionCatalog).not.toHaveBeenCalled();
   });
 
-  it("leaves OpenAI as the only text provider when both plugins register", () => {
-    const providers: Array<{ id: string }> = [];
-    const registerProvider = (provider: { id: string }) => providers.push(provider);
+  it("keeps native authentication separate from the OpenAI text provider", () => {
+    const providers: ProviderPlugin[] = [];
+    const registerProvider = (provider: ProviderPlugin) => providers.push(provider);
     openAIPlugin.register(
       createTestPluginApi({
         id: "openai",
@@ -373,7 +386,10 @@ describe("codex plugin", () => {
       }),
     );
 
-    expect(providers.map((provider) => provider.id)).toEqual(["openai"]);
+    expect(providers.map((provider) => provider.id)).toEqual(["openai", "codex"]);
+    expect(providers[1]).toMatchObject({ auth: [], prepareSyntheticAuth: expect.any(Function) });
+    expect(providers[1]).not.toHaveProperty("resolveDynamicModel");
+    expect(providers[1]).not.toHaveProperty("catalog");
   });
 
   it("registers the five shipped supervision tools only when supervision is enabled", () => {
@@ -651,7 +667,13 @@ describe("codex plugin", () => {
     delete (api as { onConversationBindingResolved?: unknown }).onConversationBindingResolved;
 
     plugin.register(api);
-    expect(registerProvider).not.toHaveBeenCalled();
+    expect(registerProvider).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        id: "codex",
+        auth: [],
+        prepareSyntheticAuth: expect.any(Function),
+      }),
+    );
   });
 
   it("claims the Codex routing providers by default", () => {
