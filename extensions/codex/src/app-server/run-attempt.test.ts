@@ -3418,6 +3418,7 @@ describe("runCodexAppServerAttempt", () => {
     sessionManager.appendMessage(assistantMessage("previous turn", Date.now()));
     const harness = createStartedThreadHarness();
     const params = createParams(sessionFile, workspaceDir, { provider: "openai" });
+    params.inputProvenance = { kind: "inter_session", sourceTool: "sessions_send" };
     params.config = {
       ...params.config,
       agents: { defaults: { model: { primary: "openai/gpt-5.5" } } },
@@ -3449,6 +3450,7 @@ describe("runCodexAppServerAttempt", () => {
     expect(hookContext).toMatchObject({
       modelProviderId: params.provider,
       modelId: params.modelId,
+      inputProvenance: { kind: "inter_session", sourceTool: "sessions_send" },
     });
     const threadStart = harness.requests.find((request) => request.method === "thread/start");
     const threadStartParams = threadStart?.params as { developerInstructions?: string } | undefined;
