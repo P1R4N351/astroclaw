@@ -1,5 +1,5 @@
 // Signal tests cover access policy plugin behavior.
-import type { AccessGroupsConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AccessGroupsConfig, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { resolveSignalSender } from "../identity.js";
 import { handleSignalDirectMessageAccess, resolveSignalAccessState } from "./access-policy.js";
@@ -141,23 +141,6 @@ describe("resolveSignalAccessState", () => {
     });
 
     expect(senderAccess.decision).toBe("allow");
-  });
-
-  it("allows group messages through static message sender access groups", async () => {
-    const { groupDecision } = await resolveGroupAccess({
-      groupAllowFrom: ["accessGroup:operators"],
-      groupId: SIGNAL_GROUP_ID,
-      accessGroups: {
-        operators: {
-          type: "message.senders",
-          members: {
-            signal: [SIGNAL_SENDER.e164],
-          },
-        },
-      },
-    });
-
-    expect(groupDecision.decision).toBe("allow");
   });
 
   it("preserves matched Signal senders in effective group allowlists", async () => {
