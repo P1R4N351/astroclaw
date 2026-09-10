@@ -1,6 +1,6 @@
 // Builds provider auth choice lists from plugin setup metadata.
 import { sanitizeForLog } from "../../packages/terminal-core/src/ansi.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizePluginsConfig, resolveEffectiveEnableState } from "./config-state.js";
 import { loadManifestMetadataSnapshot } from "./manifest-contract-eligibility.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";
@@ -32,6 +32,7 @@ export type ProviderAuthChoiceMetadata = {
   cliOption?: string;
   cliDescription?: string;
   appGuidedSecret?: boolean;
+  personalAccount?: boolean;
   appGuidedActionLabel?: string;
   appGuidedDiscovery?: boolean;
   appGuidedAuth?: "oauth" | "device-code";
@@ -116,6 +117,7 @@ function toProviderAuthChoiceCandidate(params: {
     ...(choice.cliOption ? { cliOption: choice.cliOption } : {}),
     ...(choice.cliDescription ? { cliDescription: choice.cliDescription } : {}),
     ...(choice.appGuidedSecret ? { appGuidedSecret: true } : {}),
+    ...(choice.personalAccount ? { personalAccount: true } : {}),
     ...(choice.appGuidedActionLabel ? { appGuidedActionLabel: choice.appGuidedActionLabel } : {}),
     ...(choice.appGuidedDiscovery ? { appGuidedDiscovery: true } : {}),
     ...(choice.appGuidedAuth ? { appGuidedAuth: choice.appGuidedAuth } : {}),
