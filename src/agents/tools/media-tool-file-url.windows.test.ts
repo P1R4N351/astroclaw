@@ -4,11 +4,12 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import * as imageGenerationRuntime from "../../image-generation/runtime.js";
 import * as mediaStore from "../../media/store.js";
-import { createOpenClawTools } from "../astroclaw-tools.js";
+import { createOpenClawTools } from "../openclaw-tools.js";
 import { createImageGenerateTool } from "./image-generate-tool.js";
+import * as mediaGenerationToolProviders from "./media-generation-tool-providers.js";
 import * as pdfNativeProviders from "./pdf-native-providers.js";
 import {
   createPdfToolInfraStub,
@@ -28,7 +29,7 @@ vi.mock("../provider-stream.js", () => ({
   registerProviderStreamForModel: vi.fn(),
 }));
 
-vi.mock("../astroclaw-plugin-tools.js", () => ({
+vi.mock("../openclaw-plugin-tools.js", () => ({
   resolveOpenClawPluginToolsForOptions: () => [],
 }));
 
@@ -108,7 +109,7 @@ describe.runIf(process.platform === "win32")("host-local media tool file URLs", 
         expect(pdfResult.content).toEqual([{ type: "text", text: "native summary" }]);
         expect(pdfResult.details).toMatchObject({ pdf: pdfPath, native: true });
 
-        vi.spyOn(imageGenerationRuntime, "listRuntimeImageGenerationProviders").mockReturnValue([
+        const providers = [
           {
             id: "fixture",
             defaultModel: "edit",
@@ -123,7 +124,16 @@ describe.runIf(process.platform === "win32")("host-local media tool file URLs", 
               throw new Error("runtime generateImage spy should own the call");
             }),
           },
-        ]);
+        ];
+        vi.spyOn(
+          mediaGenerationToolProviders,
+          "acquireImageGenerationToolProviders",
+        ).mockResolvedValue({
+          providers,
+          assertOpen() {},
+          run: async (run) => await run(),
+          release: async () => {},
+        });
         const generateImage = vi.spyOn(imageGenerationRuntime, "generateImage").mockResolvedValue({
           provider: "fixture",
           model: "edit",
