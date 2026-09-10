@@ -897,7 +897,7 @@ describe("CodexNativeSubagentMonitor", () => {
     expect(runtime.recordTaskRunProgressByRunId).toHaveBeenCalledWith(
       expect.objectContaining({
         runId: "codex-thread:child-thread",
-        progressSummary: "Codex native subagent is idle.",
+        progressSummary: "Subagent is idle.",
       }),
     );
     expect(runtime.finalizeTaskRunByRunId).not.toHaveBeenCalled();
@@ -958,7 +958,7 @@ describe("CodexNativeSubagentMonitor", () => {
     expect(runtime.createRunningTaskRun).toHaveBeenCalledWith(
       expect.objectContaining({
         runId: "codex-thread:child-v2",
-        task: "Codex native subagent /root/researcher",
+        task: "Subagent /root/researcher",
       }),
     );
     expect(runtime.finalizeTaskRunByRunId).toHaveBeenCalledWith(
@@ -1806,7 +1806,7 @@ describe("CodexNativeSubagentMonitor", () => {
       expect(runtime.deliverAgentHarnessTaskCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
           statusLabel: "completed_without_final_message",
-          result: "Codex native subagent completed without a final assistant message.",
+          result: "Subagent completed without a final assistant message.",
         }),
       );
       client.close();
@@ -2105,7 +2105,7 @@ describe("CodexNativeSubagentMonitor", () => {
       expect(runtime.deliverAgentHarnessTaskCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
           status: "failed",
-          result: "Codex app-server reported a system error for the native subagent thread.",
+          result: "Subagent runtime reported a system error.",
         }),
       );
       expect(releaseClient).toHaveBeenCalledTimes(1);
