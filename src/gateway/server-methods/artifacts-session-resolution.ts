@@ -2,7 +2,7 @@ import { normalizeOptionalString } from "@astroclaw/normalization-core/string-co
 import { ErrorCodes, errorShape } from "../../../packages/gateway-protocol/src/index.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolvePersistedSessionStoreOwnerForKey } from "../../config/sessions/session-store-owner.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   normalizeAgentId,
   parseAgentSessionKey,
@@ -10,7 +10,6 @@ import {
   toAgentStoreSessionKey,
 } from "../../routing/session-key.js";
 import { getTaskSessionLookupByIdForStatus } from "../../tasks/task-status-access.js";
-import { hasOperatorBoundary } from "../operator-role-policy.js";
 import { resolveSessionKeyForRun } from "../server-session-key.js";
 import { resolveRequestedSessionAgentId } from "../session-request-agent.js";
 import {
@@ -181,13 +180,11 @@ export function resolveAuthorizedArtifactSession(
     sessionKey: query.sessionKey ?? resolved.sessionKey,
     target,
   });
-  const roleVisibilityDenied = Boolean(
-    cfg &&
-    hasOperatorBoundary(client, cfg) &&
+  const visibilityDenied = Boolean(
     target &&
     createSessionListEntryFilter({ client, cfg })?.(target.storeKey, target.entry) === false,
   );
-  if (!error && !roleVisibilityDenied) {
+  if (!error && !visibilityDenied) {
     return resolved;
   }
   throw new ArtifactSessionResolutionError(
