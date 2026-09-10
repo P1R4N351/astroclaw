@@ -5,7 +5,7 @@ import {
 } from "../../../packages/gateway-protocol/src/index.js";
 import { updateMcpAppModelContext } from "../../agents/mcp-app-model-context.js";
 import { buildMcpAppSandboxPath } from "../../agents/mcp-app-sandbox.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { logWarn } from "../../logger.js";
 import {
@@ -17,6 +17,7 @@ import {
   withMcpAppActiveView,
 } from "../mcp-app-operations.js";
 import { createMcpAppStandaloneTicket } from "../mcp-app-standalone.js";
+import { authorizeOperatorScopesForMethod } from "../method-scopes.js";
 import { resolveRequestedSessionAgentId } from "../session-request-agent.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
@@ -87,7 +88,7 @@ async function handle(
 }
 
 export const mcpAppHandlers: GatewayRequestHandlers = {
-  "mcp.app.view": async ({ respond, params, context }) => {
+  "mcp.app.view": async ({ respond, params, context, client }) => {
     await handle(respond, async () => {
       const active = await resolveMcpAppActiveView({
         sessionKey: requireString(params, "sessionKey"),
@@ -117,6 +118,10 @@ export const mcpAppHandlers: GatewayRequestHandlers = {
           standalone = createMcpAppStandaloneTicket({
             sessionKey: requireString(params, "sessionKey"),
             view,
+            toolOperationsAuthorized: authorizeOperatorScopesForMethod(
+              "mcp.app.callTool",
+              client?.connect?.scopes ?? [],
+            ).allowed,
           });
         } catch (error) {
           // Standalone links are additive; issuance must never break the
