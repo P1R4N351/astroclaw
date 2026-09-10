@@ -1,6 +1,6 @@
 import { AGENT_MODEL_CONFIG_KEYS } from "@astroclaw/model-catalog-core/configured-model-refs";
 import { asOptionalRecord as asMutableRecord } from "@astroclaw/normalization-core/record-coerce";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { listMutableCodexRouteAgentEntries } from "./codex-route-agent-entries.js";
 import {
   maybeMigrateLegacyLosslessCompactionConfig,
@@ -164,7 +164,7 @@ function rewriteAgentModelRefs(params: {
     env: params.env,
   });
   const mediaModels = asMutableRecord(params.agent.mediaModels);
-  for (const key of ["image", "video"] as const) {
+  for (const key of ["image", "video", "music"] as const) {
     rewriteModelConfigSlot({
       hits: params.hits,
       container: mediaModels ?? {},
