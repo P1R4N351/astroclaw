@@ -1,6 +1,6 @@
 // OpenClaw tests cover main rescue and audit command behavior.
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { SystemAgentInferenceUnavailableError } from "./inference-error.js";
 import type { SystemAgentCommandDeps } from "./operations.js";
 import type { SystemAgentOverview } from "./overview.js";
@@ -65,7 +65,12 @@ const systemAgentOverviewDeps = {
 };
 
 const verifiedConfig = {
-  agents: { defaults: { model: "openai/gpt-5.5" } },
+  agents: {
+    defaults: {
+      model: "openai/gpt-5.5",
+      models: { "openai/gpt-5.5": { agentRuntime: { id: "openclaw" } } },
+    },
+  },
   models: {
     providers: {
       openai: {
