@@ -1,5 +1,5 @@
 // Imessage plugin module implements actions behavior.
-import { readBooleanParam } from "openclaw/plugin-sdk/boolean-param";
+import { readBooleanParam } from "astroclaw/plugin-sdk/boolean-param";
 import {
   createActionGate,
   jsonResult,
@@ -8,18 +8,18 @@ import {
   readReactionParams,
   readStringArrayParam,
   readStringParam,
-} from "openclaw/plugin-sdk/channel-actions";
+} from "astroclaw/plugin-sdk/channel-actions";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionContext,
   ChannelMessageActionName,
-} from "openclaw/plugin-sdk/channel-contract";
-import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
-import { canonicalizeBase64 } from "openclaw/plugin-sdk/media-runtime";
-import { normalizePollInput } from "openclaw/plugin-sdk/poll-runtime";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { extractToolSend } from "openclaw/plugin-sdk/tool-send";
+} from "astroclaw/plugin-sdk/channel-contract";
+import { createLazyRuntimeNamedExport } from "astroclaw/plugin-sdk/lazy-runtime";
+import { canonicalizeBase64 } from "astroclaw/plugin-sdk/media-runtime";
+import { normalizePollInput } from "astroclaw/plugin-sdk/poll-runtime";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { extractToolSend } from "astroclaw/plugin-sdk/tool-send";
 import { hasExclusiveIMessageLocalDatabase, resolveIMessageAccount } from "./accounts.js";
 import { IMESSAGE_ACTION_NAMES, IMESSAGE_ACTIONS } from "./actions-contract.js";
 import { chatContextFromIMessageTarget } from "./chat-context.js";
@@ -66,10 +66,19 @@ function readMessageText(params: Record<string, unknown>): string | undefined {
   return readStringParam(params, "text") ?? readStringParam(params, "message");
 }
 
+function rejectRedactedIMessageTarget(value: string | undefined): string | undefined {
+  if (value === "***") {
+    throw new Error(
+      "iMessage action target is a redacted display value. Omit the target to use the current conversation.",
+    );
+  }
+  return value;
+}
+
 function resolveIMessageDeliveryTarget(args: Record<string, unknown>): string | undefined {
-  const chatGuid = readStringParam(args, "chatGuid");
+  const chatGuid = rejectRedactedIMessageTarget(readStringParam(args, "chatGuid"));
   const chatId = readPositiveIntegerParam(args, "chatId");
-  const chatIdentifier = readStringParam(args, "chatIdentifier");
+  const chatIdentifier = rejectRedactedIMessageTarget(readStringParam(args, "chatIdentifier"));
   const targets = [
     chatGuid ? `chat_guid:${chatGuid}` : undefined,
     chatId !== undefined ? `chat_id:${chatId}` : undefined,
@@ -90,6 +99,7 @@ function resolveIMessageActionTarget(params: {
     readStringParam(params.actionParams, "to") ??
     readStringParam(params.actionParams, "target") ??
     (params.currentChannelId?.trim() || undefined);
+  rejectRedactedIMessageTarget(rawTarget);
   return rawTarget ? parseIMessageTarget(rawTarget) : null;
 }
 
