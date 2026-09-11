@@ -16,8 +16,8 @@ import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { ConfigFileSnapshot, OpenClawConfig } from "../config/config.js";
 import { resolveConfigPath, resolveStateDir } from "../config/paths.js";
 import { copyConfigResolutionFacts } from "../config/resolution-facts.js";
-import type { SecurityAuditSuppression } from "../config/types.astroclaw.js";
 import type { GatewayAuthConfig } from "../config/types.gateway.js";
+import type { SecurityAuditSuppression } from "../config/types.openclaw.js";
 import {
   canMaterializeGatewayAuthSecretRefsWithoutExec,
   materializeGatewayAuthSecretRefs,
@@ -1369,6 +1369,7 @@ export async function runSecurityAuditCore(
   findings.push(...auditNonDeep.collectSmallModelRiskFindings({ cfg, env }));
   findings.push(...auditNonDeep.collectExposureMatrixFindings(cfg));
   findings.push(...auditNonDeep.collectLikelyMultiUserSetupFindings(cfg));
+  findings.push(...auditNonDeep.collectCrossAgentSessionAccessFindings(cfg));
 
   if (context.includeFilesystem) {
     findings.push(
