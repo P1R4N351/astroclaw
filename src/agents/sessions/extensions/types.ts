@@ -29,7 +29,7 @@ import type {
   SimpleStreamOptions,
   TextContent,
   ToolResultMessage,
-} from "astroclaw/plugin-sdk/llm";
+} from "openclaw/plugin-sdk/llm";
 import type { Static, TSchema } from "typebox";
 import type { Theme } from "../../modes/interactive/theme/theme.js";
 import type {
@@ -282,7 +282,7 @@ export interface ExtensionUIContext {
    *
    * @example
    * ```ts
-   * import { CustomEditor } from "astroclaw/plugin-sdk/agent-sessions";
+   * import { CustomEditor } from "openclaw/plugin-sdk/agent-sessions";
    *
    * class VimEditor extends CustomEditor {
    *   private mode: "normal" | "insert" = "insert";
@@ -923,6 +923,7 @@ interface ToolResultEventBase {
   input: Record<string, unknown>;
   content: (TextContent | ImageContent)[];
   isError: boolean;
+  terminate?: boolean;
 }
 
 interface BashToolResultEvent extends ToolResultEventBase {
@@ -1104,6 +1105,7 @@ export interface ToolResultEventResult {
   content?: (TextContent | ImageContent)[];
   details?: unknown;
   isError?: boolean;
+  terminate?: boolean;
 }
 
 export interface MessageEndEventResult {
