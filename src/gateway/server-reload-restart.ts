@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from "node:util";
 import { isRestartEnabled } from "../config/commands.flags.js";
 import { getConfigValueAtPath } from "../config/config-paths.js";
 import { setRuntimeConfigAppliedHash } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { GatewayRestartIntent } from "../infra/restart-intent.js";
 import {
   deferGatewayRestartUntilIdle,
@@ -15,7 +15,6 @@ import { createAppliedConfigHashPublisher } from "./applied-config-hash-publishe
 import type { GatewayReloadPlan } from "./config-reload.js";
 import {
   GatewayConfigReloadSupersededError,
-  isCurrentGatewayReloadGeneration,
   type AcceptedRestartTarget,
   type AcceptedRestartTargetOwnership,
   type GatewayReloadHandlerParams,
@@ -23,6 +22,7 @@ import {
   type GatewayRestartTransactionResult,
   type GatewayRestartTransactionState,
 } from "./server-reload-contracts.js";
+import { isCurrentGatewayReloadGeneration } from "./server-reload-generation.js";
 
 const RESTART_EMISSION_RETRY_MS = 1_000;
 
@@ -371,7 +371,7 @@ class GatewayRestartTransaction {
         if (!emitResult || emitResult.status === "failed") {
           this.scheduleEmissionRetry(retry);
         }
-      }).catch((err: unknown) => {
+      }, "reload:restart").catch((err: unknown) => {
         if (this.isCurrentRequest(retry.requestGeneration)) {
           this.options.params.logReload.warn(
             `gateway restart recovery retry stopped: ${String(err)}`,
