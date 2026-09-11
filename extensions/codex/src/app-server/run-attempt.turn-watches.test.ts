@@ -5,10 +5,10 @@ import {
   invokeNativeHookRelay,
   nativeHookRelayTesting,
   resolveActiveEmbeddedRunSessionId,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import * as mediaStore from "astroclaw/plugin-sdk/media-store";
-import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import * as mediaStore from "openclaw/plugin-sdk/media-store";
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import { describe, expect, it, vi } from "vitest";
 import * as approvalBridge from "./approval-bridge.js";
 import type { EmbeddedRunAttemptResult } from "./attempt-terminal.js";
@@ -39,12 +39,6 @@ import {
   threadStartResult,
   turnStartResult,
 } from "./run-attempt-test-harness.js";
-
-const testing = {
-  flushPendingCodexNativeHookRelayUnregistersForTests(): void {
-    nativeHookRelayUnregisterQueue.flush();
-  },
-};
 import {
   readCodexAppServerBinding,
   writeCodexAppServerBinding as writeRawCodexAppServerBinding,
@@ -1300,7 +1294,7 @@ describe("runCodexAppServerAttempt native lifecycle", () => {
         },
       }),
     ).rejects.toThrow("native hook relay not found");
-    testing.flushPendingCodexNativeHookRelayUnregistersForTests();
+    await nativeHookRelayUnregisterQueue.flush();
     expect(nativeHookRelayTesting.getNativeHookRelayRegistrationForTests(relayId)).toBeUndefined();
   });
 
@@ -1330,7 +1324,7 @@ describe("runCodexAppServerAttempt native lifecycle", () => {
         },
       }),
     ).rejects.toThrow("native hook relay not found");
-    testing.flushPendingCodexNativeHookRelayUnregistersForTests();
+    await nativeHookRelayUnregisterQueue.flush();
     expect(nativeHookRelayTesting.getNativeHookRelayRegistrationForTests(relayId)).toBeUndefined();
   });
 
