@@ -121,7 +121,8 @@ vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/models-provider-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/models-provider-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/models-provider-runtime")>()),
   buildPreparedModelsProviderData: buildPreparedModelsProviderDataMock,
 }));
 
