@@ -7,7 +7,7 @@ import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import { createConfigIO, replaceConfigFile } from "../config/config.js";
 import { collectIncludePathsRecursive } from "../config/includes-scan.js";
 import { resolveConfigPath, resolveOAuthDir, resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { runExec } from "../process/exec.js";
 import { LEGACY_IMPLICIT_AGENT_ID, normalizeAgentId } from "../routing/session-key.js";
 import { createIcaclsResetCommand, formatIcaclsResetCommand, type ExecFn } from "./windows-acl.js";
@@ -255,14 +255,14 @@ async function applySecurityFixConfigMutations(params: {
   cfg: OpenClawConfig;
   changes: string[];
 }> {
-  const fixed = applyConfigFixes({ cfg: params.cfg, env: params.env });
   const channelFixes = await collectChannelSecurityConfigFixMutation({
-    cfg: fixed.cfg,
+    cfg: params.cfg,
     env: params.env,
     channelPlugins: params.channelPlugins,
   });
+  const fixed = applyConfigFixes({ cfg: channelFixes.cfg, env: params.env });
   return {
-    cfg: channelFixes.cfg,
+    cfg: fixed.cfg,
     changes: [...fixed.changes, ...channelFixes.changes],
   };
 }
