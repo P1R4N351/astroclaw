@@ -20,9 +20,13 @@ import {
   renderSettingsValue,
 } from "../../components/settings-ui.ts";
 import { t } from "../../i18n/index.ts";
+import { registerMemoryImportEnglish } from "../../i18n/locales/en-memory-import.ts";
 import { normalizeAgentLabel } from "../../lib/agents/display.ts";
 import { formatUiExternalText } from "../../lib/format-error.ts";
 import "../../styles/memory-import.css";
+import { renderBackfillConfirmation } from "./backfill-confirmation.ts";
+
+registerMemoryImportEnglish();
 
 type MemoryCollection = {
   id: string;
@@ -311,7 +315,9 @@ function renderProvider(props: MemoryImportViewProps, provider: MemoryMigrationP
           ${provider.target
             ? renderSettingsRow({
                 title: t("memoryImport.destination"),
-                control: renderSettingsValue(`${provider.target}/memory/imports/`, { mono: true }),
+                control: renderSettingsValue(`${provider.target}/memory/imports/`, {
+                  mono: true,
+                }),
               })
             : nothing}
           ${groups.map((group) =>
@@ -467,50 +473,6 @@ function renderIntroSection(props: MemoryImportViewProps) {
       })}
     `,
   );
-}
-
-function renderBackfillConfirmation(props: MemoryImportViewProps) {
-  if (!props.backfillRollbackPending) {
-    return nothing;
-  }
-  return html`
-    <openclaw-modal-dialog
-      label=${t("memoryImport.backfill.rollbackConfirmTitle")}
-      description=${t("memoryImport.backfill.rollbackConfirmDescription")}
-      @modal-cancel=${props.onBackfillRollbackCancel}
-    >
-      <div class="exec-approval-card memory-import__confirm">
-        <div class="exec-approval-header">
-          <div>
-            <div class="exec-approval-title">
-              ${t("memoryImport.backfill.rollbackConfirmTitle")}
-            </div>
-            <div class="exec-approval-sub">
-              ${t("memoryImport.backfill.rollbackConfirmDescription")}
-            </div>
-          </div>
-        </div>
-        <div class="callout warn">${t("memoryImport.backfill.rollbackWarning")}</div>
-        <div class="exec-approval-actions">
-          <button
-            class="btn danger"
-            data-test-id="memory-backfill-rollback-confirm"
-            ?disabled=${props.backfillBusy !== null || props.applyingProviderId !== null}
-            @click=${props.onBackfillRollbackConfirm}
-          >
-            ${t("memoryImport.backfill.rollback")}
-          </button>
-          <button
-            class="btn"
-            ?disabled=${props.backfillBusy !== null || props.applyingProviderId !== null}
-            @click=${props.onBackfillRollbackCancel}
-          >
-            ${t("common.cancel")}
-          </button>
-        </div>
-      </div>
-    </openclaw-modal-dialog>
-  `;
 }
 
 function renderBackfillSection(props: MemoryImportViewProps) {
