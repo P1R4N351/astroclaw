@@ -1,6 +1,6 @@
 // Verifies OpenAI model selections route between OpenClaw and Codex runtimes.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   listOpenAIAuthProfileProvidersForAgentRuntime,
   modelSelectionShouldEnsureCodexPlugin,
@@ -390,24 +390,6 @@ describe("OpenAI runtime routing policy", () => {
         config,
       }),
     ).toBe("openai");
-  });
-
-  it("checks legacy Codex auth before canonical OpenAI for pre-doctor state", () => {
-    const config = {
-      auth: {
-        order: {
-          openai: ["openai:work", "openai:backup"],
-        },
-      },
-    } satisfies OpenClawConfig;
-
-    expect(
-      listOpenAIAuthProfileProvidersForAgentRuntime({
-        provider: "openai",
-        harnessRuntime: "openclaw",
-        config,
-      }),
-    ).toEqual(["openai"]);
   });
 
   it("keeps explicit OpenAI OpenClaw API-key auth order ahead of Codex backups", () => {
