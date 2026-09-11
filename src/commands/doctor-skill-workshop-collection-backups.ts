@@ -9,7 +9,7 @@ import { resolveCanonicalWorkspacePath } from "../agents/workspace-state-identit
 import { resolveStateDir } from "../config/paths.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { pathExists } from "../infra/fs-safe.js";
-import { executeSqliteQuerySync, getNodeSqliteKysely } from "../infra/kysely-sync.js";
+import { executeSqliteQuerySync } from "../infra/kysely-sync.js";
 import { isPathStrictlyInside } from "../infra/path-guards.js";
 import { resolveSkillManifestMetadata } from "../skills/loading/frontmatter.js";
 import { readSkillFrontmatterSafe } from "../skills/loading/local-loader.js";
@@ -21,21 +21,18 @@ import { readSkillProposalTargetTreeSha256 } from "../skills/workshop/proposal-b
 import { parseSkillProposalRow } from "../skills/workshop/store-sqlite-record.js";
 import { openSkillWorkshopStore } from "../skills/workshop/store-sqlite-schema.js";
 import { resolveSkillProposalTarget } from "../skills/workshop/store.js";
-import { tableHasColumn } from "../state/openclaw-state-db-schema-helpers.js";
-import type { DB as OpenClawStateDatabase } from "../state/openclaw-state-db.generated.js";
-import { openExistingOpenClawStateDatabaseReadOnly } from "../state/openclaw-state-db.js";
 
 const LEGACY_COLLECTION_BACKUP_SCHEMA = "openclaw.skill-collection-backup.v1";
 const MAX_BACKUP_MANIFEST_BYTES = 1024 * 1024;
 
-type LegacyCollectionBackupRoot =
+export type LegacyCollectionBackupRoot =
   | {
       legacyRoot: string;
       backups: LegacyCollectionBackup[];
       ownerAgentId: string;
       destinationRoot: string;
     }
-  | { legacyRoot: string; warning: string };
+  | { legacyRoot: string; warning: string; recoverable?: true };
 
 export async function listPendingLegacyCollectionBackupRoots(
   config: OpenClawConfig,
@@ -58,14 +55,30 @@ export async function listPendingLegacyCollectionBackupRoots(
       }
       const workspaceDirs = new Set(backups.map((backup) => backup.workspaceDir));
       const workspaceDir = [...workspaceDirs][0];
+      const candidateAgentIds = [
+        ...new Set(
+          [...workspaceDirs].flatMap((directory) =>
+            listWorkspaceOwnerAgentIds(config, env, directory),
+          ),
+        ),
+      ].toSorted();
       const ownerAgentId =
-        workspaceDirs.size === 1 && workspaceDir
-          ? await inferLegacyCollectionBackupOwnerAgentId(config, env, workspaceDir, backups)
+        workspaceDirs.size === 1 && workspaceDir && candidateAgentIds.length === 1
+          ? candidateAgentIds[0]
           : undefined;
       if (!ownerAgentId) {
-        throw new Error("workspace does not map to exactly one configured agent");
+        roots.push({
+          legacyRoot,
+          warning: `Preserved legacy collection backup root ${legacyRoot} for manual review: workspace ${[...workspaceDirs].join(", ")} does not map to exactly one configured agent (candidate agents: ${candidateAgentIds.join(", ") || "none"}). Review the workspace ownership and retained backup manifests before retrying Doctor.`,
+          recoverable: true,
+        });
+        continue;
       }
-      assertWorkspaceStateMigrationReady({ workspaceDirs: [...workspaceDirs], env });
+      assertWorkspaceStateMigrationReady({
+        workspaceDirs: [...workspaceDirs],
+        env,
+        operation: "doctor",
+      });
       const destinationRoot = resolveSkillCollectionBackupRoot(config, ownerAgentId, env);
       const alreadyArchived = await Promise.all(
         backups.map((backup) =>
@@ -100,61 +113,20 @@ export function inferWorkspaceOwnerAgentId(
   env: NodeJS.ProcessEnv,
   workspaceDir: string,
 ): string | undefined {
-  const workspaceMatches = listAgentIds(config).filter(
+  const workspaceMatches = listWorkspaceOwnerAgentIds(config, env, workspaceDir);
+  return workspaceMatches.length === 1 ? workspaceMatches[0] : undefined;
+}
+
+export function listWorkspaceOwnerAgentIds(
+  config: OpenClawConfig,
+  env: NodeJS.ProcessEnv,
+  workspaceDir: string,
+): string[] {
+  return listAgentIds(config).filter(
     (agentId) =>
       resolveCanonicalWorkspacePath(resolveAgentWorkspaceDir(config, agentId, env)) ===
       resolveCanonicalWorkspacePath(workspaceDir),
   );
-  return workspaceMatches.length === 1 ? workspaceMatches[0] : undefined;
-}
-
-async function inferLegacyCollectionBackupOwnerAgentId(
-  config: OpenClawConfig,
-  env: NodeJS.ProcessEnv,
-  workspaceDir: string,
-  backups: readonly LegacyCollectionBackup[],
-): Promise<string | undefined> {
-  const workspaceOwner = inferWorkspaceOwnerAgentId(config, env, workspaceDir);
-  // Listing is also used by read-only inspection. Never initialize or migrate
-  // Workshop state merely to recover the owner already recorded by a review.
-  const database = await openExistingOpenClawStateDatabaseReadOnly({ env });
-  try {
-    if (
-      !database ||
-      !tableHasColumn(database.db, "skill_workshop_collection_reviews", "owner_agent_id")
-    ) {
-      return workspaceOwner;
-    }
-    const kysely = getNodeSqliteKysely<
-      Pick<OpenClawStateDatabase, "skill_workshop_collection_reviews">
-    >(database.db);
-    const rootOwners = new Set<string>();
-    for (const backup of backups) {
-      const owners = new Set(
-        executeSqliteQuerySync(
-          database.db,
-          kysely
-            .selectFrom("skill_workshop_collection_reviews")
-            .select("owner_agent_id")
-            .where("backup_id", "=", backup.manifest.id),
-        ).rows.map((row) => row.owner_agent_id),
-      );
-      const owner =
-        owners.size === 0 ? workspaceOwner : owners.size === 1 ? [...owners][0] : undefined;
-      if (
-        !owner ||
-        !listAgentIds(config).includes(owner) ||
-        resolveCanonicalWorkspacePath(resolveAgentWorkspaceDir(config, owner, env)) !==
-          resolveCanonicalWorkspacePath(workspaceDir)
-      ) {
-        return undefined;
-      }
-      rootOwners.add(owner);
-    }
-    return rootOwners.size === 1 ? [...rootOwners][0] : undefined;
-  } finally {
-    database?.walMaintenance.close();
-  }
 }
 
 function legacyCollectionSkillPath(workspaceDir: string, relativeDir: string): string {
@@ -496,13 +468,17 @@ async function publishLegacyCollectionBackup(
 export async function migrateLegacyCollectionBackups(
   config: OpenClawConfig,
   env: NodeJS.ProcessEnv,
-): Promise<{ migrated: number; warnings: string[] }> {
-  const roots = await listPendingLegacyCollectionBackupRoots(config, env);
+  roots: readonly LegacyCollectionBackupRoot[],
+): Promise<{ migrated: number; warnings: string[]; recoverableWarningCount: number }> {
   let migrated = 0;
+  let recoverableWarningCount = 0;
   const warnings: string[] = [];
   for (const root of roots) {
     if ("warning" in root) {
       warnings.push(root.warning);
+      if (root.recoverable) {
+        recoverableWarningCount += 1;
+      }
       continue;
     }
     const { legacyRoot, backups, ownerAgentId, destinationRoot } = root;
@@ -541,5 +517,5 @@ export async function migrateLegacyCollectionBackups(
       warnings.push(`Preserved legacy collection backup root ${legacyRoot}: ${String(error)}`);
     }
   }
-  return { migrated, warnings };
+  return { migrated, warnings, recoverableWarningCount };
 }
