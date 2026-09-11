@@ -1,55 +1,64 @@
 // Imessage provider module implements model/runtime integration.
-import { resolveAgentConfig, resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
-import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-runtime";
-import type { PluginRuntime } from "openclaw/plugin-sdk/channel-core";
-import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
+import { resolveAgentConfig, resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-runtime";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/channel-core";
+import { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
 import {
   createChannelInboundDebouncer,
+  resolveInboundDebounceMs,
   formatInboundMediaUnavailableText,
   resolveEnvelopeFormatOptions,
   runChannelInboundEvent,
   shouldDebounceTextInbound,
   type ChannelInboundTurnPlan,
   type ChannelInboundMediaInput,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { fanInChannelIngressLifecycles } from "openclaw/plugin-sdk/channel-ingress-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { fanInChannelIngressLifecycles } from "astroclaw/plugin-sdk/channel-ingress-runtime";
 import {
   bindIngressLifecycleToReplyOptions,
   createChannelMessageReplyPipeline,
   resolveChannelStreamingBlockEnabled,
-} from "openclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingChallengeIssuer } from "openclaw/plugin-sdk/channel-pairing";
-import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingChallengeIssuer } from "astroclaw/plugin-sdk/channel-pairing";
+import {
+  resolveChannelGroups,
+  resolveChannelGroupsConfigPath,
+} from "astroclaw/plugin-sdk/channel-policy";
+import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
 import {
   ensureConfiguredBindingRouteReady,
   readChannelAllowFromStore,
   upsertChannelPairingRequest,
-} from "openclaw/plugin-sdk/conversation-runtime";
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
-import { channelReadyPatch } from "openclaw/plugin-sdk/gateway-runtime";
-import { redactIdentifier } from "openclaw/plugin-sdk/logging-core";
-import { isInboundPathAllowed, kindFromMime } from "openclaw/plugin-sdk/media-runtime";
-import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
-import { resolveTextChunkLimit, type GetReplyOptions } from "openclaw/plugin-sdk/reply-runtime";
-import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
-import { getRuntimeConfig, type OpenClawConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { danger, logVerbose, shouldLogVerbose, warn } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+import { channelReadyPatch } from "astroclaw/plugin-sdk/gateway-runtime";
+import { redactIdentifier } from "astroclaw/plugin-sdk/logging-core";
+import { isInboundPathAllowed, kindFromMime } from "astroclaw/plugin-sdk/media-runtime";
+import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import { resolveTextChunkLimit, type GetReplyOptions } from "astroclaw/plugin-sdk/reply-runtime";
+import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
+import {
+  createRuntimeConfigReader,
+  getRuntimeConfig,
+  type OpenClawConfig,
+} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { danger, logVerbose, shouldLogVerbose, warn } from "astroclaw/plugin-sdk/runtime-env";
 import {
   resolveOpenProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
 import {
   getSessionEntry,
   readSessionUpdatedAt,
   resolveSendPolicy,
   resolveStorePath,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { openNodeSqliteDatabase } from "openclaw/plugin-sdk/sqlite-runtime";
-import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe, truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
-import { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { openNodeSqliteDatabase } from "astroclaw/plugin-sdk/sqlite-runtime";
+import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe, truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+import { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
 import { resolveIMessageAccount } from "../accounts.js";
 import { iMessageApprovalControlBindings } from "../approval-control-binding-window.js";
 import type { IMessageApprovalGatewayRuntime } from "../approval-gateway-types.js";
@@ -270,17 +279,15 @@ const IMESSAGE_DIAGNOSTIC_DROP_REASONS = new Set([
   "agent echo in self-chat",
   "echo",
   "from me",
+  "no mention",
   "reflected assistant content",
   "self-chat echo",
 ]);
-const IMESSAGE_THROTTLED_DIAGNOSTIC_DROP_REASONS = new Set(["from me"]);
-
-function shouldThrottleIMessageInboundDropDiagnostic(reason: string): boolean {
-  return IMESSAGE_THROTTLED_DIAGNOSTIC_DROP_REASONS.has(reason);
-}
+const IMESSAGE_THROTTLED_DIAGNOSTIC_DROP_REASONS = new Set(["from me", "no mention"]);
 
 function describeIMessageInboundDropDiagnostic(params: {
   accountId: string;
+  groupsConfigPath: string;
   reason: string;
   message: Pick<IMessagePayload, "chat_id" | "created_at" | "guid" | "id" | "is_group">;
 }): string | null {
@@ -291,13 +298,17 @@ function describeIMessageInboundDropDiagnostic(params: {
     typeof params.message.id === "number" || typeof params.message.id === "string"
       ? String(params.message.id)
       : "unknown";
+  const mentionHint =
+    params.reason === "no mention"
+      ? ` Mention the agent (default patterns come from its identity name/emoji), or set ${params.groupsConfigPath}["${params.message.chat_id}"].requireMention=false. Preserve existing groups entries; when adding the first groups map, include "*": {} to keep other chats admitted.`
+      : "";
   return (
     `imessage: dropped inbound message account=${params.accountId} reason=${JSON.stringify(
       params.reason,
     )} ` +
     `chat_id=${params.message.chat_id ?? "unknown"} group=${params.message.is_group === true} ` +
     `message_id=${messageId} guid=${params.message.guid ? "present" : "missing"} ` +
-    `created_at=${params.message.created_at ?? "unknown"}`
+    `created_at=${params.message.created_at ?? "unknown"}${mentionHint}`
   );
 }
 
@@ -352,9 +363,16 @@ async function waitForWatchSubscribeRetryDelay(params: {
 export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): Promise<void> {
   const runtime = resolveRuntime(opts);
   const cfg = opts.config ?? getRuntimeConfig();
+  const readConfig = createRuntimeConfigReader(cfg);
   const accountInfo = resolveIMessageAccount({
     cfg,
     accountId: opts.accountId,
+  });
+  const groupsConfigPath = resolveChannelGroupsConfigPath({
+    cfg,
+    channel: "imessage",
+    accountId: accountInfo.accountId,
+    groups: resolveChannelGroups(cfg, "imessage", accountInfo.accountId),
   });
   const approvalGatewayRuntime =
     opts.channelRuntime?.runtimeContexts.get<IMessageApprovalGatewayRuntime>({
@@ -522,6 +540,7 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
   }>({
     cfg,
     channel: "imessage",
+    resolveDebounceMs: () => resolveInboundDebounceMs({ cfg: readConfig(), channel: "imessage" }),
     buildKey: (entry) => {
       const msg = entry.message;
       const sender = msg.sender?.trim();
@@ -683,13 +702,6 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
     }
   }
 
-  async function handleMessageNow(
-    message: IMessagePayload,
-    ingressLifecycle?: IMessageIngressLifecycle,
-  ) {
-    await handleMessageNowInner(message, ingressLifecycle);
-  }
-
   // iMessage delivers a poll's comment as a separate inline reply to the poll
   // balloon; fold it into the poll so the agent votes once instead of also
   // replying to the caption in prose (a redundant restatement of the vote).
@@ -719,7 +731,7 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
     };
   }
 
-  async function handleMessageNowInner(
+  async function handleMessageNow(
     rawMessage: IMessagePayload,
     ingressLifecycle?: IMessageIngressLifecycle,
   ) {
@@ -804,12 +816,13 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
       }
       const diagnostic = describeIMessageInboundDropDiagnostic({
         accountId: accountInfo.accountId,
+        groupsConfigPath,
         reason: decision.reason,
         message,
       });
       if (diagnostic) {
         const throttleKey = `${rateLimitKey}:${decision.reason}`;
-        const shouldThrottleDiagnostic = shouldThrottleIMessageInboundDropDiagnostic(
+        const shouldThrottleDiagnostic = IMESSAGE_THROTTLED_DIAGNOSTIC_DROP_REASONS.has(
           decision.reason,
         );
         if (!shouldThrottleDiagnostic || !loggedThrottledDropDiagnostics.check(throttleKey)) {
@@ -1209,12 +1222,13 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
     const directToolTypingOptions = shouldUseDirectToolTypingOptions
       ? ({
           // iMessage's native typing bubble is channel-owned UI, not a
-          // visible tool-progress message. The suppress flag is what lets
-          // dispatch forward this callback even when verbose progress is off;
-          // allowProgress covers message_tool_only source delivery. Keep this on
-          // the direct instant/default path even when older imsg builds do not
-          // report native typing support.
+          // visible tool-progress message. The lifecycle flag lets dispatch
+          // forward it while text progress is hidden; allowProgress covers
+          // message_tool_only source delivery. Keep this on the direct
+          // instant/default path even when older imsg builds do not report
+          // native typing support.
           suppressDefaultToolProgressMessages: true,
+          allowToolLifecycleWhenProgressHidden: true,
           allowProgressCallbacksWhenSourceDeliverySuppressed: true,
           onTypingController: (typing: IMessageTypingController) => {
             directTypingController = typing;
@@ -1408,7 +1422,7 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
       if (isApprovalCommand) {
         // Resolve approval commands through the ordinary authenticated command
         // pipeline, but ahead of the chat lane containing the run they release.
-        await handleMessageNowInner(repairedMessage);
+        await handleMessageNow(repairedMessage);
         return { kind: "completed" };
       }
       const conversation = resolveApprovalControlConversation(repairedMessage);
