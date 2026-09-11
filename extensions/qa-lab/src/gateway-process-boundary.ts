@@ -4,9 +4,9 @@ import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
-import { isPathInside } from "openclaw/plugin-sdk/file-access-runtime";
-import { replaceFileAtomic } from "openclaw/plugin-sdk/security-runtime";
+import { isRecord } from "astroclaw/plugin-sdk/channel-secret-basic-runtime";
+import { isPathInside } from "astroclaw/plugin-sdk/file-access-runtime";
+import { replaceFileAtomic } from "astroclaw/plugin-sdk/security-runtime";
 import { QA_CHILD_STDOUT_MAX_BYTES } from "./child-output.js";
 import { runQaScenarioCommandLifecycle } from "./test-file-scenario-command-lifecycle.js";
 
@@ -778,6 +778,13 @@ export async function createQaGatewayProcessBoundaryController(params: {
     signal,
     markReady,
     markExited,
+    cleanupTempRoot: () =>
+      runBoundaryLauncherCommand({
+        args: ["--cleanup-temp-root", tempRoot],
+        label: "temp-root cleanup",
+        launcherPath: params.launcherPath,
+        timeoutMs: PROCESS_BOUNDARY_CONTROL_TIMEOUT_MS,
+      }),
     evidencePath,
     retainCredentialLeasePath,
     retainCredentialLease,
