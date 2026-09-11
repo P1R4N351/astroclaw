@@ -6,15 +6,16 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
 import {
   asDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "openclaw/plugin-sdk/number-runtime";
-import { finalizeInboundContext } from "openclaw/plugin-sdk/reply-runtime";
-import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
-import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/number-runtime";
+import { finalizeInboundContext } from "astroclaw/plugin-sdk/reply-runtime";
+import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
+import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import type { ResolvedMattermostAccount } from "../mattermost/accounts.js";
 import { getMattermostRuntime } from "../runtime.js";
 import {
@@ -40,6 +41,7 @@ import {
   isRequestBodyLimitError,
   logTypingFailure,
   readRequestBodyWithLimit,
+  sendHttpRequestRejection,
   type OpenClawConfig,
   type RuntimeEnv,
 } from "./runtime-api.js";
@@ -111,6 +113,8 @@ function readBody(
   return readRequestBodyWithLimit(req, {
     maxBytes,
     timeoutMs,
+    // Defer destruction so the rejections below reach Mattermost before the close.
+    destroyOnLimit: false,
   });
 }
 
@@ -593,12 +597,10 @@ export function createSlashCommandHttpHandler(params: SlashHttpHandlerParams) {
       body = bufferedBody ?? (await readBody(req, MAX_BODY_BYTES, bodyTimeoutMs));
     } catch (error) {
       if (isRequestBodyLimitError(error, "REQUEST_BODY_TIMEOUT")) {
-        res.statusCode = 408;
-        res.end("Request body timeout");
+        await sendHttpRequestRejection(req, res, 408, "Request body timeout");
         return;
       }
-      res.statusCode = 413;
-      res.end("Payload Too Large");
+      await sendHttpRequestRejection(req, res, 413, "Payload Too Large");
       return;
     }
 
@@ -787,7 +789,12 @@ async function handleSlashCommandAsync(params: {
   const to = kind === "direct" ? `user:${senderId}` : `channel:${channelId}`;
   const pickerEntry = resolveMattermostModelPickerEntry(commandText);
   if (pickerEntry) {
-    const data = await buildPreparedModelsProviderData(cfg, route.agentId);
+    const sessionEntry = getSessionEntry({
+      storePath: resolveStorePath(cfg.session?.store, { agentId: route.agentId }),
+      sessionKey: route.sessionKey,
+      readConsistency: "latest",
+    });
+    const data = await buildPreparedModelsProviderData(cfg, route.agentId, { sessionEntry });
     if (data.providers.length === 0) {
       await sendMessageMattermost(`channel:${channelId}`, "No models available.", {
         cfg,
