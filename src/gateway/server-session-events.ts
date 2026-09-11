@@ -354,7 +354,6 @@ async function handleTranscriptUpdateBroadcast(
     agentId: eventAgentId,
     includeSession: true,
     activeRunState,
-    status: activeRunState?.active ? (activeRunState.status ?? "running") : undefined,
   });
   if (message === undefined) {
     // A committed batch or unavailable selected row must invalidate
@@ -416,11 +415,6 @@ export function createLifecycleEventBroadcastHandler(params: {
   chatAbortControllers: Map<string, ChatAbortControllerEntry>;
 }) {
   return (event: SessionLifecycleEvent): void => {
-    const swarmEvent = event as SessionLifecycleEvent & {
-      swarmGroupId?: string;
-      kind?: "phase" | "log";
-      text?: string;
-    };
     const connIds = params.sessionEventSubscribers.getAll();
     if (!hasSessionChangeReceivers(connIds)) {
       return;
@@ -459,7 +453,10 @@ export function createLifecycleEventBroadcastHandler(params: {
       );
       return;
     }
-    const sessionRow = loadGatewaySessionRow(event.sessionKey, { agentId: routingAgentId });
+    const sessionRow = loadGatewaySessionRow(event.sessionKey, {
+      agentId: routingAgentId,
+      ...(event.reason === "swarm" ? { includeSwarmSummary: true } : {}),
+    });
     const activeRunState =
       sessionRow && (sessionRow.key !== "global" || routingAgentId)
         ? resolveVisibleActiveSessionRunState({
@@ -489,11 +486,11 @@ export function createLifecycleEventBroadcastHandler(params: {
           parentSessionKey: event.parentSessionKey,
           activeRunState,
         }),
-        ...(swarmEvent.swarmGroupId
+        ...(event.swarmGroupId
           ? {
-              swarmGroupId: swarmEvent.swarmGroupId,
-              kind: swarmEvent.kind,
-              text: swarmEvent.text,
+              swarmGroupId: event.swarmGroupId,
+              kind: event.kind,
+              text: event.text,
             }
           : {}),
       },
