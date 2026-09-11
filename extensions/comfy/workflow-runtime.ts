@@ -1,44 +1,45 @@
 // Comfy plugin module implements workflow runtime behavior.
 import { randomInt } from "node:crypto";
 import fs from "node:fs/promises";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolveGeneratedMediaMaxBytes } from "openclaw/plugin-sdk/media-generation-runtime";
-import { extensionForMime } from "openclaw/plugin-sdk/media-mime";
-import { resolvePositiveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import { bufferToBlobPart } from "astroclaw/plugin-sdk/blob-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveGeneratedMediaMaxBytes } from "astroclaw/plugin-sdk/media-generation-runtime";
+import { extensionForMime } from "astroclaw/plugin-sdk/media-mime";
+import { resolvePositiveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
 import {
   isProviderApiKeyConfigured,
   type AuthProfileStore,
-} from "openclaw/plugin-sdk/provider-auth";
-import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
 import {
   assertOkOrThrowHttpError,
   normalizeBaseUrl,
+  readProviderBinaryResponse,
   readProviderJsonResponse,
   redactProviderResponseErrorText,
   resolveProviderHttpRequestConfig,
-} from "openclaw/plugin-sdk/provider-http";
-import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
+} from "astroclaw/plugin-sdk/provider-http";
 import {
   normalizeSecretInputString,
   resolveConfiguredSecretInputString,
   resolveSecretInputString,
-} from "openclaw/plugin-sdk/secret-input-runtime";
-import { canResolveEnvSecretRefInReadOnlyPath } from "openclaw/plugin-sdk/secret-ref-readonly";
+} from "astroclaw/plugin-sdk/secret-input-runtime";
+import { canResolveEnvSecretRefInReadOnlyPath } from "astroclaw/plugin-sdk/secret-ref-readonly";
 import {
   fetchWithSsrFGuard,
   isPrivateOrLoopbackHost,
   mergeSsrFPolicies,
   ssrfPolicyFromHttpBaseUrlAllowedOrigin,
   type SsrFPolicy,
-} from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   asBoolean,
   isRecord,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
   uniqueStrings,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolveUserPath } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolveUserPath } from "astroclaw/plugin-sdk/text-utility-runtime";
 
 const DEFAULT_COMFY_LOCAL_BASE_URL = "http://127.0.0.1:8188";
 const DEFAULT_COMFY_CLOUD_BASE_URL = "https://cloud.comfy.org";
@@ -390,12 +391,6 @@ function resolveFileExtension(params: { fileName?: string; mimeType?: string }):
   return fileName.slice(dotIndex + 1);
 }
 
-function toBlobBytes(buffer: Buffer): ArrayBuffer {
-  const arrayBuffer = new ArrayBuffer(buffer.byteLength);
-  new Uint8Array(arrayBuffer).set(buffer);
-  return arrayBuffer;
-}
-
 async function uploadInputImage(params: {
   baseUrl: string;
   headers: Headers;
@@ -409,7 +404,7 @@ async function uploadInputImage(params: {
   const form = new FormData();
   form.set(
     "image",
-    new Blob([toBlobBytes(params.image.buffer)], { type: params.image.mimeType }),
+    new Blob([bufferToBlobPart(params.image.buffer)], { type: params.image.mimeType }),
     normalizeOptionalString(params.image.fileName) ||
       `input.${resolveFileExtension({ mimeType: params.image.mimeType })}`,
   );
@@ -456,7 +451,7 @@ function extractHistoryEntry(history: unknown, promptId: string): ComfyHistoryEn
   return null;
 }
 
-async function waitForLocalHistory(params: {
+async function waitForComfyHistory(params: {
   baseUrl: string;
   promptId: string;
   headers: Headers;
@@ -464,71 +459,57 @@ async function waitForLocalHistory(params: {
   pollIntervalMs: number;
   policy?: SsrFPolicy;
   dispatcherPolicy?: ComfyDispatcherPolicy;
-}): Promise<ComfyHistoryEntry> {
+  mode: ComfyMode;
+}): Promise<unknown> {
   const deadline = Date.now() + params.timeoutMs;
-  for (;;) {
-    const requestTimeoutMs = resolveComfyRemainingMs(deadline, params.timeoutMs);
-    const history = await readJsonResponse<unknown>({
-      url: `${params.baseUrl}/history/${params.promptId}`,
+  const read = <T>(path: string, kind: "history" | "status", timeoutMs: number) =>
+    readJsonResponse<T>({
+      url: `${params.baseUrl}${path}`,
       init: {
         method: "GET",
         headers: params.headers,
       },
-      timeoutMs: requestTimeoutMs,
+      timeoutMs,
       policy: params.policy,
       dispatcherPolicy: params.dispatcherPolicy,
-      auditContext: "comfy-history",
-      errorPrefix: "Comfy history lookup failed",
+      auditContext: `comfy-${kind}`,
+      errorPrefix: `Comfy ${kind} lookup failed`,
     });
 
-    const entry = extractHistoryEntry(history, params.promptId);
-    if (entry?.outputs && Object.keys(entry.outputs).length > 0) {
-      return entry;
-    }
-
-    const pollDelayMs = resolveComfyRemainingMs(deadline, params.timeoutMs, params.pollIntervalMs);
-    await new Promise((resolve) => {
-      setTimeout(resolve, pollDelayMs);
-    });
-  }
-}
-
-async function waitForCloudCompletion(params: {
-  baseUrl: string;
-  promptId: string;
-  headers: Headers;
-  timeoutMs: number;
-  pollIntervalMs: number;
-  policy?: SsrFPolicy;
-  dispatcherPolicy?: ComfyDispatcherPolicy;
-}): Promise<void> {
-  const deadline = Date.now() + params.timeoutMs;
   for (;;) {
     const requestTimeoutMs = resolveComfyRemainingMs(deadline, params.timeoutMs);
-    const status = await readJsonResponse<ComfyStatusResponse>({
-      url: `${params.baseUrl}/api/job/${params.promptId}/status`,
-      init: {
-        method: "GET",
-        headers: params.headers,
-      },
-      timeoutMs: requestTimeoutMs,
-      policy: params.policy,
-      dispatcherPolicy: params.dispatcherPolicy,
-      auditContext: "comfy-status",
-      errorPrefix: "Comfy status lookup failed",
-    });
-
-    if (status.status === "completed") {
-      return;
-    }
-    if (status.status === "failed" || status.status === "cancelled") {
-      const detail = redactProviderResponseErrorText(
-        status.error ?? status.message ?? params.promptId,
-        params.headers,
+    if (params.mode === "cloud") {
+      const status = await read<ComfyStatusResponse>(
+        `/api/job/${params.promptId}/status`,
+        "status",
+        requestTimeoutMs,
       );
-      throw new Error(`Comfy workflow ${status.status}: ${detail}`);
+      if (status.status === "completed") {
+        // Cloud history gets a fresh request budget after the job completes.
+        return await read<unknown>(
+          `/api/history_v2/${params.promptId}`,
+          "history",
+          params.timeoutMs,
+        );
+      }
+      if (status.status === "failed" || status.status === "cancelled") {
+        const detail = redactProviderResponseErrorText(
+          status.error ?? status.message ?? params.promptId,
+          params.headers,
+        );
+        throw new Error(`Comfy workflow ${status.status}: ${detail}`);
+      }
+    } else {
+      const history = await read<unknown>(
+        `/history/${params.promptId}`,
+        "history",
+        requestTimeoutMs,
+      );
+      const entry = extractHistoryEntry(history, params.promptId);
+      if (entry?.outputs && Object.keys(entry.outputs).length > 0) {
+        return entry;
+      }
     }
-
     const pollDelayMs = resolveComfyRemainingMs(deadline, params.timeoutMs, params.pollIntervalMs);
     await new Promise((resolve) => {
       setTimeout(resolve, pollDelayMs);
@@ -633,16 +614,20 @@ async function downloadOutputFile(params: {
     const mimeType =
       normalizeOptionalString(firstResponse.response.headers.get("content-type")) ||
       "application/octet-stream";
-    return {
-      buffer: await readResponseWithLimit(firstResponse.response, params.maxBytes, {
+    const downloadLabel = `Comfy ${params.capability} output download`;
+    const buffer = await readProviderBinaryResponse(
+      firstResponse.response,
+      downloadLabel,
+      params.capability,
+      {
+        maxBytes: params.maxBytes,
         chunkTimeoutMs: params.timeoutMs,
-        onOverflow: ({ maxBytes }) =>
-          new Error(`Comfy ${params.capability} output download exceeds ${maxBytes} bytes`),
+        onOverflow: ({ maxBytes }) => new Error(`${downloadLabel} exceeds ${maxBytes} bytes`),
         onIdleTimeout: ({ chunkTimeoutMs }) =>
-          new Error(`Comfy ${params.capability} output download stalled after ${chunkTimeoutMs}ms`),
-      }),
-      mimeType,
-    };
+          new Error(`${downloadLabel} stalled after ${chunkTimeoutMs}ms`),
+      },
+    );
+    return { buffer, mimeType };
   } finally {
     await firstResponse.release();
   }
@@ -864,40 +849,16 @@ export async function runComfyWorkflow(params: {
     throw new Error("Comfy workflow submit response missing prompt_id");
   }
 
-  const history =
-    mode === "cloud"
-      ? await (async () => {
-          await waitForCloudCompletion({
-            baseUrl: normalizedBaseUrl,
-            promptId,
-            headers: new Headers(headers),
-            timeoutMs,
-            pollIntervalMs,
-            policy: networkPolicy.apiPolicy,
-            dispatcherPolicy,
-          });
-          return await readJsonResponse<unknown>({
-            url: `${normalizedBaseUrl}/api/history_v2/${promptId}`,
-            init: {
-              method: "GET",
-              headers: new Headers(headers),
-            },
-            timeoutMs,
-            policy: networkPolicy.apiPolicy,
-            dispatcherPolicy,
-            auditContext: "comfy-history",
-            errorPrefix: "Comfy history lookup failed",
-          });
-        })()
-      : await waitForLocalHistory({
-          baseUrl: normalizedBaseUrl,
-          promptId,
-          headers: new Headers(headers),
-          timeoutMs,
-          pollIntervalMs,
-          policy: networkPolicy.apiPolicy,
-          dispatcherPolicy,
-        });
+  const history = await waitForComfyHistory({
+    baseUrl: normalizedBaseUrl,
+    promptId,
+    headers: new Headers(headers),
+    timeoutMs,
+    pollIntervalMs,
+    policy: networkPolicy.apiPolicy,
+    dispatcherPolicy,
+    mode,
+  });
 
   const historyEntry = extractHistoryEntry(history, promptId);
   if (!historyEntry) {
