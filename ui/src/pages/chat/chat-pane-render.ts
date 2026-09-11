@@ -2,7 +2,6 @@ import type { ProgressCard } from "@astroclaw/gateway-protocol";
 import { html, nothing } from "lit";
 import { findInlineApproval } from "../../app/approval-presentation.ts";
 import { hasOperatorAdminAccess, hasOperatorWriteAccess } from "../../app/operator-access.ts";
-import { cancelQuestionPrompt, submitQuestionPrompt } from "../../app/question-prompt.ts";
 import { patchSettings } from "../../app/settings.ts";
 import { readPresenceEntries, resolveCurrentSelfUser } from "../../app/user-profile.ts";
 import { navigateMarkdownSession } from "../../components/markdown-session-links.ts";
@@ -47,6 +46,7 @@ import {
   resolveAssistantAttachmentAuthToken,
   resolveChatArtifactDownload,
 } from "./chat-pane-state.ts";
+import { createChatQuestionActions } from "./chat-question-actions.ts";
 import { dismissRealtimeTalkError } from "./chat-realtime.ts";
 import { activeChatRunStartupStatus } from "./chat-run-startup.ts";
 import { chatSendHoldReason } from "./chat-send-support.ts";
@@ -147,8 +147,6 @@ export class ChatPane extends ChatPaneLayoutRender {
     });
     const placementStartup = this.context.placementStartup.get(state.sessionKey);
     const sendHoldReason = chatSendHoldReason(state, state.sessionKey, placementStartup !== null);
-    const placementStartupPending =
-      placementStartup !== null && placementStartup.phase !== "failed";
     const sessionParticipationBlocked = this.sessionParticipationTracker.resolve({
       catalog: catalogKey !== null,
       listLoading: state.sessionsLoading,
@@ -373,7 +371,7 @@ export class ChatPane extends ChatPaneLayoutRender {
       loading: catalogKey ? this.catalogLoading : state.chatLoading,
       routeLoadingSkeleton: this.routeLoadingSkeleton && initialHistoryUnavailable,
       sending:
-        placementStartupPending ||
+        (placementStartup !== null && placementStartup.phase !== "failed") ||
         state.chatSending ||
         this.recoveringSession ||
         this.sessionSuggestionAddOperation !== undefined,
@@ -388,17 +386,18 @@ export class ChatPane extends ChatPaneLayoutRender {
       waitingApproval: state.waitingApprovalStatuses.size > 0,
       compactionStatus: state.compactionStatus,
       fallbackStatus: state.fallbackStatus,
+      providerPolicyNotice: catalogKey ? null : state.providerPolicyNotice,
       progressCard: this.progressCard.card,
       collapseTaskProgress: state.settings.chatCollapseTaskProgress === true,
       onDismissProgressCard,
       gatewayQuestionPrompts: catalogKey || sessionParticipationBlocked ? [] : this.questionPrompts,
-      onGatewayQuestionChange: () => {
-        this.questionPrompts = [...this.questionPrompts];
-        this.requestUpdate();
-      },
-      onGatewayQuestionSubmit: (id, answers) =>
-        submitQuestionPrompt(this.questionPromptState, id, answers),
-      onGatewayQuestionSkip: (id) => cancelQuestionPrompt(this.questionPromptState, id),
+      ...createChatQuestionActions({
+        state,
+        questionState: this.questionPromptState,
+        canSend:
+          composerAvailability.canSend && !catalogKey && !suggestionViewer && state.connected,
+        isCurrent: () => this.state === state,
+      }),
       messages: catalogKey ? this.catalogMessages : state.chatMessages,
       historyPagination:
         historyHasMore || this.loadingOlder
