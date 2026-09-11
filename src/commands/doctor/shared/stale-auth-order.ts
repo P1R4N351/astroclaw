@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { listAgentIds, resolveAgentDir } from "../../../agents/agent-scope-config.js";
-import { listRuntimeExternalAuthProfiles } from "../../../agents/auth-profiles/external-auth.js";
+import { listRuntimeExternalAuthProfiles } from "../../../agents/auth-profiles/external-auth-runtime.js";
 import {
   resolveAuthProfileEligibility,
   resolveAuthProfileOrder,
@@ -20,7 +20,7 @@ import {
 import type { AuthProfileStore } from "../../../agents/auth-profiles/types.js";
 import { resolveProviderIdForAuth } from "../../../agents/provider-auth-aliases.js";
 import { resolveStateDir } from "../../../config/paths.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 import {
   inspectOpenClawAgentDatabaseOwner,
@@ -423,7 +423,8 @@ function scanUndeclaredConfiguredAuthOrders(
     const declaredProviderProfileIds = Object.entries(cfg.auth?.profiles ?? {})
       .filter(
         ([, profile]) =>
-          resolveProviderIdForAuth(profile.provider, { config: cfg }) === canonicalProvider,
+          resolveProviderIdForAuth(profile.provider, { config: cfg, storedCredential: true }) ===
+          canonicalProvider,
       )
       .map(([profileId]) => profileId);
     return [{ provider, undeclaredProfileIds, declaredProviderProfileIds }];
