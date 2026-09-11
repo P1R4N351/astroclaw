@@ -5,7 +5,7 @@ import { icons } from "../../components/icons.ts";
 import "../../components/ip-location.ts";
 import "../../components/viewer-facepile.ts";
 import "../../components/web-awesome-popover.ts";
-import { renderSettingsStatus } from "../../components/settings-ui.ts";
+import { renderSettingsStatus, renderSettingsSegmented } from "../../components/settings-ui.ts";
 import { t } from "../../i18n/index.ts";
 import { formatRelativeTimestamp, formatTimeAgo } from "../../lib/format.ts";
 import { shouldHandleNavigationClick } from "../../lib/navigation-click.ts";
@@ -16,9 +16,11 @@ import {
 } from "../../lib/presence-users.ts";
 import { resolveSessionDisplayName } from "../../lib/session-display.ts";
 import {
+  resolveSessionNavigationAgentId,
   resolveSessionPreferredFace,
   sessionNavigationTarget,
 } from "../../lib/sessions/route-navigation.ts";
+import { resolveUiConfiguredMainKey } from "../../lib/sessions/session-key.ts";
 import { activityRunInspectorHref } from "./run-inspector-model.ts";
 import {
   ACTIVITY_TIME_FILTERS,
@@ -37,6 +39,7 @@ type SessionActivityViewProps = {
   presenceViewers: readonly PresenceViewer[];
   result?: SessionsListResult;
   loading: boolean;
+  retrying: boolean;
   error?: string;
   onRetry: () => void;
   onAutomationDayToggle: (dayKey: string) => void;
@@ -203,24 +206,6 @@ function renderPeopleControl(
   </div>`;
 }
 
-function navigateToSession(event: MouseEvent, context: ApplicationContext, row: GatewaySessionRow) {
-  if (!shouldHandleNavigationClick(event)) {
-    return;
-  }
-  event.preventDefault();
-  const face = resolveSessionPreferredFace(row);
-  const target = sessionNavigationTarget({ context, face, sessionKey: row.key });
-  context.navigate(face, target.options);
-}
-
-function sessionHref(context: ApplicationContext, row: GatewaySessionRow): string {
-  return sessionNavigationTarget({
-    context,
-    face: resolveSessionPreferredFace(row),
-    sessionKey: row.key,
-  }).href;
-}
-
 function dayLabel(timestamp: number | null, now = Date.now()): string {
   if (timestamp === null) {
     return t("activityFeed.unknownDate");
@@ -243,6 +228,18 @@ function dayLabel(timestamp: number | null, now = Date.now()): string {
 }
 
 function renderSessionLink(context: ApplicationContext, row: GatewaySessionRow) {
+  const face = resolveSessionPreferredFace(row);
+  const target = sessionNavigationTarget({
+    face,
+    sessionKey: row.key,
+    fallbackAgentId: resolveSessionNavigationAgentId(context),
+    basePath: context.basePath,
+    row,
+    mainKey: resolveUiConfiguredMainKey({
+      agentsList: context.agents.state.agentsList,
+      hello: context.gateway.snapshot.hello,
+    }),
+  });
   const owner = sessionActivityOwner(row);
   const ownerName = presenceViewerLabel(owner);
   const activityAt = sessionActivityTimestamp(row);
@@ -262,8 +259,13 @@ function renderSessionLink(context: ApplicationContext, row: GatewaySessionRow) 
     <a
       class="activity-feed__session"
       data-activity-session=${row.key}
-      href=${sessionHref(context, row)}
-      @click=${(event: MouseEvent) => navigateToSession(event, context, row)}
+      href=${target.href}
+      @click=${(event: MouseEvent) => {
+        if (shouldHandleNavigationClick(event)) {
+          event.preventDefault();
+          context.navigate(face, target.options);
+        }
+      }}
     >
       <span class="activity-feed__session-avatar">
         ${row.hasActiveRun === true
@@ -450,36 +452,38 @@ export function renderSessionActivityView(props: SessionActivityViewProps) {
             }}
           />
         </label>
-        <div
-          class="settings-segmented activity-feed__time-filter"
-          role="group"
-          aria-label=${t("activityFeed.time")}
-        >
-          ${ACTIVITY_TIME_FILTERS.map(
-            (time) => html`<button
-              type="button"
-              class="settings-segmented__btn ${props.filters.time === time
-                ? "settings-segmented__btn--active"
-                : ""}"
-              data-compact-label=${time === "all" ? t(TIME_LABELS[time]) : time}
-              aria-label=${t(TIME_LABELS[time])}
-              aria-pressed=${String(props.filters.time === time)}
-              @click=${() => props.onFiltersChange({ ...props.filters, time })}
-            >
-              ${t(TIME_LABELS[time])}
-            </button>`,
-          )}
-        </div>
+        ${renderSettingsSegmented({
+          mode: "buttons",
+          className: "activity-feed__time-filter",
+          value: props.filters.time,
+          ariaLabel: t("activityFeed.time"),
+          options: ACTIVITY_TIME_FILTERS.map((time) => ({
+            value: time,
+            label: t(TIME_LABELS[time]),
+            ariaLabel: t(TIME_LABELS[time]),
+            compactLabel: time === "all" ? t(TIME_LABELS[time]) : time,
+          })),
+          onChange: (time) => props.onFiltersChange({ ...props.filters, time }),
+          onReselect: (time) => props.onFiltersChange({ ...props.filters, time }),
+        })}
         ${renderPeopleControl(props, people, selectedPerson, projection.timeCount)}
       </div>
-      <div class="activity-feed__main">
-        ${props.loading ? html`<p role="status">${t("common.loading")}</p>` : nothing}
-        ${props.error
-          ? html`<p role="alert">
-              ${props.error}
-              <button class="btn" @click=${props.onRetry}>${t("common.retry")}</button>
-            </p>`
+      <div class="activity-feed__feedback">
+        <span role=${props.error ? "alert" : "status"} title=${props.error ?? nothing}>
+          ${props.error ??
+          (props.retrying
+            ? t("common.refreshing")
+            : props.loading && !props.result
+              ? t("common.loading")
+              : nothing)}
+        </span>
+        ${props.error || props.retrying
+          ? html`<button class="btn btn--sm" ?disabled=${props.loading} @click=${props.onRetry}>
+              ${t("common.retry")}
+            </button>`
           : nothing}
+      </div>
+      <div class="activity-feed__main">
         ${props.result?.peopleIncomplete
           ? html`<p role="status">${t("activityFeed.partialHistory")}</p>`
           : nothing}
