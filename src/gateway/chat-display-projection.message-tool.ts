@@ -2,6 +2,7 @@ import { safeParseJsonRecord } from "@astroclaw/normalization-core";
 import { asPositiveSafeInteger } from "@astroclaw/normalization-core/number-coercion";
 import { asOptionalRecord as readRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { readAssistantDisplayContent } from "../shared/assistant-display-content.js";
 import { isOpenClawDeliveryMirrorAssistantMessage } from "../shared/transcript-only-openclaw-assistant.js";
 import {
   extractAssistantTextForSilentCheck,
@@ -368,9 +369,9 @@ function buildMessageToolVisibleReplyMirror(
   const deliveryMirror = [pending.deliveryMirrorAnchor, pending.completionAnchor].find((message) =>
     isOpenClawDeliveryMirrorAssistantMessage(message),
   );
-  const content = Array.isArray(deliveryMirror?.content)
-    ? deliveryMirror.content
-    : [{ type: "text", text: pending.text }];
+  const displayContent = readAssistantDisplayContent(deliveryMirror);
+  const content =
+    displayContent.length > 0 ? displayContent : [{ type: "text", text: pending.text }];
   const mirror: Record<string, unknown> = {
     role: "assistant",
     content,
@@ -503,7 +504,11 @@ export function mirrorMessageToolVisibleReplies(messages: unknown[]): unknown[] 
           succeeded: false,
         });
       }
-    } else if (deliveryMirrorText === undefined && isRenderableAssistantDisplayMessage(record)) {
+    } else if (
+      pending.length > 0 &&
+      deliveryMirrorText === undefined &&
+      isRenderableAssistantDisplayMessage(record)
+    ) {
       clearPending();
     }
 
