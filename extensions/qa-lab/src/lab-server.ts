@@ -1,13 +1,14 @@
 // Qa Lab plugin module implements lab server behavior.
+import { once } from "node:events";
 import fs from "node:fs";
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage } from "node:http";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   acquireDebugProxyCaptureStore,
   resolveDebugProxySettings,
-} from "openclaw/plugin-sdk/proxy-capture";
+} from "astroclaw/plugin-sdk/proxy-capture";
 import {
   closeQaHttpServer,
   dispatchQaHttpRequest,
@@ -85,8 +86,12 @@ export type {
   QaLabServerStartParams,
 } from "./lab-server.types.js";
 
-function writeQaLabServerError(res: Parameters<typeof writeError>[0], error: unknown): void {
-  if (writeQaRequestBodyLimitError(res, error)) {
+async function writeQaLabServerError(
+  req: IncomingMessage,
+  res: Parameters<typeof writeError>[0],
+  error: unknown,
+): Promise<void> {
+  if (await writeQaRequestBodyLimitError(req, res, error)) {
     return;
   }
   if (isQaMalformedJsonBodyError(error)) {
@@ -255,7 +260,7 @@ function detectQaEvidenceArtifactContentType(filePath: string): string {
 }
 
 async function startQaGatewayLoop(params: { state: QaBusState; baseUrl: string }) {
-  const { qaChannelPlugin, setQaChannelRuntime } = await import("openclaw/plugin-sdk/qa-channel");
+  const { qaChannelPlugin, setQaChannelRuntime } = await import("astroclaw/plugin-sdk/qa-channel");
   const runtime = createQaRunnerRuntime();
   setQaChannelRuntime(runtime);
   const cfg = createQaLabConfig(params.baseUrl);
@@ -928,7 +933,7 @@ export async function startQaLabServer(
         }
         res.end(body);
       } catch (error) {
-        writeQaLabServerError(res, error);
+        await writeQaLabServerError(req, res, error);
       }
     });
   });
@@ -958,10 +963,7 @@ export async function startQaLabServer(
   };
 
   try {
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(params?.port ?? 0, params?.host ?? "127.0.0.1", () => resolve());
-    });
+    await once(server.listen(params?.port ?? 0, params?.host ?? "127.0.0.1"), "listening");
     serverListening = true;
     const address = server.address();
     if (!address || typeof address === "string") {
