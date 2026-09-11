@@ -1,6 +1,6 @@
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Discord tests cover audit plugin behavior.
 import { ChannelType } from "discord-api-types/v10";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   auditDiscordChannelPermissionsWithFetcher,
@@ -201,4 +201,39 @@ describe("discord audit", () => {
       expect(audit.channels[0]?.missing).toEqual(["Connect", "Speak", "ReadMessageHistory"]);
     },
   );
+
+  it.each([
+    ChannelType.GuildNewsThread,
+    ChannelType.GuildPublicThread,
+    ChannelType.GuildPrivateThread,
+  ])("requires thread send permission for thread audit targets of type %s", async (channelType) => {
+    const cfg = {
+      channels: {
+        discord: {
+          enabled: true,
+          token: "t",
+        },
+      },
+    } as unknown as OpenClawConfig;
+
+    fetchChannelPermissionsDiscordMock.mockResolvedValueOnce({
+      channelId: "333",
+      permissions: ["ViewChannel", "SendMessages"],
+      channelType,
+      raw: "0",
+      isDm: false,
+    });
+
+    const audit = await auditDiscordChannelPermissionsWithFetcher({
+      cfg,
+      token: "t",
+      accountId: "default",
+      channelIds: ["333"],
+      timeoutMs: 1000,
+      fetchChannelPermissions: fetchChannelPermissionsDiscordMock,
+    });
+
+    expect(audit.ok).toBe(false);
+    expect(audit.channels[0]?.missing).toEqual(["SendMessagesInThreads"]);
+  });
 });
