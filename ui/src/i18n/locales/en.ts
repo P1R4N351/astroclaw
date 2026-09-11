@@ -5001,6 +5001,9 @@ export const en: TranslationMap & {
     taskSuggestions: {
       eyebrow: "Suggested task · in {repo}",
       startSession: "Start in a new session",
+      startOptions: "Choose where to start the task",
+      startWorktree: "Start in a new worktree",
+      startCurrentSession: "Start in this session",
       copyPrompt: "Copy prompt",
       copyPromptFailed: "Couldn't copy the prompt to the clipboard",
       promptCopied: "Copied",
@@ -5341,6 +5344,9 @@ export const en: TranslationMap & {
       clearChip: "Clear",
       showDetails: "Show goal details",
       hideDetails: "Hide goal details",
+    },
+    asyncQuestions: {
+      sendFailed: "Could not send your answer. Your draft is preserved.",
     },
     questions: {
       other: "Type your own answer here",
