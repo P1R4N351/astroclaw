@@ -1,10 +1,10 @@
-import type { ChannelApprovalKind } from "openclaw/plugin-sdk/approval-handler-runtime";
+import type { ChannelApprovalKind } from "astroclaw/plugin-sdk/approval-handler-runtime";
 // Imessage tests cover approval native plugin behavior.
 import type {
   ExecApprovalRequest,
   PluginApprovalRequest,
-} from "openclaw/plugin-sdk/approval-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/approval-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import {
   imessageApprovalCapability,
@@ -221,6 +221,10 @@ function suppressLocalSessionPrompt(
 }
 
 describe("imessage approval capability", () => {
+  it("subscribes the native runtime to system-agent approval events", () => {
+    expect(imessageApprovalCapability.nativeRuntime?.eventKinds).toContain("system-agent");
+  });
+
   it("disables native approvals when no top-level approvals config is set", () => {
     const cfg = buildConfig();
     const execRequest = buildExecRequest(DIRECT_TARGET);
