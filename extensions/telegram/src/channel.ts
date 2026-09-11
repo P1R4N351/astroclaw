@@ -1,42 +1,46 @@
 // Telegram plugin module implements channel behavior.
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
 import {
   buildDmGroupAccountAllowlistAdapter,
   createNestedAllowlistOverrideResolver,
-} from "astroclaw/plugin-sdk/allowlist-config-edit";
-import { clearAccountFieldsFromConfigSection } from "astroclaw/plugin-sdk/channel-config-helpers";
+} from "openclaw/plugin-sdk/allowlist-config-edit";
+import { clearAccountFieldsFromConfigSection } from "openclaw/plugin-sdk/channel-config-helpers";
 import {
   buildChannelOutboundSessionRoute,
   buildThreadAwareOutboundSessionRoute,
   createChatChannelPlugin,
-} from "astroclaw/plugin-sdk/channel-core";
+} from "openclaw/plugin-sdk/channel-core";
 import {
   createAccountStatusSink,
   createChannelMessageAdapterFromOutbound,
   resolveOutboundSendDep,
   type OutboundSendDeps,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
 import {
   PAIRING_APPROVED_MESSAGE,
   buildTokenChannelStatusSummary,
   projectCredentialSnapshotFields,
-  resolveConfiguredFromCredentialStatuses,
-} from "astroclaw/plugin-sdk/channel-status";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createChannelDirectoryAdapter } from "astroclaw/plugin-sdk/directory-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { channelBlockedPatch } from "astroclaw/plugin-sdk/gateway-runtime";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { resolveAgentRoute, type RoutePeer } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/channel-status";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createChannelDirectoryAdapter } from "openclaw/plugin-sdk/directory-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { channelBlockedPatch } from "openclaw/plugin-sdk/gateway-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { resolveAgentRoute, type RoutePeer } from "openclaw/plugin-sdk/routing";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import {
+  findTelegramTokenOwnerAccountId,
+  formatDuplicateTelegramTokenReason,
+  inspectTelegramAccount,
+} from "./account-inspect.js";
 import {
   mergeTelegramAccountConfig,
   resolveDefaultTelegramAccountId,
@@ -55,12 +59,7 @@ import {
 import type { TelegramBotInfo } from "./bot-info.js";
 import { buildTelegramRoutingTarget, type TelegramThreadSpec } from "./bot/helpers.js";
 import { telegramMessageActions } from "./channel-actions.js";
-import {
-  findTelegramTokenOwnerAccountId,
-  formatDuplicateTelegramTokenReason,
-  resolveTelegramConfigAccessorAccount,
-  telegramConfigAdapter,
-} from "./config-adapter.js";
+import { resolveTelegramConfigAccessorAccount, telegramConfigAdapter } from "./config-adapter.js";
 import { inspectTelegramConversationRouteOwner } from "./conversation-route-owner.js";
 import { resolveTelegramConversationBaseSessionKey } from "./conversation-route.js";
 import {
@@ -814,7 +813,7 @@ export const telegramPlugin = createChatChannelPlugin({
           return {
             text_markup: "markdown_telegram_rich",
             rules: [
-              "Telegram rich ON (Bot API 10.2 blocks; OpenClaw maps markdown + these HTML islands to typed blocks).",
+              "Telegram rich ON (Bot API 10.3 blocks; OpenClaw maps markdown + these HTML islands to typed blocks).",
               'Supported: headings, tables (markdown, or `<table>` HTML for caption/colspan/rowspan/align), block/pull quotes (`<aside>` + `<cite>`), `<details><summary>` (+`open`), dividers `<hr/>`, sup/sub/mark/spoilers, `<ul>`/`<ol>` + `<input type="checkbox" checked/>` tasks, code, anchors `<a name="x"></a>` + `<a href="#x">label</a>`, custom emoji `<tg-emoji emoji-id="...">`, maps `<tg-map lat="" long="" zoom=""/>`, collages/slideshows `<tg-collage>`/`<tg-slideshow>`, block media e.g. `<img src="https://..."/>` (+`<figure>`/`<figcaption>`).',
               "Math: `<tg-math>` inline, `<tg-math-block>` block; never `$...$`/`\\(...\\)`.",
               "Not MarkdownV2/parse_mode.",
@@ -998,38 +997,18 @@ export const telegramPlugin = createChatChannelPlugin({
         return { ...audit, unresolvedGroups, hasWildcardUnmentionedGroups };
       },
       resolveAccountSnapshot: ({ account, cfg, runtime, audit }) => {
-        const configuredFromStatus = resolveConfiguredFromCredentialStatuses(account);
-        const ownerAccountId = findTelegramTokenOwnerAccountId({
-          cfg,
-          accountId: account.accountId,
-        });
-        const duplicateTokenReason = ownerAccountId
-          ? formatDuplicateTelegramTokenReason({
-              accountId: account.accountId,
-              ownerAccountId,
-            })
-          : null;
-        const configured =
-          (configuredFromStatus ?? Boolean(account.token?.trim())) && !ownerAccountId;
-        const groups =
-          cfg.channels?.telegram?.accounts?.[account.accountId]?.groups ??
-          cfg.channels?.telegram?.groups;
-        const allowUnmentionedGroups =
-          groups?.["*"]?.requireMention === false ||
-          Object.entries(groups ?? {}).some(
-            ([key, value]) => key !== "*" && value?.requireMention === false,
-          );
+        const inspected = inspectTelegramAccount({ cfg, accountId: account.accountId });
         return {
           accountId: account.accountId,
           name: account.name,
           enabled: account.enabled,
-          configured,
+          configured: inspected.configured,
           extra: {
             ...projectCredentialSnapshotFields(account),
-            lastError: runtime?.lastError ?? duplicateTokenReason,
-            mode: runtime?.mode ?? (account.config.webhookUrl ? "webhook" : "polling"),
+            lastError: runtime?.lastError ?? inspected.stateReason ?? null,
+            mode: runtime?.mode ?? inspected.mode,
             audit,
-            allowUnmentionedGroups,
+            allowUnmentionedGroups: inspected.allowUnmentionedGroups,
           },
         };
       },
