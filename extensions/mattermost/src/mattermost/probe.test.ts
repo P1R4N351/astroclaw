@@ -1,5 +1,5 @@
 // Mattermost tests cover probe plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { probeMattermost } from "./probe.js";
 
@@ -8,8 +8,8 @@ const { mockFetchGuard, mockRelease } = vi.hoisted(() => ({
   mockRelease: vi.fn(async () => {}),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
-  const original = (await vi.importActual("openclaw/plugin-sdk/ssrf-runtime")) as Record<
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async () => {
+  const original = (await vi.importActual("astroclaw/plugin-sdk/ssrf-runtime")) as Record<
     string,
     unknown
   >;
@@ -154,6 +154,29 @@ describe("probeMattermost", () => {
       error: "invalid auth token",
     });
     expect(elapsedMs).toBeGreaterThanOrEqual(0);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a string diagnostic without a reflected active credential in an object message", async () => {
+    mockFetchGuard.mockImplementationOnce(async ({ init }: { init: RequestInit }) => {
+      const authorization = new Headers(init.headers).get("Authorization");
+      expect(authorization).toBe("Bearer abcdefghijklmnopqrstuvwxyz");
+      return {
+        response: new Response(
+          JSON.stringify({ message: { context: "retry later", echoed: authorization?.slice(7) } }),
+          { status: 503, headers: { "content-type": "application/json" } },
+        ),
+        release: mockRelease,
+      };
+    });
+
+    const result = await probeMattermost("https://mm.example.com", "abcdefghijklmnopqrstuvwxyz");
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 503,
+      error: '{"message":{"context":"retry later","echoed":"***"}}',
+    });
     expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
