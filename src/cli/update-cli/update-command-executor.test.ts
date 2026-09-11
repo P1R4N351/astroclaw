@@ -8,7 +8,7 @@ import { afterEach, assert, beforeEach, describe, expect, it, vi } from "vitest"
 import { createDeferred } from "../../../test/helpers/promise.js";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
 import { resolveServiceManagerEnv } from "../../daemon/service-process-env.js";
-import * as tempRoot from "../../infra/tmp-astroclaw-dir.js";
+import * as tempRoot from "../../infra/tmp-openclaw-dir.js";
 import { CONTROL_PLANE_UPDATE_SENTINEL_META_ENV } from "../../infra/update-control-plane-sentinel.js";
 import { captureManagedUpdateLeaseDatabaseIdentity } from "../../infra/update-managed-service-handoff-database.js";
 import { createManagedHandoffLeaseStore } from "../../infra/update-managed-service-handoff-lease.js";
@@ -35,7 +35,7 @@ beforeEach(() => {
   fs.mkdirSync(temporary, { mode: 0o700 });
   // Select only the private database location; the lease, process-start checks,
   // and exact-row comparisons are the production owner.
-  vi.spyOn(tempRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(temporary);
+  vi.spyOn(tempRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(temporary);
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -450,9 +450,9 @@ describe("candidate executor delegation", () => {
       });
       if (revoked) {
         await expect(work).rejects.toThrow(/ownership|release/);
-        // The shipped worker owns the activated generation; the parent still
-        // refuses completion if its independent recovery owner was replaced.
-        expect(fs.existsSync(output)).toBe(revoked === "original");
+        // The current receiver also retains the original recovery owner after
+        // activation: changing either owner must refuse the child effect.
+        expect(fs.existsSync(output)).toBe(false);
         expect(
           createManagedHandoffLeaseStore().read(revoked === "original" ? root : candidateRoot),
         ).toMatchObject({
