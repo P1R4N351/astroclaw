@@ -5,7 +5,8 @@ import net, { type Socket } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import tls from "node:tls";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createTempDirTracker } from "../../../test/helpers/temp-dir.js";
 import { generateLocalProxyLeaf } from "../../proxy-capture/ca.js";
 import {
   mintSecretSentinel,
@@ -30,6 +31,8 @@ const servers: Server[] = [];
 const proxies: SecretEgressProxyHandle[] = [];
 const sockets = new Set<Socket>();
 const tempDirs: string[] = [];
+const seedDirs = createTempDirTracker();
+let seed: { dir: string; leaf: Awaited<ReturnType<typeof generateLocalProxyLeaf>> } | undefined;
 let caDir: string;
 let auditEvents: SecretEgressProxyAuditEvent[];
 let originRequests: OriginRequest[];
@@ -51,6 +54,12 @@ function registerSentinel(params: {
       allowedHosts: params.allowedHosts,
     },
   ]);
+}
+
+function copyInitialCa(sourceDir: string, targetDir: string): void {
+  for (const file of ["root-ca.pem", "root-ca-key.pem", "leaf-key.pem"]) {
+    fs.copyFileSync(path.join(sourceDir, file), path.join(targetDir, file));
+  }
 }
 
 async function listen(server: Server): Promise<number> {
@@ -182,6 +191,7 @@ async function forwardedRequest(
   auth?: string,
   protocol = "https",
   proxyOrigin = proxy.proxyOrigin,
+  requestTarget?: string,
 ): Promise<number> {
   const proxyUrl = new URL(proxyOrigin);
   return await new Promise<number>((resolve, reject) => {
@@ -189,7 +199,7 @@ async function forwardedRequest(
       {
         hostname: proxyUrl.hostname,
         port: proxyUrl.port,
-        path: `${protocol}://localhost:${originPort}/forwarded-auth`,
+        path: requestTarget ?? `${protocol}://localhost:${originPort}/forwarded-auth`,
         method: "GET",
         headers: auth ? { "Proxy-Authorization": auth } : undefined,
       },
@@ -214,16 +224,21 @@ beforeEach(async () => {
   originRequests = [];
   caDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-egress-proxy-test-"));
   tempDirs.push(caDir);
+  if (seed) {
+    copyInitialCa(seed.dir, caDir);
+  }
   proxy = await startSecretEgressProxyServer({
     caDir,
     onAudit: (event) => auditEvents.push(event),
   });
   proxies.push(proxy);
-  const leaf = await generateLocalProxyLeaf({
-    certDir: caDir,
-    ca: { certPath: proxy.caCertPath, keyPath: path.join(caDir, "root-ca-key.pem") },
-    hostname: "localhost",
-  });
+  const leaf = seed
+    ? { cert: Buffer.from(seed.leaf.cert), key: Buffer.from(seed.leaf.key) }
+    : await generateLocalProxyLeaf({
+        certDir: caDir,
+        ca: { certPath: proxy.caCertPath, keyPath: path.join(caDir, "root-ca-key.pem") },
+        hostname: "localhost",
+      });
   originPort = await listen(
     createHttpsServer(leaf, (request, response) => {
       const chunks: Buffer[] = [];
@@ -241,7 +256,20 @@ beforeEach(async () => {
   );
   run = Object.freeze({ instanceId: "instance-1", runId: "run-1" });
   proxyEnv = proxy.registerRun(run);
+  if (!seed) {
+    // Capture after cold setup succeeds, before a case can mutate its files.
+    const dir = seedDirs.make("openclaw-egress-proxy-seed-");
+    try {
+      copyInitialCa(caDir, dir);
+      seed = { dir, leaf: { cert: Buffer.from(leaf.cert), key: Buffer.from(leaf.key) } };
+    } catch (error) {
+      seedDirs.cleanup();
+      throw error;
+    }
+  }
 });
+
+afterAll(() => seedDirs.cleanup());
 
 afterEach(async () => {
   for (const socket of sockets) {
@@ -260,34 +288,36 @@ afterEach(async () => {
 });
 
 describe("secret egress proxy", () => {
+  it.each(["https://bad_host/", "https://[invalid]/"])(
+    "refuses malformed target %s on direct and TLS requests without escaping the handler",
+    async (target) => {
+      const auth = basicProxyAuth(registeredPassword(proxyEnv));
+      await expect(forwardedRequest(auth, "https", proxy.proxyOrigin, target)).resolves.toBe(400);
+      await expect(requestThroughTunnel({ path: target })).resolves.toMatchObject({ status: 400 });
+      expect(originRequests).toEqual([]);
+      expect(auditEvents).toEqual([
+        expect.objectContaining({ kind: "refused", substituted: false }),
+        expect.objectContaining({ kind: "refused", substituted: false }),
+      ]);
+      await expect(forwardedRequest(auth)).resolves.toBe(200);
+      expect(originRequests).toHaveLength(1);
+    },
+  );
+
   it("activates Node environment proxy support for registered Gateway runs", () => {
     expect(proxyEnv.NODE_USE_ENV_PROXY).toBe("1");
   });
 
   it("survives a client that resets a refused tunnel instead of crashing the Gateway", async () => {
-    // The proxy runs inside the Gateway process, so an unhandled socket 'error' would take
-    // the whole Gateway down. curl resets the connection after a 407, which is exactly this.
-    const proxyPort = Number(new URL(proxyEnv.HTTPS_PROXY as string).port);
-    const uncaught: Error[] = [];
-    const onUncaught = (error: Error) => uncaught.push(error);
-    process.on("uncaughtException", onUncaught);
-    try {
-      await new Promise<void>((resolve) => {
-        const socket = net.connect(proxyPort, "127.0.0.1", () => {
-          // No Proxy-Authorization: the proxy answers 407, then the peer resets abruptly.
-          socket.write("CONNECT example.test:443 HTTP/1.1\r\nHost: example.test:443\r\n\r\n");
-          setTimeout(() => {
-            socket.resetAndDestroy();
-            setTimeout(resolve, 150);
-          }, 50);
-        });
-        socket.on("error", () => {});
-      });
-    } finally {
-      process.off("uncaughtException", onUncaught);
-    }
+    // curl resets refused CONNECT tunnels; wait for the refusal before resetting.
+    const refused = await rawConnect({});
+    expect(refused.response).toContain("407 Proxy Authentication Required");
+    const closed = new Promise<void>((resolve) => {
+      refused.socket.once("close", () => resolve());
+    });
+    refused.socket.resetAndDestroy();
+    await closed;
 
-    expect(uncaught).toEqual([]);
     // The listener must still serve traffic after the reset.
     const stillAlive = await rawConnect({ auth: basicProxyAuth(registeredPassword(proxyEnv)) });
     expect(stillAlive.response).toContain("200 Connection Established");
