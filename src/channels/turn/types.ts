@@ -20,8 +20,8 @@ import type {
   SupplementalContextFacts,
 } from "../../auto-reply/templating.js";
 import type { GroupKeyResolution } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { DmScope } from "../../config/types.base.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { OutboundPayloadDeliverySuppressionReason } from "../../infra/outbound/deliver-types.js";
 import type {
   DeliverOutboundPayloadsParams,
@@ -164,10 +164,11 @@ export type ChannelDeliveryInfo = ReplyDispatchRuntimeInfo;
 
 type ChannelCoreManagedDeliveryInfo = Omit<
   ChannelDeliveryInfo,
-  "bindPendingFinalDelivery" | "onPlatformSendDispatch"
+  "assertPlatformSendAuthorized" | "bindPendingFinalDelivery" | "onPlatformSendDispatch"
 >;
 
 type ChannelProviderOwnedDeliveryInfo = ChannelDeliveryInfo & {
+  assertPlatformSendAuthorized: () => void;
   onPlatformSendDispatch: () => Promise<void>;
 };
 
