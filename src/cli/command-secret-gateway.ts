@@ -10,7 +10,7 @@ import {
   copyConfigResolutionFactsExcept,
   resolveConfigSecretRef,
 } from "../config/resolution-facts.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { callGateway } from "../gateway/call.js";
 import { gatewaySecretInputPathCanWin } from "../gateway/credentials-secret-inputs.js";
@@ -509,6 +509,7 @@ async function callGatewaySecretsResolve(params: {
   allowedPaths?: ReadonlySet<string>;
   forcedActivePaths?: ReadonlySet<string>;
   optionalActivePaths?: ReadonlySet<string>;
+  timeoutMs?: number;
 }): Promise<GatewaySecretsResolveResult> {
   const request = {
     config: params.config,
@@ -523,7 +524,7 @@ async function callGatewaySecretsResolve(params: {
         ? { optionalActivePaths: [...params.optionalActivePaths] }
         : {}),
     },
-    timeoutMs: 30_000,
+    timeoutMs: params.timeoutMs ?? 30_000,
     clientName: GATEWAY_CLIENT_NAMES.CLI,
     mode: GATEWAY_CLIENT_MODES.CLI,
   };
@@ -859,6 +860,7 @@ export async function resolveCommandSecretRefsViaGateway(params: {
   optionalActivePaths?: ReadonlySet<string>;
   allowLocalExecSecretRefs?: boolean;
   scrubUnresolvedSecretRefs?: boolean;
+  gatewaySecretResolveTimeoutMs?: number;
 }): Promise<ResolveCommandSecretsResult> {
   const mode = normalizeCommandSecretResolutionMode(params.mode);
   const resolutionPolicy = resolveLocalResolutionPolicy({
@@ -921,6 +923,9 @@ export async function resolveCommandSecretRefsViaGateway(params: {
       allowedPaths: params.allowedPaths,
       forcedActivePaths: params.forcedActivePaths,
       optionalActivePaths: params.optionalActivePaths,
+      ...(params.gatewaySecretResolveTimeoutMs !== undefined
+        ? { timeoutMs: params.gatewaySecretResolveTimeoutMs }
+        : {}),
     });
   } catch (err) {
     let forcedActiveCompatFailure: Error | undefined;
@@ -986,7 +991,7 @@ export async function resolveCommandSecretRefsViaGateway(params: {
       );
     }
     throw new Error(
-      `${params.commandName}: failed to resolve secrets from the active gateway snapshot (${formatErrorMessage(err)}). Start the gateway and retry.`,
+      `${params.commandName}: failed to resolve secrets from the active gateway snapshot (${formatErrorMessage(err)}). Local resolution also failed. Check the configured secret sources and gateway access, then retry.`,
       { cause: err },
     );
   }
