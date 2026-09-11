@@ -37,20 +37,18 @@ type SessionMenuItemOptions = {
   disabled?: boolean;
   title?: string;
   keepOpen?: boolean;
-  stacked?: boolean;
+  environment?: boolean;
   onSelect: () => void;
 };
 
 export function renderSessionMenuItem(params: SessionMenuItemOptions, submitting: boolean) {
-  const description = params.stacked
-    ? [params.description, params.sub, ...(params.facts ?? [])].filter(Boolean).join(" · ")
-    : params.description;
+  const description = params.description;
   return html`
     <button
       type="button"
       class="session-menu__item ${description
         ? "session-menu__item--described"
-        : ""} ${params.stacked ? "new-session-page__environment-option" : ""}"
+        : ""} ${params.environment ? "new-session-page__environment-option" : ""}"
       data-value=${params.value}
       data-popover=${params.keepOpen ? nothing : "close"}
       aria-pressed=${String(params.checked)}
@@ -64,10 +62,12 @@ export function renderSessionMenuItem(params: SessionMenuItemOptions, submitting
       <span class="session-menu__text">
         ${params.label}
         ${description
-          ? html`<span class="session-menu__description">${description}</span>`
+          ? html`<span class="session-menu__description"
+              >${params.environment ? " · " : nothing}${description}</span
+            >`
           : nothing}
       </span>
-      ${!params.stacked && (params.facts?.length || params.meter)
+      ${params.facts?.length || params.meter
         ? html`<span class="new-session-page__menu-meta">
             ${params.facts?.length
               ? html`<span class="new-session-page__menu-facts">
@@ -79,10 +79,7 @@ export function renderSessionMenuItem(params: SessionMenuItemOptions, submitting
             ${params.meter ?? nothing}
           </span>`
         : nothing}
-      ${!params.stacked && params.sub
-        ? html`<span class="session-menu__sub">${params.sub}</span>`
-        : nothing}
-      ${params.stacked ? (params.meter ?? nothing) : nothing}
+      ${params.sub ? html`<span class="session-menu__sub">${params.sub}</span>` : nothing}
       <span class="session-menu__check" aria-hidden="true"
         >${params.checked ? icons.check : nothing}</span
       >
@@ -115,19 +112,24 @@ export function renderCloudProfileMenuItems(params: {
   disabled?: boolean;
   disabledReason?: string;
   profileDisabledReason?: (profile: DraftCloudProfile) => string | undefined;
-  stacked?: boolean;
+  environment?: boolean;
   onSelect: (profileId: string) => void;
 }) {
   return params.profiles.map((profile) => {
     const profileDisabledReason = params.profileDisabledReason?.(profile);
+    const disabledReason = params.disabled ? params.disabledReason : profileDisabledReason;
     return renderSessionMenuItem(
       {
         value: `cloud:${profile.id}`,
-        label: t("newSession.cloudWorker", { profile: profile.id }),
+        label: params.environment
+          ? profile.id
+          : t("newSession.cloudWorker", { profile: profile.id }),
         icon: params.icon,
-        stacked: params.stacked,
-        facts:
-          profile.trust === "disposable"
+        environment: params.environment,
+        description: params.environment ? disabledReason : undefined,
+        facts: params.environment
+          ? undefined
+          : profile.trust === "disposable"
             ? [t("newSession.environmentDisposable")]
             : profile.trust === "persistent"
               ? [t("newSession.environmentPersistent")]
@@ -135,8 +137,7 @@ export function renderCloudProfileMenuItems(params: {
         checked: params.selectedId === profile.id,
         disabled: params.disabled || Boolean(profileDisabledReason),
         title:
-          (params.disabled ? params.disabledReason : profileDisabledReason) ??
-          t("newSession.cloudWorkerProvider", { provider: profile.providerId }),
+          disabledReason ?? t("newSession.cloudWorkerProvider", { provider: profile.providerId }),
         onSelect: () => params.onSelect(profile.id),
       },
       params.submitting,
