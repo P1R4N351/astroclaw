@@ -148,12 +148,12 @@ vi.mock("./actions.runtime.js", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/approval-gateway-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/approval-gateway-runtime", () => ({
   resolveApprovalOverGateway: approvalGatewayMock.resolveApprovalOverGateway,
 }));
-vi.mock("openclaw/plugin-sdk/error-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/error-runtime")>(
-    "openclaw/plugin-sdk/error-runtime",
+vi.mock("astroclaw/plugin-sdk/error-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/error-runtime")>(
+    "astroclaw/plugin-sdk/error-runtime",
   );
   return {
     ...actual,
@@ -457,6 +457,13 @@ describe("imessageApprovalNativeRuntime", () => {
           messageId: PROMPT_GUID,
           ...(poll ? { poll } : {}),
         },
+        request: {
+          id: "approval-1",
+          request: { command: "echo hi" },
+          createdAtMs: 0,
+          expiresAtMs: 60_000,
+        },
+        approvalKind: "exec",
         payload: { text },
         phase: "resolved",
       });
