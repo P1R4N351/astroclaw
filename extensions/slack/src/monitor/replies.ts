@@ -513,13 +513,7 @@ export async function deliverSlackSlashReplies(params: {
       messages.push(
         hasSlackNativeDataBlock(segment.blocks) || blockPlan.skipOriginalBlocks
           ? blockPlan
-          : {
-              message: {
-                text: accessibilityText,
-                blocks: segment.blocks,
-                mrkdwn: false,
-              },
-            },
+          : { message: blockPlan.message },
       );
     }
     if (outsideText) {
