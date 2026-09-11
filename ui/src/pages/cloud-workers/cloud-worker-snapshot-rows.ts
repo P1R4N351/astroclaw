@@ -220,8 +220,7 @@ export function renderSnapshotImage(image: SnapshotImage, options: SnapshotRowOp
 
 export function renderSnapshotBuildRow(
   environment: EnvironmentSummary,
-  cancelling: boolean,
-  onCancel?: () => void,
+  options: { busy: boolean; onCancel?: () => void; onDismiss?: () => void },
 ) {
   const worker = environment.worker;
   if (!worker) {
@@ -240,9 +239,24 @@ export function renderSnapshotBuildRow(
     ${failed && worker.error
       ? html`<div class="callout warning" role="alert">${worker.error}</div>`
       : nothing}`,
-    control:
-      onCancel && !failed
-        ? html`<button class="btn btn--sm" type="button" ?disabled=${cancelling} @click=${onCancel}>
+    control: failed
+      ? options.onDismiss
+        ? html`<button
+            class="btn btn--sm"
+            type="button"
+            ?disabled=${options.busy}
+            @click=${options.onDismiss}
+          >
+            ${t("cloudWorkersPage.snapshots.dismiss")}
+          </button>`
+        : nothing
+      : options.onCancel
+        ? html`<button
+            class="btn btn--sm"
+            type="button"
+            ?disabled=${options.busy}
+            @click=${options.onCancel}
+          >
             ${t("common.cancel")}
           </button>`
         : nothing,
