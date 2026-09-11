@@ -5,7 +5,6 @@ import { truncateUtf16Safe } from "../../packages/normalization-core/src/utf16-s
 import { retryClawHubRead } from "../../src/infra/clawhub-retry.js";
 import { runTasksWithConcurrency } from "../../src/utils/run-with-concurrency.js";
 import { readBoundedResponseText } from "./bounded-response.mjs";
-import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
 import {
   assertPluginReleaseDependencyFreshness,
   collectChangedPathsFromGitRange,
@@ -27,7 +26,6 @@ import {
 import {
   collectPublishablePluginPackagesFromCandidates,
   type PluginPackageJson,
-  type PluginPackageMetadataBlock,
   type PublishablePluginPackage,
 } from "./plugin-publication-collector.ts";
 
@@ -45,6 +43,7 @@ type PluginReleasePlanItem = PublishablePluginPackage & {
 
 type PluginReleasePlan = {
   all: PluginReleasePlanItem[];
+  warnings: string[];
   candidates: PluginReleasePlanItem[];
   bootstrapCandidates: PluginReleasePlanItem[];
   missingTrustedPublisher: PluginReleasePlanItem[];
@@ -84,10 +83,16 @@ const OPENCLAW_PLUGIN_CLAWHUB_WORKFLOW_FILENAME = "plugin-clawhub-release.yml";
 const CLAWHUB_RELEASE_AUTHORITY_PATHS = [
   ".github/workflows/plugin-clawhub-release.yml",
   ".github/actions/setup-node-env",
+  "scripts/lib/bounded-command.mjs",
+  "scripts/lib/bounded-command.mts",
+  "scripts/lib/managed-child-process.mts",
+  "scripts/lib/vitest-resource-ownership.mts",
+  "scripts/lib/tsx-cli-shim.mjs",
   "scripts/lib/bounded-response.mjs",
   "scripts/lib/plugin-npm-release.ts",
   "scripts/lib/plugin-clawhub-release.ts",
   "scripts/openclaw-npm-release-check.ts",
+  "scripts/clawhub-prepared-artifact.mjs",
   "scripts/plugin-clawhub-publish.sh",
   "scripts/plugin-clawhub-release-check.ts",
   "scripts/plugin-clawhub-release-plan.ts",
@@ -365,10 +370,7 @@ export function collectClawHubVersionGateErrors(params: {
       ref: params.gitRange.baseRef,
       packageDir: plugin.packageDir,
     });
-    if (
-      pluginPackageMetadata<PluginPackageMetadataBlock>(baseManifest)?.release?.publishToClawHub !==
-      true
-    ) {
+    if (baseManifest?.openclaw?.release?.publishToClawHub !== true) {
       continue;
     }
     const baseVersion =
@@ -557,7 +559,7 @@ export async function collectPluginClawHubReleasePlan(params?: {
   if (explicitPublishSelection) {
     assertPluginReleaseVersionFloors(selectedPublishable, "Plugin ClawHub release plan");
   }
-  assertPluginReleaseDependencyFreshness(
+  const warnings = assertPluginReleaseDependencyFreshness(
     selectedPublishable,
     "Plugin ClawHub release plan",
     params?.resolveLatestVersion,
@@ -604,6 +606,7 @@ export async function collectPluginClawHubReleasePlan(params?: {
 
   return {
     all,
+    warnings,
     candidates: planned
       .filter(
         (plugin) => plugin.packageExists && plugin.hasTrustedPublisher && !plugin.alreadyPublished,
