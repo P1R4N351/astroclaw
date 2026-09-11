@@ -1,4 +1,8 @@
-import type { EnvironmentSummary, WorkerDesktopAppId } from "@astroclaw/gateway-protocol";
+import type {
+  DesktopAvailability,
+  EnvironmentSummary,
+  WorkerDesktopAppId,
+} from "@astroclaw/gateway-protocol";
 import { html, nothing, type TemplateResult } from "lit";
 import { t } from "../../i18n/index.ts";
 import { registerDesktopEnglish } from "../../i18n/locales/en-desktop.ts";
@@ -272,10 +276,20 @@ export function renderDesktopConnection(options: {
 export function renderDesktopNotice(
   errorText: string | null,
   noticeText: string | null,
+  availability?: DesktopAvailability,
 ): TemplateResult | typeof nothing {
-  return errorText
+  const notice = errorText
     ? html`<div class="desktop-note desktop-note--error" role="alert">${errorText}</div>`
     : noticeText
       ? html`<div class="desktop-note" role="status">${noticeText}</div>`
       : nothing;
+  const availabilityText =
+    availability?.state === "locked"
+      ? t("desktop.macLocked")
+      : availability?.state === "unknown"
+        ? t("desktop.macLockStateUnknown")
+        : null;
+  return html`${notice}${availabilityText
+    ? html`<div class="desktop-note" role="status">${availabilityText}</div>`
+    : nothing}`;
 }
