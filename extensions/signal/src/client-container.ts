@@ -6,23 +6,23 @@
  * to keep the two modes cleanly isolated.
  */
 
-import { coerceErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
-import { resolveFetch } from "openclaw/plugin-sdk/fetch-runtime";
+import { coerceErrorMessage, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveFetch } from "astroclaw/plugin-sdk/fetch-runtime";
 import {
   detectMime,
   extractOriginalFilename,
   parseMediaContentLength,
-} from "openclaw/plugin-sdk/media-runtime";
+} from "astroclaw/plugin-sdk/media-runtime";
 import {
   parseStrictNonNegativeInteger,
   resolveTimerTimeoutMs,
-} from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/number-runtime";
 import {
   readResponseTextPrefix,
   readResponseWithLimit,
-} from "openclaw/plugin-sdk/response-limit-runtime";
-import { readRegularFile } from "openclaw/plugin-sdk/security-runtime";
-import WebSocket from "ws";
+} from "astroclaw/plugin-sdk/response-limit-runtime";
+import { readRegularFile } from "astroclaw/plugin-sdk/security-runtime";
+import { WebSocket } from "./ws-runtime.js";
 
 type ContainerRpcOptions = {
   baseUrl: string;
@@ -176,7 +176,7 @@ async function readSignalRestText(
     onTimeout: signalRestRequestTimeoutError,
     onOverflow: ({ maxBytes }) => new Error(`Signal REST: text response exceeds ${maxBytes} bytes`),
   });
-  return new TextDecoder().decode(bytes);
+  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 }
 
 async function readSignalRestErrorText(
