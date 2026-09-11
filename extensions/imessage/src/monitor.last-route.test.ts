@@ -3,23 +3,23 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
-import * as channelInbound from "openclaw/plugin-sdk/channel-inbound";
-import { createTestInboundDebounceFlush } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
+import * as channelInbound from "astroclaw/plugin-sdk/channel-inbound";
+import { createTestInboundDebounceFlush } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   recordInboundSession,
   type ensureConfiguredBindingRouteReady,
-} from "openclaw/plugin-sdk/conversation-runtime";
+} from "astroclaw/plugin-sdk/conversation-runtime";
 import {
   createTestRegistry,
   resetPluginRuntimeStateForTest,
   setActivePluginRegistry,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { dispatchReplyWithBufferedBlockDispatcher } from "openclaw/plugin-sdk/reply-runtime";
-import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
-import type { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { dispatchReplyWithBufferedBlockDispatcher } from "astroclaw/plugin-sdk/reply-runtime";
+import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import type { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { createIMessageRpcClient } from "./client.js";
 import {
@@ -218,12 +218,12 @@ const createChannelInboundDebouncerMock = vi.hoisted(() =>
   ),
 );
 
-vi.mock("openclaw/plugin-sdk/transport-ready-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/transport-ready-runtime", () => ({
   waitForTransportReady: waitForTransportReadyMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-runtime")>();
   return {
     ...actual,
     ensureConfiguredBindingRouteReady: ensureConfiguredBindingRouteReadyMock,
@@ -232,8 +232,8 @@ vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
   return {
     ...actual,
     createChannelInboundDebouncer: createChannelInboundDebouncerMock,
@@ -390,7 +390,7 @@ describe("iMessage monitor last-route updates", () => {
       expectedService: "auto",
     },
   ] as const)(
-    "preserves the inbound direct service through early typing, final delivery, and last-route ($label)",
+    "preserves the inbound direct route through early typing, exact-chat final delivery, and last-route ($label)",
     async ({ label, configuredService, chatGuid, expectedService }) => {
       setAvailablePrivateApiMethods(["watch.subscribe", "send", "typing", "read"]);
       const stateDir = createTestStateDir(
@@ -434,7 +434,7 @@ describe("iMessage monitor last-route updates", () => {
           expect.any(Object),
         );
       });
-      const expectedReadTarget = chatGuid ? { chat_guid: chatGuid } : { to: DEFAULT_SENDER };
+      const expectedReadTarget = chatGuid ? { chat_guid: chatGuid } : { chat_id: 123 };
       expect(auxiliaryClient.request).toHaveBeenCalledWith(
         "read",
         expect.objectContaining(expectedReadTarget),
@@ -443,16 +443,15 @@ describe("iMessage monitor last-route updates", () => {
       expect(auxiliaryClient.request).toHaveBeenCalledWith(
         "send",
         expect.objectContaining({
-          service: expectedService,
+          chat_id: 123,
           text: "reply over the originating service",
-          to: DEFAULT_SENDER,
         }),
         expect.any(Object),
       );
       const dispatchParams = dispatchReplyWithBufferedBlockDispatcherMock.mock.calls.at(0)?.[0];
       expect(dispatchParams?.ctx).toMatchObject({
         From: `${expectedService}:${DEFAULT_SENDER}`,
-        To: `${expectedService}:${DEFAULT_SENDER}`,
+        To: "chat_id:123",
       });
       await vi.waitFor(() => {
         expect(
@@ -855,6 +854,7 @@ describe("iMessage monitor last-route updates", () => {
     setAvailablePrivateApiMethods(["watch.subscribe", "send", "typing"]);
     dispatchReplyWithBufferedBlockDispatcherMock.mockImplementationOnce(async (params) => {
       expect(params.replyOptions?.suppressDefaultToolProgressMessages).toBe(true);
+      expect(params.replyOptions?.allowToolLifecycleWhenProgressHidden).toBe(true);
       expect(params.replyOptions?.allowProgressCallbacksWhenSourceDeliverySuppressed).toBe(true);
       const onReplyStart =
         params.dispatcherOptions.onReplyStart ??
@@ -940,6 +940,7 @@ describe("iMessage monitor last-route updates", () => {
     setAvailablePrivateApiMethods(["watch.subscribe", "send", "read"]);
     dispatchReplyWithBufferedBlockDispatcherMock.mockImplementationOnce(async (params) => {
       expect(params.replyOptions?.suppressDefaultToolProgressMessages).toBe(true);
+      expect(params.replyOptions?.allowToolLifecycleWhenProgressHidden).toBe(true);
       expect(params.replyOptions?.allowProgressCallbacksWhenSourceDeliverySuppressed).toBe(true);
       expect(params.replyOptions?.onToolStart).toBeUndefined();
       const onToolResult = params.replyOptions?.onToolResult;
@@ -1089,7 +1090,7 @@ describe("iMessage monitor last-route updates", () => {
 
     expect(readClient.request).toHaveBeenCalledWith(
       "read",
-      expect.objectContaining({ to: "+15550001111" }),
+      expect.objectContaining({ chat_id: 123 }),
       expect.any(Object),
     );
     expect(watchClient.request).not.toHaveBeenCalledWith(
@@ -1693,7 +1694,7 @@ describe("iMessage monitor last-route updates", () => {
           expect(dispatchReplyWithBufferedBlockDispatcherMock).toHaveBeenCalledTimes(1);
         });
         const dispatchParams = dispatchReplyWithBufferedBlockDispatcherMock.mock.calls.at(0)?.[0];
-        expect(dispatchParams?.ctx.To).toBe("imessage:+15550000002");
+        expect(dispatchParams?.ctx.To).toBe("chat_id:42");
         expect(dispatchParams?.ctx.To).not.toBe("imessage:+15550000001");
       }
     });
