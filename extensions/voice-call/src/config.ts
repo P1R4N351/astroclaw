@@ -1,19 +1,19 @@
 // Voice Call helper module supports config behavior.
-import { mergeDeep } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "astroclaw/plugin-sdk/realtime-voice";
-import { normalizeAgentId, parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
+import { mergeDeep } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "openclaw/plugin-sdk/realtime-voice";
+import { normalizeAgentId, parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
 import {
   buildSecretInputSchema,
   hasConfiguredSecretInput,
   normalizeResolvedSecretInputString,
   type SecretInput,
-} from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/secret-input";
 import {
   canonicalizeMainSessionAlias,
   type SessionScope,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-import { resolveSpeechProviderApiKey } from "astroclaw/plugin-sdk/speech-core";
-import { normalizeWebhookPath } from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/session-store-runtime";
+import { resolveSpeechProviderApiKey } from "openclaw/plugin-sdk/speech-core";
+import { normalizeWebhookPath } from "openclaw/plugin-sdk/webhook-ingress";
 import { z } from "zod";
 import { TtsConfigSchema } from "../api.js";
 import { TWILIO_REGIONS } from "./providers/twilio-region.js";
@@ -475,7 +475,7 @@ export const VoiceCallConfigSchema = z
     /** Store path for call logs */
     store: z.string().optional(),
 
-    /** Agent ID to use for voice response generation. Defaults to "main". */
+    /** Response/session owner. Required when multiple agents have no legacy owner. */
     agentId: z.string().min(1).optional(),
 
     /** Optional model override for generating voice responses. */
