@@ -1,11 +1,11 @@
-import { ChannelType } from "discord-api-types/v10";
-import { normalizeAccountId } from "openclaw/plugin-sdk/account-resolution";
-import type { ActionGate } from "openclaw/plugin-sdk/channel-actions";
-import { readStringParam, withNormalizedTimestamp } from "openclaw/plugin-sdk/channel-actions";
-import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
-import type { DiscordActionConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeAccountId } from "astroclaw/plugin-sdk/account-resolution";
+import type { ActionGate } from "astroclaw/plugin-sdk/channel-actions";
+import { readStringParam, withNormalizedTimestamp } from "astroclaw/plugin-sdk/channel-actions";
+import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
+import type { DiscordActionConfig, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Discord plugin module implements runtime.messaging.shared behavior.
-import { resolveOpenProviderRuntimeGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";
+import { resolveOpenProviderRuntimeGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";
+import { ChannelType } from "discord-api-types/v10";
 import { mergeDiscordAccountConfig, resolveDefaultDiscordAccountId } from "../accounts.js";
 import { isDiscordThreadChannelType } from "../channel-type.js";
 import { createDiscordRuntimeAccountContext } from "../client.js";
@@ -17,7 +17,7 @@ import {
   type DiscordGuildEntryResolved,
 } from "../monitor/allow-list.js";
 import type { DiscordReactOpts } from "../send.types.js";
-import { discordMessagingActionRuntime } from "./runtime.messaging.runtime.js";
+import * as discordMessagingActionRuntime from "./runtime.messaging.runtime.js";
 import { createDiscordActionOptions } from "./runtime.shared.js";
 
 type ConversationReadInvocationOrigin = NonNullable<
