@@ -1,23 +1,16 @@
 import { html, nothing, type TemplateResult } from "lit";
-import { ref } from "lit/directives/ref.js";
 import type { SystemAgentSetupDetectResult } from "../../api/types.ts";
 import { subtitleForRoute, titleForRoute } from "../../app-navigation.ts";
 import { icons } from "../../components/icons.ts";
 import { renderLearnMoreLink } from "../../components/settings-ui.ts";
 import { renderSettingsWorkspace } from "../../components/settings-workspace.ts";
-import { syncDropdownItemRadio } from "../../components/web-awesome.ts";
 import { t } from "../../i18n/index.ts";
 import { formatUiExternalText } from "../../lib/format-error.ts";
 import "../../styles/model-setup.css";
 import { renderModelSetupFailure, renderConfiguredModel } from "./configured-model.ts";
 import { renderProviderIcon } from "./model-setup-icon-loader.ts";
 import { listModelSetupPrepareOptions, type ModelSetupPrepareOption } from "./prepare-options.ts";
-import {
-  focusSelectedManualProvider,
-  handleManualProviderKeydown,
-  handleManualProviderSelect,
-  type WebAwesomeSelectEvent,
-} from "./provider-picker.ts";
+import { manualProviderName, renderManualProviderPicker } from "./provider-picker.ts";
 import type {
   ModelSetupActivationState,
   ModelSetupPageState,
@@ -32,13 +25,12 @@ const MODEL_SETUP_DOCS_URL = "https://docs.openclaw.ai/concepts/model-providers"
 
 type Candidate = SystemAgentSetupDetectResult["candidates"][number];
 type AuthOption = NonNullable<SystemAgentSetupDetectResult["authOptions"]>[number];
-type ManualProvider = SystemAgentSetupDetectResult["manualProviders"][number];
 type ModelSetupViewProps = {
   page: ModelSetupPageState;
   activation: ModelSetupActivationState;
   verify: ModelSetupVerifyState;
   wizard: ModelSetupWizardState;
-  wizardMode: "auth" | "prepare";
+  wizardMode: "auth" | "prepare" | "activate";
   wizardValue: unknown;
   canAdmin: boolean;
   canVerify: boolean;
@@ -46,6 +38,7 @@ type ModelSetupViewProps = {
   modelConfigured?: boolean;
   gatewayTooOld: boolean;
   refreshWarning: string | null;
+  cancellationNotice?: string | null;
   activationUnresolved?: boolean;
   onUseCurrentModel?: () => void;
   actionsDisabled: boolean;
@@ -54,6 +47,8 @@ type ModelSetupViewProps = {
   manualError: string | null;
   moreSignInOpen: boolean;
   firstRun: boolean;
+  nativeSessionCatalogsEnabled?: boolean;
+  onNativeSessionCatalogsChange?: (enabled: boolean) => void;
   iconUrls: Readonly<Record<string, string>>;
   onDetect: () => void;
   onVerify: () => void;
@@ -75,25 +70,26 @@ type ModelSetupViewProps = {
 };
 
 function candidateStatus(candidate: Candidate): string {
-  if (candidate.recommended) {
-    return t("modelSetup.candidates.recommended");
-  }
-  if (candidate.credentials === true) {
-    return t("modelSetup.candidates.credentialsReady");
-  }
-  if (candidate.credentials === false) {
-    return t("modelSetup.candidates.signInNeeded");
-  }
-  return t("modelSetup.candidates.detected");
+  const status = candidate.kind.startsWith("saved-auth:")
+    ? "detected"
+    : candidate.recommended
+      ? "recommended"
+      : candidate.credentials === undefined
+        ? "detected"
+        : candidate.credentials
+          ? "credentialsReady"
+          : "signInNeeded";
+  return t(`modelSetup.candidates.${status}`);
 }
 
 function renderCandidateRows(props: ModelSetupViewProps, result: SystemAgentSetupDetectResult) {
-  // The current connection owns verification and recovery for the configured
-  // route, including provider-auto candidates returned by newer Gateways.
+  // Saved credentials can replace the current connection for the same model.
   const candidates = result.configuredModel
     ? result.candidates.filter(
         (candidate) =>
-          candidate.kind !== "existing-model" && candidate.modelRef !== result.configuredModel,
+          candidate.kind !== "existing-model" &&
+          (candidate.kind.startsWith("saved-auth:") ||
+            candidate.modelRef !== result.configuredModel),
       )
     : result.candidates;
   if (candidates.length === 0) {
@@ -105,46 +101,48 @@ function renderCandidateRows(props: ModelSetupViewProps, result: SystemAgentSetu
         <h2>${t("modelSetup.candidates.title")}</h2>
       </div>
       <div class="model-setup__rows">
-        ${candidates.map((candidate) => {
-          const testing =
-            props.activation.phase === "testing" &&
-            props.activation.targetId === activationTargetId(candidate.kind, candidate.modelRef);
-          const failure =
-            props.activation.phase === "failure" &&
-            props.activation.targetId === activationTargetId(candidate.kind, candidate.modelRef)
-              ? props.activation
-              : null;
-          return html`
-            <div class="model-setup__row" data-candidate-kind=${candidate.kind}>
-              <div class="model-setup__row-main">
-                <div class="model-setup__row-title">
-                  ${renderProviderIcon(props, candidate)}
-                  <strong>${candidate.label}</strong>
-                  <span class="model-setup__chip">${candidateStatus(candidate)}</span>
+        ${candidates
+          .toSorted((a, b) => a.label.localeCompare(b.label))
+          .map((candidate) => {
+            const testing =
+              props.activation.phase === "testing" &&
+              props.activation.targetId === activationTargetId(candidate.kind, candidate.modelRef);
+            const failure =
+              props.activation.phase === "failure" &&
+              props.activation.targetId === activationTargetId(candidate.kind, candidate.modelRef)
+                ? props.activation
+                : null;
+            return html`
+              <div class="model-setup__row" data-candidate-kind=${candidate.kind}>
+                <div class="model-setup__row-main">
+                  <div class="model-setup__row-title">
+                    ${renderProviderIcon(props, candidate)}
+                    <strong>${candidate.label}</strong>
+                    <span class="model-setup__chip">${candidateStatus(candidate)}</span>
+                  </div>
+                  <div class="muted">
+                    ${candidate.modelRef} · ${formatUiExternalText(candidate.detail)}
+                  </div>
                 </div>
-                <div class="muted">
-                  ${candidate.modelRef} · ${formatUiExternalText(candidate.detail)}
+                <div class="model-setup__row-actions">
+                  <button
+                    type="button"
+                    class=${`btn ${failure ? "" : "primary"}`}
+                    ?disabled=${props.actionsDisabled}
+                    @click=${() => props.onActivateCandidate(candidate)}
+                  >
+                    <span>
+                      ${testing
+                        ? t("modelSetup.candidates.testingButton")
+                        : failure
+                          ? t("modelSetup.candidates.retry")
+                          : t("modelSetup.candidates.testAndUse")}
+                    </span>
+                  </button>
                 </div>
               </div>
-              <div class="model-setup__row-actions">
-                <button
-                  type="button"
-                  class=${`btn ${failure ? "" : "primary"}`}
-                  ?disabled=${props.actionsDisabled}
-                  @click=${() => props.onActivateCandidate(candidate)}
-                >
-                  <span>
-                    ${testing
-                      ? t("modelSetup.candidates.testingButton")
-                      : failure
-                        ? t("modelSetup.candidates.retry")
-                        : t("modelSetup.candidates.testAndUse")}
-                  </span>
-                </button>
-              </div>
-            </div>
-          `;
-        })}
+            `;
+          })}
       </div>
     </section>
   `;
@@ -273,21 +271,25 @@ function renderAuthRow(props: ModelSetupViewProps, option: AuthOption) {
       >
         ${option.kind === "device-code"
           ? t("modelSetup.signIn.pair")
-          : t("modelSetup.signIn.signIn")}
+          : option.kind === "install"
+            ? t("modelSetup.signIn.install")
+            : option.kind === "custom"
+              ? t("modelSetup.signIn.custom")
+              : t("modelSetup.signIn.signIn")}
       </button>
     </div>
   `;
 }
 
 function renderSignIn(props: ModelSetupViewProps, result: SystemAgentSetupDetectResult) {
-  const options = (result.authOptions ?? []).toSorted(
-    (left, right) => Number(right.featured) - Number(left.featured),
-  );
+  const options = (result.authOptions ?? []).toSorted((a, b) => a.label.localeCompare(b.label));
   if (options.length === 0) {
     return nothing;
   }
-  const featured = options.filter((option) => option.featured);
-  const more = options.filter((option) => !option.featured);
+  const featured = options.filter(
+    (option) => option.featured || option.kind === "install" || option.kind === "custom",
+  );
+  const more = options.filter((option) => !featured.includes(option));
   return html`
     <section class="settings-section">
       <div class="settings-section__header">
@@ -349,93 +351,6 @@ function renderPrepare(props: ModelSetupViewProps, result: SystemAgentSetupDetec
         )}
       </div>
     </section>
-  `;
-}
-
-function manualProviderName(provider: ManualProvider): string {
-  return provider.groupLabel?.trim() || provider.label;
-}
-
-function manualProviderMethod(provider: ManualProvider): string | undefined {
-  const method = provider.label.trim();
-  return method === manualProviderName(provider) ? undefined : method;
-}
-
-function renderManualProviderPicker(
-  props: ModelSetupViewProps,
-  result: SystemAgentSetupDetectResult,
-  provider: ManualProvider | undefined,
-) {
-  const providerMethod = provider ? manualProviderMethod(provider) : undefined;
-  const triggerLabel = provider
-    ? [manualProviderName(provider), providerMethod].filter(Boolean).join(", ")
-    : t("modelSetup.manual.selectProvider");
-  return html`
-    <wa-dropdown
-      class="model-setup-provider-select"
-      placement="bottom-start"
-      aria-label=${t("modelSetup.manual.provider")}
-      @wa-select=${(event: WebAwesomeSelectEvent) =>
-        handleManualProviderSelect(event, props.manualProviderId, props.onManualProviderChange)}
-      @wa-after-show=${focusSelectedManualProvider}
-      @keydown=${handleManualProviderKeydown}
-    >
-      <button
-        slot="trigger"
-        type="button"
-        class="model-setup-provider-select__trigger"
-        aria-label=${`${t("modelSetup.manual.provider")}: ${triggerLabel}`}
-        ?disabled=${props.actionsDisabled || result.manualProviders.length === 0}
-      >
-        ${provider
-          ? renderProviderIcon(props, provider, "model-setup__icon--picker")
-          : html`<span class="model-setup-provider-select__placeholder-icon" aria-hidden="true">
-              ${icons.key}
-            </span>`}
-        <span class="model-setup-provider-select__copy">
-          <strong>
-            ${provider ? manualProviderName(provider) : t("modelSetup.manual.selectProvider")}
-          </strong>
-          ${provider
-            ? providerMethod
-              ? html`<span>${providerMethod}</span>`
-              : nothing
-            : html`<span>${t("modelSetup.manual.selectProviderHint")}</span>`}
-        </span>
-        <span class="model-setup-provider-select__chevron" aria-hidden="true">
-          ${icons.chevronDown}
-        </span>
-      </button>
-      ${result.manualProviders.map((entry) => {
-        const selected = entry.id === props.manualProviderId;
-        const entryMethod = manualProviderMethod(entry);
-        const accessibleLabel = [manualProviderName(entry), entryMethod, entry.hint]
-          .filter(Boolean)
-          .join(", ");
-        return html`
-          <wa-dropdown-item
-            class="model-setup-provider-select__option"
-            data-manual-provider=${entry.id}
-            ?data-selected=${selected}
-            aria-label=${accessibleLabel}
-            .value=${entry.id}
-            type="checkbox"
-            .checked=${selected}
-            ?disabled=${props.actionsDisabled}
-            ${ref((element) => syncDropdownItemRadio(element, selected))}
-          >
-            <span slot="icon">
-              ${renderProviderIcon(props, entry, "model-setup__icon--picker")}
-            </span>
-            <span class="model-setup-provider-select__copy">
-              <strong>${manualProviderName(entry)}</strong>
-              ${entryMethod ? html`<span>${entryMethod}</span>` : nothing}
-              ${entry.hint ? html`<small>${entry.hint}</small>` : nothing}
-            </span>
-          </wa-dropdown-item>
-        `;
-      })}
-    </wa-dropdown>
   `;
 }
 
@@ -511,6 +426,39 @@ function renderActivationFeedback(activation: ModelSetupActivationState) {
     : nothing;
 }
 
+function renderNativeSessionDiscovery(
+  props: ModelSetupViewProps,
+  result: SystemAgentSetupDetectResult,
+) {
+  if (
+    result.nativeSessionCatalogPreferenceRequired !== true ||
+    !result.nativeSessionCatalogs?.length
+  ) {
+    return nothing;
+  }
+  return html`
+    <section class="settings-section model-setup__native-discovery">
+      <div class="settings-section__header"><h2>${t("modelSetup.nativeDiscovery.title")}</h2></div>
+      <p class="muted">${t("modelSetup.nativeDiscovery.body")}</p>
+      <p>${result.nativeSessionCatalogs.map((option) => option.label).join(", ")}</p>
+      <label>
+        <input
+          type="checkbox"
+          .checked=${props.nativeSessionCatalogsEnabled === true}
+          ?disabled=${props.actionsDisabled}
+          @change=${(event: Event) => {
+            // SAFETY: This listener is attached directly to the checkbox input above.
+            const input = event.currentTarget as HTMLInputElement;
+            props.onNativeSessionCatalogsChange?.(input.checked);
+          }}
+        />
+        ${t("modelSetup.nativeDiscovery.enable")}
+      </label>
+      <p class="muted">${t("modelSetup.nativeDiscovery.decline")}</p>
+    </section>
+  `;
+}
+
 function renderReady(props: ModelSetupViewProps, result: SystemAgentSetupDetectResult) {
   const onContinue =
     props.firstRun && result.setupComplete && props.activation.phase !== "success"
@@ -535,9 +483,9 @@ function renderReady(props: ModelSetupViewProps, result: SystemAgentSetupDetectR
       <div class="callout warning" role="note">${t("modelSetup.access.gatewayTooOld")}</div>`;
   }
   return html`
-    ${current} ${renderEmptyState(props, result)} ${renderCandidateRows(props, result)}
-    ${renderUnavailable(props, result)} ${renderPrepare(props, result)}
-    ${renderSignIn(props, result)} ${renderManual(props, result)}
+    ${current} ${renderNativeSessionDiscovery(props, result)} ${renderEmptyState(props, result)}
+    ${renderCandidateRows(props, result)} ${renderUnavailable(props, result)}
+    ${renderPrepare(props, result)} ${renderSignIn(props, result)} ${renderManual(props, result)}
   `;
 }
 
@@ -679,6 +627,7 @@ export function renderModelSetup(props: ModelSetupViewProps): TemplateResult {
       mode: props.wizardMode,
       state: props.wizard,
       refreshWarning: props.refreshWarning,
+      cancellationNotice: props.cancellationNotice,
       value: props.wizardValue,
       onValueChange: props.onWizardValueChange,
       onAnswer: props.onWizardAnswer,
