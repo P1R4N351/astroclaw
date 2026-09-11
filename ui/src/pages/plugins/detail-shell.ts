@@ -15,6 +15,7 @@ export function renderPluginDetailShell<T extends string>(props: {
   sidebar?: TemplateResult;
   tabs: ReadonlyArray<HubTabOption<T>>;
   activeTab: T;
+  requestedTab?: T;
   onTabChange: (tab: T) => void;
   panel: TemplateResult;
 }): TemplateResult {
@@ -57,6 +58,7 @@ export function renderPluginDetailShell<T extends string>(props: {
     ${renderHubTabs({
       id: props.id,
       active: props.activeTab,
+      requestedActive: props.requestedTab,
       tabs: props.tabs,
       ariaLabel: t("pluginsPage.detailSections"),
       panelId,
