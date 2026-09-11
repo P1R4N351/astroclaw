@@ -73,7 +73,9 @@ function renderTranscriptShell(
               ${projection.showLoadingSkeleton
                 ? renderPanelLoadingSkeleton("chat", t("chat.thread.loading"))
                 : nothing}
-              ${projection.isEmpty && !projection.searchOpen ? renderWelcomeState(props) : nothing}
+              ${projection.isEmpty && !projection.searchOpen
+                ? renderWelcomeState({ ...props, onModelSetup: undefined })
+                : nothing}
               ${projection.isEmpty && projection.searchOpen
                 ? html` <div class="agent-chat__empty">${t("chat.thread.noMatches")}</div> `
                 : nothing}
