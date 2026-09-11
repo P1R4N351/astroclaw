@@ -1,4 +1,4 @@
-import { createAssistantMessageEventStream, type Message } from "openclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream, type Message } from "astroclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
@@ -144,6 +144,7 @@ async function createFixture(
       markSourceReplyDelivered: vi.fn(),
       replaySafeToolNames: new Set(["read"]),
       replaySafeTools: new Set([replaySafeTool]),
+      trustedLocalMediaToolNames: new Set(["read"]),
       setActiveSessionSystemPrompt: vi.fn(),
       settingsManager: {},
     },
@@ -671,6 +672,7 @@ describe("runEmbeddedAttemptExecutionPhase", () => {
     expect(abortInput.abortActiveSession).toBe(fixture.abortActiveSession);
     const streamInput = mocks.prepareStream.mock.calls[0]?.[0];
     expect(streamInput.activeSession).toBe(fixture.activeSession);
+    expect(streamInput.trustedLocalMediaToolNames).toEqual(new Set(["read"]));
     expect(streamInput.onModelUsage).toBe(
       mocks.installStreamGuards.mock.results[0]?.value.onModelUsage,
     );
