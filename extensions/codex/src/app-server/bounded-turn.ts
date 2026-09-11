@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { AuthProfileStore } from "astroclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
-import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "astroclaw/plugin-sdk/temp-path";
+import type { AuthProfileStore } from "openclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
 import {
   CODEX_APP_SERVER_INTERRUPT_TIMEOUT_MS,
   closeCodexStartupClientBestEffort,
@@ -130,7 +130,7 @@ export async function runBoundedCodexAppServerTurn(
   }
   return await withTempWorkspace(
     {
-      rootDir: resolvePreferredAstroclawTmpDir(),
+      rootDir: resolvePreferredOpenClawTmpDir(),
       prefix: "codex-bounded-turn-",
     },
     async (workspace) => {
@@ -154,8 +154,9 @@ async function runBoundedCodexAppServerTurnInWorkspace(
 ): Promise<CodexBoundedTurnResult> {
   const totalTimeoutMs = timing?.timeoutMs ?? resolveTimerTimeoutMs(params.timeoutMs, 100, 100);
   const timeoutError = new CodexBoundedTurnTimeoutError(params.taskLabel, totalTimeoutMs);
-  const deadline = timing?.deadline ?? Date.now() + totalTimeoutMs;
-  const timeoutMs = deadline - Date.now();
+  // Startup and selection retries share an elapsed budget, not a wall-clock deadline.
+  const deadline = timing?.deadline ?? performance.now() + totalTimeoutMs;
+  const timeoutMs = deadline - performance.now();
   if (timeoutMs <= 0) {
     throw timeoutError;
   }
@@ -215,7 +216,7 @@ async function runBoundedCodexAppServerTurnInWorkspace(
   } else {
     params.signal?.addEventListener("abort", abortFromCaller, { once: true });
   }
-  const remainingRunMs = deadline - Date.now();
+  const remainingRunMs = deadline - performance.now();
   if (remainingRunMs <= 0) {
     abortRun(timeoutError);
   }
