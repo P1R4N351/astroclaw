@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../test/helpers/promise.js";
 import { createEmbeddedRunLaneController } from "../../agents/embedded-agent-runner/run/lane-controller.js";
 import type { RunEmbeddedAgentParams } from "../../agents/embedded-agent-runner/run/params.js";
-import { AGENT_RUN_RESTART_ABORT_ERROR_CODE } from "../../agents/run-termination.js";
 import { installSessionPlacementAdmissionProvider } from "../../agents/session-placement-admission.js";
 import { makeAgentAssistantMessage } from "../../agents/test-helpers/agent-message-fixtures.js";
 import {
@@ -11,6 +10,7 @@ import {
   onAgentEvent as subscribeAgentEvent,
   rotateAgentEventLifecycleGeneration,
 } from "../../infra/agent-events.js";
+import { isAgentRunStaleLifecycleError } from "../../infra/agent-lifecycle-error.js";
 import {
   clearAgentRunContext,
   getAgentRunContext,
@@ -32,6 +32,7 @@ import {
   attachedEnvironment,
   cleanupWorkerTurnLauncherTest,
   createWorkerSessionTurnPlacementProvider,
+  measureLaunchTurn,
   credential,
   openSessionManager,
   placements,
@@ -155,12 +156,16 @@ describe("worker turn launcher reclaimed placement", () => {
           resume: vi.fn(async () => {}),
         })),
         runWorkspaceCommand: vi.fn(),
+        measureLaunchTurn,
         launchTurn,
         syncWorkspace: vi.fn(async () => {
           throw new Error("unexpected workspace sync");
         }),
         reconcileWorkspace: vi.fn(async (request) => {
-          request.journal.commit(MANIFEST_REF);
+          if (request.source.kind !== "local") {
+            throw new Error("expected a local workspace source");
+          }
+          request.source.journal.commit(MANIFEST_REF);
           return {
             manifestRef: MANIFEST_REF,
             changed: false,
@@ -378,10 +383,10 @@ describe("worker turn launcher reclaimed placement", () => {
     const provider = createWorkerSessionTurnPlacementProvider({
       environments,
       placements,
-      resolveWorkspacePath: async () => {
+      resolveWorkspace: async () => {
         workspaceResolutionStarted.resolve();
         await resumeWorkspaceResolution.promise;
-        return root;
+        return { kind: "local", path: root };
       },
     });
     const uninstallPlacement = installSessionPlacementAdmissionProvider(provider);
@@ -415,7 +420,8 @@ describe("worker turn launcher reclaimed placement", () => {
       const versionBeforeRejectedAdmission = readAgentRunIndexVersion();
 
       resumeWorkspaceResolution.resolve();
-      await expect(pending).rejects.toMatchObject({ code: AGENT_RUN_RESTART_ABORT_ERROR_CODE });
+      // The admission guard rejects before the lane can hand off the stale run.
+      await expect(pending.catch(isAgentRunStaleLifecycleError)).resolves.toBe(true);
       expect(
         getDiagnosticSessionActivitySnapshot({ sessionId: SESSION_ID }).activeWorkKind,
       ).toBeUndefined();
@@ -465,7 +471,7 @@ describe("worker turn launcher reclaimed placement", () => {
     expect(placements.get(SESSION_ID)).toMatchObject({ state: "reclaimed", turnClaim: null });
   });
 
-  it("rejects non-active placement without falling back to the local loop", async () => {
+  it("rejects setup without a live dispatch owner instead of falling back locally", async () => {
     placements.startDispatch({
       sessionId: SESSION_ID,
       sessionKey: SESSION_KEY,
@@ -488,7 +494,7 @@ describe("worker turn launcher reclaimed placement", () => {
         turn("run-requested"),
         runLocal,
       ),
-    ).rejects.toThrow("Worker turn rejected in placement requested");
+    ).rejects.toThrow("Worker setup has no live dispatch owner.");
     expect(runLocal).not.toHaveBeenCalled();
     expect(placements.get(SESSION_ID)?.turnClaim).toBeNull();
   });
