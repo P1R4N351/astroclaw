@@ -14,7 +14,6 @@ import { canCallWorkshopAdminMethod, resolveWorkshopAccess } from "./access.ts";
 import { renderSkillWorkshopHeaderControls, setSkillWorkshopMode } from "./header-controls.ts";
 import type { SkillWorkshopRenderContext } from "./page-types.ts";
 import {
-  runSkillWorkshopLifecycleAction,
   selectSkillWorkshopInstalledSkill,
   selectSkillWorkshopProposal,
   type SkillWorkshopState,
@@ -30,6 +29,7 @@ export function renderSkillWorkshopPage(
     context,
     revisionRecoveryActive,
     workshopAgentName,
+    onLifecycleAction,
     onEvaluate,
     onRevisionSubmit,
     selfLearning,
@@ -210,9 +210,7 @@ export function renderSkillWorkshopPage(
                 ) {
                   return;
                 }
-                void runSkillWorkshopLifecycleAction(state, context, "apply", decision).finally(
-                  requestUpdate,
-                );
+                onLifecycleAction("apply", decision);
                 requestUpdate();
               },
               onEvaluate: (key) => {
@@ -243,9 +241,7 @@ export function renderSkillWorkshopPage(
                 ) {
                   return;
                 }
-                void runSkillWorkshopLifecycleAction(state, context, "reject", decision).finally(
-                  requestUpdate,
-                );
+                onLifecycleAction("reject", decision);
                 requestUpdate();
               },
               onRevisionDraftChange: (draft) => {
