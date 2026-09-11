@@ -1,4 +1,3 @@
-// Network Policy module implements redact sensitive url behavior.
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 
 type ConfigUiHintTags = {
