@@ -1,8 +1,8 @@
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
-// Control UI view renders agents panels tools skills screen content.
 import { html, nothing } from "lit";
 import {
+  normalizeToolList,
   normalizeToolPolicyName,
   resolveToolProfilePolicy,
 } from "../../../../src/agents/tool-policy-shared.js";
@@ -15,19 +15,21 @@ import type {
 } from "../../api/types.ts";
 import {
   renderSettingsEmpty,
+  renderSettingsLoadingSkeleton,
   renderSettingsRow,
   renderSettingsSection,
   renderSettingsToggle,
 } from "../../components/settings-ui.ts";
+import type { GitHubIdentityController } from "../../features/github-connections/github-identity-controller.ts";
+import { renderGitHubIdentity } from "../../features/github-connections/github-identity-view.ts";
 import { t } from "../../i18n/index.ts";
+import { resolveAgentConfig, resolveAgentSkillsFilter } from "../../lib/agents/display.ts";
 import {
   type AgentToolEntry,
   type AgentToolSection,
-  resolveAgentConfig,
-  resolveAgentSkillsFilter,
   resolveToolProfileOptions,
   resolveToolSections,
-} from "../../lib/agents/display.ts";
+} from "../../lib/agents/tool-catalog.ts";
 import { formatUiExternalText } from "../../lib/format-error.ts";
 import { resolveScrollBehavior } from "../../lib/scroll-behavior.ts";
 import type { SkillGroup } from "../../lib/skills-grouping.ts";
@@ -37,8 +39,6 @@ import {
   computeSkillReasons,
   renderSkillStatusChips,
 } from "../../lib/skills-shared.ts";
-import type { GitHubIdentityController } from "./github-identity-controller.ts";
-import { renderGitHubIdentity } from "./github-identity-view.ts";
 import { isAllowedByPolicy, matchesList } from "./tool-policy.ts";
 
 function renderToolMetaBadges(labels: string[]) {
@@ -240,6 +240,7 @@ export function renderAgentTools(params: {
   runtimeSessionMatchesSelectedAgent: boolean;
   canUpdateConfig: boolean;
   githubIdentity: GitHubIdentityController;
+  onOpenGitHubConnections: () => void;
   onProfileChange: (agentId: string, profile: string | null, clearAllow: boolean) => void;
   onOverridesChange: (agentId: string, alsoAllow: string[], deny: string[]) => void;
   onConfigReload: () => void;
@@ -323,35 +324,10 @@ export function renderAgentTools(params: {
       return left.label.localeCompare(right.label);
     });
 
-  const updateTool = (toolId: string, nextEnabled: boolean) => {
-    const nextAllow = new Set(
-      alsoAllow.map((entry) => normalizeToolPolicyName(entry)).filter((entry) => entry.length > 0),
-    );
-    const nextDeny = new Set(
-      deny.map((entry) => normalizeToolPolicyName(entry)).filter((entry) => entry.length > 0),
-    );
-    const baseAllowed = resolveAllowed(toolId).baseAllowed;
-    const normalized = normalizeToolPolicyName(toolId);
-    if (nextEnabled) {
-      nextDeny.delete(normalized);
-      if (!baseAllowed) {
-        nextAllow.add(normalized);
-      }
-    } else {
-      nextAllow.delete(normalized);
-      nextDeny.add(normalized);
-    }
-    params.onOverridesChange(params.agentId, [...nextAllow], [...nextDeny]);
-  };
-
-  const updateAll = (nextEnabled: boolean) => {
-    const nextAllow = new Set(
-      alsoAllow.map((entry) => normalizeToolPolicyName(entry)).filter((entry) => entry.length > 0),
-    );
-    const nextDeny = new Set(
-      deny.map((entry) => normalizeToolPolicyName(entry)).filter((entry) => entry.length > 0),
-    );
-    for (const toolId of toolIds) {
+  const updateTools = (targetIds: string[], nextEnabled: boolean) => {
+    const nextAllow = new Set(normalizeToolList(alsoAllow));
+    const nextDeny = new Set(normalizeToolList(deny));
+    for (const toolId of targetIds) {
       const baseAllowed = resolveAllowed(toolId).baseAllowed;
       const normalized = normalizeToolPolicyName(toolId);
       if (nextEnabled) {
@@ -370,7 +346,7 @@ export function renderAgentTools(params: {
   const runtimeAvailability = !params.runtimeSessionMatchesSelectedAgent
     ? renderSettingsEmpty(t("agentTools.switchAgent"))
     : params.toolsEffectiveLoading && !params.toolsEffectiveResult && !params.toolsEffectiveError
-      ? renderSettingsEmpty(t("agentTools.loadingAvailable"))
+      ? renderSettingsLoadingSkeleton({ label: t("agentTools.loadingAvailable"), rows: 2 })
       : params.toolsEffectiveError
         ? renderSettingsEmpty(t("agentTools.availableError"))
         : (params.toolsEffectiveResult?.groups?.length ?? 0) === 0
@@ -421,9 +397,6 @@ export function renderAgentTools(params: {
     ${hasGlobalAllow
       ? html`<div class="callout info">${t("agentTools.globalAllowlist")}</div>`
       : nothing}
-    ${params.toolsCatalogLoading && !params.toolsCatalogResult && !params.toolsCatalogError
-      ? html`<div class="callout info">${t("agentTools.loadingCatalog")}</div>`
-      : nothing}
     ${params.toolsCatalogError
       ? html`<div class="callout info">${t("agentTools.catalogFallback")}</div>`
       : nothing}
@@ -438,10 +411,18 @@ export function renderAgentTools(params: {
             })}</span
           >`,
         actions: html`
-          <button class="btn btn--sm" ?disabled=${!editable} @click=${() => updateAll(true)}>
+          <button
+            class="btn btn--sm"
+            ?disabled=${!editable}
+            @click=${() => updateTools(toolIds, true)}
+          >
             ${t("agentTools.enableAll")}
           </button>
-          <button class="btn btn--sm" ?disabled=${!editable} @click=${() => updateAll(false)}>
+          <button
+            class="btn btn--sm"
+            ?disabled=${!editable}
+            @click=${() => updateTools(toolIds, false)}
+          >
             ${t("agentTools.disableAll")}
           </button>
           <button
@@ -515,11 +496,19 @@ export function renderAgentTools(params: {
       },
       html`${renderEffectiveToolNotices(params.toolsEffectiveResult)}${runtimeAvailability}`,
     )}
-    ${renderGitHubIdentity(params.githubIdentity)}
+    ${renderGitHubIdentity(params.githubIdentity, params.onOpenGitHubConnections)}
     ${renderSettingsSection(
       { title: t("agentTools.catalogTitle") },
       html`
-        <div class="agents-panel-body agent-tools-grid">
+        ${params.toolsCatalogLoading && !params.toolsCatalogResult && !params.toolsCatalogError
+          ? renderSettingsLoadingSkeleton({ label: t("agentTools.loadingCatalog") })
+          : nothing}
+        <div
+          class="agents-panel-body agent-tools-grid"
+          ?hidden=${params.toolsCatalogLoading &&
+          !params.toolsCatalogResult &&
+          !params.toolsCatalogError}
+        >
           ${toolSections.map((section) => {
             const sortedTools = sortSectionTools(section.tools);
             const enabledSectionCount = section.tools.filter(
@@ -644,7 +633,7 @@ export function renderAgentTools(params: {
                                   : "agentTools.enableNamed",
                                 { name: tool.label },
                               ),
-                              onChange: (checked) => updateTool(tool.id, checked),
+                              onChange: (checked) => updateTools([tool.id], checked),
                             })}
                           </span>
                         </summary>
