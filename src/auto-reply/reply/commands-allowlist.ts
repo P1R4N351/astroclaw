@@ -10,7 +10,7 @@ import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type { ChannelId } from "../../channels/plugins/types.public.js";
 import { normalizeChatChannelId } from "../../channels/registry.js";
 import { readConfigFileSnapshot } from "../../config/config.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   addChannelAllowFromStoreEntry,
   readChannelAllowFromStore,
@@ -315,9 +315,15 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
     if (!plugin?.allowlist?.readConfig && !supportsStore) {
       return commandReply(`⚠️ ${channelId} does not expose allowlist configuration.`);
     }
-    const storeAllowFrom = supportsStore
-      ? await readChannelAllowFromStore(channelId, process.env, accountId).catch(() => [])
-      : [];
+    let storeAllowFrom: string[] = [];
+    let storeReadFailed = false;
+    if (supportsStore) {
+      try {
+        storeAllowFrom = await readChannelAllowFromStore(channelId, process.env, accountId);
+      } catch {
+        storeReadFailed = true;
+      }
+    }
     const configState = await readAllowlistConfig({
       cfg: params.cfg,
       channelId,
@@ -373,7 +379,11 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
     if (showDm) {
       lines.push(`DM allowFrom (config): ${formatEntryList(dmDisplay, resolvedDm)}`);
     }
-    if (supportsStore && storeAllowFrom.length > 0) {
+    if (supportsStore && storeReadFailed) {
+      lines.push(
+        "Paired allowFrom (store): unavailable (read failed). Retry this command; if it still fails, run openclaw doctor.",
+      );
+    } else if (supportsStore && storeAllowFrom.length > 0) {
       lines.push(`Paired allowFrom (store): ${formatEntryList(normalizeValues(storeAllowFrom))}`);
     }
     if (showGroup) {
