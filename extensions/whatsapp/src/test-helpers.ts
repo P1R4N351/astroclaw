@@ -2,8 +2,8 @@
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatEnvelopeTimestamp } from "openclaw/plugin-sdk/channel-test-helpers";
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { formatEnvelopeTimestamp } from "astroclaw/plugin-sdk/channel-test-helpers";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { vi } from "vitest";
 import type { MockBaileysSocket } from "../../../test/mocks/baileys.js";
 import { createMockBaileys } from "../../../test/mocks/baileys.js";
@@ -591,19 +591,6 @@ vi.mock("./auto-reply/monitor/group-activation.runtime.js", () => ({
 
 vi.mock("./auto-reply/monitor/message-line.runtime.js", () => ({
   formatInboundEnvelope: formatInboundEnvelopeMock,
-  resolveMessagePrefix: (
-    cfg: {
-      channels?: { whatsapp?: { messagePrefix?: string; allowFrom?: string[] } };
-    },
-    _agentId: string,
-    params?: { configured?: string; hasAllowFrom?: boolean },
-  ) => {
-    const configured = params?.configured ?? cfg.channels?.whatsapp?.messagePrefix;
-    if (configured !== undefined) {
-      return configured;
-    }
-    return params?.hasAllowFrom === true ? "" : "[openclaw]";
-  },
 }));
 
 vi.mock("./auth-store.runtime.js", () => ({
