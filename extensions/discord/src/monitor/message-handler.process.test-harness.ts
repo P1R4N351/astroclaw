@@ -1,6 +1,6 @@
 // Discord tests cover message handler.process plugin behavior.
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-dispatch-runtime";
-import { setReplyPayloadMetadata } from "openclaw/plugin-sdk/reply-payload-testing";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
+import { setReplyPayloadMetadata } from "astroclaw/plugin-sdk/reply-payload-testing";
 import { afterEach, beforeAll, beforeEach, vi } from "vitest";
 import type { DiscordMessagePreflightContext } from "./message-handler.preflight.js";
 import { resetThreadBindingsForTests } from "./thread-bindings.test-support.js";
@@ -10,16 +10,16 @@ const runtimeEnvMocks = vi.hoisted(() => ({
   sleepWithAbort: vi.fn(async () => undefined),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>()),
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>()),
   logVerbose: runtimeEnvMocks.logVerbose,
   sleepWithAbort: runtimeEnvMocks.sleepWithAbort,
 }));
 
 const getGlobalHookRunner = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>();
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>();
   return {
     ...actual,
     getGlobalHookRunner,
@@ -305,7 +305,7 @@ let processDiscordMessage: typeof import("./message-handler.process.js").process
 export let formatDiscordReplySkip: typeof import("./message-handler.process.js").formatDiscordReplySkip;
 export let discordInboundEventDelivery: typeof import("../inbound-event-delivery.js").discordInboundEventDelivery;
 
-vi.mock("openclaw/plugin-sdk/reply-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/reply-runtime", () => ({
   dispatchReplyWithBufferedBlockDispatcher: async (params: {
     dispatcherOptions: {
       beforeDeliver?: (
@@ -424,14 +424,14 @@ vi.mock("openclaw/plugin-sdk/reply-runtime", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
-  const replyRuntime = await import("openclaw/plugin-sdk/reply-runtime");
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
+  const replyRuntime = await import("astroclaw/plugin-sdk/reply-runtime");
   return {
     ...actual,
     readAgentRunTerminalOutcome,
     dispatchChannelInboundTurn: async (
-      plan: import("openclaw/plugin-sdk/channel-inbound").ChannelInboundTurnPlan<"provider_message_sending">,
+      plan: import("astroclaw/plugin-sdk/channel-inbound").ChannelInboundTurnPlan<"provider_message_sending">,
     ) => {
       const { cfg, route, delivery, sessionInitRetry, ...prepared } = plan;
       const runDispatch = async () => {
@@ -446,6 +446,7 @@ vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
                   const providerInfo = {
                     ...info,
                     onPlatformSendDispatch: async () => undefined,
+                    assertPlatformSendAuthorized: () => undefined,
                   };
                   return delivery.deliverWithProviderMessageSending(payload, providerInfo);
                 },
@@ -480,7 +481,7 @@ vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", () => ({
   recordInboundSession: (...args: unknown[]) => recordInboundSession(...args),
   resolvePinnedMainDmOwnerFromAllowlist: (params: {
     dmScope?: string | null;
@@ -509,14 +510,14 @@ vi.mock("openclaw/plugin-sdk/conversation-runtime", () => ({
     bindingId.split(":").at(-1) ?? bindingId,
 }));
 
-vi.mock("openclaw/plugin-sdk/session-store-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/session-store-runtime", () => ({
   getSessionEntry: (params?: unknown) => configSessionsMocks.getSessionEntry(params),
   readSessionUpdatedAt: (params?: unknown) => configSessionsMocks.readSessionUpdatedAt(params),
   resolveStorePath: (path?: unknown, opts?: unknown) =>
     configSessionsMocks.resolveStorePath(path, opts),
 }));
 
-vi.mock("openclaw/plugin-sdk/session-transcript-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", () => ({
   readLatestAssistantTextByIdentity: (params?: unknown) =>
     configSessionsMocks.readLatestAssistantTextByIdentity(params),
 }));
