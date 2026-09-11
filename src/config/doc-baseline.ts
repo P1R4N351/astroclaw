@@ -1,14 +1,14 @@
 // Builds documentation baselines from config schema metadata.
 import { createHash } from "node:crypto";
 import fsSync from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { asNullableRecord } from "@astroclaw/normalization-core/record-coerce";
 import { sortUniqueStrings } from "@astroclaw/normalization-core/string-normalization";
-import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
 import { replaceFileAtomicSync } from "../infra/replace-file.js";
 import { createLazyRuntimeModule } from "../shared/lazy-runtime.js";
+import { resolveRepoBundledPluginEnv } from "./repo-bundled-plugin-env.js";
 import type { ConfigSchemaResponse } from "./schema.js";
 import { schemaHasChildren } from "./schema.shared.js";
 
@@ -364,12 +364,7 @@ function resolveEntryKind(configPath: string): ConfigDocBaselineKind {
 async function loadBundledConfigSchemaResponse(): Promise<ConfigSchemaResponse> {
   const repoRoot = resolveRepoRoot();
   const runtime = await loadDocBaselineRuntime();
-  const env = {
-    ...process.env,
-    HOME: os.tmpdir(),
-    OPENCLAW_STATE_DIR: path.join(os.tmpdir(), "openclaw-config-doc-baseline-state"),
-    OPENCLAW_BUNDLED_PLUGINS_DIR: path.join(repoRoot, "extensions"),
-  };
+  const env = resolveRepoBundledPluginEnv(path.join(repoRoot, "extensions"));
 
   const manifestRegistry = runtime.loadPluginManifestRegistry({
     env,
