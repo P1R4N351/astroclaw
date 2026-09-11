@@ -1,7 +1,8 @@
-import { isOpenAIGpt56Model, projectRuntimeToolInputSchema } from "@openclaw/ai/internal/openai";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 // Anthropic-family tool payload compatibility wraps provider tool payload shapes.
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { isOpenAIGpt56Model } from "@openclaw/ai/internal/openai";
+import { projectRuntimeToolInputSchema } from "@openclaw/ai/internal/tool-schema";
 import type { StreamFn } from "../../../agents/runtime/index.js";
 import { streamSimple } from "../../stream.js";
 type AnthropicToolSchemaMode = "openai-functions";
