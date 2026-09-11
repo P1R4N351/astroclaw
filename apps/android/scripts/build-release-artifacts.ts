@@ -18,7 +18,10 @@ import {
 } from "node:fs";
 import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveAndroidVersion, syncAndroidVersioning } from "../../../scripts/lib/android-version.ts";
+import {
+  checkAndroidVersioning,
+  resolveAndroidVersion,
+} from "../../../scripts/lib/android-version.ts";
 
 type ReleaseArtifact = {
   flavorName: "play" | "wear" | "third-party";
@@ -254,7 +257,7 @@ function releaseArtifacts(versionName: string): ReleaseArtifact[] {
         "apk",
         "thirdParty",
         "release",
-        `astroclaw-${versionName}-thirdParty-release.apk`,
+        `openclaw-${versionName}-thirdParty-release.apk`,
       ),
     },
   ];
@@ -390,7 +393,7 @@ function main() {
     return;
   }
 
-  syncAndroidVersioning({ mode: "check", rootDir });
+  checkAndroidVersioning({ rootDir });
   const version = resolveAndroidVersion(rootDir);
   const buildMetadata = resolveAndroidBuildMetadata();
   const artifacts = releaseArtifacts(version.canonicalVersion).filter(
@@ -428,7 +431,7 @@ function main() {
   for (const artifact of artifacts) {
     const outputPath = join(
       releaseOutputDir,
-      `astroclaw-${version.canonicalVersion}-${artifact.flavorName}-release.${artifact.kind}`,
+      `openclaw-${version.canonicalVersion}-${artifact.flavorName}-release.${artifact.kind}`,
     );
 
     copyArtifact(artifact.sourcePath, outputPath);
