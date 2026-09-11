@@ -8,7 +8,7 @@ import {
   normalizeProviderId,
 } from "@astroclaw/model-catalog-core/provider-id";
 import type { AuthProfileConfig } from "../../config/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveAuthProfileMetadata } from "./identity.js";
 import { dedupeProfileIds, listProfilesForProvider } from "./profile-list.js";
 import type { AuthProfileIdRepairResult, AuthProfileStore } from "./types.js";
@@ -54,7 +54,8 @@ export function suggestOAuthProfileIdForLegacyDefault(params: {
   }
 
   const oauthProfiles = listProfilesForProvider(params.store, providerKey).filter(
-    (id) => params.store.profiles[id]?.type === "oauth",
+    (id) =>
+      params.store.profiles[id]?.type === "oauth" && !params.store.profiles[id]?.setup?.replacement,
   );
   if (oauthProfiles.length === 0) {
     return null;
