@@ -2,31 +2,30 @@
 import { randomUUID } from "node:crypto";
 import { HTTPFetchError, messagingApi } from "@line/bot-sdk";
 import lineBotSdkPackage from "@line/bot-sdk/package.json" with { type: "json" };
-import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
-import { createChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { pruneMapToMaxSize } from "openclaw/plugin-sdk/collection-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
+import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { pruneMapToMaxSize } from "astroclaw/plugin-sdk/collection-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
 import {
   readProviderJsonResponse,
   readResponseTextLimited,
-} from "openclaw/plugin-sdk/provider-http";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { fetchWithRuntimeDispatcherOrMockedGlobal } from "openclaw/plugin-sdk/runtime-fetch";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/provider-http";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { fetchWithRuntimeDispatcherOrMockedGlobal } from "astroclaw/plugin-sdk/runtime-fetch";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { resolveLineAccount } from "./accounts.js";
-import { messageAction, normalizeLineMessageActions } from "./actions.js";
+import { messageAction, normalizeLineMessage } from "./actions.js";
 import { resolveLineChannelAccessToken } from "./channel-access-token.js";
-import { validateLineMediaUrl } from "./outbound-media.js";
+import { buildLineMediaMessage } from "./outbound-media.js";
+import { recordLineSentMessages } from "./outbound-message-log.js";
+import { applyLineQuoteToken, withoutLineQuoteTokens } from "./quote-tokens.js";
 import { createLineSendReceipt } from "./send-receipt.js";
-import { runLinePushWithRetries } from "./send-retry.js";
+import { findLineHttpError, runLinePushWithRetries } from "./send-retry.js";
 import type { LineChannelData, LineOutboundMediaKind, LineSendResult } from "./types.js";
 
 type Message = messagingApi.Message;
 type TextMessage = messagingApi.TextMessage;
-type ImageMessage = messagingApi.ImageMessage;
-type VideoMessage = messagingApi.VideoMessage & { trackingId?: string };
-type AudioMessage = messagingApi.AudioMessage;
 type LocationMessage = messagingApi.LocationMessage;
 type FlexContainer = messagingApi.FlexContainer;
 type TemplateMessage = messagingApi.TemplateMessage;
@@ -111,10 +110,16 @@ interface LineSendOpts {
   durationMs?: number;
   trackingId?: string;
   replyToken?: string;
+  quoteToken?: string;
+  /** Revalidate immediately before every provider attempt, including retries. */
+  authorize?: () => boolean | Promise<boolean>;
 }
 
 type LineClientOpts = Pick<LineSendOpts, "cfg" | "channelAccessToken" | "accountId">;
-type LinePushOpts = Pick<LineSendOpts, "cfg" | "channelAccessToken" | "accountId" | "verbose">;
+type LinePushOpts = Pick<
+  LineSendOpts,
+  "cfg" | "channelAccessToken" | "accountId" | "verbose" | "quoteToken" | "authorize"
+>;
 
 interface LinePushBehavior {
   errorContext?: string;
@@ -173,10 +178,6 @@ function normalizeTarget(to: string): string {
   return normalized;
 }
 
-function isLineUserChatId(chatId: string): boolean {
-  return /^U/i.test(chatId);
-}
-
 function resolveLineMessagingAccount(opts: LineClientOpts): {
   account: ReturnType<typeof resolveLineAccount>;
   token: string;
@@ -214,12 +215,50 @@ function createLinePushContext(
   return { account, token, chatId };
 }
 
+type LineProviderRequest = messagingApi.PushMessageRequest | messagingApi.ReplyMessageRequest;
+type LineProviderResponse = messagingApi.PushMessageResponse | messagingApi.ReplyMessageResponse;
+
 async function sendLineProviderMessages(
   operation: "push" | "reply",
   token: string,
-  request: messagingApi.PushMessageRequest | messagingApi.ReplyMessageRequest,
+  request: LineProviderRequest,
   retryKey?: string,
-): Promise<messagingApi.PushMessageResponse | messagingApi.ReplyMessageResponse> {
+  authorize?: LineSendOpts["authorize"],
+): Promise<LineProviderResponse> {
+  try {
+    return await postLineProviderMessages(operation, token, request, retryKey, authorize);
+  } catch (error) {
+    // LINE refuses the whole request for a quote token it no longer accepts and
+    // names no field in the answer, so a quoted reply would simply disappear.
+    // A 400 is LINE rejecting that request atomically, so nothing was delivered
+    // and offering the same messages without their quote cannot duplicate it.
+    const unquoted =
+      findLineHttpError(error)?.status === 400
+        ? withoutLineQuoteTokens(request.messages)
+        : undefined;
+    if (!unquoted) {
+      throw error;
+    }
+    return await postLineProviderMessages(
+      operation,
+      token,
+      { ...request, messages: unquoted },
+      retryKey,
+      authorize,
+    );
+  }
+}
+
+async function postLineProviderMessages(
+  operation: "push" | "reply",
+  token: string,
+  request: LineProviderRequest,
+  retryKey?: string,
+  authorize?: LineSendOpts["authorize"],
+): Promise<LineProviderResponse> {
+  if (authorize && !(await authorize())) {
+    throw new Error("LINE send authorization denied");
+  }
   const response = await fetchWithRuntimeDispatcherOrMockedGlobal(
     `https://api.line.me/v2/bot/message/${operation}`,
     {
@@ -252,11 +291,11 @@ async function sendLineProviderMessages(
   }
 
   try {
-    return await readProviderJsonResponse<
-      messagingApi.PushMessageResponse | messagingApi.ReplyMessageResponse
-    >(response, `LINE ${operation} response`, {
-      maxBytes: LINE_PROVIDER_RESPONSE_MAX_BYTES,
-    });
+    return await readProviderJsonResponse<LineProviderResponse>(
+      response,
+      `LINE ${operation} response`,
+      { maxBytes: LINE_PROVIDER_RESPONSE_MAX_BYTES },
+    );
   } catch (error) {
     // LINE accepted this exact request before its receipt became unreadable; retrying duplicates it.
     throw createChannelPartialDeliveryError(error, { messageIds: [], visibleReplySent: true });
@@ -265,38 +304,6 @@ async function sendLineProviderMessages(
 
 function createTextMessage(text: string): TextMessage {
   return { type: "text", text };
-}
-
-export function createImageMessage(
-  originalContentUrl: string,
-  previewImageUrl?: string,
-): ImageMessage {
-  return {
-    type: "image",
-    originalContentUrl,
-    previewImageUrl: previewImageUrl ?? originalContentUrl,
-  };
-}
-
-export function createVideoMessage(
-  originalContentUrl: string,
-  previewImageUrl: string,
-  trackingId?: string,
-): VideoMessage {
-  return {
-    type: "video",
-    originalContentUrl,
-    previewImageUrl,
-    ...(trackingId ? { trackingId } : {}),
-  };
-}
-
-export function createAudioMessage(originalContentUrl: string, durationMs: number): AudioMessage {
-  return {
-    type: "audio",
-    originalContentUrl,
-    duration: durationMs,
-  };
 }
 
 function isValidLineLocation(location: LineLocation): boolean {
@@ -352,6 +359,9 @@ function recordLineOutboundActivity(
   accountId: string,
   delivery: { messageIds: string[]; receipt?: LineSendResult["receipt"] },
 ): void {
+  // Every LINE send funnels through here, so this is where the ids a later quote
+  // can point at become known.
+  recordLineSentMessages(accountId, delivery.messageIds);
   try {
     recordChannelActivity({
       channel: "line",
@@ -396,7 +406,9 @@ async function pushLineMessages(
   }
 
   const { account, token, chatId } = createLinePushContext(to, opts);
-  const normalizedMessages = messages.map(normalizeLineMessageActions);
+  const normalizedMessages = applyLineQuoteToken(messages, opts.quoteToken).map(
+    normalizeLineMessage,
+  );
   // One retry key per logical push: every attempt reuses it so LINE deduplicates
   // an attempt that was accepted before its outcome reached us.
   const retryKey = randomUUID();
@@ -408,6 +420,7 @@ async function pushLineMessages(
         token,
         { to: chatId, messages: normalizedMessages },
         retryKey,
+        opts.authorize,
       );
     } catch (err) {
       if (behavior.errorContext) {
@@ -447,12 +460,17 @@ async function replyLineMessages(
   opts: LinePushOpts,
 ): Promise<{ messageId: string; messageIds: string[]; accountId: string }> {
   const { account, token } = resolveLineMessagingAccount(opts);
-  const normalizedMessages = messages.map(normalizeLineMessageActions);
+  const normalizedMessages = applyLineQuoteToken(messages, opts.quoteToken).map(
+    normalizeLineMessage,
+  );
 
-  const response = await sendLineProviderMessages("reply", token, {
-    replyToken,
-    messages: normalizedMessages,
-  });
+  const response = await sendLineProviderMessages(
+    "reply",
+    token,
+    { replyToken, messages: normalizedMessages },
+    undefined,
+    opts.authorize,
+  );
   const result = resolveLineProviderMessageIds(response, "reply");
   return { ...result, accountId: account.accountId };
 }
@@ -467,30 +485,18 @@ export async function sendMessageLine(
 
   const mediaUrl = opts.mediaUrl?.trim();
   if (mediaUrl) {
-    await validateLineMediaUrl(mediaUrl);
-    switch (opts.mediaKind) {
-      case "video": {
-        const previewImageUrl = opts.previewImageUrl?.trim();
-        if (!previewImageUrl) {
-          throw new Error("LINE video messages require previewImageUrl to reference an image URL");
-        }
-        await validateLineMediaUrl(previewImageUrl);
-        const trackingId = isLineUserChatId(chatId) ? opts.trackingId : undefined;
-        messages.push(createVideoMessage(mediaUrl, previewImageUrl, trackingId));
-        break;
-      }
-      case "audio":
-        messages.push(createAudioMessage(mediaUrl, opts.durationMs ?? 60000));
-        break;
-      default:
-        // Backward compatibility: keep image as default when media kind is unspecified.
+    messages.push(
+      await buildLineMediaMessage(
+        mediaUrl,
         {
-          const previewImageUrl = opts.previewImageUrl?.trim() || mediaUrl;
-          await validateLineMediaUrl(previewImageUrl);
-          messages.push(createImageMessage(mediaUrl, previewImageUrl));
-        }
-        break;
-    }
+          mediaKind: opts.mediaKind,
+          previewImageUrl: opts.previewImageUrl,
+          durationMs: opts.durationMs,
+          trackingId: opts.trackingId,
+        },
+        chatId,
+      ),
+    );
   }
 
   if (text?.trim()) {
@@ -577,11 +583,12 @@ export async function pushImageMessage(
   previewImageUrl: string | undefined,
   opts: LinePushOpts,
 ): Promise<LineSendResult> {
-  await validateLineMediaUrl(originalContentUrl);
-  if (previewImageUrl) {
-    await validateLineMediaUrl(previewImageUrl);
-  }
-  return pushLineMessages(to, [createImageMessage(originalContentUrl, previewImageUrl)], opts, {
+  const message = await buildLineMediaMessage(
+    originalContentUrl,
+    { mediaKind: "image", previewImageUrl },
+    to,
+  );
+  return pushLineMessages(to, [message], opts, {
     verboseMessage: (chatId) => `line: pushed image to ${chatId}`,
   });
 }
