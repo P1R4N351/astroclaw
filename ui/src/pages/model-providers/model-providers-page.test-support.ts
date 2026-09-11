@@ -10,6 +10,7 @@ import type {
   RuntimeConfigExternalMutationOptions,
   RuntimeConfigExternalMutationResult,
 } from "../../lib/config/config-gateway-operations.ts";
+import { createApplicationGateway } from "../../test-helpers/application-context.ts";
 import type { ModelBehaviorConfig } from "./config-mutation.ts";
 import type { DefaultModelSelection } from "./data.ts";
 import { EMPTY_MODEL_PROVIDERS_DATA, type ModelProvidersData } from "./load.ts";
@@ -91,16 +92,6 @@ export async function saveKey(page: ModelProvidersPageTestElement, value: string
   page.querySelector<HTMLButtonElement>(".model-providers__inline-form button")!.click();
 }
 
-export function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
-}
-
 export function createHarness(initialScopeId: string) {
   let pendingAuthStatus: Promise<void> | null = null;
   let releaseAuthStatus: (() => void) | null = null;
@@ -154,7 +145,7 @@ export function createHarness(initialScopeId: string) {
     lastError: null,
     lastErrorCode: null,
   };
-  const gatewaySource = publishableGateway(snapshot);
+  const gatewaySource = createApplicationGateway(snapshot);
   let selectionListener: (() => void) | undefined;
   const agentSelection = {
     state: {
@@ -272,28 +263,6 @@ export function createHarness(initialScopeId: string) {
     },
     failUsageStatus: () => {
       usageStatusRejects = true;
-    },
-  };
-}
-
-export function publishableGateway(initial: ApplicationGatewaySnapshot) {
-  let current = initial;
-  const listeners = new Set<(value: ApplicationGatewaySnapshot) => void>();
-  return {
-    gateway: {
-      get snapshot() {
-        return current;
-      },
-      subscribe(listener: (value: ApplicationGatewaySnapshot) => void) {
-        listeners.add(listener);
-        return () => listeners.delete(listener);
-      },
-    },
-    publish(next: ApplicationGatewaySnapshot) {
-      current = next;
-      for (const listener of listeners) {
-        listener(next);
-      }
     },
   };
 }
