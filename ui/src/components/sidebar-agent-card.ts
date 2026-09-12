@@ -35,10 +35,8 @@ class SidebarAgentCard extends OpenClawLightDomContentsElement {
 
   private renderContent() {
     const sourceUrl = this.avatarUrl;
-    const avatarUrl =
-      sourceUrl && (!sourceUrl.startsWith("/") || this.avatarAuthReady)
-        ? this.avatarLoader.resolve(sourceUrl)
-        : null;
+    const pending = Boolean(sourceUrl?.startsWith("/") && !this.avatarAuthReady);
+    const avatarUrl = sourceUrl && !pending ? this.avatarLoader.resolve(sourceUrl) : null;
     const menuLabel = this.switcherAvailable
       ? t("agentChip.switchAgent")
       : t("agentChip.menuLabel");
@@ -74,7 +72,7 @@ class SidebarAgentCard extends OpenClawLightDomContentsElement {
               : ""}"
           >
             ${renderAgentIdentityAvatar(
-              { id: this.agentId, avatar: avatarUrl, textAvatar: this.avatarText },
+              { id: this.agentId, avatar: avatarUrl, textAvatar: this.avatarText, pending },
               "",
               sourceUrl ? this.avatarLoader.imageErrorHandler(sourceUrl) : undefined,
             )}
