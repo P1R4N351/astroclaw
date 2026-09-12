@@ -504,7 +504,9 @@ vi.mock("../logging/subsystem.js", async () => {
   return {
     ...actual,
     createSubsystemLogger: vi.fn((subsystem: string) =>
-      subsystem === "gateway/restart-sentinel" ? logger : actual.createSubsystemLogger(subsystem),
+      subsystem === "gateway/restart-sentinel" || subsystem === "gateway/update-run"
+        ? logger
+        : actual.createSubsystemLogger(subsystem),
     ),
   };
 });
@@ -639,6 +641,14 @@ function mockRestartContinuation(
 
 let testState: OpenClawTestState;
 
+function setNoticeOwner(owner: string) {
+  const loadSession = mocks.loadSessionEntry.getMockImplementation()!;
+  mocks.loadSessionEntry.mockImplementation((key) => {
+    const session = loadSession(key);
+    return { ...session, cfg: { ...session.cfg, commands: { ownerAllowFrom: [owner] } } };
+  });
+}
+
 describe("scheduleRestartSentinelWake", () => {
   const expectedGeneratedMediaContext: RuntimeContextFragment[] = [
     {
@@ -693,7 +703,7 @@ describe("scheduleRestartSentinelWake", () => {
     mocks.parseSessionThreadInfo.mockReturnValue({ baseSessionKey: null, threadId: undefined });
     mocks.loadSessionEntry.mockReset();
     mocks.loadSessionEntry.mockImplementation((sessionKey: string) => ({
-      cfg: {},
+      cfg: { commands: { ownerAllowFrom: ["+15550002"] } },
       agentId: "main",
       entry: { sessionId: sessionKey, updatedAt: 0 },
       store: {},
@@ -863,6 +873,50 @@ describe("scheduleRestartSentinelWake", () => {
     expect(mocks.recordInboundSessionAndDispatchReply).not.toHaveBeenCalled();
     expect(mocks.logWarn).not.toHaveBeenCalled();
   });
+
+  it.each(["update", "restart"] as const)(
+    "records a non-owner %s notice without delivery or a diagnostic wake",
+    async (kind) => {
+      const sessionKey = "agent:main:whatsapp:direct:+15550002";
+      const run =
+        kind === "update"
+          ? createUpdateRun({ trigger: "control-ui", origin: { sessionKey } })
+          : undefined;
+      const session = mocks.loadSessionEntry(sessionKey);
+      mocks.loadSessionEntry.mockReturnValue({
+        ...session,
+        cfg: { commands: { ownerAllowFrom: ["telegram:12345"] } },
+      });
+      mocks.readRestartSentinel.mockResolvedValue({
+        version: 1,
+        revision: 123,
+        payload: {
+          kind,
+          status: "ok",
+          ts: 123,
+          sessionKey,
+          deliveryContext: { channel: "whatsapp", to: "+15550002", accountId: "acct-2" },
+          ...(run ? { stats: { mode: "npm", runId: run.runId } } : {}),
+        },
+      });
+
+      await scheduleRestartSentinelWake({ deps: {} });
+
+      expect(mocks.deliverOutboundPayloads).not.toHaveBeenCalled();
+      expect(mocks.enqueueDeliveryOnce).not.toHaveBeenCalled();
+      expect(mocks.enqueueSessionDelivery).not.toHaveBeenCalled();
+      expect(mocks.requestHeartbeat).not.toHaveBeenCalled();
+      expect(mocks.appendAssistantMessageToSessionTranscript).not.toHaveBeenCalled();
+      expect(mocks.clearRestartSentinelIfRevision).toHaveBeenCalledWith(123);
+      expect(mocks.logWarn).toHaveBeenCalledWith(
+        expect.stringContaining("target is not a configured command owner"),
+        expect.objectContaining({ runId: run?.runId }),
+      );
+      if (run) {
+        expect(getUpdateRun(run.runId)?.verification.noticeDelivered).toBe(false);
+      }
+    },
+  );
 
   it.each([
     { terminal: false, channel: "webchat" },
@@ -1124,7 +1178,7 @@ describe("scheduleRestartSentinelWake", () => {
       try {
         if (updateRun) {
           const { createUpdateRunNotifier } = await import("./update-run-notice.runtime.js");
-          const ack = await createUpdateRunNotifier(updateRun, {}, {})(updateRun, "ack");
+          const ack = await createUpdateRunNotifier(updateRun, () => ({}), {})(updateRun, "ack");
           expect.soft(ack).toEqual({ delivered: true, owned: true });
           expect
             .soft(getUpdateRun(updateRun.runId)?.steps)
@@ -1290,6 +1344,7 @@ describe("scheduleRestartSentinelWake", () => {
       mocks.deliveryContextFromSession.mockReturnValue({ channel: "telegram", to: "chat-123" });
       mocks.readRestartSentinel.mockResolvedValue({ version: 1, revision: 123, payload });
       mocks.resolveOutboundTarget.mockReturnValue({ ok: true, to: "chat-123" });
+      setNoticeOwner("telegram:chat-123");
 
       await scheduleRestartSentinelWake({ deps: {} as never });
 
@@ -2783,7 +2838,7 @@ describe("scheduleRestartSentinelWake", () => {
       },
     } as Awaited<ReturnType<typeof mocks.readRestartSentinel>>);
     mocks.loadSessionEntry.mockReturnValue({
-      cfg: {},
+      cfg: { commands: { ownerAllowFrom: ["+15550002"] } },
       entry: {
         sessionId: "agent:main:main",
         updatedAt: Date.now(),
@@ -2827,7 +2882,7 @@ describe("scheduleRestartSentinelWake", () => {
 
   it("does not dispatch a queued agentTurn continuation after the session key changes", async () => {
     const activeEntry: LoadedSessionEntry = {
-      cfg: {},
+      cfg: { commands: { ownerAllowFrom: ["+15550002"] } },
       entry: {
         sessionId: "old-session-id",
         updatedAt: Date.now(),
@@ -2839,7 +2894,7 @@ describe("scheduleRestartSentinelWake", () => {
       legacyKey: undefined,
     };
     const replacementEntry: LoadedSessionEntry = {
-      cfg: {},
+      cfg: { commands: { ownerAllowFrom: ["+15550002"] } },
       entry: {
         sessionId: "new-session-id",
         updatedAt: Date.now(),
@@ -2897,7 +2952,7 @@ describe("scheduleRestartSentinelWake", () => {
       "thread-42",
     );
     mocks.loadSessionEntry.mockReturnValue({
-      cfg: {},
+      cfg: { commands: { ownerAllowFrom: ["+15550002"] } },
       entry: {
         sessionId: "agent:main:main",
         updatedAt: Date.now(),
@@ -2935,7 +2990,7 @@ describe("scheduleRestartSentinelWake", () => {
         sessionKey: "agent:main:group",
         deliveryContext: {
           channel: "telegram",
-          to: "telegram:-1001",
+          to: "-1001",
           accountId: "default",
         },
         ts: 123,
@@ -2961,7 +3016,8 @@ describe("scheduleRestartSentinelWake", () => {
       storeKeys: ["agent:main:group"],
       legacyKey: undefined,
     });
-    mocks.resolveOutboundTarget.mockReturnValue({ ok: true as const, to: "telegram:-1001" });
+    mocks.resolveOutboundTarget.mockReturnValue({ ok: true as const, to: "-1001" });
+    setNoticeOwner("-1001");
 
     await scheduleRestartSentinelWake({ deps: {} as never });
 
@@ -2973,7 +3029,7 @@ describe("scheduleRestartSentinelWake", () => {
       {
         ChatType: "group",
         OriginatingChannel: "telegram",
-        OriginatingTo: "telegram:-1001",
+        OriginatingTo: "-1001",
       },
     );
   });
@@ -3011,14 +3067,15 @@ describe("scheduleRestartSentinelWake", () => {
     });
     mocks.deliveryContextFromSession.mockReturnValue({
       channel: "telegram",
-      to: "telegram:-1003826723328:topic:13757",
+      to: "-1003826723328:topic:13757",
       accountId: "default",
       threadId: 13757,
     });
     mocks.resolveOutboundTarget.mockReturnValue({
       ok: true as const,
-      to: "telegram:-1003826723328:topic:13757",
+      to: "-1003826723328:topic:13757",
     });
+    setNoticeOwner("-1003826723328:topic:13757");
 
     await scheduleRestartSentinelWake({ deps: {} as never });
 
@@ -3043,7 +3100,7 @@ describe("scheduleRestartSentinelWake", () => {
         Surface: "webchat",
         ChatType: "group",
         OriginatingChannel: "telegram",
-        OriginatingTo: "telegram:-1003826723328:topic:13757",
+        OriginatingTo: "-1003826723328:topic:13757",
         ExplicitDeliverRoute: false,
         MessageThreadId: "13757",
       },
@@ -3116,13 +3173,14 @@ describe("scheduleRestartSentinelWake", () => {
     } as unknown as Awaited<ReturnType<typeof mocks.readRestartSentinel>>);
     mocks.deliveryContextFromSession.mockReturnValue({
       channel: "telegram",
-      to: "telegram:200482621",
+      to: "200482621",
       accountId: "default",
     });
     mocks.resolveOutboundTarget.mockReturnValue({
       ok: true as const,
-      to: "telegram:200482621",
+      to: "200482621",
     });
+    setNoticeOwner("200482621");
 
     await scheduleRestartSentinelWake({ deps: {} as never });
 
@@ -3134,7 +3192,7 @@ describe("scheduleRestartSentinelWake", () => {
       {
         Body: "continue",
         OriginatingChannel: "telegram",
-        OriginatingTo: "telegram:200482621",
+        OriginatingTo: "200482621",
       },
     );
   });
@@ -3170,32 +3228,6 @@ describe("scheduleRestartSentinelWake", () => {
       intent: "immediate",
       reason: "wake",
       sessionKey: "agent:main:main",
-    });
-  });
-
-  it("enqueues systemEvent continuation without stale partial delivery context", async () => {
-    mockRestartContinuation(
-      {
-        kind: "systemEvent",
-        text: "continue after restart",
-      },
-      "thread-42",
-    );
-    mocks.resolveOutboundTarget.mockReturnValueOnce({
-      ok: false,
-      error: new Error("missing route"),
-    });
-
-    await scheduleRestartSentinelWake({ deps: {} as never });
-
-    expect(mocks.enqueueSystemEvent).toHaveBeenNthCalledWith(2, "continue after restart", {
-      sessionKey: "agent:main:main",
-      deliveryContext: {
-        channel: "whatsapp",
-        to: "+15550002",
-        accountId: "acct-2",
-        threadId: "thread-42",
-      },
     });
   });
 
@@ -3311,26 +3343,30 @@ describe("scheduleRestartSentinelWake", () => {
     expect(mocks.requestHeartbeat).not.toHaveBeenCalled();
   });
 
-  it("falls back to a session wake when restart routing cannot resolve a destination", async () => {
-    mockRestartContinuation({
-      kind: "agentTurn",
-      message: "continue",
-    });
-    mocks.resolveOutboundTarget.mockReturnValueOnce({
-      ok: false,
-      error: new Error("missing route"),
-    });
+  it.each([
+    { kind: "agentTurn", message: "continue" },
+    { kind: "systemEvent", text: "continue" },
+  ] as const)(
+    "records an unroutable $kind notice without a diagnostic wake",
+    async (continuation) => {
+      mockRestartContinuation(continuation, "thread-42");
+      mocks.resolveOutboundTarget.mockReturnValueOnce({
+        ok: false,
+        error: new Error("missing route"),
+      });
 
-    await scheduleRestartSentinelWake({ deps: {} as never });
+      await scheduleRestartSentinelWake({ deps: {} });
 
-    expect(mocks.recordInboundSessionAndDispatchReply).not.toHaveBeenCalled();
-    expect(mockCallArg(mocks.enqueueSystemEvent, 1)).toBe("continue");
-    expectNthSystemEventFields(1, {
-      sessionKey: "agent:main:main",
-    });
-    expect(mocks.requestHeartbeat).toHaveBeenCalledTimes(2);
-    expect(mocks.logWarn).not.toHaveBeenCalled();
-  });
+      expect(mocks.enqueueDeliveryOnce).not.toHaveBeenCalled();
+      expect(mocks.enqueueSessionDelivery).not.toHaveBeenCalled();
+      expect(mocks.recordInboundSessionAndDispatchReply).not.toHaveBeenCalled();
+      expect(mocks.requestHeartbeat).not.toHaveBeenCalled();
+      expect(mocks.clearRestartSentinelIfRevision).toHaveBeenCalled();
+      expect(mocks.logWarn).toHaveBeenCalledWith("lifecycle notice skipped: no delivery target", {
+        runId: undefined,
+      });
+    },
+  );
 
   it("keeps the sentinel file when durable continuation handoff fails", async () => {
     mockRestartContinuation({
@@ -3467,6 +3503,7 @@ describe("scheduleRestartSentinelWake", () => {
       (await actualSentinel.readRestartSentinel()) as RestartSentinel,
     );
     mocks.resolveOutboundTarget.mockReturnValue({ ok: true, to: "room-77" });
+    setNoticeOwner("telegram:room-77");
     await scheduleRestartSentinelWake({ deps: {} as never });
     expect(mocks.loadSessionEntry).toHaveBeenCalledWith(sessionKey);
     expect(mocks.resolveSystemMainSessionTarget).not.toHaveBeenCalled();
@@ -3570,6 +3607,26 @@ describe("scheduleRestartSentinelWake", () => {
     expect(mocks.requestHeartbeat).toHaveBeenCalled();
   });
 
+  it("keeps a targetless Control UI update out of the ambient chat", async () => {
+    const run = createUpdateRun({ trigger: "control-ui" });
+    finishUpdateRun(run.runId, { status: "succeeded" });
+    mocks.deliveryContextFromSession.mockReturnValue({ channel: "whatsapp", to: "+15550002" });
+    mocks.readRestartSentinel.mockResolvedValue({
+      version: 1,
+      revision: 123,
+      payload: { kind: "update", status: "ok", ts: 123, stats: { runId: run.runId } },
+    });
+
+    await scheduleRestartSentinelWake({ deps: {} });
+
+    expect(mocks.enqueueDeliveryOnce).not.toHaveBeenCalled();
+    expect(mocks.enqueueSessionDelivery).not.toHaveBeenCalled();
+    expect(mocks.deliverOutboundPayloads).not.toHaveBeenCalled();
+    expect(mocks.resolveSystemMainSessionTarget).not.toHaveBeenCalled();
+    expect(mocks.clearRestartSentinelIfRevision).toHaveBeenCalledWith(123);
+    expect(getUpdateRun(run.runId)?.verification.noticeDelivered).toBe(false);
+  });
+
   it.each(["config-patch", "config-apply"] as const)(
     "consumes a targetless %s acknowledgement without waking an agent",
     async (kind) => {
@@ -3664,6 +3721,7 @@ describe("scheduleRestartSentinelWake", () => {
         mocks.deliveryContextFromSession.mockReturnValue(context);
       }
       mocks.resolveOutboundTarget.mockReturnValue({ ok: true, to: "123" });
+      setNoticeOwner("telegram:123");
       mocks.readRestartSentinel.mockResolvedValue({
         version: 1,
         revision: 123,
@@ -3866,6 +3924,7 @@ describe("scheduleRestartSentinelWake", () => {
       ok: true as const,
       to: params?.to ?? "missing",
     }));
+    setNoticeOwner("channel:qa-room");
 
     await scheduleRestartSentinelWake({ deps: {} as never });
 
@@ -3892,7 +3951,7 @@ describe("scheduleRestartSentinelWake", () => {
     });
     mocks.loadSessionEntry
       .mockReturnValueOnce({
-        cfg: {},
+        cfg: { commands: { ownerAllowFrom: ["room:!MixedCase:example.org"] } },
         entry: {
           sessionId: "agent:main:matrix:channel:!lowercased:example.org:thread:$thread-event",
           updatedAt: 0,
