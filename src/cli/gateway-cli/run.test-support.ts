@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { RespawnSupervisor } from "../../infra/supervisor-markers.js";
 import "./run.js";
 
@@ -22,7 +22,7 @@ type GatewayRunTestApi = {
   resolveGatewayLockErrorExitCode(err: unknown): number;
   resolveGatewayStartupFailureExitCode(err: unknown): number;
   runGatewayLoopWithSupervisedLockRecovery(params: {
-    startLoop: () => Promise<void>;
+    startLoop: (lifecycleDeadlineMs?: number) => Promise<void>;
     supervisor: RespawnSupervisor | null;
     port: number;
     healthHost: string;
