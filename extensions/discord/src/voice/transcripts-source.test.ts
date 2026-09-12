@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 // Discord tests cover transcripts source plugin behavior.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Guild, RequestClient } from "../internal/discord.js";
@@ -563,7 +563,7 @@ describe("discordVoiceTranscriptsSourceProvider", () => {
       if (!result?.ok) {
         throw new Error("expected occupancy watch handle");
       }
-      result.value.stop();
+      await result.value.stop();
       listener?.({ occupied: true });
       expect(transitions).toEqual(["occupied", "empty"]);
       expect(unsubscribe).toHaveBeenCalledOnce();
@@ -606,7 +606,7 @@ describe("discordVoiceTranscriptsSourceProvider", () => {
       replace(false);
       expect(transitions).toEqual([true, false]);
     } finally {
-      result.value.stop();
+      await result.value.stop();
     }
   });
 
@@ -656,7 +656,7 @@ describe("discordVoiceTranscriptsSourceProvider", () => {
         if (ending === "abort") {
           abortController.abort();
         } else {
-          result.value.stop();
+          await result.value.stop();
         }
         listeners[1]!({ occupied: true });
         replace(true);
@@ -664,7 +664,7 @@ describe("discordVoiceTranscriptsSourceProvider", () => {
         expect(transitions).toEqual([true, false]);
         expect(releases[1]).toHaveBeenCalledOnce();
       } finally {
-        result.value.stop();
+        await result.value.stop();
       }
     },
   );
