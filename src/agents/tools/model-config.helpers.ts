@@ -10,7 +10,7 @@ import {
   resolveAgentModelTimeoutMsValue,
 } from "../../config/model-input.js";
 import type { AgentToolModelConfig } from "../../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   externalCliDiscoveryForProviderAuth,
   ensureAuthProfileStore,
@@ -287,12 +287,6 @@ function hasDirectProviderApiKeyAuthForTool(params: {
     authStore: params.authStore,
     type: "api_key",
   });
-}
-
-if (process.env.VITEST || process.env.NODE_ENV === "test") {
-  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("openclaw.modelConfigHelpersTestApi")] = {
-    hasDirectProviderApiKeyAuthForTool,
-  };
 }
 
 function hasCanonicalOpenAiCodexAuthSignal(params: {
