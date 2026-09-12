@@ -1,14 +1,15 @@
 // Comfy tests cover music generation provider plugin behavior.
-import { expectExplicitMusicGenerationCapabilities } from "openclaw/plugin-sdk/provider-test-contracts";
+import { expectExplicitMusicGenerationCapabilities } from "astroclaw/plugin-sdk/provider-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildComfyMusicGenerationProvider } from "./music-generation-provider.js";
+import { fetchGuardJson } from "./test-helpers.js";
 
 const { fetchWithSsrFGuardMock } = vi.hoisted(() => ({
   fetchWithSsrFGuardMock: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>()),
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>()),
   fetchWithSsrFGuard: fetchWithSsrFGuardMock,
 }));
 
@@ -28,31 +29,18 @@ describe("comfy music-generation provider", () => {
 
   it("runs a music workflow and returns audio outputs", async () => {
     fetchWithSsrFGuardMock
-      .mockResolvedValueOnce({
-        response: new Response(JSON.stringify({ prompt_id: "music-job-1" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-        release: vi.fn(async () => {}),
-      })
-      .mockResolvedValueOnce({
-        response: new Response(
-          JSON.stringify({
-            "music-job-1": {
-              outputs: {
-                "9": {
-                  audio: [{ filename: "song.mp3", subfolder: "", type: "output" }],
-                },
+      .mockResolvedValueOnce(fetchGuardJson({ prompt_id: "music-job-1" }))
+      .mockResolvedValueOnce(
+        fetchGuardJson({
+          "music-job-1": {
+            outputs: {
+              "9": {
+                audio: [{ filename: "song.mp3", subfolder: "", type: "output" }],
               },
             },
-          }),
-          {
-            status: 200,
-            headers: { "content-type": "application/json" },
           },
-        ),
-        release: vi.fn(async () => {}),
-      })
+        }),
+      )
       .mockResolvedValueOnce({
         response: new Response(Buffer.from("music-bytes"), {
           status: 200,
@@ -105,31 +93,18 @@ describe("comfy music-generation provider", () => {
 
   it("rejects generated music downloads that exceed the configured media cap", async () => {
     fetchWithSsrFGuardMock
-      .mockResolvedValueOnce({
-        response: new Response(JSON.stringify({ prompt_id: "music-job-1" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-        release: vi.fn(async () => {}),
-      })
-      .mockResolvedValueOnce({
-        response: new Response(
-          JSON.stringify({
-            "music-job-1": {
-              outputs: {
-                "9": {
-                  audio: [{ filename: "song.mp3", subfolder: "", type: "output" }],
-                },
+      .mockResolvedValueOnce(fetchGuardJson({ prompt_id: "music-job-1" }))
+      .mockResolvedValueOnce(
+        fetchGuardJson({
+          "music-job-1": {
+            outputs: {
+              "9": {
+                audio: [{ filename: "song.mp3", subfolder: "", type: "output" }],
               },
             },
-          }),
-          {
-            status: 200,
-            headers: { "content-type": "application/json" },
           },
-        ),
-        release: vi.fn(async () => {}),
-      })
+        }),
+      )
       .mockResolvedValueOnce({
         response: new Response(Buffer.from("too-large"), {
           status: 200,
