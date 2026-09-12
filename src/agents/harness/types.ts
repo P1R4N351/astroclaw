@@ -227,7 +227,7 @@ export type AgentHarnessSideQuestionParams = {
   agentDir: string;
   provider: string;
   model: string;
-  runtimeModel?: import("openclaw/plugin-sdk/llm").Model<import("openclaw/plugin-sdk/llm").Api>;
+  runtimeModel?: import("astroclaw/plugin-sdk/llm").Model<import("astroclaw/plugin-sdk/llm").Api>;
   /** One atomic route/profile/store snapshot prepared before native dispatch. */
   preparedRuntimeAuth: {
     plan: import("../runtime-plan/types.js").AgentRuntimeAuthPlan;
@@ -400,6 +400,8 @@ type AgentHarnessRunCapability<
    * against native equivalents. Every other deny remains fail-closed.
    */
   conversationToolPolicySafeDenyTools?: readonly string[];
+  /** OpenClaw tool capabilities an indivisible native surface requires from effective profiles. */
+  conversationToolPolicyNativeTools?: readonly string[];
   supports(ctx: AgentHarnessSupportContext): AgentHarnessSupport;
   /** Synchronous private ownership read; no discovery, auth loading, or native connection setup. */
   resolveSessionRuntimeOwnership?(params: {
