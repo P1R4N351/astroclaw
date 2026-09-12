@@ -95,6 +95,13 @@ function renderReadError(error: unknown, retry: () => void) {
   </div>`;
 }
 
+function renderLoading(label: string) {
+  return html`<div class="meetings-loading" role="status" aria-live="polite">
+    <span class="btn__spinner" aria-hidden="true"></span>
+    <span>${label}</span>
+  </div>`;
+}
+
 function renderFilters(props: TranscriptsViewProps) {
   const params = new URLSearchParams(props.search);
   const advancedActive = TRANSCRIPT_ADVANCED_FILTER_KEYS.some((key) => params.get(key));
@@ -201,11 +208,12 @@ function renderMeetingRow(entry: TranscriptSessionSummary, props: TranscriptsVie
       <span class="meetings-row__meta"
         >${t("transcripts.savedCount", { count: String(entry.utteranceCount) })}</span
       >
-      ${silent || entry.overview
-        ? html`<span class="meetings-row__overview"
-            >${silent ? t("meetings.noSpeech") : entry.overview}</span
-          >`
-        : nothing}
+      <span class="meetings-row__overview"
+        >${silent
+          ? t("meetings.noSpeech")
+          : entry.overview ||
+            t(entry.active ? "meetings.summaryAfterMeeting" : "meetings.summaryUnavailable")}</span
+      >
     </a>
   </li>`;
 }
@@ -215,7 +223,7 @@ function renderLibrary(props: TranscriptsViewProps) {
     return renderReadError(props.listError, props.onRefresh);
   }
   if (props.listLoading || !props.list) {
-    return html`<p role="status" class="transcripts-notice">${t("common.loading")}</p>`;
+    return renderLoading(t("meetings.loadingMeetings"));
   }
   const days = new Map<string, TranscriptSessionSummary[]>();
   for (const entry of props.list.sessions) {
@@ -229,7 +237,8 @@ function renderLibrary(props: TranscriptsViewProps) {
     days.set(day, entries);
   }
   return html` ${days.size
-      ? html`<div aria-label=${t("meetings.listLabel")}>
+      ? html`<div class="meetings-timeline" aria-label=${t("meetings.listLabel")}>
+          <p class="transcripts-caption">${t("meetings.newestFirst")}</p>
           ${repeat(
             days,
             ([day]) => day,
@@ -246,7 +255,13 @@ function renderLibrary(props: TranscriptsViewProps) {
           )}
         </div>`
       : html`<div class="transcripts-notice" role="status">
-          <h2>${t("meetings.emptyTitle")}</h2>
+          <h2>
+            ${t(
+              TRANSCRIPT_FILTER_KEYS.some((key) => new URLSearchParams(props.search).has(key))
+                ? "meetings.noResults"
+                : "meetings.emptyTitle",
+            )}
+          </h2>
           <p>${t("transcripts.emptyHint")}</p>
           <a
             href="https://docs.openclaw.ai/cli/transcripts"
@@ -295,7 +310,9 @@ function renderSummary(page: TranscriptsGetResult) {
             ${t("transcripts.generatedAt", { time: transcriptTime(summary.generatedAt) })}
           </p>
           <div class="meetings-notes markdown">
-            ${unsafeHTML(toSanitizedMarkdownHtml(markdown))}
+            ${unsafeHTML(
+              toSanitizedMarkdownHtml(markdown, { mode: "document", remoteImages: false }),
+            )}
           </div>
           <p class="transcripts-caption">${t("transcripts.summaryHint")}</p>`
       : html`<p role="status">${t("transcripts.noSummary")}</p>
@@ -305,13 +322,6 @@ function renderSummary(page: TranscriptsGetResult) {
 
 function renderReader(props: TranscriptsViewProps) {
   const params = new URLSearchParams(props.search);
-  const selected = params.get("selector");
-  if (!selected) {
-    return html`<div class="transcripts-notice transcripts-reader__placeholder">
-      <h2>${t("transcripts.choose")}</h2>
-      <p>${t("transcripts.chooseHint")}</p>
-    </div>`;
-  }
   const transcriptPage = props.reader.pages.at(-1);
   const page = transcriptPage ?? props.reader.summary;
   return html`<article
@@ -333,6 +343,15 @@ function renderReader(props: TranscriptsViewProps) {
       >${icons.arrowLeft}${t("transcripts.back")}</a
     >
     ${props.reader.error ? renderReadError(props.reader.error, props.onReaderRetry) : nothing}
+    ${props.reader.loading
+      ? renderLoading(
+          t(
+            props.readerTab === "summary"
+              ? "meetings.loadingSummary"
+              : "meetings.loadingTranscript",
+          ),
+        )
+      : nothing}
     ${page
       ? html`
           <header class="transcripts-reader__header">
@@ -506,7 +525,6 @@ function renderReader(props: TranscriptsViewProps) {
           </div>
         `
       : nothing}
-    ${props.reader.loading ? html`<p role="status">${t("common.loading")}</p>` : nothing}
   </article>`;
 }
 
@@ -544,10 +562,14 @@ export function renderTranscripts(props: TranscriptsViewProps) {
             <p>${t("transcripts.forbiddenHint")}</p>
           </div>`
         : html`<div class="transcripts-layout ${selected ? "transcripts-layout--selected" : ""}">
-            <section class="transcripts-library" aria-label=${t("transcripts.library")}>
+            <section
+              class="transcripts-library"
+              aria-label=${t("transcripts.library")}
+              aria-busy=${props.listLoading}
+            >
               ${renderFilters(props)}${renderLibrary(props)}
             </section>
-            ${renderReader(props)}
+            ${selected ? renderReader(props) : nothing}
           </div>`}
   </section>`;
 }
