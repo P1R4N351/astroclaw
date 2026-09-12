@@ -261,6 +261,7 @@ export function renderDesktopConnection(options: {
   launchingApp: WorkerDesktopAppId | null;
   showApps: boolean;
   sizing: DesktopSizingOptions;
+  pictureInPictureControl: TemplateResult;
   onDisconnect: () => void;
   onLaunch: (app: WorkerDesktopAppId) => void;
   onTakeControl: () => void;
@@ -295,7 +296,7 @@ export function renderDesktopConnection(options: {
           </div>`
         : nothing}
       <span class="desktop-toolbar__spacer"></span>
-      ${renderDesktopSizing(options.sizing)}
+      ${renderDesktopSizing(options.sizing)} ${options.pictureInPictureControl}
       <button
         class="desktop-toolbar-action"
         type="button"
