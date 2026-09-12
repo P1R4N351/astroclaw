@@ -1,9 +1,9 @@
 // Owns block-streaming policy and buffered delivery state for reply runs.
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { resolveChannelStreamingBlockCoalesce } from "../../channels/streaming.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
 import type { BlockStreamingCoalesceConfig } from "../../config/types.js";
-import { resolveAccountEntry } from "../../routing/account-lookup.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { resolveChannelAccountEntry } from "../../routing/account-lookup.js";
 import { normalizeAccountId } from "../../routing/session-key.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import { resolveChunkMode, resolveTextChunkLimit, type TextChunkProvider } from "../chunk.js";
@@ -57,7 +57,7 @@ function resolveProviderBlockStreamingCoalesce(params: {
   }
   const normalizedAccountId = normalizeAccountId(accountId);
   const typed = providerCfg as ProviderBlockStreamingConfig;
-  const accountCfg = resolveAccountEntry(typed.accounts, normalizedAccountId);
+  const accountCfg = resolveChannelAccountEntry(typed.accounts, normalizedAccountId, providerKey);
   const channelCoalesce = resolveScopedBlockStreamingCoalesce(typed);
   const accountCoalesce = resolveScopedBlockStreamingCoalesce(accountCfg);
   if (channelCoalesce || accountCoalesce) {
