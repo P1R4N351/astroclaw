@@ -4,27 +4,20 @@ import {
   type AgentRunTerminalOutcome,
 } from "../agents/agent-run-terminal-outcome.js";
 import { SUBAGENT_KILL_TASK_ERROR } from "./detached-task-runtime-contract.js";
-import { isTerminalTaskStatus } from "./task-executor-policy.js";
 import { isTerminalTaskFlow, type TaskFlowRecord } from "./task-flow-registry.types.js";
 import { ensureTaskFlowRegistryReady, getTaskFlowById } from "./task-flow-runtime-internal.js";
-import type {
-  TaskDeliveryState,
-  TaskDeliveryStatus,
-  TaskEventKind,
-  TaskEventRecord,
-  TaskNotifyPolicy,
-  TaskRecord,
-  TaskRuntime,
-  TaskScopeKind,
-  TaskStatus,
-  TaskTerminalOutcome,
+import {
+  isTerminalTaskStatus,
+  type TaskDeliveryStatus,
+  type TaskEventKind,
+  type TaskEventRecord,
+  type TaskNotifyPolicy,
+  type TaskRecord,
+  type TaskRuntime,
+  type TaskScopeKind,
+  type TaskStatus,
+  type TaskTerminalOutcome,
 } from "./task-registry.types.js";
-
-export type TaskDeliveryOwner = {
-  sessionKey?: string;
-  requesterOrigin?: TaskDeliveryState["requesterOrigin"];
-  flowId?: string;
-};
 
 type ParentFlowLinkErrorCode =
   | "scope_kind_not_session"
