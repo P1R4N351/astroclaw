@@ -1,5 +1,5 @@
 // Webhooks tests cover index plugin behavior.
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi } from "./api.js";
 import plugin from "./index.js";
@@ -16,6 +16,11 @@ function createApi(params?: {
     pluginConfig: params?.pluginConfig ?? {},
     runtime: {
       tasks: {
+        async: {
+          managedFlows: {
+            bindSession: vi.fn(({ sessionKey }: { sessionKey: string }) => ({ sessionKey })),
+          },
+        },
         managedFlows: {
           bindSession: vi.fn(({ sessionKey }: { sessionKey: string }) => ({ sessionKey })),
         },
