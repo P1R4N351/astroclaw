@@ -2,9 +2,10 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { sanitizeForPlainText } from "openclaw/plugin-sdk/channel-outbound";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import { sanitizeForPlainText } from "astroclaw/plugin-sdk/channel-outbound";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IMessageRpcClient } from "./client.js";
 import {
@@ -16,7 +17,7 @@ import { loadFreshIMessageReplyCacheForTest } from "./test-support/runtime.js";
 
 type ApprovalReactionsModule = typeof import("./approval-reactions.js");
 type ClientModule = typeof import("./client.js");
-type ErrorRuntimeModule = typeof import("openclaw/plugin-sdk/error-runtime");
+type ErrorRuntimeModule = typeof import("astroclaw/plugin-sdk/error-runtime");
 type PersistedEchoCacheModule = typeof import("./monitor/persisted-echo-cache.js");
 type ReplyCacheModule = typeof import("./monitor-reply-cache.js");
 type SendModule = typeof import("./send.js");
@@ -33,7 +34,7 @@ async function loadFreshSendModule(): Promise<void> {
   ({ findLatestIMessageEntryForChat, rememberIMessageReplyCache } =
     await loadFreshIMessageReplyCacheForTest());
   ({ IMessageRpcRequestError } = await import("./client.js"));
-  ({ PlatformMessageNotDispatchedError } = await import("openclaw/plugin-sdk/error-runtime"));
+  ({ PlatformMessageNotDispatchedError } = await import("astroclaw/plugin-sdk/error-runtime"));
   ({
     clearIMessageApprovalReactionTargetsForTest,
     resolveIMessageApprovalReactionTargetWithPersistence,
@@ -3207,6 +3208,45 @@ describe("sendMessageIMessage receipts", () => {
 
     resolveRequest({ guid: "p:0/imsg-slow" });
     await expect(send).resolves.toMatchObject({ messageId: "p:0/imsg-slow" });
+  });
+
+  it("awaits approval binding completion before returning a send receipt", async () => {
+    const reactions = await import("./approval-reactions.js");
+    const persisted =
+      createDeferred<
+        Awaited<ReturnType<ApprovalReactionsModule["registerIMessageApprovalReactionTarget"]>>
+      >();
+    const started = createDeferred<void>();
+    vi.spyOn(reactions, "registerIMessageApprovalReactionTarget").mockImplementation(() => {
+      started.resolve();
+      return persisted.promise;
+    });
+    let completed = false;
+    const send = sendMessageIMessage("chat_id:42", createApprovalText(), {
+      config: IMESSAGE_TEST_CFG,
+      client: createClient({ guid: "p:0/durable-approval" }),
+      dbPath: openClawState.path("synthetic-chat.db"),
+      approvalPrompt: createApprovalPrompt(),
+    }).then((receipt) => {
+      completed = true;
+      return receipt;
+    });
+    try {
+      await started.promise;
+      await new Promise<void>((resolve) => {
+        setImmediate(resolve);
+      });
+      expect(completed).toBe(false);
+      persisted.resolve({
+        approvalId: "approval-123",
+        approvalKind: "exec",
+        allowedDecisions: ["allow-once", "deny"],
+      });
+      await expect(send).resolves.toMatchObject({ guid: "p:0/durable-approval" });
+    } finally {
+      persisted.resolve(null);
+      await Promise.allSettled([send]);
+    }
   });
 
   it("resolves numeric chat.db ROWIDs to GUIDs for approval reaction binding", async () => {
