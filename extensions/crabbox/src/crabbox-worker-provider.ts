@@ -1,13 +1,13 @@
 import { setTimeout as delay } from "node:timers/promises";
-import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   WorkerProviderError,
   type WorkerLeaseStatus,
   type WorkerProfile,
   type WorkerProvider,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { runCommandWithTimeout } from "astroclaw/plugin-sdk/process-runtime";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { runCommandWithTimeout } from "openclaw/plugin-sdk/process-runtime";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveCrabboxBinary } from "./crabbox-binary.js";
 import { ensureManagedCrabboxBinary } from "./crabbox-managed-binary.js";
 import { crabboxCommandError } from "./crabbox-worker-command-error.js";
@@ -583,6 +583,9 @@ export function createCrabboxWorkerProvider(
 
   return {
     id: CRABBOX_WORKER_PROVIDER_ID,
+    // Desktop provisioning requires a dedicated Linux XFCE display. Older fixed-size
+    // images are still safe to request: noVNC negotiates actual resize support.
+    allowsDesktopResize: true,
     async dispose() {
       maintenanceAbort.abort();
       await Promise.all([
