@@ -2,8 +2,8 @@ import { createServer, type Server } from "node:http";
 import {
   readCodexCliCredentialsCached,
   resolveOpenAICodexAuthIdentity,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { REALTIME_VOICE_AGENT_CONSULT_TOOL } from "astroclaw/plugin-sdk/realtime-voice";
+} from "openclaw/plugin-sdk/provider-auth";
+import { REALTIME_VOICE_AGENT_CONSULT_TOOL } from "openclaw/plugin-sdk/realtime-voice";
 import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";
 import { resolveOpenAIChatGptSubscriptionAuth } from "./realtime-auth.js";
@@ -168,7 +168,7 @@ describeLive("GPT-Live Platform WebSocket", () => {
         await bridge.connect();
         expect(bridge.isConnected()).toBe(true);
       } finally {
-        bridge.close();
+        await bridge.close();
       }
     },
     LIVE_TIMEOUT_MS,
