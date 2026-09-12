@@ -652,6 +652,8 @@ export default definePluginEntry({
     api.registerService({
       id: "memory-lancedb",
       start: () => {
+        embeddings.start();
+        captureStopped = false;
         api.logger.info(
           `memory-lancedb: initialized (db: ${resolvedDbPath}, model: ${cfg.embedding.model})`,
         );
