@@ -1,8 +1,8 @@
 // Discord tests cover rest plugin behavior.
 import { createServer, type Server } from "node:http";
 import { gzipSync } from "node:zlib";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { serializeRequestBody } from "./rest-body.js";
 import { DiscordError, RateLimitError, RequestClient } from "./rest.js";
@@ -851,10 +851,7 @@ describe("RequestClient", () => {
       expect(init?.headers).toBeInstanceOf(Headers);
       expect((init!.headers as Headers).get("Content-Type")).toBeNull();
       expect(init?.body).toBeInstanceOf(FormData);
-      return new Response(JSON.stringify({ id: "msg" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return Response.json({ id: "msg" });
     });
     const client = new RequestClient("test-token", { fetch: fetchSpy, queueRequests: false });
 
