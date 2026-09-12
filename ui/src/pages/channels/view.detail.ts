@@ -221,7 +221,6 @@ export function renderChannelDetail(params: {
   channelId: string;
   label: string;
   pluginIconUrl?: string;
-  preferPluginIcon?: boolean;
   props: ChannelsProps;
   data: ChannelsChannelData;
   onClose: () => void;
@@ -237,7 +236,6 @@ export function renderChannelDetail(params: {
         <div class="channels-detail__header">
           ${renderChannelIcon(params.channelId, params.label, "cover", {
             pluginIconUrl: params.pluginIconUrl,
-            preferPluginIcon: params.preferPluginIcon,
           })}
           <div class="channels-detail__header-actions">
             <a
