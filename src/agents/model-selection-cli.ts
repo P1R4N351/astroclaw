@@ -1,7 +1,7 @@
 /**
  * Detects providers whose model selections are backed by CLI runtimes.
  */
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveRuntimeCliBackends } from "../plugins/cli-backends.runtime.js";
 import {
   resolvePluginSetupCliBackendDescriptor,
@@ -15,7 +15,7 @@ export type CliProviderClassifier = (provider: string) => boolean;
 export function prepareCliProviderClassifier(cfg?: OpenClawConfig): CliProviderClassifier {
   const providers = new Set(
     [
-      ...resolveRuntimeCliBackends().map((backend) => backend.id),
+      ...resolveRuntimeCliBackends("metadata").map((backend) => backend.id),
       ...resolvePluginSetupCliBackendIds({ config: cfg }),
     ].map(normalizeProviderId),
   );
@@ -25,7 +25,7 @@ export function prepareCliProviderClassifier(cfg?: OpenClawConfig): CliProviderC
 /** Return true when a provider id resolves to a configured or plugin CLI backend. */
 export function isCliProvider(provider: string, cfg?: OpenClawConfig): boolean {
   const normalized = normalizeProviderId(provider);
-  const cliBackends = resolveRuntimeCliBackends();
+  const cliBackends = resolveRuntimeCliBackends("metadata");
   if (cliBackends.some((backend) => normalizeProviderId(backend.id) === normalized)) {
     return true;
   }
