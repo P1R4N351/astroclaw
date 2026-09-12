@@ -14,7 +14,7 @@ import {
   loadTranscriptEvents,
   resolveTranscriptSessionKeyBySessionId,
 } from "../src/config/sessions/session-accessor.js";
-import { createOpenClawTestState } from "../src/test-utils/astroclaw-test-state.js";
+import { createOpenClawTestState } from "../src/test-utils/openclaw-test-state.js";
 import { getDeterministicFreePortBlock } from "../src/test-utils/ports.js";
 
 const execFileAsync = promisify(execFile);
@@ -240,7 +240,7 @@ describeLive("fresh OpenAI onboarding live", () => {
           agents?: { defaults?: { model?: { primary?: string }; workspace?: string } };
           gateway?: { mode?: string; auth?: { mode?: string; token?: unknown } };
         };
-        expect(config.agents?.defaults?.model?.primary).toBe("openai/gpt-5.6-sol");
+        expect(config.agents?.defaults?.model?.primary).toBe("openai/gpt-6-astra");
         expect(config.agents?.defaults?.workspace).toBe(
           path.join(state.home, ".openclaw", "workspace"),
         );
