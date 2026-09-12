@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { mergeDeep } from "../infra/deep-merge.js";
+import { resolveChannelAccountKey } from "../routing/account-lookup.js";
 import {
   asObjectRecord,
   type CompatMutationResult,
@@ -7,7 +8,7 @@ import {
   type NormalizeLegacyChannelAccountParams,
   type RetiredChannelKeyRemoval,
 } from "./channel-compat-normalization.js";
-import type { OpenClawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 /** Applies one channel-specific doctor migration to every object-shaped account. */
 export function normalizeChannelAccounts(params: {
@@ -192,9 +193,9 @@ export function materializeInheritedAccountStreaming(params: {
     return params.cfg;
   }
   const rootStreaming = asObjectRecord(entry.streaming);
-  const defaultKey = Object.hasOwn(accounts, "default")
-    ? "default"
-    : Object.keys(accounts).find((key) => key.trim().toLowerCase() === "default");
+  const defaultKey = resolveChannelAccountKey(accounts, "default", params.channelId, (key) =>
+    key.trim().toLowerCase(),
+  );
   let changed = false;
   const nextAccounts = { ...accounts };
   const accountIds = Object.keys(accounts).toSorted((left, right) =>
