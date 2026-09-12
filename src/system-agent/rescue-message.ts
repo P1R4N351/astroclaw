@@ -5,8 +5,9 @@ import {
   resolveExpiresAtMsFromDurationMs,
 } from "@astroclaw/normalization-core/number-coercion";
 import { hasNonEmptyString as isNonEmptyString } from "@astroclaw/normalization-core/string-coerce";
+import { listAgentRoles } from "../agents/agent-roles.js";
 import type { CommandContext } from "../auto-reply/reply/commands-types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createCorePluginStateSyncKeyedStore } from "../plugin-state/plugin-state-store.js";
 import type { RuntimeEnv } from "../runtime.js";
 import {
@@ -178,10 +179,22 @@ function parsePendingOperation(value: unknown): SystemAgentOperation | null {
       break;
     case "create-agent":
       if (
-        !hasExactKeys(operation, ["kind", "agentId"], ["workspace", "model"]) ||
+        !hasExactKeys(operation, ["kind", "agentId"], ["workspace", "model", "role"]) ||
         !isNonEmptyString(operation.agentId) ||
+        (operation.role !== undefined &&
+          !listAgentRoles().some((role) => role === operation.role)) ||
         !hasOptionalString(operation, "workspace") ||
         !hasOptionalString(operation, "model")
+      ) {
+        return null;
+      }
+      break;
+    case "create-team":
+      if (
+        !hasExactKeys(operation, ["kind"], ["coordinatorId", "prefix", "workspaceRoot"]) ||
+        !hasOptionalString(operation, "coordinatorId") ||
+        !hasOptionalString(operation, "prefix") ||
+        !hasOptionalString(operation, "workspaceRoot")
       ) {
         return null;
       }
