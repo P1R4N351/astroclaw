@@ -5,14 +5,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createAccountListHelpers } from "../channels/plugins/account-helpers.js";
 import { replaceSessionEntry } from "../config/sessions/session-accessor.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createAccountCronScheduledToolPolicy } from "../cron/scheduled-tool-policy.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
 import { resolveConversationCapabilityProfile } from "./conversation-capability-profile.js";
 import { projectConversationToolNames } from "./conversation-tool-policy-pipeline.js";
-import { isToolAllowedByPolicyName } from "./tool-policy-match.js";
 
 describe("resolveConversationCapabilityProfile", () => {
   it("intersects base and provider profile contributions from plugin manifests", () => {
@@ -493,12 +492,7 @@ describe("resolveConversationCapabilityProfile scheduled account authority", () 
     expect(scheduledProfile({ work: {} }).policy.groupPolicy).toEqual({ allow: ["read"] });
   });
 
-  it("denies every tool for a scheduled run after its owner account is removed", () => {
-    const groupPolicy = scheduledProfile({}).policy.groupPolicy;
-
-    expect(groupPolicy).toEqual({ allow: [], deny: ["*"] });
-    for (const toolName of ["read", "write", "exec", "apply_patch"]) {
-      expect(isToolAllowedByPolicyName(toolName, groupPolicy)).toBe(false);
-    }
+  it("rejects a scheduled run after its owner account is removed", () => {
+    expect(() => scheduledProfile({})).toThrow('Scheduled account "work" is unavailable');
   });
 });
