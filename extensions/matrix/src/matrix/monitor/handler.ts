@@ -1,16 +1,15 @@
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   createChannelInboundEnvelopeBuilder,
   hasFinalInboundReplyDispatch,
   resolveInboundReplyDispatchCounts,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { resolveChannelContextVisibilityMode } from "astroclaw/plugin-sdk/context-visibility-runtime";
-import { extractErrorCode } from "astroclaw/plugin-sdk/error-runtime";
-import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/keyed-async-queue";
-import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
-import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { extractErrorCode } from "openclaw/plugin-sdk/error-runtime";
+import { KeyedAsyncQueue } from "openclaw/plugin-sdk/keyed-async-queue";
+import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
+import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
 import { prepareMatrixReplyPayload } from "../../outbound.js";
 import { isPollEventType } from "../poll-types.js";
 import type { LocationMessageEventContent } from "../sdk.js";
@@ -60,9 +59,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
     allowFromResolvedEntries = [],
     groupAllowFromResolvedEntries = [],
     configuredBotUserIds = new Set<string>(),
-    groupPolicy,
     replyToMode,
-    dmSessionScope,
     streaming,
     previewToolProgressEnabled,
     blockStreamingEnabled,
@@ -72,13 +69,11 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
     dropPreStartupMessages,
     inboundDeduper,
     directTracker,
-    getRoomInfo,
     getMemberDisplayName,
     resolveLiveUserAllowlist = resolveMatrixMonitorLiveUserAllowlist,
     resolveStorePath: resolveStorePathImpl = resolveStorePath,
     createChannelInboundEnvelopeBuilder:
       createChannelInboundEnvelopeBuilderImpl = createChannelInboundEnvelopeBuilder,
-    finalizeInboundContext,
     resolveHumanDelayConfig: resolveHumanDelayConfigImpl = resolveHumanDelayConfig,
   } = params;
   const handlerConfig: MatrixHandlerRuntimeConfig = {
@@ -120,7 +115,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
   return async (roomId: string, event: MatrixRawEvent) => {
     const eventId = typeof event.event_id === "string" ? event.event_id.trim() : "";
     let inboundReplayClaim:
-      | import("astroclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle
+      | import("openclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle
       | undefined;
     let draftControllerRef: Awaited<ReturnType<typeof createMatrixDraftController>> | undefined;
     try {
@@ -272,86 +267,29 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         cfg,
         liveDmAllowFrom,
         route: _route,
-        hasExplicitSessionBinding,
         roomConfig,
         isDirectMessage,
         isRoom,
-        shouldRequireMention,
-        wasMentioned,
-        effectiveWasMentioned,
-        shouldBypassMention,
-        canDetectMention,
-        commandAuthorized,
-        inboundHistory,
-        senderName,
         bodyText,
-        commandBodyText,
-        media,
-        preflightAudioTranscript,
-        locationPayload,
         messageId,
         triggerSnapshot,
         threadRootId,
         thread,
         botLoopProtection,
-        effectiveGroupAllowFrom,
-        effectiveRoomUsers,
-        resolveMessageIngress,
       } = resolvedIngressResult;
-      const contextVisibilityMode = resolveChannelContextVisibilityMode({
-        cfg,
-        channel: "matrix",
-        accountId,
-      });
 
       // Keep the per-room ingress gate focused on ordering-sensitive state updates.
       // Prompt/session enrichment below can run concurrently after the history snapshot is fixed.
       const inboundContext = await resolveMatrixInboundContext({
-        resolveMessageIngress,
-        client,
-        core,
-        cfg,
-        accountId,
-        runtime,
-        logVerboseMessage,
+        handler: handlerConfig,
+        ingress: resolvedIngressResult,
         roomId,
         event,
         eventTs: eventTs ?? undefined,
-        route: _route,
-        isDirectMessage,
-        isRoom,
-        effectiveRoomUsers,
-        groupPolicy,
-        effectiveGroupAllowFrom,
-        contextVisibilityMode,
         resolveThreadContext,
         resolveReplyContext,
-        threadRootId,
-        thread,
-        getRoomInfo,
         senderId,
-        senderName,
-        bodyText,
-        commandBodyText,
-        roomConfig,
-        messageId,
-        inboundHistory,
-        wasMentioned,
-        effectiveWasMentioned,
-        shouldBypassMention,
-        canDetectMention,
-        shouldRequireMention,
-        commandAuthorized,
-        locationPayload,
-        media,
-        preflightAudioTranscript,
-        historyLimit,
-        hasExplicitSessionBinding,
-        dmSessionScope,
         sharedDmContextNoticeRooms,
-        resolveStorePath: resolveStorePathImpl,
-        createChannelInboundEnvelopeBuilder: createChannelInboundEnvelopeBuilderImpl,
-        finalizeInboundContext,
       });
       if (!inboundContext) {
         return;
