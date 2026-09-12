@@ -6,6 +6,7 @@ import { buildComfyImageGenerationProvider } from "./image-generation-provider.j
 import {
   buildComfyConfig,
   buildLegacyComfyConfig,
+  fetchGuardJson,
   mockComfyCloudJobResponses,
   mockComfyProviderApiKey,
   parseComfyJsonBody,
@@ -92,31 +93,18 @@ function mockLocalImageResponses(
   },
 ) {
   fetchWithSsrFGuardMock
-    .mockResolvedValueOnce({
-      response: new Response(JSON.stringify({ prompt_id: promptId }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
-      release: vi.fn(async () => {}),
-    })
-    .mockResolvedValueOnce({
-      response: new Response(
-        JSON.stringify({
-          [promptId]: {
-            outputs: {
-              "9": {
-                images: [{ filename: "generated.png", subfolder: "", type: "output" }],
-              },
+    .mockResolvedValueOnce(fetchGuardJson({ prompt_id: promptId }))
+    .mockResolvedValueOnce(
+      fetchGuardJson({
+        [promptId]: {
+          outputs: {
+            "9": {
+              images: [{ filename: "generated.png", subfolder: "", type: "output" }],
             },
           },
-        }),
-        {
-          status: 200,
-          headers: { "content-type": "application/json" },
         },
-      ),
-      release: vi.fn(async () => {}),
-    })
+      }),
+    )
     .mockResolvedValueOnce({
       response: new Response(download.body, {
         status: 200,
@@ -393,31 +381,18 @@ describe("comfy image-generation provider", () => {
 
   it("submits a local workflow, waits for history, and downloads images", async () => {
     fetchWithSsrFGuardMock
-      .mockResolvedValueOnce({
-        response: new Response(JSON.stringify({ prompt_id: "local-prompt-1" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-        release: vi.fn(async () => {}),
-      })
-      .mockResolvedValueOnce({
-        response: new Response(
-          JSON.stringify({
-            "local-prompt-1": {
-              outputs: {
-                "9": {
-                  images: [{ filename: "generated.png", subfolder: "", type: "output" }],
-                },
+      .mockResolvedValueOnce(fetchGuardJson({ prompt_id: "local-prompt-1" }))
+      .mockResolvedValueOnce(
+        fetchGuardJson({
+          "local-prompt-1": {
+            outputs: {
+              "9": {
+                images: [{ filename: "generated.png", subfolder: "", type: "output" }],
               },
             },
-          }),
-          {
-            status: 200,
-            headers: { "content-type": "application/json" },
           },
-        ),
-        release: vi.fn(async () => {}),
-      })
+        }),
+      )
       .mockResolvedValueOnce({
         response: new Response(Buffer.from("png-data"), {
           status: 200,
@@ -919,20 +894,8 @@ describe("comfy image-generation provider", () => {
       .mockReturnValueOnce(0)
       .mockReturnValueOnce(MAX_TIMER_TIMEOUT_MS + 1);
     fetchWithSsrFGuardMock
-      .mockResolvedValueOnce({
-        response: new Response(JSON.stringify({ prompt_id: "local-prompt-1" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-        release: vi.fn(async () => {}),
-      })
-      .mockResolvedValueOnce({
-        response: new Response(JSON.stringify({ "local-prompt-1": { outputs: {} } }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-        release: vi.fn(async () => {}),
-      });
+      .mockResolvedValueOnce(fetchGuardJson({ prompt_id: "local-prompt-1" }))
+      .mockResolvedValueOnce(fetchGuardJson({ "local-prompt-1": { outputs: {} } }));
 
     try {
       const provider = buildComfyImageGenerationProvider();
@@ -962,31 +925,18 @@ describe("comfy image-generation provider", () => {
 
   it("rejects generated image downloads that exceed the configured media cap", async () => {
     fetchWithSsrFGuardMock
-      .mockResolvedValueOnce({
-        response: new Response(JSON.stringify({ prompt_id: "local-prompt-1" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-        release: vi.fn(async () => {}),
-      })
-      .mockResolvedValueOnce({
-        response: new Response(
-          JSON.stringify({
-            "local-prompt-1": {
-              outputs: {
-                "9": {
-                  images: [{ filename: "generated.png", subfolder: "", type: "output" }],
-                },
+      .mockResolvedValueOnce(fetchGuardJson({ prompt_id: "local-prompt-1" }))
+      .mockResolvedValueOnce(
+        fetchGuardJson({
+          "local-prompt-1": {
+            outputs: {
+              "9": {
+                images: [{ filename: "generated.png", subfolder: "", type: "output" }],
               },
             },
-          }),
-          {
-            status: 200,
-            headers: { "content-type": "application/json" },
           },
-        ),
-        release: vi.fn(async () => {}),
-      })
+        }),
+      )
       .mockResolvedValueOnce({
         response: new Response(Buffer.from("too-large"), {
           status: 200,
@@ -1094,38 +1044,19 @@ describe("comfy image-generation provider", () => {
 
   it("uploads reference images for local edit workflows", async () => {
     fetchWithSsrFGuardMock
-      .mockResolvedValueOnce({
-        response: new Response(JSON.stringify({ name: "upload.png" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-        release: vi.fn(async () => {}),
-      })
-      .mockResolvedValueOnce({
-        response: new Response(JSON.stringify({ prompt_id: "local-edit-1" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-        release: vi.fn(async () => {}),
-      })
-      .mockResolvedValueOnce({
-        response: new Response(
-          JSON.stringify({
-            "local-edit-1": {
-              outputs: {
-                "9": {
-                  images: [{ filename: "edited.png", subfolder: "", type: "output" }],
-                },
+      .mockResolvedValueOnce(fetchGuardJson({ name: "upload.png" }))
+      .mockResolvedValueOnce(fetchGuardJson({ prompt_id: "local-edit-1" }))
+      .mockResolvedValueOnce(
+        fetchGuardJson({
+          "local-edit-1": {
+            outputs: {
+              "9": {
+                images: [{ filename: "edited.png", subfolder: "", type: "output" }],
               },
             },
-          }),
-          {
-            status: 200,
-            headers: { "content-type": "application/json" },
           },
-        ),
-        release: vi.fn(async () => {}),
-      })
+        }),
+      )
       .mockResolvedValueOnce({
         response: new Response(Buffer.from("edited-data"), {
           status: 200,
