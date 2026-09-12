@@ -452,6 +452,7 @@ export function renderSidebarPanel(
 ) {
   // Markdown previews and file editors need a bounded host wrapper so their
   // inner content can shrink and scroll. Content-sized kinds keep auto height.
+  // Text attachments own Markdown initialization when their async body arrives.
   const fillHost =
     props.content?.kind === "file" ||
     props.content?.kind === "markdown" ||
@@ -460,7 +461,7 @@ export function renderSidebarPanel(
   return html`
     <div
       class=${fillHost ? "sidebar-panel-host--fill" : ""}
-      ${markdownBlocks()}
+      ${props.content?.kind === "attachment" ? nothing : markdownBlocks()}
       @click=${props.onClick}
       @keydown=${props.onKeydown}
     >
