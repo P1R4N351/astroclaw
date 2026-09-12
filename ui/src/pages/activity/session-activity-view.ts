@@ -20,7 +20,12 @@ import {
   resolveSessionPreferredFace,
   sessionNavigationTarget,
 } from "../../lib/sessions/route-navigation.ts";
-import { resolveUiConfiguredMainKey } from "../../lib/sessions/session-key.ts";
+import {
+  parseAgentSessionKey,
+  resolveUiConfiguredMainKey,
+  scopedSessionArtifactKey,
+} from "../../lib/sessions/session-key.ts";
+import "./session-activity-git.ts";
 import { activityRunInspectorHref } from "./run-inspector-model.ts";
 import {
   ACTIVITY_TIME_FILTERS,
@@ -228,6 +233,10 @@ function dayLabel(timestamp: number | null, now = Date.now()): string {
 }
 
 function renderSessionLink(context: ApplicationContext, row: GatewaySessionRow) {
+  const agentId =
+    parseAgentSessionKey(row.key)?.agentId ??
+    row.agentId ??
+    resolveSessionNavigationAgentId(context);
   const face = resolveSessionPreferredFace(row);
   const target = sessionNavigationTarget({
     face,
@@ -306,6 +315,11 @@ function renderSessionLink(context: ApplicationContext, row: GatewaySessionRow) 
           : nothing}
       </span>
     </a>
+    <openclaw-activity-session-git
+      .context=${context}
+      .sessionKey=${scopedSessionArtifactKey(row.key, agentId)}
+      .agentId=${agentId}
+    ></openclaw-activity-session-git>
     ${activeObserverRunId
       ? html`<a
           class="activity-feed__inspect-run"
