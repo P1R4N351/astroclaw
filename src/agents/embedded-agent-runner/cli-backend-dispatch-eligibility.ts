@@ -7,7 +7,7 @@
  * the plugin runtime surface does not eagerly load the run machinery.
  */
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveRuntimeCliBackends } from "../../plugins/cli-backends.runtime.js";
 import {
   ensureAuthProfileStore,
@@ -40,7 +40,10 @@ export function resolveEmbeddedCliBackendDispatchEligibility(
   // provider id directly, so resolve the configured execution runtime before
   // gating.
   const backends = new Map(
-    resolveRuntimeCliBackends().map((backend) => [normalizeProviderId(backend.id), backend]),
+    resolveRuntimeCliBackends("metadata").map((backend) => [
+      normalizeProviderId(backend.id),
+      backend,
+    ]),
   );
   const requestedProvider = normalizeProviderId(params.provider ?? "");
   const provider = backends.has(requestedProvider)
