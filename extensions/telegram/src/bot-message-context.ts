@@ -1,21 +1,21 @@
-// Telegram plugin module implements bot message context behavior.
-import type { ReactionTypeEmoji } from "grammy/types";
 import {
   resolveAckReaction,
   shouldAckReaction as shouldAckReactionGate,
-} from "openclaw/plugin-sdk/channel-feedback";
-import { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-feedback";
+import { logInboundDrop } from "astroclaw/plugin-sdk/channel-inbound";
 import type {
   TelegramDirectConfig,
   TelegramGroupConfig,
-} from "openclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+} from "astroclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
 import {
   deriveLastRoutePolicy,
   normalizeAccountId,
   resolveThreadSessionKeys,
-} from "openclaw/plugin-sdk/routing";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/routing";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Telegram plugin module implements bot message context behavior.
+import type { ReactionTypeEmoji } from "grammy/types";
 import {
   expandTelegramAllowFromWithAccessGroups,
   resolveTelegramDmAllow,
@@ -476,6 +476,7 @@ export const buildTelegramMessageContext = async ({
     originatingTo,
     routeAgentId: route.agentId,
     sessionKey,
+    acpBinding: bindingMode.kind === "configured",
     effectiveGroupAllow,
     effectiveDmAllow: dmAllow.effectiveAllow,
     groupConfig,
@@ -533,6 +534,7 @@ export const buildTelegramMessageContext = async ({
     inboundEventKind: bodyResult.inboundEventKind,
     groupRequireMention: Boolean(groupRequireMention),
     mentionFacts: bodyResult.mentionFacts,
+    groupThread: bodyResult.groupThread,
     hasControlCommand: bodyResult.hasControlCommand,
     stickerCacheHit: bodyResult.stickerCacheHit,
     ...(bodyResult.audioTranscribedMediaIndex !== undefined
