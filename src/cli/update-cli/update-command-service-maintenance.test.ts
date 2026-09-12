@@ -5,6 +5,7 @@ import path from "node:path";
 import { stableStringify } from "@astroclaw/normalization-core/stable-stringify";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { readScheduledTaskRuntime } from "../../daemon/schtasks-runtime.js";
+import { ServiceInspectionError } from "../../daemon/service-inspection-error.js";
 import { readGatewayServiceState, type GatewayService } from "../../daemon/service.js";
 import {
   createMockGatewayService,
@@ -12,7 +13,7 @@ import {
 } from "../../daemon/service.test-helpers.js";
 import { sha256Hex } from "../../infra/crypto-digest.js";
 import { openNodeSqliteDatabase } from "../../infra/node-sqlite.js";
-import * as openClawTmp from "../../infra/tmp-openclaw-dir.js";
+import * as openClawTmp from "../../infra/tmp-astroclaw-dir.js";
 import { CONTROL_PLANE_UPDATE_SENTINEL_META_ENV } from "../../infra/update-control-plane-sentinel.js";
 import { createManagedHandoffLeaseStore } from "../../infra/update-managed-service-handoff-lease.js";
 import { createUpdateRun } from "../../infra/update-run-ledger.js";
@@ -53,7 +54,7 @@ afterEach(() => vi.restoreAllMocks());
 
 async function withServiceHome(run: (home: string) => Promise<void>): Promise<void> {
   const home = await makeTempWorkspace("openclaw-update-service-");
-  vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(home);
+  vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(home);
   try {
     await withEnvAsync(
       {
@@ -75,6 +76,37 @@ async function withServiceHome(run: (home: string) => Promise<void>): Promise<vo
     await fs.rm(home, { recursive: true, force: true });
   }
 }
+
+it.each(["systemd-user-bus-unavailable", "service-manager-access-denied"] as const)(
+  "retains the native inspection reason for failed preflight: %s",
+  (reason) =>
+    withServiceHome(async (home) => {
+      mockProcessPlatform("linux");
+      const service = createMockGatewayService({
+        readCommand: async () => ({
+          programArguments: [process.execPath, path.join(process.cwd(), "openclaw.mjs"), "gateway"],
+          environment: { HOME: home },
+        }),
+        readRuntime: async () => ({ status: "unknown", inspectionReason: reason }),
+        isLoaded: async () => {
+          throw new ServiceInspectionError(reason);
+        },
+      });
+      mocks.service.mockReturnValue(service);
+      await expect(
+        maybeStopManagedServiceBeforeMutableUpdate({
+          root: process.cwd(),
+          updateInstallKind: "package",
+          shouldRestart: true,
+          phase: "inspect",
+          jsonMode: true,
+        }),
+      ).resolves.toMatchObject({
+        serviceUpdateVerdict: { kind: "unavailable", inspectionReason: reason },
+      });
+      expect(service.stop).not.toHaveBeenCalled();
+    }),
+);
 
 type NativeOfflineCase = {
   platform: NodeJS.Platform;
@@ -314,7 +346,7 @@ it.runIf(process.platform === "linux" || process.platform === "darwin").each(
       const root = await fs.realpath(process.cwd());
       const metaPath = path.join(home, "handoff-meta.json");
       const runId = randomUUID();
-      vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(home);
+      vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(home);
       createUpdateRun({ runId, trigger: "cli" }, { env: process.env });
       await fs.writeFile(
         metaPath,
@@ -634,7 +666,7 @@ it.each(["before stop", "after stop"] as const)(
   "refuses a rebound live executor %s without a new native effect",
   (when) =>
     withServiceHome(async (home) => {
-      vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(
+      vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(
         path.join(home, "private-tmp"),
       );
       const root = process.cwd();
