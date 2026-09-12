@@ -1,4 +1,4 @@
-import { withTempHome } from "openclaw/plugin-sdk/test-env";
+import { withTempHome } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { testing as cliBackendsTesting } from "../agents/cli-backends.test-support.js";
 import { resolveDefaultModelForAgent } from "../agents/model-selection-config.js";
@@ -386,7 +386,7 @@ describe("buildStatusText prepared context windows", () => {
     {
       name: "canonical default with absent agent configuration",
       cfg: {},
-      expectedModel: "openai/gpt-5.6-sol",
+      expectedModel: "openai/gpt-6-astra",
     },
     {
       name: "literal self-provider prefix in a prepared model ID",
