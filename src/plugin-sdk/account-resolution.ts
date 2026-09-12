@@ -15,5 +15,6 @@ export {
   DEFAULT_ACCOUNT_ID,
 } from "./account-core.js";
 
-export type { OpenClawConfig } from "../config/types.astroclaw.js";
-export { resolveAccountEntry } from "../routing/account-lookup.js";
+export type { OpenClawConfig } from "../config/types.openclaw.js";
+export { resolveAccountEntry, resolveAccountKey } from "../routing/account-lookup.js";
+export type { ChannelAccountKeyPolicy } from "../routing/account-lookup.js";
