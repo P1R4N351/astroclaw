@@ -358,14 +358,14 @@ function renderViewportContent(controller: BrowserPanelController) {
   `;
 }
 
-function renderViewport(controller: BrowserPanelController) {
+function renderViewport(controller: BrowserPanelController, rendersTabStrip: boolean) {
   return html`
     <wa-tab-panel
       id="browser-tab-panel"
       class="bp-viewport"
       name=${controller.activeTargetId ?? "browser"}
       active
-      aria-labelledby=${controller.activeTargetId
+      aria-labelledby=${rendersTabStrip && controller.activeTargetId
         ? `browser-tab-${controller.activeTargetId}`
         : nothing}
       tabindex="0"
@@ -390,8 +390,10 @@ export function renderBrowserPanelChrome(
   onClose: () => void,
   resizer: TemplateResult | typeof nothing,
   embedded = false,
+  tabsInHeader = false,
 ) {
   const style = embedded ? nothing : dock === "bottom" ? `height:${height}px` : `width:${width}px`;
+  const rendersTabStrip = !embedded || (!tabsInHeader && controller.tabs.length > 0);
   return html`
     <section
       class="bp bp--${embedded ? "embedded" : dock}"
@@ -399,19 +401,19 @@ export function renderBrowserPanelChrome(
       aria-label=${t("browser.title")}
     >
       ${embedded ? nothing : resizer}
-      ${embedded && controller.tabs.length === 0
-        ? nothing
-        : html`<header class="rail-header bp-header">
+      ${rendersTabStrip
+        ? html`<header class="rail-header bp-header">
             ${renderTabStrip(controller, embedded)}
             ${embedded ? nothing : renderHeaderActions(controller, dock, onDockChange, onClose)}
-          </header>`}
+          </header>`
+        : nothing}
       ${renderToolbar(controller, embedded)} ${renderAnnotateBar(controller)}
       ${controller.errorText
         ? html`<div class="bp-note bp-note--error" role="alert">${controller.errorText}</div>`
         : controller.noticeText
           ? html`<div class="bp-note" role="status">${controller.noticeText}</div>`
           : nothing}
-      ${renderViewport(controller)}
+      ${renderViewport(controller, rendersTabStrip)}
     </section>
   `;
 }
