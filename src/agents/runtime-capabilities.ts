@@ -6,12 +6,10 @@
  */
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStringEntriesLower } from "@astroclaw/normalization-core/string-normalization";
-import {
-  resolveThreadBindingSpawnPolicy,
-  supportsAutomaticThreadBindingSpawn,
-} from "../channels/thread-bindings-policy.js";
+import { supportsThreadBindingSpawn } from "../channels/conversation-resolution.js";
+import { resolveThreadBindingSpawnPolicy } from "../channels/thread-bindings-policy.js";
 import { resolveChannelCapabilities } from "../config/channel-capabilities.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel-constants.js";
 import { resolveChannelPromptCapabilities } from "./channel-tools.js";
 
@@ -51,7 +49,7 @@ export function collectRuntimeChannelCapabilities(params: {
   const internalChannelCapabilities =
     params.channel === INTERNAL_MESSAGE_CHANNEL ? ["markdownDetails"] : [];
   const threadSpawnCapabilities: string[] = [];
-  if (params.cfg && supportsAutomaticThreadBindingSpawn(params.channel)) {
+  if (params.cfg && supportsThreadBindingSpawn(params.channel)) {
     for (const [kind, capability] of [
       ["subagent", THREAD_BOUND_SUBAGENT_SPAWN_CAPABILITY],
       ["acp", THREAD_BOUND_ACP_SPAWN_CAPABILITY],
