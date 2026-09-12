@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseTeamReportsConfig, type TeamReportsConfig } from "./config.js";
 import { describePeriod } from "./periods.js";
@@ -133,7 +133,7 @@ async function setup(
     config,
     resolved,
     store,
-    llm: { complete, acquireLocalService: vi.fn(async () => undefined) },
+    llm: { complete },
     context,
     sources,
   });
