@@ -1,9 +1,11 @@
+import { readSessionMessageIdentity } from "@astroclaw/gateway-client/browser";
 import { isHttpUrl } from "@astroclaw/net-policy/url-protocol";
 import {
   asNullableObjectRecord as readRecord,
   asNullableRecord,
   isRecord,
 } from "@astroclaw/normalization-core/record-coerce";
+import { readNonBlankString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 // Control UI chat domain owns pure tool-card extraction rules.
 import {
@@ -334,9 +336,12 @@ function extractToolCards(message: unknown): ToolCard[] {
   const cards: ToolCard[] = [];
   const fallbackMatchedCards = new WeakSet<ToolCard>();
   const transcriptMessageId = resolveTranscriptMessageId(m);
+  const messageRunId = readSessionMessageIdentity(m)?.runId ?? readNonBlankString(m.runId);
 
   for (let index = 0; index < content.length; index++) {
     const item = content[index] ?? {};
+    const runId = readNonBlankString(item.runId) ?? messageRunId;
+    const parentToolCallId = readNonBlankString(item.parentToolCallId);
     if (isToolCallContentBlock(item)) {
       const args = coerceArgs(item.arguments ?? item.args ?? item.input);
       const callId = resolveToolCallId(item, m);
@@ -344,6 +349,8 @@ function extractToolCards(message: unknown): ToolCard[] {
       cards.push({
         id: resolveToolCardId(item, m, index),
         ...(callId ? { callId } : {}),
+        ...(runId ? { runId } : {}),
+        ...(parentToolCallId ? { parentToolCallId } : {}),
         name: resolveToolName(item, m),
         args,
         inputText: serializeToolInput(args),
@@ -386,6 +393,8 @@ function extractToolCards(message: unknown): ToolCard[] {
       if (existing) {
         fallbackMatchedCards.add(existing);
         existing.callId ??= callId;
+        existing.runId ??= runId;
+        existing.parentToolCallId ??= parentToolCallId;
         // Live tool-stream messages emit a toolresult block for partial
         // `update` output too; completion there is owned by the stream's
         // resultReceived marker (set at card creation), not block presence —
@@ -410,6 +419,8 @@ function extractToolCards(message: unknown): ToolCard[] {
       cards.push({
         id: cardId,
         ...(callId ? { callId } : {}),
+        ...(runId ? { runId } : {}),
+        ...(parentToolCallId ? { parentToolCallId } : {}),
         name,
         completed: true,
         outputText: text,
@@ -433,6 +444,7 @@ function extractToolCards(message: unknown): ToolCard[] {
     cards.push({
       id: resolveToolCardId({}, m, 0),
       ...(callId ? { callId } : {}),
+      ...(messageRunId ? { runId: messageRunId } : {}),
       name,
       completed: isToolResultMessage(message) || role === "tool" || role === "function",
       outputText: text,
