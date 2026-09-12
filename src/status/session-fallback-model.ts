@@ -1,4 +1,5 @@
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { resolveSelectedAndActiveModel } from "../auto-reply/model-runtime.js";
 import { readSessionTranscriptBoundedMessageTailPage } from "../config/sessions/session-accessor.sqlite-active-events.js";
 import type { SessionTranscriptReadScope } from "../config/sessions/session-accessor.types.js";
@@ -26,6 +27,14 @@ export function readSessionFallbackModel(params: {
     !entry.lastRunId ||
     !entry.fallbackNotice
   ) {
+    return undefined;
+  }
+  const selectedLabel = resolveSelectedAndActiveModel({
+    selectedProvider: params.selectedProvider,
+    selectedModel: params.selectedModel,
+    parseSelectedProvider: params.parseSelectedProvider,
+  }).selected.label;
+  if (normalizeOptionalString(entry.fallbackNotice.selectedModel) !== selectedLabel) {
     return undefined;
   }
   try {
