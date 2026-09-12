@@ -100,7 +100,8 @@ function requireQaSuiteOptions() {
   return options;
 }
 
-vi.mock("astroclaw/plugin-sdk/qa-runner-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/qa-runner-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/qa-runner-runtime")>()),
   listQaRunnerCliContributions,
 }));
 
