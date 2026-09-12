@@ -445,7 +445,8 @@ export function createMemoryWikiImportRunStateStore(
       );
     },
     async rowCount() {
-      return (await openStore().entries()).length;
+      const store = openStore();
+      return (await store.count?.()) ?? (await store.entries()).length;
     },
   };
 }
