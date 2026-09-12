@@ -1,7 +1,7 @@
 // agents_list tests cover subagent discovery, runtime metadata, and legacy
 // runtime override handling.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { compactToolOutputHint } from "../tool-schema-hints.js";
 import { createAgentsListTool } from "./agents-list-tool.js";
 
@@ -175,7 +175,7 @@ describe("agents_list tool", () => {
           id: "main",
           name: undefined,
           configured: true,
-          model: "openai/gpt-5.6-sol",
+          model: "openai/gpt-6-astra",
           agentRuntime: { id: "codex", source: "implicit" },
         },
       ],
@@ -244,7 +244,7 @@ describe("agents_list tool", () => {
           id: "strict",
           name: undefined,
           configured: true,
-          model: "openai/gpt-5.6-sol",
+          model: "openai/gpt-6-astra",
           agentRuntime: { id: "codex", source: "implicit" },
         },
       ],
