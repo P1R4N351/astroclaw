@@ -9,10 +9,11 @@ import type {
 } from "../../channels/plugins/types.public.js";
 import { listRouteBindings } from "../../config/bindings.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { normalizeOptionalAccountId } from "../../routing/account-id.js";
 import { normalizeRouteBindingChannelId } from "../../routing/binding-scope.js";
 import { buildAgentMainSessionKey, normalizeAgentId } from "../../routing/session-key.js";
+import { assertAgentDatabaseAdmitted } from "../../state/agent-database-admission.js";
 import {
   INTERNAL_MESSAGE_CHANNEL,
   isDeliverableMessageChannel,
@@ -155,6 +156,7 @@ export async function resolveAgentDeliveryPlanWithSessionRoute(
     preparedPlugin?: ChannelPlugin;
   },
 ): Promise<AgentDeliveryPlan> {
+  assertAgentDatabaseAdmitted(params.agentId);
   const plan = resolveAgentDeliveryPlan(params);
   const { resolvedChannel } = plan;
   if (!params.wantsDelivery || !isDeliverableMessageChannel(resolvedChannel)) {
