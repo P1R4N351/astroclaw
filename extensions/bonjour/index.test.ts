@@ -1,4 +1,3 @@
-// Bonjour tests cover index plugin behavior.
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
