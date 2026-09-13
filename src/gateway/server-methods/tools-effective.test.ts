@@ -5,6 +5,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ErrorCodes } from "../../../packages/gateway-protocol/src/index.js";
 import type { McpToolCatalog } from "../../agents/agent-bundle-mcp-types.js";
+import { makeProviderModelFixture } from "../../agents/test-helpers/provider-model-fixture.js";
 import { setPluginToolMeta } from "../../plugins/tool-metadata.js";
 import { createToolsEffectiveHandlers, testing } from "./tools-effective.js";
 
@@ -24,18 +25,15 @@ const resolveEffectiveToolInventoryRuntimeModelContextMock = vi.hoisted(() =>
   vi.fn(
     (_params?: unknown): RuntimeModelContext => ({
       modelApi: "openai-responses",
-      runtimeModel: {
+      runtimeModel: makeProviderModelFixture({
         id: "gpt-4.1",
         name: "GPT 4.1",
         provider: "openai",
         api: "openai-responses",
         baseUrl: "https://api.openai.com/v1",
-        reasoning: false,
-        input: ["text"],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         contextWindow: 128_000,
         maxTokens: 8_192,
-      },
+      }),
     }),
   ),
 );
@@ -318,18 +316,15 @@ describe("tools.effective handler", () => {
     runtimeMocks.resolveRuntimeConfigCacheKey.mockReturnValue("runtime:1:test");
     runtimeMocks.resolveEffectiveToolInventoryRuntimeModelContext.mockReturnValue({
       modelApi: "openai-responses",
-      runtimeModel: {
+      runtimeModel: makeProviderModelFixture({
         id: "gpt-4.1",
         name: "GPT 4.1",
         provider: "openai",
         api: "openai-responses",
         baseUrl: "https://api.openai.com/v1",
-        reasoning: false,
-        input: ["text"],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         contextWindow: 128_000,
         maxTokens: 8_192,
-      },
+      }),
     });
     runtimeMocks.acquireEffectiveToolInventoryRuntimeModelContext
       .mockReset()
@@ -604,18 +599,15 @@ describe("tools.effective handler", () => {
     runtimeMocks.acquireEffectiveToolInventoryRuntimeModelContext.mockResolvedValue(
       createAcquiredRuntimeModelContext({
         modelApi: "openai-responses",
-        runtimeModel: {
+        runtimeModel: makeProviderModelFixture({
           id: "gpt-4.1",
           name: "GPT 4.1",
           provider: "openai",
           api: "openai-responses",
           baseUrl: "https://api.openai.com/v1",
-          reasoning: false,
-          input: ["text"],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
           contextWindow: 128_000,
           maxTokens: 8_192,
-        },
+        }),
       }),
     );
 
