@@ -1,17 +1,18 @@
 // Zalo test support covers monitor.polling.media reply plugin behavior.
 import type { ServerResponse } from "node:http";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   createEmptyPluginRegistry,
+  createPluginRegistryOwner,
   createRuntimeEnv,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { createReplyDispatcher } from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { createReplyDispatcher } from "openclaw/plugin-sdk/reply-runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 import { setZaloRuntime } from "./runtime.js";
@@ -627,6 +628,7 @@ describe("Zalo polling media replies", () => {
   it("cleans each active registry when its own route holder stops", async () => {
     const firstRegistry = createEmptyPluginRegistry();
     setActivePluginRegistry(firstRegistry);
+    const firstOwner = createPluginRegistryOwner(firstRegistry);
     getUpdatesMock.mockImplementation(() => new Promise(() => {}));
 
     const { monitorZaloProvider } = await loadCachedLifecycleMonitorModule(
@@ -651,12 +653,14 @@ describe("Zalo polling media replies", () => {
     const secondAbort = new AbortController();
     const secondRuntime = createRuntimeEnv();
     let secondRun: Promise<void> | undefined;
+    let secondOwner: ReturnType<typeof createPluginRegistryOwner> | undefined;
 
     try {
       await settleAsyncWork();
       expect(firstRegistry.httpRoutes).toHaveLength(1);
 
       setActivePluginRegistry(secondRegistry);
+      secondOwner = createPluginRegistryOwner(secondRegistry);
       secondRun = monitorZaloProvider({
         token: "zalo-token",
         account,
@@ -674,8 +678,11 @@ describe("Zalo polling media replies", () => {
     } finally {
       firstAbort.abort();
       secondAbort.abort();
-      await firstRun;
-      await secondRun;
+      try {
+        await Promise.all([firstRun, secondRun]);
+      } finally {
+        await Promise.all([firstOwner.close(), secondOwner?.close()]);
+      }
     }
 
     expect(firstRegistry.httpRoutes).toHaveLength(0);
