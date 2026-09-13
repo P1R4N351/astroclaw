@@ -2,9 +2,11 @@
  * Tests managed-service update handoff behavior exposed by gateway methods.
  */
 import { EventEmitter } from "node:events";
+import { readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
@@ -34,12 +36,13 @@ import {
 import { registerManagedUpdateHandoffTriageTests } from "./update-managed-service-handoff-triage.test-support.js";
 import { signalMockManagedUpdateHandoffReady } from "./update-managed-service-handoff.test-support.js";
 
-const { forceKillChildProcessTreeMock, resolvePreferredAstroclawTmpDirMock, spawnMock } =
-  vi.hoisted(() => ({
+const { forceKillChildProcessTreeMock, resolvePreferredOpenClawTmpDirMock, spawnMock } = vi.hoisted(
+  () => ({
     forceKillChildProcessTreeMock: vi.fn(),
-    resolvePreferredAstroclawTmpDirMock: vi.fn(),
+    resolvePreferredOpenClawTmpDirMock: vi.fn(),
     spawnMock: vi.fn(),
-  }));
+  }),
+);
 const MOCK_INSTALL_ROOT = path.join(os.tmpdir(), `openclaw-handoff-lifecycle-${process.pid}`);
 
 function createSpawnMock(params?: { pid?: number }) {
@@ -71,9 +74,9 @@ vi.mock("../process/child-process-tree.js", async () => {
   return { ...actual, forceKillChildProcessTree: forceKillChildProcessTreeMock };
 });
 
-vi.mock("./tmp-astroclaw-dir.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./tmp-astroclaw-dir.js")>()),
-  resolvePreferredAstroclawTmpDir: resolvePreferredAstroclawTmpDirMock,
+vi.mock("./tmp-openclaw-dir.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./tmp-openclaw-dir.js")>()),
+  resolvePreferredOpenClawTmpDir: resolvePreferredOpenClawTmpDirMock,
 }));
 
 const tempDirs = new Set<string>();
@@ -99,7 +102,7 @@ beforeEach(async () => {
     await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-handoff-coordinator-")),
   );
   tempDirs.add(coordinatorDir);
-  resolvePreferredAstroclawTmpDirMock.mockReturnValue(coordinatorDir);
+  resolvePreferredOpenClawTmpDirMock.mockReturnValue(coordinatorDir);
   forceKillChildProcessTreeMock.mockReset();
   spawnMock.mockReset();
   spawnMock.mockImplementation((_command: string, args: string[]) => {
@@ -482,6 +485,7 @@ describe("managed service update handoff", () => {
       expect(commands).toEqual([]);
       expect(parentSignal).toBeNull();
       expect(repairEffects, log).toEqual({
+        packagedReadOnly: true,
         firstSpawn: true,
         secondSpawn: !revoke,
         firstExec: true,
@@ -696,6 +700,20 @@ describe("managed service update handoff", () => {
     const { startManagedServiceUpdateHandoff } =
       await import("./update-managed-service-handoff.js");
     const { env, systemdRunPath } = await createUserSystemdFixture();
+    const spawnNormally = spawnMock.getMockImplementation()!;
+    spawnMock.mockImplementationOnce((command: string, args: string[], options: unknown) => {
+      const params = JSON.parse(readFileSync(args.at(-1)!, "utf8"));
+      const db = new DatabaseSync(params.updateLeaseDatabasePath, { readOnly: true });
+      try {
+        expect(db.prepare("SELECT COUNT(*) AS count FROM managed_update_handoffs").get()).toEqual({
+          count: 0,
+        });
+      } finally {
+        db.close();
+      }
+      expect(params.updateLeaseDatabaseIdentity.databasePath).toBe(params.updateLeaseDatabasePath);
+      return spawnNormally(command, args, options);
+    });
 
     const result = await startManagedServiceUpdateHandoff({
       root: MOCK_INSTALL_ROOT,
