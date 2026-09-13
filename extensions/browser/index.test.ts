@@ -1,7 +1,7 @@
 // Browser tests cover index plugin behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   browserPluginNodeHostCommands,
@@ -146,8 +146,13 @@ describe("browser plugin", () => {
     });
   });
 
-  it("initializes the shared durable session-tab registry without loading browser control", () => {
+  it("initializes the durable tab registry without loading browser control or Gateway runtime", () => {
     const { api, openSyncKeyedStore } = createApi();
+    Object.defineProperty(api.runtime, "gateway", {
+      get() {
+        throw new Error("Gateway runtime must stay lazy during Browser registration");
+      },
+    });
     registerBrowserPlugin(api);
 
     expect(openSyncKeyedStore).toHaveBeenCalledWith({
