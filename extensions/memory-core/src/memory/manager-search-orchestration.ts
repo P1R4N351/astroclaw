@@ -1,9 +1,9 @@
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { classifyMemoryMultimodalPath } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { classifyMemoryMultimodalPath } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   createSubsystemLogger,
   resolveUserPath,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   MEMORY_INDEX_FTS_TABLE,
   MEMORY_INDEX_VECTOR_TABLE,
@@ -11,10 +11,10 @@ import {
   type MemorySearchManager,
   type MemorySearchResult,
   type MemorySource,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { WorkerTaskError } from "openclaw/plugin-sdk/process-runtime";
-import { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
-import { uniqueValues } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { WorkerTaskError } from "astroclaw/plugin-sdk/process-runtime";
+import { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
+import { uniqueValues } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   mergeHybridResults,
   selectHybridSearchResults,
@@ -197,13 +197,11 @@ export abstract class MemorySearchOrchestration extends MemoryKeywordRetrieval {
         (indexIdentity.status === "missing" ||
           (searchSyncEnabled &&
             indexIdentity.status === "mismatched" &&
-            indexIdentity.owner === "openclaw" &&
-            indexIdentity.code === "chunking_version"));
+            indexIdentity.owner === "openclaw"));
       if (shouldRepairIdentity) {
-        // Missing metadata has no safe generation; chunking upgrades need a full
-        // rebuild. Repair before a read-generation lease can block its writer.
+        // The writer rechecks identity under its lease; another manager may have repaired it.
         await this.syncAdmitted(
-          { reason: "search", force: true },
+          { reason: "search" },
           { allowEmbeddingBootstrapFallback: true },
         ).catch((err: unknown) => {
           if (err instanceof WorkerTaskError && err.code === "overloaded") {
