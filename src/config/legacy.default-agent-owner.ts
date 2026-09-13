@@ -1,10 +1,10 @@
 import { normalizeAgentId } from "@astroclaw/normalization-core/agent-id";
-import { tryResolveLegacyCompatibilityAgentId } from "../agents/agent-scope-config.js";
+import { tryResolveLegacyDataOwnerAgentId } from "../agents/agent-scope-config.js";
 import {
   getRetainedLegacyDefaultAgentId,
   setRetainedLegacyDefaultAgentId,
 } from "./legacy.default-agent-owner-state.js";
-import type { OpenClawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 export function retainLegacyDefaultAgentId(
   config: OpenClawConfig,
@@ -30,5 +30,5 @@ export function resolveSessionStoreCompatibilityAgentId(config: OpenClawConfig):
   const persistedAgentId = config.agents?.defaults?.sessionStore?.agentId?.trim();
   return persistedAgentId
     ? normalizeAgentId(persistedAgentId)
-    : (tryResolveLegacyCompatibilityAgentId(config) ?? "main");
+    : (tryResolveLegacyDataOwnerAgentId(config) ?? "main");
 }
