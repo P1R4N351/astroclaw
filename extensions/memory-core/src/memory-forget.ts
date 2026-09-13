@@ -4,20 +4,20 @@ import path from "node:path";
 import {
   resolveAgentWorkspaceDir,
   type OpenClawConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   buildSessionEntry,
   listSessionTranscriptCorpusEntriesForAgent,
   parseUsageCountedSessionIdFromFileName,
   resolveMemorySessionTargets,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
+} from "openclaw/plugin-sdk/memory-core-host-engine-sessions";
 import {
   isFileMissingError,
   listMemoryFiles,
   loadSqliteVecExtension,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { listMemoryArtifactProvenance } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-paths";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { listMemoryArtifactProvenance } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-paths";
 import {
   borrowOpenClawAgentDatabase,
   executeSqliteQuerySync,
@@ -26,7 +26,7 @@ import {
   runSqliteImmediateTransactionSync,
   tableExists,
   withOpenClawAgentDatabaseReadOnly,
-} from "astroclaw/plugin-sdk/sqlite-runtime";
+} from "openclaw/plugin-sdk/sqlite-runtime";
 import { readMemoryPreimages } from "./dreaming-consolidation-artifacts.js";
 import { DREAMS_FILENAMES } from "./dreaming-dreams-file.js";
 import {
@@ -243,8 +243,11 @@ async function planMemoryIndex(params: {
         chunkIds.length > 0 && tableExists(db, "memory_index_chunks_fts")
           ? executeSqliteQuerySync(
               db,
-              kysely.selectFrom("memory_index_chunks_fts").select("id").where("id", "in", chunkIds),
-            ).rows.length
+              kysely
+                .selectFrom("memory_index_chunks_fts")
+                .select((eb) => eb.fn.countAll<number>().as("count"))
+                .where("id", "in", chunkIds),
+            ).rows[0]!.count
           : 0;
       const hasVectorTable = tableExists(db, "memory_index_chunks_vec");
       let embeddingCacheRows = 0;
@@ -295,13 +298,13 @@ async function planMemoryIndex(params: {
           db,
           vectorKysely
             .selectFrom("memory_index_chunks_vec")
-            .select("id")
+            .select((eb) => eb.fn.countAll<number>().as("count"))
             .where(
               "id",
               "in",
               result.value.chunks.map((chunk) => chunk.id),
             ),
-        ).rows.length;
+        ).rows[0]!.count;
       },
       { agentId: params.agentId },
       { allowExtension: true },
