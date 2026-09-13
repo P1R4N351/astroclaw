@@ -1,9 +1,9 @@
 // Browser tests cover periodic session-tab cleanup failure handling.
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const registryMocks = vi.hoisted(() => ({
@@ -71,12 +71,19 @@ describe("session tab cleanup timer", () => {
     const disabled = { browser: { tabCleanup: { enabled: false } } };
     setRuntimeConfigSnapshot(disabled, disabled);
     await vi.advanceTimersByTimeAsync(300_000);
-    expect(registryMocks.sweepTrackedBrowserTabs).toHaveBeenCalledTimes(1);
+    expect(registryMocks.sweepTrackedBrowserTabs).toHaveBeenCalledTimes(2);
+    expect(registryMocks.sweepTrackedBrowserTabs).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ordinaryCleanup: false,
+        idleMs: undefined,
+        maxTabsPerSession: undefined,
+      }),
+    );
 
     const enabled = { browser: { tabCleanup: { enabled: true } } };
     setRuntimeConfigSnapshot(enabled, enabled);
     await vi.advanceTimersByTimeAsync(300_000);
-    expect(registryMocks.sweepTrackedBrowserTabs).toHaveBeenCalledTimes(2);
+    expect(registryMocks.sweepTrackedBrowserTabs).toHaveBeenCalledTimes(3);
     await stop();
   });
 
