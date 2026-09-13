@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 import { withTempWorkspace } from "../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { killProcessTree } from "../process/kill-tree.js";
 
 const SNAPSHOT_VERSION = 1;
@@ -66,6 +66,7 @@ type ShellSnapshot = {
 };
 
 type ShellSnapshotWrapOptions = {
+  enabled?: boolean;
   command: string;
   shell: string;
   shellArgs: string[];
@@ -83,6 +84,7 @@ export async function maybeWrapCommandWithShellSnapshot(
   opts: ShellSnapshotWrapOptions,
 ): Promise<string> {
   if (
+    opts.enabled === false ||
     process.platform === "win32" ||
     isExecShellSnapshotDisabled(process.env) ||
     !isSupportedSnapshotShell(opts.shell, opts.shellArgs)
