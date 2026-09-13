@@ -1,5 +1,5 @@
 // WhatsApp monitor inbox behavior split by ownership.
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearWhatsAppApprovalReactionTargetsForTest,
@@ -25,7 +25,7 @@ import {
 } from "./monitor-inbox.test-harness.js";
 
 const approvalResolver = vi.hoisted(() => vi.fn());
-vi.mock("openclaw/plugin-sdk/approval-gateway-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/approval-gateway-runtime", () => ({
   resolveApprovalOverGateway: approvalResolver,
 }));
 
@@ -37,7 +37,7 @@ describe("web monitor inbox delivery and dedupe", () => {
   });
 
   it("replays approval reactions after Gateway loss without losing batch siblings", async () => {
-    registerWhatsAppApprovalReactionTarget({
+    await registerWhatsAppApprovalReactionTarget({
       accountId: DEFAULT_ACCOUNT_ID,
       remoteJid: "15551230000@s.whatsapp.net",
       messageId: "approval-message",
