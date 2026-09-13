@@ -3,11 +3,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { registerEmbeddingProvider } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { resolveOpenClawAgentSqlitePath } from "openclaw/plugin-sdk/sqlite-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { registerEmbeddingProvider } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { resolveOpenClawAgentSqlitePath } from "astroclaw/plugin-sdk/sqlite-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "./test-runtime-mocks.js";
 import type { EmbeddingProvider } from "./embeddings.js";
@@ -571,18 +571,25 @@ describe("memory manager reindex recovery", () => {
     });
   });
 
-  it("rejects a full reindex while another process owns the build lock", async () => {
+  it("waits for an active reindex beyond the reset lock budget", async () => {
     const memoryManager = await openManager(createCfg({ provider: "none", sources: ["memory"] }));
     const databasePath = resolveOpenClawAgentSqlitePath({ agentId: "main" });
     const lock = await waitForMemoryReindexLock(databasePath);
 
+    let settled = false;
+    const sync = memoryManager.sync({ reason: "test", force: true }).finally(() => {
+      settled = true;
+    });
+    const outcome = sync.catch((error: unknown) => error);
     try {
-      await expect(memoryManager.sync({ reason: "test", force: true })).rejects.toThrow(
-        /another reindex is active/,
-      );
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 2_100);
+      });
+      expect(settled).toBe(false);
     } finally {
       await lock.release();
     }
+    await expect(outcome).resolves.toBeUndefined();
   });
 
   it("refuses reset during incremental embeddings, then clears and rebuilds their writes", async () => {
