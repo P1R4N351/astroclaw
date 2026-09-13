@@ -1,4 +1,4 @@
-import { html, nothing } from "lit";
+import { html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { localEditorFilePath } from "../../../app/native-editor-locality.runtime.ts";
 import { icons } from "../../../components/icons.ts";
@@ -59,6 +59,12 @@ type FileCopyFeedback = Partial<Record<FileCopyAction, "copied" | "failed">>;
 export const emptyCopyFeedback: FileCopyFeedback = {};
 
 export type FileViewControls = {
+  htmlPreview?: {
+    source: boolean;
+    presentation: TemplateResult | typeof nothing;
+    sourceFallback?: TemplateResult;
+    onToggle: () => void;
+  };
   copyFeedback: FileCopyFeedback;
   currentMatchIndex: number;
   dirty: boolean;
@@ -130,6 +136,18 @@ export function renderSidebarFile(
         ${controls
           ? html`
               <div class="sidebar-file-view__actions">
+                ${controls.htmlPreview
+                  ? html`<button
+                      class="btn btn--sm"
+                      type="button"
+                      aria-pressed=${String(controls.htmlPreview.source)}
+                      @click=${controls.htmlPreview.onToggle}
+                    >
+                      ${controls.htmlPreview.source
+                        ? t("chat.workspaceFiles.preview")
+                        : t("chat.detailPanel.viewSource")}
+                    </button>`
+                  : nothing}
                 ${controls.editing
                   ? html`
                       <button
@@ -274,13 +292,19 @@ export function renderSidebarFile(
             </div>
           `
         : nothing}
-      <div class="file-view">
+      ${controls?.htmlPreview
+        ? html`<div class="chat-html-preview" ?hidden=${controls.htmlPreview.source}>
+            ${controls.htmlPreview.presentation}
+          </div>`
+        : nothing}
+      <div class="file-view" ?hidden=${controls?.htmlPreview && !controls.htmlPreview.source}>
+        ${controls?.htmlPreview?.sourceFallback ?? nothing}
         ${keyed(controls?.mountKey ?? content, html`<div class="file-view__mount"></div>`)}
         ${controls?.loadingEditor
           ? renderPanelLoadingSkeleton("review", t("common.loading"), false, true)
           : nothing}
       </div>
-      ${controls?.editing
+      ${controls?.editing || controls?.htmlPreview
         ? nothing
         : html`
             <div class="sidebar-file-view__footer">
