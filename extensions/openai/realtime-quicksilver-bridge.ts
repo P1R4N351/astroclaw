@@ -1,6 +1,6 @@
 // GPT-Live backend bridge over the Frameless Bidi WebSocket protocol used by Codex realtime v3.
 import { randomUUID } from "node:crypto";
-import type { PluginLogger } from "openclaw/plugin-sdk/plugin-entry";
+import type { PluginLogger } from "astroclaw/plugin-sdk/plugin-entry";
 import {
   canonicalizeBase64,
   rawDataToString,
@@ -9,7 +9,7 @@ import {
   type RealtimeVoiceBridgeCreateRequest,
   type RealtimeVoiceSessionConnection,
   type RealtimeVoiceToolResultOptions,
-} from "openclaw/plugin-sdk/realtime-voice-provider";
+} from "astroclaw/plugin-sdk/realtime-voice-provider";
 import WebSocket, { type RawData } from "ws";
 import type { OpenAIRealtimeHost } from "./realtime-host.js";
 import { OpenAILiveDelegationQueue } from "./realtime-live-delegation-queue.js";
