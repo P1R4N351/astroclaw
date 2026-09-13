@@ -1,8 +1,8 @@
 // Memory Core tests cover bounded deep-phase consolidation behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
-import { createPluginStateKeyedStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { createPluginStateKeyedStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { filterConsolidationCandidates } from "./dreaming-consolidation-candidates.js";
 import { applyMemoryConsolidationPlan } from "./dreaming-consolidation.js";
@@ -785,6 +785,47 @@ describe("memory consolidation", () => {
     expect(subagent.complete).not.toHaveBeenCalled();
   });
 
+  it("reports a candidate removed from the recall store before consolidation as changed", async () => {
+    const workspaceDir = await createTempWorkspace("memory-consolidation-removed-recall-");
+    const notePath = path.join(workspaceDir, "memory", "2026-07-01.md");
+    const memoryPath = path.join(workspaceDir, "MEMORY.md");
+    await fs.mkdir(path.dirname(notePath), { recursive: true });
+    await fs.writeFile(notePath, "User prefers green tea.\n", "utf8");
+    await fs.writeFile(memoryPath, "# Memory\n\n- Original fact.\n", "utf8");
+    const candidates = await recordConsolidationRecall(workspaceDir);
+    const promoted = candidates[0];
+    if (!promoted) {
+      throw new Error("expected ranked candidate");
+    }
+    await shortTermTestState.writeRawRecallStore(workspaceDir, {
+      version: 1,
+      updatedAt: "2026-07-02T10:01:00.000Z",
+      entries: {},
+    });
+    const subagent = createSubagent("{}");
+
+    const applied = await applyShortTermPromotions({
+      workspaceDir,
+      candidates,
+      minScore: 0,
+      minRecallCount: 0,
+      minUniqueQueries: 0,
+      consolidation: { subagent, logger },
+      nowMs: Date.parse("2026-07-02T10:00:00.000Z"),
+    });
+
+    expect(applied.applied).toBe(0);
+    expect(applied.rejectedCandidates).toEqual([
+      expect.objectContaining({
+        candidate: expect.objectContaining({ key: promoted.key }),
+        category: "candidate changed",
+        reason: "candidate changed during apply",
+      }),
+    ]);
+    expect(subagent.complete).not.toHaveBeenCalled();
+    await expect(fs.readFile(memoryPath, "utf8")).resolves.toBe("# Memory\n\n- Original fact.\n");
+  });
+
   it("rejects a candidate downgraded in the recall store during consolidation", async () => {
     const workspaceDir = await createTempWorkspace("memory-consolidation-provenance-race-");
     const notePath = path.join(workspaceDir, "memory", "2026-07-01.md");
@@ -852,6 +893,12 @@ describe("memory consolidation", () => {
     });
 
     expect(applied.applied).toBe(0);
+    expect(applied.rejectedCandidates).toEqual([
+      expect.objectContaining({
+        category: "candidate changed",
+        reason: "candidate changed during apply",
+      }),
+    ]);
     await expect(fs.readFile(memoryPath, "utf8")).resolves.toBe("# Memory\n\n- Original fact.\n");
   });
 
@@ -916,6 +963,12 @@ describe("memory consolidation", () => {
     });
 
     expect(applied.applied).toBe(0);
+    expect(applied.rejectedCandidates).toEqual([
+      expect.objectContaining({
+        category: "candidate changed",
+        reason: "candidate changed during apply",
+      }),
+    ]);
     await expect(fs.readFile(memoryPath, "utf8")).resolves.toBe("# Memory\n\n- Original fact.\n");
     const recallStore = await shortTermTestState.readRecallStore(
       workspaceDir,
