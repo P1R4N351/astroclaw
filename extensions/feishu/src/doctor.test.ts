@@ -8,11 +8,11 @@ import {
   normalizeSessionDeliveryState,
   type SessionEntry,
   upsertSessionEntry,
-} from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   readSessionTranscriptEvents,
-} from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/session-transcript-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../runtime-api.js";
 import { feishuDoctor } from "./doctor.js";
@@ -105,6 +105,10 @@ function insertRawSessionEntry(sessionKey: string, entry: SessionEntry, agentId 
         "INSERT INTO session_nodes (session_key, current_session_id, entry_json, updated_at) VALUES (?, ?, ?, ?)",
       )
       .run(sessionKey, entry.sessionId, JSON.stringify(entry), entry.updatedAt ?? 0);
+    // This preserved session is healthy; settle the validity projection like the canonical writer.
+    database
+      .prepare("UPDATE session_nodes SET entry_valid = 1 WHERE session_key = ?")
+      .run(sessionKey);
   } finally {
     database.close();
   }
