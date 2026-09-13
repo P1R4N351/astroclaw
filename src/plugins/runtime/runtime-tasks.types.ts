@@ -97,7 +97,8 @@ type AsyncManagedFlowWrites = {
     | "resume"
     | "finish"
     | "fail"
-    | "requestCancel"]: (
+    | "requestCancel"
+    | "runTask"]: (
     ...args: Parameters<BoundTaskFlowRuntime[Key]>
   ) => Promise<ReturnType<BoundTaskFlowRuntime[Key]>>;
 };
