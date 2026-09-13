@@ -1,4 +1,5 @@
 // Slack tests cover dispatch.preview fallback plugin behavior.
+import { projectProgressCardChannelUpdate } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   createTestRegistry,
   resetPluginRuntimeStateForTest,
@@ -171,6 +172,7 @@ let mockedReplyOptionEvents: Array<
       kind: "plan";
       phase?: string;
       explanation?: string;
+      explanationFormat?: "plain";
       steps: Array<{ step: string; status: "pending" | "in_progress" | "completed" }>;
     }
   | { kind: "concurrent_items"; progressTexts: string[] }
@@ -1080,6 +1082,7 @@ vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
             await params.replyOptions?.onPlanUpdate?.({
               phase: entry.phase,
               explanation: entry.explanation,
+              explanationFormat: entry.explanationFormat,
               steps: entry.steps,
             });
           } else if (entry.kind === "concurrent_items") {
@@ -3525,6 +3528,29 @@ describe("dispatchPreparedSlackMessage preview fallback", () => {
       updates: [
         planUpdate("Checking the workspace — Executing the checklist."),
         taskUpdate("plan_step_1", "Patch", "in_progress"),
+      ],
+    },
+    {
+      name: "deduplicates a native title shared by a fresh preamble and a prepared note",
+      events: [
+        {
+          kind: "item",
+          itemKind: "preamble",
+          itemId: "preamble-1",
+          progressText: "Checking results",
+        },
+        {
+          kind: "plan",
+          phase: "update",
+          ...projectProgressCardChannelUpdate({ markdown: "**Checking** results" }),
+          steps: [],
+        },
+      ],
+      updates: [
+        planUpdate("Checking results"),
+        taskUpdate(expect.any(String), "Update Plan", "in_progress", {
+          details: "Checking results",
+        }),
       ],
     },
     {
