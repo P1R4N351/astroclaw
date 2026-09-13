@@ -1,10 +1,13 @@
 import { execFile } from "node:child_process";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, assert, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
+import * as gitExec from "../../infra/git-exec.js";
 import * as commandExec from "../../process/exec.js";
+import { createDeferredCore } from "../../shared/deferred.js";
 import { closeOpenClawStateDatabaseForTest } from "../../state/openclaw-state-db.js";
 import * as stateLease from "../../state/openclaw-state-lease.js";
 import {
@@ -46,6 +49,7 @@ describe("ManagedWorktreeService filesystem acceleration", () => {
     // Hosted runners can install system-wide LFS filters, which intentionally
     // disable acceleration. Each case owns its checkout policy instead.
     vi.stubEnv("GIT_CONFIG_NOSYSTEM", "1");
+    vi.stubEnv("GIT_ATTR_NOSYSTEM", "1");
     const root = tempDirs.make("openclaw-worktree-acceleration-");
     repo = await initializeRepository(root);
     env = { ...process.env, OPENCLAW_STATE_DIR: path.join(root, "state") };
@@ -55,6 +59,7 @@ describe("ManagedWorktreeService filesystem acceleration", () => {
     // subvolume operations are replaced with independent directory copies.
     backend = {
       id: "btrfs",
+      estimateCloneBytes: (_entries, indexBytes) => 16 * 1024 ** 2 + 2 * indexBytes,
       createTemplate: vi.fn(async (destination, options) => {
         options.commitGuard();
         await fs.mkdir(destination);
@@ -71,6 +76,82 @@ describe("ManagedWorktreeService filesystem acceleration", () => {
       getConfig: () => ({ worktreeAcceleration: acceleration }),
     });
   });
+
+  it.each(["warm", "small", "restore", "cold", "disabled", "invalid", "fallback"])(
+    "admits only reusable source clones under disk pressure (%s)",
+    async (mode) => {
+      const sourceBytes = mode === "small" ? 32 * 1024 : 32 * 1024 ** 2;
+      await fs.writeFile(path.join(repo, "large.bin"), Buffer.alloc(sourceBytes, 7));
+      await git(repo, "add", "large.bin");
+      await git(repo, "commit", "-m", "large source");
+      let restoreId: string | undefined;
+      if (mode !== "cold") {
+        const seed = await service.create({ repoRoot: repo, name: "seed", baseRef: "HEAD" });
+        if (mode === "restore") {
+          await fs.writeFile(path.join(seed.path, "README.md"), "saved work\n");
+          const removed = await service.remove({ id: seed.id, reason: "archive" });
+          await service.create({
+            repoRoot: repo,
+            name: "snapshot-seed",
+            baseRef: removed.snapshotRef,
+          });
+          restoreId = seed.id;
+        }
+      }
+      if (mode === "disabled") {
+        acceleration = false;
+      }
+      if (mode === "invalid") {
+        await fs.writeFile(path.join(listTemplates(env)[0]!.path, "README.md"), "changed template");
+      }
+      if (mode === "fallback") {
+        vi.mocked(backend.cloneTemplate).mockRejectedValueOnce(new Error("clone unavailable"));
+      }
+      const available = 16 * 1024 ** 3 + (mode === "small" ? 1 : 24) * 1024 ** 2;
+      const stats = fsSync.statfsSync(repo);
+      vi.spyOn(fsSync, "statfsSync").mockReturnValue({
+        type: stats.type,
+        files: stats.files,
+        ffree: stats.ffree,
+        frsize: stats.frsize,
+        bsize: 4096,
+        blocks: 1024 ** 4 / 4096,
+        bavail: available / 4096,
+        bfree: available / 4096,
+      });
+      const result = restoreId
+        ? service.restore({ id: restoreId })
+        : service.create({ repoRoot: repo, name: "limited", baseRef: "HEAD" });
+      if (mode === "warm" || mode === "restore" || mode === "small") {
+        const created = await result;
+        expect((await fs.stat(path.join(created.path, "large.bin"))).size).toBe(sourceBytes);
+        if (mode === "small") {
+          expect(backend.cloneTemplate).toHaveBeenCalledTimes(1);
+        }
+        if (mode === "restore") {
+          expect(await fs.readFile(path.join(created.path, "README.md"), "utf8")).toBe(
+            "saved work\n",
+          );
+          expect(await git(created.path, "status", "--porcelain")).toBe("M README.md");
+          expect(await git(created.path, "rev-parse", "HEAD")).toBe(
+            await git(repo, "rev-parse", "HEAD"),
+          );
+        } else {
+          expect(await git(created.path, "status", "--porcelain")).toBe("");
+        }
+      } else {
+        await expect(result).rejects.toThrow(/disk space/i);
+        if (mode === "fallback") {
+          expect(backend.cloneTemplate).toHaveBeenCalledTimes(2);
+        }
+        expect(await git(repo, "branch", "--list", "openclaw/limited")).toBe("");
+        expect(await git(repo, "worktree", "list", "--porcelain")).not.toContain("/limited");
+        expect(
+          service.listRegistryRecords().some((record) => record.branch === "openclaw/limited"),
+        ).toBe(false);
+      }
+    },
+  );
 
   it("reuses clean source while including current ignored files and running setup for each checkout", async () => {
     await fs.writeFile(path.join(repo, ".gitignore"), ".env.local\nprivate.txt\nsetup-ran.txt\n");
@@ -216,33 +297,90 @@ describe("ManagedWorktreeService filesystem acceleration", () => {
     },
   );
 
-  it("removes its registration and branch when snapshot and native fallback both fail", async () => {
-    vi.mocked(backend.cloneTemplate).mockRejectedValueOnce(new Error("snapshot unavailable"));
-    let failedDestination: string | undefined;
-    vi.spyOn(commandExec, "runCommandWithTimeout").mockImplementation(async (argv, options) => {
-      if (argv[0] === "git" && argv.includes("reset") && argv.includes("--hard")) {
-        failedDestination = argv[argv.indexOf("-C") + 1];
-        return {
-          stdout: "",
-          stderr: "native checkout failed",
-          code: 1,
-          signal: null,
-          killed: false,
-          termination: "exit",
-        };
-      }
-      return await realRunCommand(argv, options);
-    });
+  it.each(["current", "revoked"] as const)(
+    "handles %s authority when snapshot and native fallback both fail",
+    async (authority) => {
+      vi.mocked(backend.cloneTemplate).mockRejectedValueOnce(new Error("snapshot unavailable"));
+      let failedDestination: string | undefined;
+      vi.spyOn(commandExec, "runCommandWithTimeout").mockImplementation(async (argv, options) => {
+        if (argv[0] === "git" && argv.includes("reset") && argv.includes("--hard")) {
+          failedDestination = argv[argv.indexOf("-C") + 1];
+          return {
+            stdout: "",
+            stderr: "native checkout failed",
+            code: 1,
+            signal: null,
+            killed: false,
+            termination: "exit",
+          };
+        }
+        return await realRunCommand(argv, options);
+      });
 
-    await expect(
-      service.create({ repoRoot: repo, name: "failed-fallback", baseRef: "HEAD" }),
-    ).rejects.toThrow("native checkout failed");
-    expect(failedDestination).toBeDefined();
-    expect(await git(repo, "worktree", "list", "--porcelain")).not.toContain("failed-fallback");
-    expect(await git(repo, "branch", "--list", "openclaw/failed-fallback")).toBe("");
-    expect(service.listRegistryRecords()).toEqual([]);
-    await expect(fs.access(failedDestination!)).rejects.toMatchObject({ code: "ENOENT" });
-  });
+      const branch = "openclaw/failed-fallback";
+      const originalHead = await git(repo, "rev-parse", "HEAD");
+      const commonDir = await git(repo, "rev-parse", "--git-common-dir");
+      const held = createDeferredCore();
+      const release = createDeferredCore();
+      const holder = gitExec.enqueueGitRefMutation(repo, commonDir, async () => {
+        held.resolve();
+        await release.promise;
+      });
+      await held.promise;
+      const queueCalls = vi.spyOn(gitExec, "enqueueGitRefMutation");
+      let current = true;
+      const revoked = new Error("checkout authority revoked");
+      const pending = service
+        .create({
+          repoRoot: repo,
+          name: "failed-fallback",
+          baseRef: "HEAD",
+          commitGuard: () => {
+            if (!current) {
+              throw revoked;
+            }
+          },
+        })
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        );
+      try {
+        await Promise.race([
+          vi.waitFor(() => expect(queueCalls.mock.calls.length).toBe(1), { timeout: 10_000 }),
+          pending.then(() => {
+            throw new Error("Checkout ended before cleanup queued its branch deletion");
+          }),
+        ]);
+        expect(failedDestination).toBeDefined();
+        expect(await git(repo, "rev-parse", branch)).toBe(originalHead);
+        await expect(fs.access(failedDestination!)).rejects.toMatchObject({ code: "ENOENT" });
+        current = authority === "current";
+        release.resolve();
+        await holder;
+        const error = await pending;
+        if (authority === "revoked") {
+          expect.soft(error === revoked).toBe(true);
+          expect(await git(repo, "branch", "--list", branch)).toBe(branch);
+          expect(await git(repo, "rev-parse", branch)).toBe(originalHead);
+        } else {
+          expect(error).toBeInstanceOf(Error);
+          expect(error instanceof Error && error.message.includes("native checkout failed")).toBe(
+            true,
+          );
+          expect(await git(repo, "branch", "--list", branch)).toBe("");
+        }
+        expect(failedDestination).toBeDefined();
+        expect(await git(repo, "worktree", "list", "--porcelain")).not.toContain("failed-fallback");
+        expect(service.listRegistryRecords()).toEqual([]);
+        await expect(fs.access(failedDestination!)).rejects.toMatchObject({ code: "ENOENT" });
+      } finally {
+        release.resolve();
+        await holder;
+        await pending;
+      }
+    },
+  );
 
   it.each(["repository", "metadata"])(
     "expires an owned template after its %s disappears while preserving live worktree data",
