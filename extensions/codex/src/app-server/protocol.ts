@@ -1,4 +1,4 @@
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { CodexCommandExecParams, CodexCommandExecResponse } from "./command-exec-protocol.js";
 import type {
   CodexAppInfo,
@@ -159,6 +159,7 @@ export type CodexTurnEnvironmentParams = JsonObject & {
 };
 
 export type CodexThreadStartParams = JsonObject & {
+  threadSource?: string | null;
   input?: CodexUserInput[];
   cwd?: string;
   projectId?: string | null;
@@ -393,6 +394,7 @@ type CodexTurnInterruptParams = JsonObject & {
 
 export type CodexTurnStartParams = JsonObject & {
   threadId: string;
+  turnTrigger?: string | null;
   input: CodexUserInput[];
   /** Native 0.153.4 flattens these entries into its Responses turn-metadata object. */
   responsesapiClientMetadata?: Record<string, string> | null;
