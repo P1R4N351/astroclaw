@@ -49,7 +49,7 @@ import {
   resolveSessionVisibility,
 } from "../session-sharing.js";
 import { resolveSessionStoreAgentId } from "../session-store-key.js";
-import { readSessionPreviewItemsFromTranscript } from "../session-transcript-readers.js";
+import { readSessionPreviewItemsFromTranscript } from "../session-transcript-preview.js";
 import type { SessionListActiveRunProjector } from "../session-utils-contracts.js";
 import { projectGatewaySessionActiveRun } from "../session-utils-display.js";
 import {
@@ -142,14 +142,20 @@ export const sessionReadHandlers: GatewayRequestHandlers = {
         const targetSessionKeys =
           scopedSessionKeys ??
           (restrictVisibility
-            ? listSessionEntriesReadOnly({ agentId: target.agentId, storePath: target.storePath })
+            ? listSessionEntriesReadOnly({
+                agentId: target.agentId,
+                storePath: target.storePath,
+                projection: "list",
+                clone: false,
+              })
                 .map((entry) => entry.sessionKey)
                 .filter((sessionKey) => {
-                  if (!canSearchSessionKey(sessionKey)) {
+                  // A shared physical store can include rows owned by another agent.
+                  const parsed = parseAgentSessionKey(sessionKey);
+                  if (parsed && normalizeAgentId(parsed.agentId) !== agentId) {
                     return false;
                   }
-                  const parsed = parseAgentSessionKey(sessionKey);
-                  return !parsed || normalizeAgentId(parsed.agentId) === agentId;
+                  return canSearchSessionKey(sessionKey);
                 })
             : undefined);
         if (targetSessionKeys?.length === 0) {
@@ -623,6 +629,7 @@ export const sessionReadHandlers: GatewayRequestHandlers = {
           agentId: requestedAgent.agentId,
           exactRead: true,
           readOnly: true,
+          projection: "list",
         });
         const entry = resolveCanonicalSessionEntryFromStoreKeys(target.store, target.storeKeys);
         if (!entry?.sessionId || roleVisibilityFilter?.(target.canonicalKey, entry) === false) {
