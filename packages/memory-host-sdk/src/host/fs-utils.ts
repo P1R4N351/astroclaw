@@ -1,6 +1,10 @@
-import { configureFsSafeNative } from "@openclaw/fs-safe/config";
-// fs-safe facade with native acceleration disabled by default for this package's
-// host-side memory file operations.
+// PINNED-DEPENDENCY DIVERGENCE (P-BACKLOG [8a8e8b0]; same fix as a387ac198f0,
+// re-clobbered by the p10 rewrite 409f2aad63e): @openclaw/fs-safe is pinned at
+// 0.2.4, which has no configureFsSafeNative (added with fs-safe 0.5.0). Keep the
+// Python spelling until package.json moves to fs-safe >= 0.5.0.
+import { configureFsSafePython } from "@openclaw/fs-safe/config";
+// fs-safe facade with the optional Python helper disabled by default for this
+// package's host-side memory file operations.
 export { root } from "@openclaw/fs-safe/root";
 export { isPathInside, isPathInsideWithRealpath } from "@openclaw/fs-safe/path";
 export {
@@ -17,7 +21,7 @@ const hasModeOverride = Object.keys(process.env).some((key) =>
 );
 
 if (!hasModeOverride) {
-  configureFsSafeNative({ mode: "off" });
+  configureFsSafePython({ mode: "off" });
 }
 
 /**
