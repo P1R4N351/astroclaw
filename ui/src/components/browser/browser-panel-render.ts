@@ -96,7 +96,7 @@ function renderToolbar(controller: BrowserPanelController, embedded: boolean) {
             >${controller.operations.route.profile}</span
           >`
         : nothing}
-      ${embedded
+      ${embedded && !controller.host.fixedTab
         ? html`<button
             class="bp-icon"
             type="button"
@@ -145,6 +145,7 @@ function renderToolbar(controller: BrowserPanelController, embedded: boolean) {
         type="text"
         spellcheck="false"
         autocomplete="off"
+        ?disabled=${Boolean(controller.host.fixedTab && !controller.activeTargetId)}
         placeholder=${t("browser.urlPlaceholder")}
         .value=${controller.urlDraft}
         @focus=${(event: FocusEvent) => {
@@ -312,11 +313,13 @@ function renderViewportContent(controller: BrowserPanelController) {
       icon: icons.globe,
       heading: t("chat.sidePanel.browser"),
       description: t("browser.notRunning"),
-      action: html`
-        <button class="bp-btn" type="button" @click=${() => void controller.startBrowserNow()}>
-          ${t("browser.start")}
-        </button>
-      `,
+      action: controller.host.fixedTab
+        ? nothing
+        : html`
+            <button class="bp-btn" type="button" @click=${() => void controller.startBrowserNow()}>
+              ${t("browser.start")}
+            </button>
+          `,
     });
   }
   if (!controller.view && controller.unavailableTabText) {
@@ -393,7 +396,8 @@ export function renderBrowserPanelChrome(
   tabsInHeader = false,
 ) {
   const style = embedded ? nothing : dock === "bottom" ? `height:${height}px` : `width:${width}px`;
-  const rendersTabStrip = !embedded || (!tabsInHeader && controller.tabs.length > 0);
+  const rendersTabStrip =
+    !controller.host.fixedTab && (!embedded || (!tabsInHeader && controller.tabs.length > 0));
   return html`
     <section
       class="bp bp--${embedded ? "embedded" : dock}"
