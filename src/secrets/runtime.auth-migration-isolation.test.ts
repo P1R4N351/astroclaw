@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createAuthProfileStoreFixture } from "../agents/auth-profiles/credential-fixtures.test-support.js";
 
 let resolveApiKeyForProviderCore: typeof import("../agents/model-auth.js").resolveApiKeyForProviderCore;
 let closeOpenClawAgentDatabasesForTest: typeof import("../state/openclaw-agent-db.js").closeOpenClawAgentDatabasesForTest;
-let withOpenClawTestState: typeof import("../test-utils/astroclaw-test-state.js").withOpenClawTestState;
+let withOpenClawTestState: typeof import("../test-utils/openclaw-test-state.js").withOpenClawTestState;
 let activateSecretsRuntimeSnapshot: typeof import("./runtime.js").activateSecretsRuntimeSnapshot;
 let clearSecretsRuntimeSnapshot: typeof import("./runtime.js").clearSecretsRuntimeSnapshot;
 let prepareSecretsRuntimeSnapshot: typeof import("./runtime.js").prepareSecretsRuntimeSnapshot;
@@ -19,7 +20,7 @@ describe("auth profile migration isolation", () => {
     } = await import("./runtime.js"));
     ({ resolveApiKeyForProviderCore } = await import("../agents/model-auth.js"));
     ({ closeOpenClawAgentDatabasesForTest } = await import("../state/openclaw-agent-db.js"));
-    ({ withOpenClawTestState } = await import("../test-utils/astroclaw-test-state.js"));
+    ({ withOpenClawTestState } = await import("../test-utils/openclaw-test-state.js"));
     clearSecretsRuntimeSnapshot();
     closeOpenClawAgentDatabasesForTest();
     vi.unstubAllEnvs();
@@ -48,16 +49,13 @@ describe("auth profile migration isolation", () => {
           `${JSON.stringify({ openai: { type: "api_key", key: "fake-legacy-key" } })}\n`,
         );
         await state.writeAuthProfiles(
-          {
-            version: 1,
-            profiles: {
-              "openai:default": {
-                type: "api_key",
-                provider: "openai",
-                key: "fake-healthy-key",
-              },
+          createAuthProfileStoreFixture({
+            "openai:default": {
+              type: "api_key",
+              provider: "openai",
+              key: "fake-healthy-key",
             },
-          },
+          }),
           "healthy",
         );
 
