@@ -1,5 +1,5 @@
-import * as providerAuthRuntime from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+import * as providerAuthRuntime from "openclaw/plugin-sdk/provider-auth-runtime";
+import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import chutesPlugin from "../extensions/chutes/index.js";
 import { buildOpenAIProvider } from "../extensions/openai/api.js";
@@ -544,6 +544,7 @@ describe("Provider model discovery auth preparation", () => {
             { provider: providerId, profileId: previousProfileId, status: "ready" },
           ],
         },
+        new Map(),
         undefined,
         auth,
         (provider) => provider,
@@ -559,7 +560,8 @@ describe("Provider model discovery auth preparation", () => {
           ),
           providerOutcomes: outcomes,
         },
-        { ...previous, key: "same-config", pluginFingerprint: "same-plugins" },
+        new Map(),
+        previous,
         auth,
         (provider) => provider,
       );
