@@ -1,6 +1,6 @@
 // Browser tests cover browser tool plugin behavior.
 import { fileURLToPath } from "node:url";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { Value } from "typebox/value";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveBrowserToolTimeoutMs } from "./browser-tool.routing.js";
@@ -200,10 +200,10 @@ const configMocks = vi.hoisted(() => ({
     }
   >(() => ({ browser: {} })),
 }));
-vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
+vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")
-  >("astroclaw/plugin-sdk/runtime-config-snapshot");
+    typeof import("openclaw/plugin-sdk/runtime-config-snapshot")
+  >("openclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
     getRuntimeConfig: configMocks.loadConfig,
@@ -439,6 +439,59 @@ function registerBrowserToolAfterEachReset() {
     resetBrowserToolMocks();
   });
 }
+
+describe("dashboard Gateway lifetime owner", () => {
+  registerBrowserToolAfterEachReset();
+
+  it.each(["open", "close", "snapshot"] as const)(
+    "routes %s through the Gateway owner with the caller's cancellation",
+    async (action) => {
+      const signal = new AbortController().signal;
+      const dashboard = {
+        sessionKey: "agent:main:dashboard-test",
+        name: "service",
+        instanceId: "widget-one",
+        revision: 1,
+        paused: action !== "open",
+        stopping: false,
+        url: "http://service.example/",
+        ...(action === "open"
+          ? { browserTab: { target: "host", profile: "openclaw", targetId: "GATEWAY-TAB" } }
+          : {}),
+      };
+      gatewayMocks.callGatewayTool.mockResolvedValueOnce(dashboard);
+      const tool = createBrowserTool({ agentSessionKey: dashboard.sessionKey, agentId: "main" });
+      const result = tool.execute(
+        "dashboard-call",
+        { action, dashboard: "service", timeoutMs: 45_000 },
+        signal,
+      );
+      if (action === "snapshot") {
+        await expect(result).rejects.toThrow(/paused/);
+      } else {
+        expect((await result).details).toEqual({ browserDashboard: dashboard });
+      }
+      expect(gatewayMocks.callGatewayTool).toHaveBeenCalledWith(
+        "browser.request",
+        { timeoutMs: 45_000 },
+        {
+          target: "host",
+          method: action === "close" ? "DELETE" : "POST",
+          path: "/dashboard",
+          body: {
+            sessionKey: dashboard.sessionKey,
+            agentId: "main",
+            name: "service",
+            ...(action === "open" ? { resume: true } : {}),
+          },
+        },
+        { scopes: ["operator.admin"], signal },
+      );
+      expect(browserClientMocks.browserOpenTab).not.toHaveBeenCalled();
+      expect(browserClientMocks.browserCloseTab).not.toHaveBeenCalled();
+    },
+  );
+});
 
 async function runSnapshotToolCall(params: {
   snapshotFormat?: "ai" | "aria";
@@ -3768,11 +3821,11 @@ describe("browser tool snapshot labels", () => {
   it("keeps private labeled snapshots visible to the model but out of channel delivery", async () => {
     const [{ imageResultFromFile }, { extractToolResultMediaArtifact, filterToolResultMediaUrls }] =
       await Promise.all([
-        vi.importActual<typeof import("astroclaw/plugin-sdk/channel-actions")>(
-          "astroclaw/plugin-sdk/channel-actions",
+        vi.importActual<typeof import("openclaw/plugin-sdk/channel-actions")>(
+          "openclaw/plugin-sdk/channel-actions",
         ),
-        vi.importActual<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>(
-          "astroclaw/plugin-sdk/agent-harness-runtime",
+        vi.importActual<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>(
+          "openclaw/plugin-sdk/agent-harness-runtime",
         ),
       ]);
     const imagePath = fileURLToPath(
