@@ -1,5 +1,5 @@
 // Shared type contracts for dispatch-from-config runtime execution.
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { SessionWorkerPlacementContext } from "../../gateway/worker-environments/session-placement-lifecycle.js";
 import type { SourceReplyDeliveryMode } from "../get-reply-options.types.js";
 import type { FinalizedMsgContext } from "../templating.js";
@@ -42,10 +42,7 @@ export type DispatchFromConfigParams = {
   configOverride?: OpenClawConfig;
   /** Gateway-owned worker services for archive recovery outside a request scope. */
   sessionWorkerPlacementContext?: SessionWorkerPlacementContext;
-  /**
-   * Channel turns consume the Gateway's committed model-runtime owner even when the global
-   * config snapshot is unavailable during startup or durable ingress replay.
-   */
+  /** @deprecated Always enabled in the Gateway; remove in the next Plugin SDK major. */
   usePublishedModelRuntime?: boolean;
 };
 
