@@ -20,19 +20,20 @@ export const PLUGIN_COMPAT_RECORDS = [
     warningStarts: "2026-09-12",
     removalGate: "next-plugin-sdk-major",
     replacement:
-      "Await the 14 read methods on api.runtime.tasks.async.runs, flows, and managedFlows. Retain synchronous reads until supported external-plugin migration and explicit breaking-release approval; mutations and cancellation remain on the existing surface.",
+      "Await the 14 read methods on api.runtime.tasks.async.runs, flows, and managedFlows, plus createManaged, tryCreateManaged, setWaiting, resume, finish, fail, and requestCancel on api.runtime.tasks.async.managedFlows. Reconcile outcome-unknown errors before retrying creation. Retain synchronous methods until supported external-plugin migration and explicit breaking-release approval; native cancellation and runTask remain on the existing surface.",
     docsPath: "/plugins/sdk-runtime/background-work",
     surfaces: [
       "api.runtime.tasks.runs get/list/findLatest/resolve",
       "api.runtime.tasks.flows get/list/findLatest/resolve/getTaskSummary",
       "api.runtime.tasks.managedFlows get/list/findLatest/resolve/getTaskSummary",
+      "api.runtime.tasks.managedFlows createManaged/tryCreateManaged/setWaiting/resume/finish/fail/requestCancel",
     ],
     diagnostics: [
       "TypeScript @deprecated annotations and migration documentation; no runtime warnings",
     ],
     tests: ["src/infra/sqlite-worker-task-runtime.test.ts", "extensions/webhooks/index.test.ts"],
     releaseNote:
-      "Plugins can opt into worker-backed Task Run and Task Flow queries through tasks.async while synchronous reads remain available for external compatibility. Cold registry and configuration preparation remains synchronous.",
+      "Plugins can opt into worker-backed task and flow reads plus managed-flow writes through tasks.async while synchronous methods remain available for external compatibility. Cold registry and configuration preparation remains synchronous.",
   },
   {
     code: "plugin-state-sync-keyed-store",
@@ -103,8 +104,8 @@ export const PLUGIN_COMPAT_RECORDS = [
       "provider plugins via `api.registerProvider(...)`; host/runtime code registers against its lifecycle-owned `ApiRegistry`",
     docsPath: "/plugins/sdk-migration#process-global-api-provider-publication",
     surfaces: [
-      "openclaw/plugin-sdk/llm registerApiProvider",
-      "openclaw/plugin-sdk/llm unregisterApiProviders",
+      "astroclaw/plugin-sdk/llm registerApiProvider",
+      "astroclaw/plugin-sdk/llm unregisterApiProviders",
     ],
     diagnostics: ["plugin SDK compatibility registry and migration guide"],
     tests: ["src/plugins/compat/registry.test.ts"],
@@ -164,7 +165,7 @@ export const PLUGIN_COMPAT_RECORDS = [
     surfaces: [
       "api.registerMemoryEmbeddingProvider(...)",
       "contracts.memoryEmbeddingProviders",
-      "openclaw/plugin-sdk/memory-core-host-engine-embeddings registerMemoryEmbeddingProvider",
+      "astroclaw/plugin-sdk/memory-core-host-engine-embeddings registerMemoryEmbeddingProvider",
       "plugin compatibility registry and migration guide",
     ],
     diagnostics: ["plugin compatibility registry and migration guide"],
@@ -184,10 +185,10 @@ export const PLUGIN_COMPAT_RECORDS = [
       "`getSessionEntry(...)`, `listSessionEntries(...)`, and row-level session mutations",
     docsPath: "/plugins/sdk-migration#removed-session-and-transcript-file-apis",
     surfaces: [
-      "openclaw/plugin-sdk/session-store-runtime loadSessionStore",
-      "openclaw/plugin-sdk/session-store-runtime updateSessionStore",
-      "openclaw/plugin-sdk/session-store-runtime resolveSessionFilePath",
-      "openclaw/plugin-sdk/session-store-runtime resolveSessionStoreEntry",
+      "astroclaw/plugin-sdk/session-store-runtime loadSessionStore",
+      "astroclaw/plugin-sdk/session-store-runtime updateSessionStore",
+      "astroclaw/plugin-sdk/session-store-runtime resolveSessionFilePath",
+      "astroclaw/plugin-sdk/session-store-runtime resolveSessionStoreEntry",
       "openclaw package root loadSessionStore",
       "openclaw package root saveSessionStore",
     ],
@@ -212,11 +213,11 @@ export const PLUGIN_COMPAT_RECORDS = [
       "`resolveSessionAgentIdsStrict` and `resolveSessionAgentIdStrict` with an explicit agent, agent-scoped session key, prepared fallback, or persisted owner",
     docsPath: "/plugins/compatibility#session-agent-resolution-aliases",
     surfaces: [
-      "openclaw/plugin-sdk/agent-scope-runtime resolveSessionAgentIds and resolveSessionAgentId",
-      "openclaw/plugin-sdk/agent-runtime session-agent resolver aliases",
-      "openclaw/plugin-sdk/agent-harness-runtime session-agent resolver aliases",
-      "openclaw/plugin-sdk/memory-core-host-runtime-core session-agent resolver alias",
-      "openclaw/plugin-sdk/memory-host-core session-agent resolver alias",
+      "astroclaw/plugin-sdk/agent-scope-runtime resolveSessionAgentIds and resolveSessionAgentId",
+      "astroclaw/plugin-sdk/agent-runtime session-agent resolver aliases",
+      "astroclaw/plugin-sdk/agent-harness-runtime session-agent resolver aliases",
+      "astroclaw/plugin-sdk/memory-core-host-runtime-core session-agent resolver alias",
+      "astroclaw/plugin-sdk/memory-host-core session-agent resolver alias",
     ],
     diagnostics: ["TypeScript deprecated SDK alias annotations", "plugin compatibility registry"],
     tests: ["src/plugin-sdk/agent-scope-runtime.test.ts", "src/plugins/compat/registry.test.ts"],
@@ -234,7 +235,7 @@ export const PLUGIN_COMPAT_RECORDS = [
     replacement: "options object `{ controlToolsAvailable }`",
     docsPath: "/plugins/sdk-migration/removed-surfaces#credential-prompt-builder",
     surfaces: [
-      "openclaw/plugin-sdk/agent-harness-runtime buildCredentialSafetyPrompt string argument",
+      "astroclaw/plugin-sdk/agent-harness-runtime buildCredentialSafetyPrompt string argument",
     ],
     diagnostics: ["JSDoc parameter deprecation", "plugin compatibility registry"],
     tests: ["src/agents/credential-safety-prompt.test.ts"],
@@ -363,10 +364,10 @@ export const PLUGIN_COMPAT_RECORDS = [
       "`MsgContext.ChannelPromptContext`, `MsgContext.ChannelStructuredContext`, `ChannelStructuredContextEntry`, `SupplementalContextFacts.channelStructuredContext`, and `buildChannelMetadata`; retain the aliases until migration of published plugin readers is verified and explicit breaking-release approval is granted",
     docsPath: "/plugins/compatibility",
     surfaces: [
-      "openclaw/plugin-sdk reply-runtime MsgContext.UntrustedContext and UntrustedStructuredContext",
-      "openclaw/plugin-sdk reply-runtime UntrustedStructuredContextEntry",
-      "openclaw/plugin-sdk channel-inbound SupplementalContextFacts.untrustedContext",
-      "openclaw/plugin-sdk security-runtime buildUntrustedChannelMetadata",
+      "astroclaw/plugin-sdk reply-runtime MsgContext.UntrustedContext and UntrustedStructuredContext",
+      "astroclaw/plugin-sdk reply-runtime UntrustedStructuredContextEntry",
+      "astroclaw/plugin-sdk channel-inbound SupplementalContextFacts.untrustedContext",
+      "astroclaw/plugin-sdk security-runtime buildUntrustedChannelMetadata",
     ],
     diagnostics: ["TypeScript deprecated SDK alias annotations"],
     tests: ["src/auto-reply/reply/inbound-context.test.ts"],
@@ -382,8 +383,8 @@ export const PLUGIN_COMPAT_RECORDS = [
       "generic channel SDK subpaths or plugin-local `api.ts` / `runtime-api.ts` barrels for new plugins",
     docsPath: "/plugins/sdk-overview",
     surfaces: [
-      "openclaw/plugin-sdk/discord component message helpers",
-      "openclaw/plugin-sdk/telegram-account resolveTelegramAccount",
+      "astroclaw/plugin-sdk/discord component message helpers",
+      "astroclaw/plugin-sdk/telegram-account resolveTelegramAccount",
     ],
     diagnostics: ["plugin SDK compatibility registry"],
     tests: [
@@ -402,9 +403,9 @@ export const PLUGIN_COMPAT_RECORDS = [
     docsPath: "/plugins/sdk-migration",
     surfaces: [
       "ChannelMessagingAdapter.parseExplicitTarget",
-      "openclaw/plugin-sdk/channel-route ChannelRouteExplicitTarget",
-      "openclaw/plugin-sdk/channel-route ChannelRouteExplicitTargetParser",
-      "openclaw/plugin-sdk/channel-route resolveChannelRouteTargetWithParser",
+      "astroclaw/plugin-sdk/channel-route ChannelRouteExplicitTarget",
+      "astroclaw/plugin-sdk/channel-route ChannelRouteExplicitTargetParser",
+      "astroclaw/plugin-sdk/channel-route resolveChannelRouteTargetWithParser",
     ],
     diagnostics: ["plugin SDK compatibility warning"],
     tests: [
@@ -421,7 +422,7 @@ export const PLUGIN_COMPAT_RECORDS = [
     introduced: "2026-04-28",
     replacement: "`openclaw/plugin-sdk/channel-targets`",
     docsPath: "/plugins/sdk-migration",
-    surfaces: ["openclaw/plugin-sdk/messaging-targets"],
+    surfaces: ["astroclaw/plugin-sdk/messaging-targets"],
     diagnostics: ["plugin SDK compatibility warning"],
     tests: [
       "src/plugins/compat/registry.test.ts",
@@ -539,7 +540,7 @@ export const PLUGIN_COMPAT_RECORDS = [
     warningStarts: "2026-04-25",
     replacement: "none yet; retain until a harness subpath ships and external migration is proven",
     docsPath: "/plugins/sdk-agent-harness",
-    surfaces: ["openclaw/plugin-sdk/agent-harness", "openclaw/plugin-sdk/agent-harness-runtime"],
+    surfaces: ["astroclaw/plugin-sdk/agent-harness", "astroclaw/plugin-sdk/agent-harness-runtime"],
     diagnostics: ["plugin SDK compatibility warning"],
     tests: ["src/plugins/contracts/plugin-sdk-subpaths.test.ts"],
   },
@@ -553,7 +554,7 @@ export const PLUGIN_COMPAT_RECORDS = [
     surfaces: [
       "api.runtime.agent.runEmbeddedPiAgent",
       "openclaw/extension-api runEmbeddedPiAgent",
-      "openclaw/plugin-sdk/agent-harness-runtime EmbeddedPi* aliases",
+      "astroclaw/plugin-sdk/agent-harness-runtime EmbeddedPi* aliases",
     ],
     diagnostics: ["plugin SDK compatibility registry"],
     tests: [
@@ -574,12 +575,12 @@ export const PLUGIN_COMPAT_RECORDS = [
       "retain until supported published packages migrate to plugin-owned config schemas plus generic `openclaw/plugin-sdk/channel-config-schema` and `openclaw/plugin-sdk/setup-runtime` primitives",
     docsPath: "/plugins/sdk-migration#published-channel-setup-compatibility",
     surfaces: [
-      "openclaw/plugin-sdk/bundled-channel-config-schema SlackConfigSchema",
-      "openclaw/plugin-sdk/bundled-channel-config-schema DiscordConfigSchema",
-      "openclaw/plugin-sdk/bundled-channel-config-schema SignalConfigSchema",
-      "openclaw/plugin-sdk/bundled-channel-config-schema MSTeamsConfigSchema",
-      "openclaw/plugin-sdk/setup-runtime createLegacyCompatChannelDmPolicy",
-      "openclaw/plugin-sdk/setup-runtime promptLegacyChannelAllowFromForAccount",
+      "astroclaw/plugin-sdk/bundled-channel-config-schema SlackConfigSchema",
+      "astroclaw/plugin-sdk/bundled-channel-config-schema DiscordConfigSchema",
+      "astroclaw/plugin-sdk/bundled-channel-config-schema SignalConfigSchema",
+      "astroclaw/plugin-sdk/bundled-channel-config-schema MSTeamsConfigSchema",
+      "astroclaw/plugin-sdk/setup-runtime createLegacyCompatChannelDmPolicy",
+      "astroclaw/plugin-sdk/setup-runtime promptLegacyChannelAllowFromForAccount",
     ],
     diagnostics: [
       "repository deprecated API usage guard for core and bundled plugins; no external runtime import warning",
