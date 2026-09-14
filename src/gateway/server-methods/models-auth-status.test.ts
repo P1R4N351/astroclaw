@@ -2,8 +2,9 @@ import { expectDefined } from "@astroclaw/normalization-core";
 // Model auth status tests cover profile health summaries, provider usage,
 // credential cleanup, secret refresh, and provider run abort side effects.
 import { MAX_DATE_TIMESTAMP_MS } from "@astroclaw/normalization-core/number-coercion";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { validateModelsAuthSetApiKeyResult } from "../../../packages/gateway-protocol/src/index.js";
 import type { AuthHealthSummary } from "../../agents/auth-health.js";
 import {
   replaceRuntimeAuthProfileStoreSnapshots,
@@ -2417,6 +2418,7 @@ describe("models.authSetApiKey", () => {
 
     await setApiKeyHandler(opts);
 
+    expect(validateModelsAuthSetApiKeyResult(firstRespondCall(opts)?.[1])).toBe(true);
     expect(mocks.saveModelProviderApiKey).toHaveBeenCalledWith({
       config,
       provider: "openrouter",
