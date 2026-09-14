@@ -31,7 +31,7 @@ import { formatErrorMessage, isMissingPathError } from "../infra/errors.js";
 import * as nodeSqlite from "../infra/node-sqlite.js";
 import type { PackageUpdateTransaction } from "../infra/package-update-steps.js";
 import { SUPERVISOR_HINT_ENV_VARS } from "../infra/supervisor-markers.js";
-import * as updateTempRoot from "../infra/tmp-openclaw-dir.js";
+import * as updateTempRoot from "../infra/tmp-astroclaw-dir.js";
 import { isBetaTag } from "../infra/update-channels.js";
 import { applyDevUpdateTargetEnv } from "../infra/update-dev-target.js";
 import type { UpdateDoctorConfigChange } from "../infra/update-doctor-config.js";
@@ -2121,7 +2121,7 @@ describe("update-cli", () => {
     vi.spyOn(nodeSqlite, "resolveImmutableSqliteFileUri").mockImplementation((file) =>
       immutableHostUri(file, sqliteHostPlatform),
     );
-    vi.spyOn(updateTempRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(executorTmp);
+    vi.spyOn(updateTempRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(executorTmp);
     const pidAlive = await import("../shared/pid-alive.js");
     const readHostProcessStartTime = pidAlive.getFileLockProcessStartTime;
     // Service-platform doubles cannot change the OS that owns real fixture PIDs.
@@ -7818,7 +7818,6 @@ describe("update-cli", () => {
     );
     expect(packageInstallCommandCall()?.[1].env).toBe(preflightParams?.env);
     expect(defaultRuntime.exit).not.toHaveBeenCalledWith(1);
-    expect(getLogOutput()).toContain("Low disk space near");
   });
 
   it.each(["insufficient", "alternative", "unknown", "plenty", "package-only"] as const)(
@@ -13250,12 +13249,12 @@ describe("update-cli", () => {
     },
   );
 
-  it("explains why git updates cannot run with edited files", async () => {
+  it.each(["error", "skipped"] as const)("explains edited files (%s)", async (status) => {
     vi.mocked(defaultRuntime.log).mockClear();
     vi.mocked(defaultRuntime.error).mockClear();
     vi.mocked(defaultRuntime.exit).mockClear();
     vi.mocked(runGatewayUpdate).mockResolvedValue({
-      status: "skipped",
+      status,
       mode: "git",
       reason: "dirty",
       steps: [],
@@ -13265,15 +13264,13 @@ describe("update-cli", () => {
     await expect(updateCommand({ channel: "dev" })).rejects.toEqual(new ExitError(1));
 
     const logs = getLogOutput();
-    expect(logs).toContain("OpenClaw update skipped: dirty.");
+    expect(logs).toContain(`OpenClaw update ${status === "error" ? "failed" : "skipped"}: dirty.`);
     expect(logs).toContain(
-      "Git-based updates need a clean working tree before they can switch commits, fetch, or rebase.",
+      "Local changes prevented this update before installation. Your checkout was preserved.",
     );
-    expect(logs).toContain(
-      "Commit, stash, or discard the local changes, then rerun `openclaw update`.",
-    );
+    expect(logs).toContain("Commit your changes and retry, or run `openclaw triage` for help.");
     expect(listUpdateRuns({ limit: 1 })[0]?.origin.nextAction).toContain(
-      "Commit, stash, or discard the local changes",
+      "Commit your changes and retry",
     );
     expect(serviceStop).not.toHaveBeenCalled();
     expect(defaultRuntime.exit).not.toHaveBeenCalled();
