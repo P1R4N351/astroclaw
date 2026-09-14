@@ -510,7 +510,7 @@ function renderIdentityGateways(onClose: SidebarIdentityMenuParams["onClose"]) {
           ${gateway.isPrimary
             ? html`<span class="sidebar-gateway-primary">${t("nav.gateway.primaryTag")}</span>`
             : nothing}
-          ${index < 9
+          ${!selected && index < 9
             ? html`<kbd class="session-menu__shortcut" aria-hidden="true">⌘${index + 1}</kbd>`
             : nothing}
           ${selected
