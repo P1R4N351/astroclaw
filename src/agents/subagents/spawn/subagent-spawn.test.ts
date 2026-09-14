@@ -1,7 +1,7 @@
 import os from "node:os";
 // Subagent spawn tests cover target policy, session patching, runtime model
 // persistence, registry registration, and lifecycle event emission.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ThinkLevel } from "../../../auto-reply/thinking.shared.js";
 import { upsertSessionEntryCore } from "../../../config/sessions/session-accessor.js";
@@ -277,6 +277,65 @@ describe("spawnSubagentDirect seam flow", () => {
   afterEach(() => {
     swarmSchedulerTesting.reset();
     vi.unstubAllEnvs();
+  });
+
+  it.each([
+    { collect: true },
+    { thread: true },
+    { mode: "session" as const },
+    { expectsCompletionMessage: false },
+  ])(
+    "rejects unsupported private completion combinations before child effects: %j",
+    async (options) => {
+      const result = await spawnSubagentDirect(
+        { task: "private work", completionTarget: "parent", ...options },
+        { agentSessionKey: "agent:main:main" },
+      );
+      expect(result).toMatchObject({
+        status: "error",
+        error: expect.stringContaining('completionTarget="parent"'),
+      });
+      expectNoChildSpawnSideEffects();
+    },
+  );
+
+  it("binds private completion to the admitted completion owner rather than the controller", async () => {
+    hoisted.loadSessionStoreMock.mockReturnValue({
+      "agent:main:main": { sessionId: "controller-incarnation" },
+      "agent:main:owner": { sessionId: "owner-incarnation" },
+    });
+    const result = await spawnSubagentDirect(
+      { task: "private work", completionTarget: "parent" },
+      {
+        agentSessionKey: "agent:main:main",
+        completionOwnerKey: "agent:main:owner",
+      },
+    );
+    expect(result).toMatchObject({
+      status: "accepted",
+      completionTarget: "parent",
+      expectsCompletionMessage: true,
+    });
+    expect(result.note).toContain("private requester turn");
+    expect(firstRegisteredSubagentRun()).toMatchObject({
+      controllerSessionKey: "agent:main:main",
+      requesterSessionKey: "agent:main:owner",
+      completionTarget: "parent",
+      completionRequesterSessionId: "owner-incarnation",
+      expectsCompletionMessage: true,
+    });
+  });
+
+  it("rejects private completion without an existing parent incarnation", async () => {
+    const result = await spawnSubagentDirect(
+      { task: "private work", completionTarget: "parent" },
+      { agentSessionKey: "agent:main:missing" },
+    );
+    expect(result).toMatchObject({
+      status: "error",
+      error: expect.stringContaining("existing requester session"),
+    });
+    expectNoChildSpawnSideEffects();
   });
 
   it("rejects direct swarm parameters while tools.swarm is disabled", async () => {
