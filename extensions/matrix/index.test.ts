@@ -1,5 +1,5 @@
 // Matrix tests cover index plugin behavior.
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import { describe, expect, it, vi } from "vitest";
 import { registerMatrixCliMetadata } from "./cli-metadata.js";
 import entry, { registerMatrixFullRuntime } from "./index.js";
@@ -25,7 +25,10 @@ vi.mock("./src/cli.js", () => {
 });
 
 vi.mock("./plugin-entry.handlers.runtime.js", () => runtimeMocks);
-vi.mock("./runtime-setter-api.js", () => ({ setMatrixRuntime: runtimeMocks.setMatrixRuntime }));
+vi.mock("./runtime-setter-api.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./runtime-setter-api.js")>()),
+  setMatrixRuntime: runtimeMocks.setMatrixRuntime,
+}));
 vi.mock("./src/matrix/subagent-hooks.js", () => runtimeMocks);
 
 function requireFirstCliRegistration(mock: ReturnType<typeof vi.fn>) {
