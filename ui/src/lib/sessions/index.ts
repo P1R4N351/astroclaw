@@ -388,7 +388,9 @@ export function createSessionCapability(
     }
     for (const key of terminal.sessionKeys) {
       if (key.trim()) {
-        roster.invalidateManagedLists(parseAgentSessionKey(key)?.agentId ?? terminal.agentId);
+        roster.invalidateManagedLists(parseAgentSessionKey(key)?.agentId ?? terminal.agentId, {
+          key,
+        });
       }
     }
     const previous = state.result;
@@ -492,6 +494,11 @@ export function createSessionCapability(
   });
 
   const stopEvents = gateway.subscribeEvents((event) => {
+    if (event.event === "config.changed") {
+      // Config can change configured-agent membership even with no chat pane mounted.
+      roster.scheduleEvent();
+      return;
+    }
     if (event.event !== "sessions.changed" && event.event !== "session.message") {
       return;
     }
@@ -605,7 +612,7 @@ export function createSessionCapability(
     recover: operations.recover,
     patch: mutations.patch,
     archiveVisibility: mutations.archiveVisibility,
-    setArchivePending: mutations.setArchivePending,
+    beginArchive: mutations.beginArchive,
     assignOwner: mutations.assignOwner,
     retireModelOverride: mutations.retireModelOverride,
     think: thinkingClaims.get,
