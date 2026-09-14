@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentTool, AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentTool, AgentToolResult } from "openclaw/plugin-sdk/agent-core";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -1536,7 +1536,16 @@ describe("createOpenClawCodingTools", () => {
     createOpenClawToolsMock.mockClear();
 
     createOpenClawCodingTools({
-      config: testConfig,
+      config: {
+        ...testConfig,
+        channels: {
+          discord: {
+            accounts: {
+              creator: {},
+            },
+          },
+        },
+      },
       agentAccountId: "delivery",
       scheduledToolPolicy: {
         version: 1,
@@ -1560,9 +1569,19 @@ describe("createOpenClawCodingTools", () => {
     createOpenClawToolsMock.mockClear();
 
     createOpenClawCodingTools({
-      config: testConfig,
+      config: {
+        ...testConfig,
+        channels: {
+          discord: {
+            accounts: {
+              creator: {},
+            },
+          },
+        },
+      },
       agentAccountId: "delivery",
       messageChannel: "discord",
+      messageProvider: "discord",
       scheduledToolPolicy: {
         version: 1,
         mode: "account",
