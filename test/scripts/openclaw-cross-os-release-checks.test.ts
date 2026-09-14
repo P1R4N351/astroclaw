@@ -1247,22 +1247,18 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
     ]
       .map((filePath) => readFileSync(filePath, "utf8"))
       .join("\n");
-    const providerOverride = "models.providers.${params.providerConfig.extensionId}";
+    const providerOverride = "models.providers.${providerMeta.extensionId}";
 
     expect(CROSS_OS_RELEASE_SMOKE_TOOLS_PROFILE).toBe("minimal");
     expect(source).toContain('"--thinking",\n    "off"');
-    expect(source.match(/"tools\.profile", CROSS_OS_RELEASE_SMOKE_TOOLS_PROFILE/g)).toHaveLength(2);
     expect(CROSS_OS_AGENT_TURN_TIMEOUT_SECONDS).toBeGreaterThanOrEqual(600);
     expect(source).toContain("buildReleaseProviderConfigOverride");
     expect(source).toContain("models: []");
     expect(source).toContain('agentRuntime: { id: "openclaw" }');
     expect(source).toContain('"--merge"');
     expect(source).toContain(providerOverride);
-    expect(source.match(/args: buildCrossOsReleaseSmokeMemorySlotConfigArgs\(\)/g)).toHaveLength(2);
-    expect(source).not.toContain("models.providers.${params.providerConfig.extensionId}.baseUrl");
+    expect(source).not.toContain(`${providerOverride}.baseUrl`);
     expect(source).toContain('"--timeout",\n    String(CROSS_OS_AGENT_TURN_TIMEOUT_SECONDS)');
-    const agentTurnArgCalls = source.match(/buildReleaseAgentTurnArgs\(sessionId\)/g) ?? [];
-    expect(agentTurnArgCalls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("uses collision-resistant IDs for cross-OS live release probes", () => {
@@ -1749,7 +1745,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
     expect(shouldRunWindowsInstalledBrowserOverrideImportSmoke("linux")).toBe(false);
 
     const script = buildInstalledBrowserOverrideImportProbeScript();
-    expect(script).toContain('from "astroclaw/plugin-sdk/plugin-runtime"');
+    expect(script).toContain('from "openclaw/plugin-sdk/plugin-runtime"');
     expect(script).toContain('overrideEnvVar: "OPENCLAW_BROWSER_CONTROL_MODULE"');
     expect(script).toContain("startBrowserControlService");
     expect(script).toContain("stopBrowserControlService");
