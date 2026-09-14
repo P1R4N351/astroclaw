@@ -8,19 +8,19 @@ import type { WebClientOptions } from "@slack/web-api";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests,
-} from "astroclaw/plugin-sdk/channel-ingress-test-runtime";
+} from "openclaw/plugin-sdk/channel-ingress-test-runtime";
 import type {
   ChannelIngressMonitorLifecycle,
   ChannelIngressQueue,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import type { PluginJsonValue } from "astroclaw/plugin-sdk/plugin-entry";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import type { PluginJsonValue } from "openclaw/plugin-sdk/plugin-entry";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   peekSystemEventEntries,
   resetSystemEventsForTest,
-} from "astroclaw/plugin-sdk/system-event-runtime";
+} from "openclaw/plugin-sdk/system-event-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSlackMonitorContext } from "./context.js";
 import { registerSlackMemberEvents } from "./events/members.js";
@@ -204,6 +204,8 @@ function attachBoltMemberIngress(params: {
     threadHistoryScope: "thread",
     threadInheritParent: false,
   });
+  // This Bolt retry fixture starts after policy resolution, with the explicit policy above.
+  ctx.readRuntimeContext = async () => ctx;
   registerSlackMemberEvents({ ctx, trackEvent: params.trackEvent });
   return { ingress, receive: receiverHarness.receive };
 }
@@ -927,13 +929,10 @@ describe("Slack durable ingress", () => {
       const usersInfoFetch = vi.fn<NonNullable<WebClientOptions["fetch"]>>(async (input) => {
         const pathname = new URL(String(input)).pathname;
         if (pathname.endsWith("/conversations.info")) {
-          return new Response(
-            JSON.stringify({
-              ok: true,
-              channel: { id: "C_TEST", name: "general", is_channel: true },
-            }),
-            { headers: { "content-type": "application/json" }, status: 200 },
-          );
+          return Response.json({
+            ok: true,
+            channel: { id: "C_TEST", name: "general", is_channel: true },
+          });
         }
         if (!pathname.endsWith("/users.info")) {
           throw new Error(`unexpected Slack API request: ${pathname}`);
@@ -945,10 +944,7 @@ describe("Slack durable ingress", () => {
             status: 429,
           });
         }
-        return new Response(JSON.stringify({ ok: true, user: { id: "U_TEST", name: "alice" } }), {
-          headers: { "content-type": "application/json" },
-          status: 200,
-        });
+        return Response.json({ ok: true, user: { id: "U_TEST", name: "alice" } });
       });
       const first = attachBoltMemberIngress({ queue, trackEvent, usersInfoFetch });
       first.ingress.start();
