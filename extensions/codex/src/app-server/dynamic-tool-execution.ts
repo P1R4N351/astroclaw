@@ -8,16 +8,17 @@ import {
   normalizeQuestionTimeoutSeconds,
   resolveToolExecutionErrorKind,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { copyInternalToolResultState } from "openclaw/plugin-sdk/agent-harness-tool-runtime";
 import {
   hasPendingInternalDiagnosticEvent,
   type DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   addTimerTimeoutGraceMs,
   parseStrictNonNegativeInteger,
-} from "astroclaw/plugin-sdk/number-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/number-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   createFailedDynamicToolResponse,
   type CodexDynamicToolRuntimeResponse,
@@ -173,7 +174,10 @@ export async function handleDynamicToolCallWithTimeout(params: {
     const terminalResolution = params.observeToolTerminal?.({
       toolCallId: params.call.callId,
       toolName: params.call.tool,
-      result: response,
+      result: copyInternalToolResultState(response, {
+        ...response,
+        details: response.transcriptDetails,
+      }),
       arguments:
         response.executedArguments ?? executionSnapshot?.executedArguments ?? params.call.arguments,
       ...(params.toolMeta ? { meta: params.toolMeta } : {}),
