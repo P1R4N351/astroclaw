@@ -1,5 +1,5 @@
 // Defines the detached task runtime contract and spawn options.
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   JsonValue,
   TaskDeliveryState,
@@ -39,6 +39,7 @@ export type DetachedTaskCreateParams = {
 };
 
 export type DetachedRunningTaskCreateParams = DetachedTaskCreateParams & {
+  executionOwner?: TaskRecord["executionOwner"];
   startedAt?: number;
   lastEventAt?: number;
   progressSummary?: string | null;
