@@ -1,9 +1,9 @@
-import { toStringifiedError as asError } from "astroclaw/plugin-sdk/error-runtime";
-import { buildTimeoutAbortSignal } from "astroclaw/plugin-sdk/extension-shared";
-import { redactSensitiveText } from "astroclaw/plugin-sdk/logging-core";
-import { readProviderJsonResponse } from "astroclaw/plugin-sdk/provider-http";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import WebSocket from "ws";
+import { toStringifiedError as asError } from "openclaw/plugin-sdk/error-runtime";
+import { buildTimeoutAbortSignal } from "openclaw/plugin-sdk/extension-shared";
+import { redactSensitiveText } from "openclaw/plugin-sdk/logging-core";
+import { readProviderJsonResponse } from "openclaw/plugin-sdk/provider-http";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { WebSocket } from "openclaw/plugin-sdk/websocket-runtime";
 import { sha256Hex, signDeviceRequest, utf8 } from "../protocol/index.js";
 import type { Envelope, SignedReceipt } from "../protocol/index.js";
 import type { InboxEntry, ReefKeys, RelayFriend } from "./types.js";
