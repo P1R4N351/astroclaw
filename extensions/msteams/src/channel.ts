@@ -1,32 +1,32 @@
 // Msteams plugin module implements channel behavior.
-import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-adapter-runtime";
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-adapter-runtime";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageToolDiscovery,
-} from "astroclaw/plugin-sdk/channel-contract";
-import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
+} from "openclaw/plugin-sdk/channel-contract";
+import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
 import {
   createAccountStatusSink,
   createChannelMessageAdapterFromOutbound,
   createRuntimeOutboundDelegates,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
 import {
   createAllowlistProviderGroupPolicyWarningCollector,
   createConditionalWarningCollector,
-} from "astroclaw/plugin-sdk/channel-policy";
-import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
+} from "openclaw/plugin-sdk/channel-policy";
+import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "astroclaw/plugin-sdk/directory-runtime";
-import { normalizeMessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
-import { createLazyRuntimeNamedExport } from "astroclaw/plugin-sdk/lazy-runtime";
-import { createComputedAccountStatusAdapter } from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/directory-runtime";
+import { normalizeMessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
+import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
+import { createComputedAccountStatusAdapter } from "openclaw/plugin-sdk/status-helpers";
 import {
   normalizeOptionalString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { Type } from "typebox";
 import { msteamsDirectoryContractPlugin } from "../directory-contract-api.js";
 import type {
@@ -105,7 +105,7 @@ const collectMSTeamsSecurityWarnings = createAllowlistProviderGroupPolicyWarning
 const collectMSTeamsSecurityFindings = createConditionalWarningCollector.findings({
   collectWarnings: collectMSTeamsSecurityWarnings,
   checkId: "channels.msteams.groups.open",
-  severity: "critical",
+  severity: "warn",
   title: "MS Teams security warning",
 });
 
@@ -721,7 +721,16 @@ export const msteamsPlugin: ChannelPlugin<ResolvedMSTeamsAccount, ProbeMSTeamsRe
           }
 
           const graphActionTarget = {
-            toolParams: ctx.params,
+            // Normal message-tool search/member-info use channelId as their conversation filter.
+            toolParams:
+              ctx.action === "search" || ctx.action === "member-info"
+                ? {
+                    ...ctx.params,
+                    to:
+                      resolveActionTarget(ctx.params) ||
+                      normalizeOptionalString(ctx.params.channelId),
+                  }
+                : ctx.params,
             currentChannelId: ctx.toolContext?.currentChannelId,
             currentGraphChannelId: resolveCurrentGraphActionTarget(ctx.toolContext),
             currentChatType: ctx.toolContext?.currentChatType,
