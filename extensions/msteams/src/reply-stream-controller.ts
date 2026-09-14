@@ -5,9 +5,9 @@ import {
   type ChannelProgressDraftLine,
   isChannelProgressDraftWorkToolName,
   resolveChannelPreviewStreamMode,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { MarkdownTableMode, MSTeamsConfig, ReplyPayload } from "../runtime-api.js";
 import { formatMSTeamsMarkdown } from "./format.js";
 import { extractMessageId } from "./media-helpers.js";
@@ -233,6 +233,8 @@ export function createTeamsReplyStreamController(params: {
 
   // Teams cannot delete an empty interim card; final delivery settles it.
   const progressDraft = createChannelProgressDraftCompositor({
+    // Informative Teams activities are already plain text, unlike Markdown draft transports.
+    formatPlainText: (text) => text,
     entry: params.msteamsConfig,
     mode: streamMode,
     active: Boolean(stream) && streamMode === "progress",
@@ -368,7 +370,7 @@ export function createTeamsReplyStreamController(params: {
 
     async pushPlanProgress(
       steps?: AgentPlanStep[],
-      options?: { explanation?: string },
+      options?: { explanation?: string; explanationFormat?: "plain" },
     ): Promise<void> {
       await progressDraft.pushPlanProgress(steps, options);
     },
