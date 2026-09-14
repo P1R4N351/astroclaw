@@ -6,16 +6,16 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   asDateTimestampMs,
   resolveExpiresAtMsFromDurationMs,
-} from "astroclaw/plugin-sdk/number-runtime";
-import { finalizeInboundContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
-import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/number-runtime";
+import { finalizeInboundContext } from "openclaw/plugin-sdk/reply-runtime";
+import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
+import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import type { ResolvedMattermostAccount } from "../mattermost/accounts.js";
 import { getMattermostRuntime } from "../runtime.js";
 import {
@@ -796,10 +796,11 @@ async function handleSlashCommandAsync(params: {
     });
     const data = await buildPreparedModelsProviderData(cfg, route.agentId, { sessionEntry });
     if (data.providers.length === 0) {
-      await sendMessageMattermost(`channel:${channelId}`, "No models available.", {
-        cfg,
-        accountId: account.accountId,
-      });
+      await sendMessageMattermost(
+        `channel:${channelId}`,
+        [data.refreshWarning, "No models available."].filter(Boolean).join("\n\n"),
+        { cfg, accountId: account.accountId },
+      );
       return;
     }
 
@@ -828,11 +829,11 @@ async function handleSlashCommandAsync(params: {
               currentModel,
             });
 
-    await sendMessageMattermost(`channel:${channelId}`, view.text, {
-      cfg,
-      accountId: account.accountId,
-      buttons: view.buttons,
-    });
+    await sendMessageMattermost(
+      `channel:${channelId}`,
+      [data.refreshWarning, view.text].filter(Boolean).join("\n\n"),
+      { cfg, accountId: account.accountId, buttons: view.buttons },
+    );
     runtime.log?.(`delivered model picker to ${to}`);
     return;
   }
