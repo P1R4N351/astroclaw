@@ -1,11 +1,14 @@
 // Chat UI chips for pull requests detected on the session's working branch.
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { html, nothing } from "lit";
+import { repeat } from "lit/directives/repeat.js";
 import type {
   ControlUiSessionBranch,
   ControlUiSessionPullRequest,
   ControlUiSessionPullRequestSnapshot,
 } from "../../../../../src/gateway/control-ui-contract.js";
+import "./chat-ci-details.ts";
+import type { ApplicationGateway } from "../../../app/gateway.ts";
 import { icons } from "../../../components/icons.ts";
 import { t } from "../../../i18n/index.ts";
 import type { GitHubPublicationView } from "../../../lib/sessions/github-publication-controller.ts";
@@ -113,7 +116,10 @@ function renderChecksRow(label: string, count: number, modifier: string) {
   `;
 }
 
-function renderChecks(pullRequest: ControlUiSessionPullRequest) {
+function renderChecks(
+  pullRequest: ControlUiSessionPullRequest,
+  props: { gateway?: ApplicationGateway; sessionKey?: string; presented?: boolean },
+) {
   const checks = pullRequest.checks;
   if (!checks) {
     return nothing;
@@ -142,10 +148,18 @@ function renderChecks(pullRequest: ControlUiSessionPullRequest) {
             ${icons.externalLink}
           </a>
         </div>
-        ${renderChecksRow(t("chat.pullRequests.checksPassed"), checks.passed, "passed")}
-        ${renderChecksRow(t("chat.pullRequests.checksFailed"), checks.failed, "failed")}
-        ${renderChecksRow(t("chat.pullRequests.checksRunning"), checks.running, "running")}
-        ${renderChecksRow(t("chat.pullRequests.checksSkipped"), checks.skipped, "skipped")}
+        <div class="chat-pr__checks-counts">
+          ${renderChecksRow(t("chat.pullRequests.checksPassed"), checks.passed, "passed")}
+          ${renderChecksRow(t("chat.pullRequests.checksFailed"), checks.failed, "failed")}
+          ${renderChecksRow(t("chat.pullRequests.checksRunning"), checks.running, "running")}
+          ${renderChecksRow(t("chat.pullRequests.checksSkipped"), checks.skipped, "skipped")}
+        </div>
+        <openclaw-chat-ci-details
+          .pullRequest=${pullRequest}
+          .gateway=${props.gateway}
+          .sessionKey=${props.sessionKey ?? ""}
+          .presented=${props.presented ?? true}
+        ></openclaw-chat-ci-details>
       </div>
     </details>
   `;
@@ -267,6 +281,9 @@ function renderBranchRow(
 
 export function renderChatPullRequests(props: {
   pullRequests: ControlUiSessionPullRequest[];
+  gateway?: ApplicationGateway;
+  sessionKey?: string;
+  presented?: boolean;
   branch?: ControlUiSessionBranch;
   status: ControlUiSessionPullRequestSnapshot["status"];
   expanded: boolean;
@@ -291,7 +308,7 @@ export function renderChatPullRequests(props: {
             ${renderGitHubPublicationDetails(props.publication)}
           </article>`
         : nothing}
-      ${visible.map((pullRequest) => {
+      ${repeat(visible, chatPullRequestId, (pullRequest) => {
         const merged = pullRequest.state === "merged";
         return html`
           <article class="chat-pr" data-state=${pullRequest.state}>
@@ -315,7 +332,7 @@ export function renderChatPullRequests(props: {
               </span>
             </a>
             <span class="chat-pr__meta">
-              ${renderDiffStats(pullRequest)} ${renderChecks(pullRequest)}
+              ${renderDiffStats(pullRequest)} ${renderChecks(pullRequest, props)}
               ${pullRequest.state === "open"
                 ? nothing
                 : html`<span class="chat-pr__state">${stateLabel(pullRequest.state)}</span>`}
