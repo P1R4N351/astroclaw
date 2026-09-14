@@ -1,11 +1,11 @@
 // Github Copilot plugin entrypoint registers its OpenClaw integration.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   definePluginEntry,
   type ProviderAuthContext,
   type ProviderAuthResult,
   type ProviderAuthMethodNonInteractiveContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   coerceSecretRef,
@@ -14,7 +14,7 @@ import {
   normalizeOptionalSecretInput,
   resolveDefaultSecretProviderAlias,
   upsertAuthProfileWithLock,
-} from "astroclaw/plugin-sdk/provider-auth";
+} from "openclaw/plugin-sdk/provider-auth";
 import { resolveFirstGithubToken } from "./auth.js";
 import {
   normalizeGithubCopilotDomain,
@@ -497,6 +497,15 @@ export default definePluginEntry({
             const expiresInMinutes = Math.max(1, Math.round(expiresInMs / 60_000));
             if (ctx.isRemote) {
               await ctx.openUrl(verificationUrl);
+            }
+            if (ctx.prompter.deviceCode) {
+              await ctx.prompter.deviceCode({
+                title: "Authorize GitHub Copilot",
+                code: userCode,
+                expiresInMinutes,
+                message: "Enter this one-time code to authorize Copilot.",
+              });
+              return;
             }
             await ctx.prompter.note(
               [
