@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import { crabboxCommandError } from "./crabbox-worker-command-error.js";
 import { runCrabboxCommand, type CrabboxCommandRunner } from "./crabbox-worker-command.js";
 import {
@@ -21,6 +21,7 @@ import {
   resolveCrabboxWarmImagePolicy,
   type CrabboxWarmImagePolicy,
 } from "./crabbox-worker-warm-image-policy.js";
+import { WARM_IMAGE_MAX_ENTRIES } from "./crabbox-worker-warm-image-records.js";
 import {
   assertCrabboxWarmImageMigrationReady,
   crabboxWarmImageCaptureStatus,
@@ -32,7 +33,6 @@ import {
   openCrabboxWarmImageStore,
   listCrabboxWarmImages,
   sameCrabboxWarmImageGeneration as sameImage,
-  WARM_IMAGE_MAX_ENTRIES,
   withCrabboxWarmImageDisplayFacts,
   withCrabboxWarmImageGeneration,
   withoutCrabboxWarmImageOperation,
