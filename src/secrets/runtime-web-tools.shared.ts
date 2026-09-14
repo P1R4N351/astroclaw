@@ -1,6 +1,6 @@
 import { expectDefined } from "@astroclaw/normalization-core";
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveSecretInputRef, type SecretRef } from "../config/types.secrets.js";
 import { createLazyRuntimeNamedExport } from "../shared/lazy-runtime.js";
 import { setPathExistingStrict } from "./path-utils.js";
@@ -505,26 +505,7 @@ export async function resolveRuntimeWebProviderSelection<
         continue;
       }
 
-      if (params.configuredProvider) {
-        selectedProvider = provider.id;
-        selectedPath = selectedCandidatePath;
-        selectedResolution = selectedCandidateResolution;
-        if (selectedCandidateResolution.value) {
-          setResolvedCredentialPath({
-            resolvedConfig: params.resolvedConfig,
-            path: selectedCandidatePath,
-            value: selectedCandidateResolution.value,
-          });
-          params.setResolvedCredential({
-            resolvedConfig: params.resolvedConfig,
-            provider,
-            value: selectedCandidateResolution.value,
-          });
-        }
-        break;
-      }
-
-      if (isKeyless) {
+      if (params.configuredProvider || isKeyless) {
         selectedProvider = provider.id;
         selectedPath = selectedCandidatePath;
         selectedResolution = selectedCandidateResolution;
