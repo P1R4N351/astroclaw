@@ -1,6 +1,6 @@
 import path from "node:path";
 import { registerSessionResourceCleanup } from "@openclaw/ai/internal/runtime";
-import { createAssistantMessageEventStream, type AssistantMessage } from "astroclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream, type AssistantMessage } from "openclaw/plugin-sdk/llm";
 // Agent session SDK tests cover default tool wiring, prompt preservation, and
 // session write-settlement behavior.
 import { Type } from "typebox";
@@ -847,6 +847,44 @@ describe("createAgentSession thinking level defaults", () => {
   beforeEach(() => {
     thinkingMocks.resolveThinkingDefaultForModel.mockReset();
     thinkingMocks.resolveThinkingDefaultForModel.mockReturnValue("medium");
+  });
+
+  it.each([
+    "openai-completions",
+    "openai-responses",
+    "azure-openai-responses",
+    "openai-chatgpt-responses",
+  ] as const)("records declared max thinking in a new embedded %s session", async (api) => {
+    const sessionManager = SessionManager.inMemory();
+    const { session } = await createAgentSessionForEmbeddedRunner(
+      {
+        model: {
+          ...testModel,
+          id: "custom-reasoner",
+          api,
+          reasoning: true,
+          thinkingLevelMap: { off: null, minimal: null },
+          compat: { supportedReasoningEfforts: ["low", "medium", "high", "xhigh", "max"] },
+        },
+        thinkingLevel: "max",
+        resourceLoader: createResourceLoader(),
+        sessionManager,
+        settingsManager: SettingsManager.inMemory(),
+        modelRegistry: createTestModelRegistry(),
+      },
+      {},
+    );
+    try {
+      expect({
+        level: session.thinkingLevel,
+        recorded: sessionManager
+          .getEntries()
+          .filter((entry) => entry.type === "thinking_level_change")
+          .map((entry) => entry.thinkingLevel),
+      }).toEqual({ level: "max", recorded: ["max"] });
+    } finally {
+      session.dispose();
+    }
   });
 
   it("uses the provider-specific thinking default for new sessions", async () => {
