@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 // Doctor cron index tests cover cron doctor checks and repair entrypoints.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseCodeModeScriptSyntax } from "../../../agents/code-mode-script-syntax.js";
 import type { OpenClawConfig } from "../../../config/config.js";
@@ -16,6 +16,7 @@ import {
 } from "../../../cron/store.js";
 import { cronStoreKey } from "../../../cron/store/key.js";
 import { readCronTaskRunHistoryPage } from "../../../cron/task-run-history.js";
+import { closeOpenClawStateDatabaseAsync } from "../../../state/openclaw-state-db.js";
 import { resolveOpenClawStateSqlitePath } from "../../../state/openclaw-state-db.paths.js";
 import { withRestoredMocks } from "../../../test-utils/vitest-spies.js";
 import {
@@ -45,6 +46,7 @@ function resolveLegacyCronQuarantinePath(storePath: string): string {
 }
 
 afterEach(async () => {
+  await closeOpenClawStateDatabaseAsync();
   vi.unstubAllEnvs();
   noteMock.mockClear();
   if (tempRoot) {
