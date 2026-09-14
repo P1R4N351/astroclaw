@@ -2,11 +2,10 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
 // Outbound target helpers resolve direct send targets, heartbeat destinations,
 // sender context, and session-route aware heartbeat refinements.
-import { mapAllowFromEntries } from "astroclaw/plugin-sdk/channel-config-helpers";
+import { mapAllowFromEntries } from "openclaw/plugin-sdk/channel-config-helpers";
 import { hasConfiguredUnavailableCredentialStatus } from "../../channels/account-snapshot-fields.js";
 import { normalizeChatType, type ChatType } from "../../channels/chat-type.js";
 import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.js";
-import { listChannelPlugins } from "../../channels/plugins/index.js";
 import type { ChannelOutboundTargetMode } from "../../channels/plugins/types.core.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
 import type { ChannelId } from "../../channels/plugins/types.public.js";
@@ -35,6 +34,7 @@ import {
 } from "./channel-target-prefix.js";
 import { isPotentialConfiguredMessageChannel } from "./message-account-selection.js";
 import { resolveOutboundSessionRoute } from "./outbound-session.js";
+import { listRuntimeVisibleChannelPlugins } from "./runtime-visible-channels.js";
 import { isReservedTargetLiteralError } from "./target-errors.js";
 import { resolveChannelTarget, type ResolvedMessagingTarget } from "./target-resolver.js";
 import {
@@ -153,7 +153,7 @@ function resolveHeartbeatOwnerRoute(params: {
   if (session?.channel) {
     add(resolveOutboundChannelPlugin({ channel: session.channel, cfg: params.cfg }));
   }
-  for (const plugin of listChannelPlugins()) {
+  for (const plugin of listRuntimeVisibleChannelPlugins()) {
     if (isPotentialConfiguredMessageChannel({ cfg: params.cfg, plugin })) {
       add(plugin);
     }
