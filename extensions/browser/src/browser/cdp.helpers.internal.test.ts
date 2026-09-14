@@ -1,9 +1,9 @@
 // Browser tests cover cdp.helpers.internal plugin behavior.
 import http, { createServer } from "node:http";
 import type { Socket } from "node:net";
-import { rawDataToString } from "openclaw/plugin-sdk/webhook-ingress";
+import { rawDataToString } from "astroclaw/plugin-sdk/webhook-ingress";
+import { WebSocketServer } from "astroclaw/plugin-sdk/websocket-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { WebSocketServer } from "ws";
 import { toErrorObject } from "../infra/errors.js";
 
 const fetchWithSsrFGuardMock = vi.hoisted(() => vi.fn());
@@ -16,8 +16,8 @@ const { registerManagedProxyBrowserCdpBypassMock } = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     sleepWithAbort: (...args: Parameters<typeof actual.sleepWithAbort>) => {
@@ -28,15 +28,15 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: (...args: unknown[]) => fetchWithSsrFGuardMock(...args),
   };
 });
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime-internal", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime-internal", () => ({
   registerManagedProxyBrowserCdpBypass: registerManagedProxyBrowserCdpBypassMock,
 }));
 
