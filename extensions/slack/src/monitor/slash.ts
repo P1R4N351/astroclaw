@@ -11,7 +11,7 @@ import {
   loadPreparedModelCatalog,
   resolveAgentDir,
   resolveDefaultModelForAgent,
-} from "astroclaw/plugin-sdk/agent-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
 import {
   formatCommandArgMenuTitle,
   resolveEffectiveAgentRuntime,
@@ -19,33 +19,32 @@ import {
   type ChatCommandDefinition,
   type CommandArgs,
   resolveNativeCommandSessionTargets,
-} from "astroclaw/plugin-sdk/command-auth-native";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+} from "openclaw/plugin-sdk/command-auth-native";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 import {
   resolveNativeCommandsEnabled,
   resolveNativeSkillsEnabled,
-} from "astroclaw/plugin-sdk/native-command-config-runtime";
+} from "openclaw/plugin-sdk/native-command-config-runtime";
 import {
   mergeNativeCommandSpecs,
   type NativeCommandSpec,
-} from "astroclaw/plugin-sdk/native-command-registry";
+} from "openclaw/plugin-sdk/native-command-registry";
 import type {
   PluginCommandCatalogDecision,
   PluginCommandNativeCandidate,
   PluginCommandReplyOptions,
-} from "astroclaw/plugin-sdk/plugin-command-runtime";
-import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { getRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { danger, logVerbose, warn } from "astroclaw/plugin-sdk/runtime-env";
-import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/plugin-command-runtime";
+import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import { danger, logVerbose, warn } from "openclaw/plugin-sdk/runtime-env";
+import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { chunkItems } from "astroclaw/plugin-sdk/text-chunking";
-import type { ResolvedSlackAccount } from "../accounts.js";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { chunkItems } from "openclaw/plugin-sdk/text-chunking";
+import { resolveSlackAccount, type ResolvedSlackAccount } from "../accounts.js";
 import { SLACK_MAX_BLOCKS } from "../blocks-input.js";
 import { requireSlackPostMessageTimestamp } from "../client-delivery.js";
 import { formatSlackError } from "../errors.js";
@@ -111,7 +110,7 @@ const loadSlashSkillCommandsRuntime = createLazyRuntimeModule(
   () => import("./slash-skill-commands.runtime.js"),
 );
 const loadPluginCommandRuntime = createLazyRuntimeModule(
-  () => import("astroclaw/plugin-sdk/plugin-command-runtime"),
+  () => import("openclaw/plugin-sdk/plugin-command-runtime"),
 );
 
 function resolveSlackCommandMenuModelContext(params: {
@@ -408,11 +407,11 @@ export function createSlackCommandHandler(params: {
   trackEvent?: () => void;
   supportsExternalArgMenus?: () => boolean;
 }) {
-  const { ctx, account, trackEvent } = params;
-  const runtime = ctx.runtime;
-  const supportsInteractiveArgMenus = typeof ctx.app.action === "function";
+  const { ctx: monitor, account: startupAccount, trackEvent } = params;
+  const runtime = monitor.runtime;
+  const supportsInteractiveArgMenus = typeof monitor.app.action === "function";
   const slashCommand = resolveSlackSlashCommandConfig(
-    ctx.slashCommand ?? account.config.slashCommand,
+    monitor.slashCommand ?? startupAccount.config.slashCommand,
   );
 
   return async (p: {
@@ -456,9 +455,9 @@ export function createSlackCommandHandler(params: {
           }
         : createSlackResponseUrlBudget(respondWithoutBudget);
     const respond = responseBudget.respond;
-    const cfg = getRuntimeConfigSnapshot() ?? ctx.cfg;
+    let cfg = monitor.cfg;
     try {
-      if (ctx.shouldDropMismatchedSlackEvent?.(body)) {
+      if (monitor.shouldDropMismatchedSlackEvent?.(body)) {
         await ack();
         runtime.log?.(
           `slack: drop slash command from user=${command.user_id ?? "unknown"} channel=${command.channel_id ?? "unknown"} (mismatched app/team)`,
@@ -474,6 +473,9 @@ export function createSlackCommandHandler(params: {
         return false;
       }
       await ack();
+      const ctx = await monitor.readRuntimeContext();
+      cfg = ctx.cfg;
+      const account = resolveSlackAccount({ cfg, accountId: params.account.accountId });
 
       if (ctx.botUserId && command.user_id === ctx.botUserId) {
         return false;
@@ -645,7 +647,7 @@ export function createSlackCommandHandler(params: {
           if (p.sessionTarget) {
             resolvedSlashRoute = p.sessionTarget;
             isCurrentSession = captureSlackSessionTargetGuard(
-              { ...ctx, cfg },
+              ctx,
               p.sessionTarget,
               p.isSessionTargetCurrent,
             );
@@ -653,7 +655,7 @@ export function createSlackCommandHandler(params: {
           }
           const routing = await resolveSlackSessionEventRoutingContext({
             intent: "stop",
-            ctx: { ...ctx, cfg },
+            ctx,
             account,
             message: {
               type: "message",
@@ -1026,10 +1028,10 @@ export async function registerSlackMonitorSlashCommands(params: {
   let nativeCommands: SlackNativeCommandSpec[] = [];
   let slashCommandsRuntime: typeof import("./slash-commands.runtime.js") | null = null;
   let pluginCommandRuntimeModule:
-    | typeof import("astroclaw/plugin-sdk/plugin-command-runtime")
+    | typeof import("openclaw/plugin-sdk/plugin-command-runtime")
     | null = null;
   let pluginCommandRuntime:
-    | import("astroclaw/plugin-sdk/plugin-command-runtime").PluginCommandRuntime
+    | import("openclaw/plugin-sdk/plugin-command-runtime").PluginCommandRuntime
     | null = null;
   if (
     registration.mode === "disabled" &&
