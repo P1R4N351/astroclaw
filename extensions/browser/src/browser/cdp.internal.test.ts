@@ -1,7 +1,7 @@
 import { rawDataToString } from "astroclaw/plugin-sdk/webhook-ingress";
+import { WebSocketServer } from "astroclaw/plugin-sdk/websocket-runtime";
 // Browser tests cover cdp.internal plugin behavior.
 import { afterEach, describe, expect, it } from "vitest";
-import { WebSocketServer } from "ws";
 import "../test-support/browser-security.mock.js";
 import {
   type AriaSnapshotNode,
