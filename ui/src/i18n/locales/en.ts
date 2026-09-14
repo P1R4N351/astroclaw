@@ -15,6 +15,8 @@ export const en: TranslationMap & {
       Record<
         | "title"
         | "eyebrow"
+        | "minimize"
+        | "expand"
         | "lanes"
         | "status"
         | "activeRuns"
@@ -1036,6 +1038,10 @@ export const en: TranslationMap & {
     browserLoadFailed: "Couldn't list that folder.",
     hiddenFolder: "Hidden folder",
     worktree: "Worktree",
+    newWorkspace: "New workspace",
+    newWorkspaceDescription: "Start in an empty folder for this session.",
+    remoteSourceUnavailable:
+      "This folder cannot provide a Git checkout. Select New workspace to start empty, or choose a repository.",
     checkingGit: "Checking Git availability…",
     gitCheckUnavailable: "Couldn't verify Git for this folder. Choose it again to retry.",
     worktreeUnavailable: "Selected folder is not a Git checkout",
@@ -1649,6 +1655,8 @@ export const en: TranslationMap & {
     overlay: {
       title: "System busyness",
       eyebrow: "Live diagnostics",
+      minimize: "Minimize system busyness",
+      expand: "Expand system busyness",
       lanes: "Lanes",
       status: "Event loop / status",
       activeRuns: "Active runs",
@@ -4544,6 +4552,7 @@ export const en: TranslationMap & {
       dismiss: "Dismiss {author}'s suggestion",
       typing: "{name} is typing…",
       typingMany: "{names} are typing…",
+      typingDraftState: "Typing · not sent",
       state: {
         pending: "Pending",
         accepted: "Accepted",
@@ -5634,10 +5643,13 @@ export const en: TranslationMap & {
       outputPending: "No output yet.",
       subagentActivity: {
         label: "Subagent activity",
-        running: "Subagent",
-        finished: "Subagent finished",
-        failed: "Subagent failed",
-        cancelled: "Subagent cancelled",
+        untitled: "Subagent",
+        queuedDescription: "Queued — waiting to start.",
+        runningDescription: "Running — working on this task.",
+        completedDescription: "Completed — finished successfully.",
+        failedDescription: "Failed — the task ended with an error.",
+        cancelledDescription: "Cancelled — stopped before completion.",
+        timedOutDescription: "Timed out — reached its time limit.",
         openDetails: "Open subagent details for {title}",
         moreWorking: "+{count} more working",
       },
