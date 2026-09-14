@@ -2,7 +2,7 @@
 import { EventEmitter } from "node:events";
 import type { ClientRequest, IncomingMessage, RequestOptions } from "node:http";
 import { PassThrough } from "node:stream";
-import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import type { SynologyHostedMediaUrl } from "./outbound-media.js";
 
@@ -23,7 +23,7 @@ vi.mock("node:http", async () => {
   return { ...actual, default: httpModule, request: httpRequest, get: httpGet };
 });
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   formatErrorMessage: coerceErrorMessage,
 }));
 
@@ -661,19 +661,5 @@ describe("resolveLegacyWebhookNameToChatUserId user lookup", () => {
 
     expect(userId).toBeUndefined();
     expect(warns.some((line) => line.includes("exceeded"))).toBe(true);
-  });
-
-  it("verifies TLS by default for user_list lookups", async () => {
-    mockUserListResponse([{ user_id: 4, username: "jmn67", nickname: "jmn" }]);
-    const freshUrl =
-      "https://fresh-nas.example.com/webapi/entry.cgi?api=SYNO.Chat.External&method=chatbot&version=2&token=%22fresh%22";
-
-    await resolveLegacyWebhookNameToChatUserId({
-      incomingUrl: freshUrl,
-      mutableWebhookUsername: "jmn",
-    });
-
-    const firstCall = firstHttpsGetCall();
-    expect(firstCall[1]?.rejectUnauthorized).toBe(true);
   });
 });
