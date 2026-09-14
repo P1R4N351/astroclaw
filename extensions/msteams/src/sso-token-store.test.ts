@@ -2,6 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { useAutoCleanupTempDirTracker } from "astroclaw/plugin-sdk/test-env";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { setMSTeamsRuntime } from "./runtime.js";
@@ -9,7 +10,8 @@ import { createMSTeamsSsoTokenStoreFs } from "./sso-token-store.js";
 import { msteamsRuntimeStub } from "./test-support/runtime.js";
 
 const tempDirs = useAutoCleanupTempDirTracker((cleanup) =>
-  afterAll(() => {
+  afterAll(async () => {
+    await closeOpenClawStateDatabaseAsync();
     resetPluginStateStoreForTests();
     cleanup();
   }),
