@@ -1,8 +1,8 @@
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   createChannelPartialDeliveryError,
   type ChannelInboundTurnPlan,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 // Msteams plugin module implements reply dispatcher behavior.
 import {
   buildChannelProgressDraftLine,
@@ -10,11 +10,11 @@ import {
   normalizeAgentPlanSteps,
   resolveChannelPreviewStreamMode,
   resolveChannelStreamingBlockEnabled,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   createChannelMessageReplyPipeline,
   logTypingFailure,
@@ -640,6 +640,7 @@ export function createMSTeamsReplyDispatcher(params: {
           }
           await streamController.pushPlanProgress(normalizeAgentPlanSteps(payload.steps), {
             explanation: typeof payload.explanation === "string" ? payload.explanation : undefined,
+            explanationFormat: payload.explanationFormat === "plain" ? "plain" : undefined,
           });
           return false;
         },
