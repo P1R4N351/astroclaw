@@ -1,15 +1,15 @@
-import { buildChannelInboundEventContext } from "astroclaw/plugin-sdk/channel-inbound";
-import { createTestInboundDebounceFlush } from "astroclaw/plugin-sdk/channel-test-helpers";
+import { buildChannelInboundEventContext } from "openclaw/plugin-sdk/channel-inbound";
+import { createTestInboundDebounceFlush } from "openclaw/plugin-sdk/channel-test-helpers";
 // Feishu tests cover bot plugin behavior.
 import type {
   ensureConfiguredBindingRouteReady,
   getSessionBindingService,
   resolveConfiguredBindingRoute,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { createRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { resolveAgentRoute, type ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { resolveGroupSessionKey } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { resolveAgentRoute, type ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import { resolveGroupSessionKey } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig, PluginRuntime } from "../runtime-api.js";
 import type { FeishuMessageEvent } from "./bot.js";
@@ -386,9 +386,9 @@ const {
 
 const finalizeInboundContextMock = mockBuildChannelInboundEventContext;
 
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-inbound")>(
-    "astroclaw/plugin-sdk/channel-inbound",
+vi.mock("openclaw/plugin-sdk/channel-inbound", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-inbound")>(
+    "openclaw/plugin-sdk/channel-inbound",
   );
   return {
     ...actual,
@@ -407,16 +407,16 @@ vi.mock("astroclaw/plugin-sdk/channel-inbound", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/reply-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/reply-runtime")>(
-    "astroclaw/plugin-sdk/reply-runtime",
+vi.mock("openclaw/plugin-sdk/reply-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/reply-runtime")>(
+    "openclaw/plugin-sdk/reply-runtime",
   );
   return { ...actual, dispatchInboundMessage: mockDispatchInboundMessage };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
-    "astroclaw/plugin-sdk/session-store-runtime",
+vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
+    "openclaw/plugin-sdk/session-store-runtime",
   );
   return { ...actual, resolveStorePath: mockResolveStorePath };
 });
@@ -455,9 +455,9 @@ vi.mock("./bot-name.js", () => ({
   resolveFeishuBotName: mockResolveFeishuBotName,
 }));
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
-    "astroclaw/plugin-sdk/conversation-runtime",
+vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
+    "openclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
@@ -504,7 +504,7 @@ afterAll(() => {
   vi.doUnmock("./audio-preflight.runtime.js");
   vi.doUnmock("./client.js");
   vi.doUnmock("./bot-name.js");
-  vi.doUnmock("astroclaw/plugin-sdk/conversation-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/conversation-runtime");
   vi.resetModules();
 });
 
@@ -2719,7 +2719,7 @@ describe("handleFeishuMessage command authorization", () => {
   });
 
   it("does not partially parse malformed merge_forward create_time values", () => {
-    const content = JSON.stringify([
+    const items = [
       {
         message_id: "container",
         msg_type: "merge_forward",
@@ -2739,15 +2739,15 @@ describe("handleFeishuMessage command authorization", () => {
         body: { content: JSON.stringify({ text: "valid" }) },
         create_time: "1000",
       },
-    ]);
+    ];
 
-    expect(parseMergeForwardContent({ content })).toBe(
+    expect(parseMergeForwardContent(items)).toBe(
       "[Merged and Forwarded Messages]\n- partial\n- valid",
     );
   });
 
   it("bounds merged-forward prompt content and marks truncation", () => {
-    const content = JSON.stringify([
+    const items = [
       {
         message_id: "container",
         msg_type: "merge_forward",
@@ -2759,9 +2759,9 @@ describe("handleFeishuMessage command authorization", () => {
         msg_type: "text",
         body: { content: JSON.stringify({ text: "😀".repeat(20_000) }) },
       },
-    ]);
+    ];
 
-    const parsed = parseMergeForwardContent({ content });
+    const parsed = parseMergeForwardContent(items);
 
     expect(parsed.length).toBeLessThanOrEqual(20_000);
     expect(parsed.endsWith("\n... [Merged-forward content truncated]")).toBe(true);
