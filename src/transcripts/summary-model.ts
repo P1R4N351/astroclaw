@@ -1,4 +1,7 @@
-import { resolvePositiveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
+import {
+  extractBalancedJsonPrefix,
+  resolvePositiveTimerTimeoutMs,
+} from "@astroclaw/normalization-core";
 import { sliceUtf16Safe, truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
 import { z } from "zod";
 import { createReasoningTagTextPartitioner } from "../../packages/markdown-core/src/reasoning-tags.js";
@@ -151,7 +154,7 @@ export async function summarizeTranscriptsWithModel(params: {
           .flatMap((delta) => (delta.kind === "text" ? [delta.text] : []))
           .join("");
         // Models may wrap the bounded visible response in fences or explanatory prose.
-        const object = visible.slice(visible.indexOf("{"), visible.lastIndexOf("}") + 1);
+        const object = extractBalancedJsonPrefix(visible, { openers: ["{"] })?.json ?? "";
         const notes = summarySchema.parse(JSON.parse(object));
         return {
           ...base,
