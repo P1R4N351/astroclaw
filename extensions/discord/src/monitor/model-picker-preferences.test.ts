@@ -2,11 +2,12 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setDiscordRuntime } from "../runtime.js";
 import {
@@ -35,6 +36,7 @@ async function createStateEnv(): Promise<NodeJS.ProcessEnv> {
 }
 
 afterEach(async () => {
+  await closeOpenClawStateDatabaseAsync();
   resetPluginStateStoreForTests();
   await Promise.all(
     tempDirs.splice(0).map(async (dir) => {
