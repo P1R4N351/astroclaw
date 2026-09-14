@@ -2,8 +2,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { BUNDLED_PLUGIN_TEST_GLOB, bundledPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
 import { minimatch } from "minimatch";
+import { BUNDLED_PLUGIN_TEST_GLOB, bundledPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { resolveConfig } from "vitest/node";
 import { cleanupTempDirs, makeTempDir } from "./helpers/temp-dir.js";
@@ -1028,6 +1028,11 @@ describe("scoped vitest configs", () => {
     const testConfig = requireTestConfig(defaultInfraConfig);
     expect(testConfig.dir).toBe(process.cwd());
     expect(testConfig.include).toEqual(["src/infra/**/*.test.ts", ...databaseWorkerCoreTestFiles]);
+    const recoveryFile = "src/wizard/setup.inference-recovery.integration.test.ts";
+    expect(testConfig.include?.filter((file) => file === recoveryFile)).toEqual([recoveryFile]);
+    expect(requireTestConfig(defaultWizardConfig).exclude).toContain(
+      "wizard/setup.inference-recovery.integration.test.ts",
+    );
     for (const file of databaseWorkerCoreTestFiles) {
       expect(matchingExcludePatterns(testConfig.exclude ?? [], file), file).toEqual([]);
     }
