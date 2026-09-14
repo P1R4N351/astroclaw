@@ -2,8 +2,8 @@ import crypto from "node:crypto";
 import {
   isHostScopedAgentToolActive,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
 import { isIncognitoSessionKey } from "../incognito-session.js";
 import type { CodexAppServerClient } from "./client.js";
 import {
@@ -247,6 +247,7 @@ export function buildThreadStartParams(
       : {}),
     personality: CODEX_NATIVE_PERSONALITY_NONE,
     serviceName: "OpenClaw",
+    threadSource: "openclaw",
     ...resolveCodexThreadEnvironmentSelection(options),
     // Codex 0.146 accepts canonical typed function and namespace specs natively.
     dynamicTools: [...options.dynamicTools],
