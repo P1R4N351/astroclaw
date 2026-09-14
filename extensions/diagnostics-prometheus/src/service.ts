@@ -4,10 +4,10 @@ import {
   isDiagnosticsEnabled,
   normalizeDiagnosticValue,
   normalizeDiagnosticLane,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
-import { asNonNegativeFiniteNumber as numericValue } from "astroclaw/plugin-sdk/number-runtime";
-import { getPluginRuntimeGatewayRequestScope } from "astroclaw/plugin-sdk/plugin-runtime";
-import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
+import { asNonNegativeFiniteNumber as numericValue } from "openclaw/plugin-sdk/number-runtime";
+import { getPluginRuntimeGatewayRequestScope } from "openclaw/plugin-sdk/plugin-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import type {
   DiagnosticEventMetadata,
   DiagnosticEventPayload,
@@ -1110,7 +1110,8 @@ export function createDiagnosticsPrometheusExporter() {
             );
           }
         },
-        undefined,
+        // Metrics do not consume logs; avoid enabling their diagnostic copy/formatting path.
+        { exclude: ["log.record"] },
         { includePrivateData: false },
       );
       internalDiagnostics = ctx.internalDiagnostics as unknown as TrustedExporterDiagnosticsBridge;
