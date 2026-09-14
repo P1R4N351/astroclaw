@@ -8,6 +8,7 @@ import {
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
 } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { createRequireRecord, importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import type { Bot } from "grammy";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -517,9 +518,10 @@ async function capturedLogText(logFile: string): Promise<string> {
   return content;
 }
 
-afterEach(() => {
+afterEach(async () => {
   resetTelegramSentMessageCacheForTest();
   clearTelegramRuntime();
+  await closeOpenClawStateDatabaseAsync();
   resetPluginStateStoreForTests();
   setLoggerOverride(null);
   resetLogger();
