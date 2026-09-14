@@ -2,23 +2,20 @@ import crypto from "node:crypto";
 import type { Dirent } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { reclaimDefinitelyStaleFileLock } from "astroclaw/plugin-sdk/file-lock";
-import { resolveUserPath } from "astroclaw/plugin-sdk/memory-core-host-engine-fs";
+import { reclaimDefinitelyStaleFileLock } from "openclaw/plugin-sdk/file-lock";
+import { resolveUserPath } from "openclaw/plugin-sdk/memory-core-host-engine-fs";
 // Doctor enumeration cold-loads this closure; the host engine schema pulls the
 // runtime-sqlite/kysely graph, so its helpers load lazily in the async migration.
-import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
 import {
   legacyStateFileExists,
   type PluginDoctorStateMigration,
-} from "astroclaw/plugin-sdk/runtime-doctor-migrations";
+} from "openclaw/plugin-sdk/runtime-doctor-migrations";
 // This doctor closure must stay dependency-light while accepting legacy array-backed objects.
-import { asOptionalObjectRecord as readLegacyObjectRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import {
-  importLegacyMemorySidecarIndex,
-  LEGACY_MEMORY_SIDECAR_SUFFIXES,
-  LegacyMemoryDerivedRowsConflictError,
-  type LegacyMemorySidecarSource,
-} from "./doctor-memory-sidecar-import.js";
+import { asOptionalObjectRecord as readLegacyObjectRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { LegacyMemorySidecarSource } from "./doctor-memory-sidecar-import.js";
+
+const LEGACY_MEMORY_SIDECAR_SUFFIXES = ["", "-wal", "-shm", "-journal"] as const;
 
 function formatLegacyVectorRows(count: number | undefined): string {
   return count === undefined ? "legacy vector rows" : `${count} vector row(s)`;
@@ -198,7 +195,7 @@ async function collectLegacyMemorySidecarSources(params: {
     seen.add(key);
     // Most startups have no legacy sidecars. Load the SQLite graph only after
     // finding a source that needs its canonical database path checked.
-    const { resolveOpenClawAgentSqlitePath } = await import("astroclaw/plugin-sdk/sqlite-runtime");
+    const { resolveOpenClawAgentSqlitePath } = await import("openclaw/plugin-sdk/sqlite-runtime");
     const agentDatabasePath = resolveOpenClawAgentSqlitePath({
       agentId,
       env: migrationEnv,
@@ -411,10 +408,6 @@ async function migrateLegacyMemorySidecarSource(params: {
   changes: string[];
   warnings: string[];
 }): Promise<{ archiveReady: boolean }> {
-  const { ensureMemoryIndexSchema, loadSqliteVecExtension } =
-    await import("astroclaw/plugin-sdk/memory-core-host-engine-schema");
-  const { ensureOpenClawAgentDatabaseSchema, openNodeSqliteDatabase } =
-    await import("astroclaw/plugin-sdk/sqlite-runtime");
   // OpenClaw itself can leave a zero-byte placeholder at the legacy sidecar
   // path while the live index is the per-agent SQLite database. An empty file
   // holds no legacy rows, so remove it quietly instead of emitting a permanent
@@ -438,6 +431,12 @@ async function migrateLegacyMemorySidecarSource(params: {
     // Fall through to the regular import path when cleanup fails so the file
     // is still diagnosed instead of silently ignored.
   }
+  const { importLegacyMemorySidecarIndex, LegacyMemoryDerivedRowsConflictError } =
+    await import("./doctor-memory-sidecar-import.js");
+  const { ensureMemoryIndexSchema, loadSqliteVecExtension } =
+    await import("openclaw/plugin-sdk/memory-core-host-engine-schema");
+  const { ensureOpenClawAgentDatabaseSchema, openNodeSqliteDatabase } =
+    await import("openclaw/plugin-sdk/sqlite-runtime");
   await fs.mkdir(path.dirname(params.source.agentDatabasePath), { recursive: true });
   const db = openNodeSqliteDatabase(params.source.agentDatabasePath, { allowExtension: true });
   try {
