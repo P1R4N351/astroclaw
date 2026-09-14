@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import {
   hashText,
   INVALID_PROJECT_ANNOTATION_KEY,
@@ -10,14 +10,14 @@ import {
   MEMORY_INDEX_CHUNK_PROVENANCE_TABLE,
   type MemorySessionSyncTarget,
   type MemorySyncParams,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { deleteSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-import { resolveOpenClawAgentSqlitePath } from "astroclaw/plugin-sdk/sqlite-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { deleteSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { resolveOpenClawAgentSqlitePath } from "openclaw/plugin-sdk/sqlite-runtime";
 import {
   closeOpenClawAgentDatabasesForTest,
   openOpenClawAgentDatabase,
-} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+} from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { describe, expect, it, vi } from "vitest";
 import {
   createManagerIndexFixture,
@@ -1710,12 +1710,14 @@ describe("memory index", () => {
       trigger: "LIVE REJECTION RECOVERY TARGET 729",
     };
     const sessionKey = (sessionId: string) => `agent:main:live-rejection:${sessionId}`;
+    // Startup catchup must not consume the controlled sync mocks.
     const manager = await getFreshManager(
       createCfg({
         provider: "none",
         sources: ["sessions"],
         sessionMemory: true,
       }),
+      "cli",
     );
     let resolveActiveSync: (() => void) | undefined;
     const activeSyncGate = new Promise<void>((resolve) => {
