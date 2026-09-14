@@ -4,9 +4,9 @@ import {
   runAgentHarnessAfterToolCallHook,
   type AgentMessage,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import type { Usage } from "astroclaw/plugin-sdk/llm";
-import { asDateTimestampMs } from "astroclaw/plugin-sdk/number-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { Usage } from "openclaw/plugin-sdk/llm";
+import { asDateTimestampMs } from "openclaw/plugin-sdk/number-runtime";
 import {
   isMutatingNativeToolItem,
   isNonSuccessItemStatus,
@@ -605,7 +605,7 @@ export class CodexToolTranscriptProjection {
     );
   }
 
-  private recordToolCall(params: ToolTranscriptCallInput): void {
+  recordToolCall(params: ToolTranscriptCallInput): void {
     if (!params.id || !params.name || this.callIds.has(params.id)) {
       return;
     }
@@ -620,7 +620,7 @@ export class CodexToolTranscriptProjection {
     this.options.checkpointMessage?.({ read: () => message });
   }
 
-  private recordToolResult(params: ToolTranscriptResultInput): void {
+  recordToolResult(params: ToolTranscriptResultInput): void {
     if (!params.id || !params.name || this.resultIds.has(params.id)) {
       return;
     }
