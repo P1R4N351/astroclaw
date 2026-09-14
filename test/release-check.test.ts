@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve as resolvePath, win32 } from "node:path";
-import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { collectBundledExtensionManifestErrors } from "../scripts/lib/bundled-extension-manifest.ts";
 import { listBundledPluginPackArtifacts } from "../scripts/lib/bundled-plugin-build-entries.mjs";
@@ -30,6 +30,7 @@ import {
   PACKED_BUNDLED_RUNTIME_DEPS_REPAIR_ARGS,
   PACKED_CLI_SMOKE_COMMANDS,
   PACKED_COMPLETION_SMOKE_ARGS,
+  packedPluginSdkSupportsSetupSurface,
   resolvePackedTarballPath,
   resolveReleaseNpmCommand,
   runReleaseCheckCommand,
@@ -620,6 +621,32 @@ describe("packed install verification", () => {
 });
 
 describe("createPackedPluginSdkTypescriptSmokeProject", () => {
+  it("limits setupSurface omission to the recorded frozen target", async () => {
+    const { packedPluginSdkMayOmitSetupSurface } = await import("../scripts/release-check.js");
+    expect(packedPluginSdkMayOmitSetupSurface("2026.7.33")).toBe(true);
+    expect(packedPluginSdkMayOmitSetupSurface("2026.9.4")).toBe(false);
+    expect(packedPluginSdkMayOmitSetupSurface("2026.10.1")).toBe(false);
+  });
+
+  it("detects whether both packed setup declarations expose setupSurface", () => {
+    const root = mkdtempSync(join(tmpdir(), "release-check-plugin-sdk-setup-surface-"));
+    try {
+      for (const relativePath of [
+        "dist/plugin-sdk/setup.d.ts",
+        "dist/plugin-sdk/setup-runtime.d.ts",
+      ]) {
+        const declarationPath = join(root, relativePath);
+        mkdirSync(dirname(declarationPath), { recursive: true });
+        writeFileSync(declarationPath, "export type Options = { setupSurface?: unknown };\n");
+      }
+      expect(packedPluginSdkSupportsSetupSurface(root)).toBe(true);
+      writeFileSync(join(root, "dist/plugin-sdk/setup-runtime.d.ts"), "export {};\n");
+      expect(packedPluginSdkSupportsSetupSurface(root)).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("writes a consumer project that imports representative public SDK subpaths", () => {
     const root = mkdtempSync(join(tmpdir(), "release-check-plugin-sdk-types-"));
     try {
@@ -649,16 +676,16 @@ describe("createPackedPluginSdkTypescriptSmokeProject", () => {
       expect(packageJson.dependencies?.["@openclaw/ai"]).toBe("file:/tmp/openclaw-ai.tgz");
       expect(tsconfig.compilerOptions?.skipLibCheck).toBe(false);
       expect(source).toBe(fixtureSource);
-      expect(source).toContain('"astroclaw/plugin-sdk/core"');
-      expect(source).toContain('"astroclaw/plugin-sdk/plugin-entry"');
-      expect(source).toContain('"astroclaw/plugin-sdk/channel-entry-contract"');
-      expect(source).toContain('"astroclaw/plugin-sdk/config-contracts"');
-      expect(source).toContain('"astroclaw/plugin-sdk/runtime-env"');
-      expect(source).toContain('"astroclaw/plugin-sdk/tool-plugin"');
+      expect(source).toContain('"openclaw/plugin-sdk/core"');
+      expect(source).toContain('"openclaw/plugin-sdk/plugin-entry"');
+      expect(source).toContain('"openclaw/plugin-sdk/channel-entry-contract"');
+      expect(source).toContain('"openclaw/plugin-sdk/config-contracts"');
+      expect(source).toContain('"openclaw/plugin-sdk/runtime-env"');
+      expect(source).toContain('"openclaw/plugin-sdk/tool-plugin"');
       expect(source).toContain("defineToolPlugin");
       expect(source).toContain("type PublicPluginSdkModules = [");
       expect(source).not.toContain("TelegramAccountConfig");
-      expect(source).not.toContain("astroclaw/plugin-sdk/channel-contract-testing");
+      expect(source).not.toContain("openclaw/plugin-sdk/channel-contract-testing");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
