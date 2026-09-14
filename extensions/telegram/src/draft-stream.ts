@@ -1,12 +1,12 @@
+import type { Bot } from "grammy";
+import type { Message } from "grammy/types";
 import {
   createFinalizableDraftStreamControlsForState,
   takeMessageIdAfterStop,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import type { MarkdownTableMode, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
-import type { Bot } from "grammy";
-import type { Message } from "grammy/types";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
 import { buildTelegramThreadParams, type TelegramThreadSpec } from "./bot/helpers.js";
 import { escapeTelegramHtml, telegramHtmlToPlainTextFallback } from "./format.js";
 import {
@@ -645,7 +645,13 @@ export function createTelegramDraftStream(params: {
     }
     if (!streamState.final) {
       finalPagePlan = undefined;
+      const updateGeneration = generation;
       const sent = await sendOrEditPlannedPage(firstPage, fullPreview.complete);
+      // A retired send/edit may finish after repositioning. Consume it without
+      // restoring old recovery text or asking the loop to retry that generation.
+      if (updateGeneration !== generation) {
+        return true;
+      }
       if (sent) {
         lastDeliveredText = pages.length === 1 ? trimmed : firstPage.plainText.trimEnd();
       }
@@ -837,6 +843,7 @@ export function createTelegramDraftStream(params: {
     if (!continueFinalPagination) {
       finalPagePlan = undefined;
       lastRequestedText = "";
+      lastDeliveredText = "";
       loop.resetPending();
       lastRequestedPreview = undefined;
     }
