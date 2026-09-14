@@ -1,25 +1,29 @@
 // Slack plugin module implements replies behavior.
 import type { MessageMetadata } from "@slack/types";
 import type { Block, KnownBlock } from "@slack/web-api";
-import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
-import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
-import type { MarkdownTableMode, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import {
+  createChannelPartialDeliveryError,
+  getGroupThreadDeliverySession,
+} from "openclaw/plugin-sdk/channel-inbound";
+import { createMessageReceiptFromOutboundResults } from "openclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
 import {
   chunkMarkdownTextWithMode,
   isSilentReplyText,
   SILENT_REPLY_TOKEN,
   type ChunkMode,
-} from "astroclaw/plugin-sdk/reply-chunking";
+} from "openclaw/plugin-sdk/reply-chunking";
 import {
   deliverTextOrMediaReply,
   getReplyPayloadTtsSupplement,
   resolveSendableOutboundReplyParts,
   type ReplyPayload,
-} from "astroclaw/plugin-sdk/reply-payload";
-import { createReplyReferencePlanner } from "astroclaw/plugin-sdk/reply-reference";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/reply-payload";
+import { createReplyReferencePlanner } from "openclaw/plugin-sdk/reply-reference";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
 import { buildSlackBlocksFallbackText } from "../blocks-fallback.js";
 import { SLACK_MAX_BLOCKS } from "../blocks-input.js";
 import { markdownToSlackMrkdwnChunks } from "../format.js";
@@ -154,6 +158,12 @@ export async function deliverReplies(params: {
   /** Validated non-serializable client scope for an enterprise listener turn. */
   eventScope?: SlackEventScope;
 }) {
+  const deliverySession = getGroupThreadDeliverySession();
+  const sessionKeyForInternalHooks =
+    deliverySession?.sessionKey ?? params.sessionKeyForInternalHooks;
+  const mediaLocalRoots = deliverySession
+    ? getAgentScopedMediaLocalRoots(params.cfg, deliverySession.agentId)
+    : undefined;
   let latestResult: SlackSendResult | undefined;
   for (const prepared of params.replies) {
     const { payload } = prepared;
@@ -196,6 +206,7 @@ export async function deliverReplies(params: {
           acceptedResults.push(result);
         },
         ...(input.mediaUrl ? { mediaUrl: input.mediaUrl } : {}),
+        ...(mediaLocalRoots ? { mediaLocalRoots } : {}),
         ...(input.blocks ? { blocks: input.blocks } : {}),
         ...(input.authoredTextPlacement
           ? { authoredTextPlacement: input.authoredTextPlacement }
@@ -223,32 +234,19 @@ export async function deliverReplies(params: {
     // `emitMessageSentHooks` in `extensions/telegram/src/bot/delivery.replies.ts`.
     // `emitSlackMessageSentHooks` self-gates on registered listeners, so this is
     // a no-op when no plugin observes `message_sent`.
-    const emitSent = (content: string, result?: SlackSendResult) => {
+    const emitDelivery = (
+      content: string,
+      result: { success: true; messageId?: string } | { success: false; error: string },
+    ) => {
       if (params.deferMessageSentHooks) {
         return;
       }
       emitSlackMessageSentHooks({
-        sessionKeyForInternalHooks: params.sessionKeyForInternalHooks,
+        sessionKeyForInternalHooks,
         to: params.messageSentHookTarget ?? params.target,
         accountId: params.accountId,
         content,
-        success: true,
-        messageId: result?.messageId,
-        isGroup: params.isGroup,
-        groupId: params.groupId,
-      });
-    };
-    const emitFailed = (content: string, error: unknown) => {
-      if (params.deferMessageSentHooks) {
-        return;
-      }
-      emitSlackMessageSentHooks({
-        sessionKeyForInternalHooks: params.sessionKeyForInternalHooks,
-        to: params.messageSentHookTarget ?? params.target,
-        accountId: params.accountId,
-        content,
-        success: false,
-        error: formatErrorMessage(error),
+        ...result,
         isGroup: params.isGroup,
         groupId: params.groupId,
       });
@@ -304,7 +302,7 @@ export async function deliverReplies(params: {
       }
     } catch (error) {
       const hookContent = hookParts.join("\n\n") || textRaw || spokenText || "";
-      emitFailed(hookContent, error);
+      emitDelivery(hookContent, { success: false, error: formatErrorMessage(error) });
       if (acceptedResults.length === 0) {
         throw error;
       }
@@ -319,7 +317,10 @@ export async function deliverReplies(params: {
       const hookContent = hookParts.join("\n\n") || textRaw || spokenText || "";
       // Preserve the media hook contract even when a trailing block send has a
       // message `ts`; the logical payload still spans multiple Slack objects.
-      emitSent(hookContent, reply.hasMedia ? undefined : lastResult);
+      emitDelivery(hookContent, {
+        success: true,
+        messageId: reply.hasMedia ? undefined : lastResult?.messageId,
+      });
       latestResult = lastResult;
       params.runtime.log?.(`delivered reply to ${params.target}`);
     }
