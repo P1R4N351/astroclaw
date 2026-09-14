@@ -1,38 +1,38 @@
-import { resolveChannelMediaMaxBytes } from "astroclaw/plugin-sdk/account-helpers";
+import { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/account-helpers";
 // Signal plugin module implements channel behavior.
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
-import { buildDmGroupAccountAllowlistAdapter } from "astroclaw/plugin-sdk/allowlist-config-edit";
-import type { ChannelOutboundAdapter } from "astroclaw/plugin-sdk/channel-contract";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
+import { buildDmGroupAccountAllowlistAdapter } from "openclaw/plugin-sdk/allowlist-config-edit";
+import type { ChannelOutboundAdapter } from "openclaw/plugin-sdk/channel-contract";
 import {
   createChatChannelPlugin,
   type ChannelPlugin,
   type PluginRuntime,
-} from "astroclaw/plugin-sdk/channel-core";
+} from "openclaw/plugin-sdk/channel-core";
 import {
   createAccountStatusSink,
   createReplyToFanout,
   defineChannelMessageAdapter,
   resolveOutboundSendDep,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
-import { attachChannelToResult } from "astroclaw/plugin-sdk/channel-send-result";
-import { PAIRING_APPROVED_MESSAGE } from "astroclaw/plugin-sdk/channel-status";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
-import { questionGatewayRuntime } from "astroclaw/plugin-sdk/question-gateway-runtime";
-import { chunkText, resolveTextChunkLimit } from "astroclaw/plugin-sdk/reply-chunking";
-import { buildOutboundBaseSessionKey, type RoutePeer } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
+import { attachChannelToResult } from "openclaw/plugin-sdk/channel-send-result";
+import { PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk/channel-status";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+import { questionGatewayRuntime } from "openclaw/plugin-sdk/question-gateway-runtime";
+import { chunkText, resolveTextChunkLimit } from "openclaw/plugin-sdk/reply-chunking";
+import { buildOutboundBaseSessionKey, type RoutePeer } from "openclaw/plugin-sdk/routing";
 import {
   buildBaseChannelStatusSummary,
   collectStatusIssuesFromLastError,
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
 import {
   resolveSignalAccount,
   resolveSignalReplyToMode,
@@ -422,7 +422,7 @@ async function registerDeliveredSignalApprovalPayloadForReactions(
   });
   const { registerSignalApprovalReactionTargetForDeliveredPayload } =
     await loadSignalApprovalReactionsModule();
-  registerSignalApprovalReactionTargetForDeliveredPayload({
+  await registerSignalApprovalReactionTargetForDeliveredPayload({
     cfg: params.cfg,
     target: { ...params.target, accountId: account.accountId },
     payload: params.payload,
