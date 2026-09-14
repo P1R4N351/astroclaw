@@ -1,69 +1,65 @@
 // Vitest performance config tests validate performance test project setup.
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadVitestExperimentalConfig } from "./vitest/vitest.performance-config.ts";
+import { loadVitestPerformanceConfig } from "./vitest/vitest.performance-config.ts";
 
-describe("loadVitestExperimentalConfig", () => {
+describe("loadVitestPerformanceConfig", () => {
   it("enables the filesystem module cache by default", () => {
-    expect(loadVitestExperimentalConfig({}, "linux")).toEqual({
-      experimental: {
-        fsModuleCache: true,
-      },
+    expect(loadVitestPerformanceConfig({}, "linux")).toEqual({
+      fsModuleCache: true,
+      fsModuleCachePath: path.join(process.cwd(), ".cache", "vitest", "default"),
     });
   });
 
   it("enables the filesystem module cache explicitly", () => {
     expect(
-      loadVitestExperimentalConfig(
+      loadVitestPerformanceConfig(
         {
           OPENCLAW_VITEST_FS_MODULE_CACHE: "1",
         },
         "linux",
       ),
     ).toEqual({
-      experimental: {
-        fsModuleCache: true,
-      },
+      fsModuleCache: true,
+      fsModuleCachePath: path.join(process.cwd(), ".cache", "vitest", "default"),
     });
   });
 
   it("passes through the filesystem module cache path when provided", () => {
     expect(
-      loadVitestExperimentalConfig(
+      loadVitestPerformanceConfig(
         {
           OPENCLAW_VITEST_FS_MODULE_CACHE_PATH: "/tmp/openclaw-vitest-cache",
         },
         "linux",
       ),
     ).toEqual({
-      experimental: {
-        fsModuleCache: true,
-        fsModuleCachePath: "/tmp/openclaw-vitest-cache",
-      },
+      fsModuleCache: true,
+      fsModuleCachePath: "/tmp/openclaw-vitest-cache",
     });
   });
 
   it("disables the filesystem module cache by default on Windows", () => {
-    expect(loadVitestExperimentalConfig({}, "win32")).toStrictEqual({});
+    expect(loadVitestPerformanceConfig({}, "win32")).toStrictEqual({});
   });
 
   it("still allows enabling the filesystem module cache explicitly on Windows", () => {
     expect(
-      loadVitestExperimentalConfig(
+      loadVitestPerformanceConfig(
         {
           OPENCLAW_VITEST_FS_MODULE_CACHE: "1",
         },
         "win32",
       ),
     ).toEqual({
-      experimental: {
-        fsModuleCache: true,
-      },
+      fsModuleCache: true,
+      fsModuleCachePath: path.join(process.cwd(), ".cache", "vitest", "default"),
     });
   });
 
   it("allows disabling the filesystem module cache explicitly", () => {
     expect(
-      loadVitestExperimentalConfig(
+      loadVitestPerformanceConfig(
         {
           OPENCLAW_VITEST_FS_MODULE_CACHE: "0",
         },
@@ -74,7 +70,7 @@ describe("loadVitestExperimentalConfig", () => {
 
   it("enables import timing output and import breakdown reporting", () => {
     expect(
-      loadVitestExperimentalConfig(
+      loadVitestPerformanceConfig(
         {
           OPENCLAW_VITEST_IMPORT_DURATIONS: "true",
           OPENCLAW_VITEST_PRINT_IMPORT_BREAKDOWN: "1",
@@ -82,8 +78,9 @@ describe("loadVitestExperimentalConfig", () => {
         "linux",
       ),
     ).toEqual({
+      fsModuleCache: true,
+      fsModuleCachePath: path.join(process.cwd(), ".cache", "vitest", "default"),
       experimental: {
-        fsModuleCache: true,
         importDurations: { print: true },
         printImportBreakdown: true,
       },
@@ -91,6 +88,6 @@ describe("loadVitestExperimentalConfig", () => {
   });
 
   it("uses RUNNER_OS to detect Windows even when the platform is not win32", () => {
-    expect(loadVitestExperimentalConfig({ RUNNER_OS: "Windows" }, "linux")).toStrictEqual({});
+    expect(loadVitestPerformanceConfig({ RUNNER_OS: "Windows" }, "linux")).toStrictEqual({});
   });
 });
