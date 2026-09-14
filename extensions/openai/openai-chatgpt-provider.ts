@@ -1,28 +1,28 @@
 // Openai provider module implements model/runtime integration.
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import type {
   ProviderAuthContext,
   ProviderAuthMethod,
   ProviderAuthResult,
   ProviderResolveDynamicModelContext,
   ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import type { OAuthCredential } from "astroclaw/plugin-sdk/provider-auth";
+} from "openclaw/plugin-sdk/plugin-entry";
+import type { OAuthCredential } from "openclaw/plugin-sdk/provider-auth";
 import {
   buildManifestModelProviderConfig,
   DEFAULT_CONTEXT_TOKENS,
   normalizeProviderId,
-} from "astroclaw/plugin-sdk/provider-model-metadata";
-import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-metadata";
+import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
 import {
   CODEX_CLI_PROFILE_ID,
   resolveOpenAICodexAuthIdentity,
-} from "astroclaw/plugin-sdk/provider-oauth-runtime";
+} from "openclaw/plugin-sdk/provider-oauth-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   readStringValue,
   uniqueValues,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
   isOpenAIApiBaseUrl,
@@ -505,7 +505,7 @@ type OpenAICodexOAuthContext = ProviderAuthContext & {
 async function runOpenAICodexOAuth(ctx: OpenAICodexOAuthContext) {
   const [{ loginOpenAICodexOAuth }, { buildOauthProviderAuthResult }] = await Promise.all([
     import("./openai-chatgpt-oauth.runtime.js"),
-    import("astroclaw/plugin-sdk/provider-auth-result"),
+    import("openclaw/plugin-sdk/provider-auth-result"),
   ]);
   const creds = await loginOpenAICodexOAuth({
     prompter: ctx.prompter,
@@ -545,7 +545,7 @@ async function runOpenAICodexDeviceCode(ctx: ProviderAuthContext) {
   try {
     const [{ loginOpenAICodexDeviceCode }, { buildOauthProviderAuthResult }] = await Promise.all([
       import("./openai-chatgpt-device-code.js"),
-      import("astroclaw/plugin-sdk/provider-auth-result"),
+      import("openclaw/plugin-sdk/provider-auth-result"),
     ]);
     const creds = await loginOpenAICodexDeviceCode({
       ...(ctx.signal ? { signal: ctx.signal } : {}),
@@ -567,7 +567,7 @@ async function runOpenAICodexDeviceCode(ctx: ProviderAuthContext) {
             title: "OpenAI Codex device code",
             code: userCode,
             expiresInMinutes,
-            message: deviceCodeMessage,
+            message: "Enter this one-time code on the sign-in page.",
           });
         } else {
           // The prompter note is the user-facing TTY fallback, so
