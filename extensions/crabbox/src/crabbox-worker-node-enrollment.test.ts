@@ -6,7 +6,7 @@ import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 import path from "node:path";
-import { useAutoCleanupTempDirTracker } from "astroclaw/plugin-sdk/test-env";
+import { useAutoCleanupTempDirTracker } from "openclaw/plugin-sdk/test-env";
 import * as tar from "tar";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -141,7 +141,9 @@ async function serveArtifact(
   const handle: http.RequestListener = (request, response) => {
     authorizations.push(request.headers.authorization);
     if (options.resetBeforeHeaders) {
-      request.socket.resetAndDestroy();
+      // End the connection before headers in every host runtime; the child must
+      // diagnose the peer loss without relying on resetAndDestroy support.
+      request.socket.destroy();
       return;
     }
     if (options.redirect) {
@@ -151,7 +153,9 @@ async function serveArtifact(
     }
     response.writeHead(200, { "content-length": archive.length });
     if (options.truncate) {
-      response.write(archive.subarray(0, 1), () => response.destroy());
+      // Establish the response boundary before injecting a mid-body disconnect.
+      response.flushHeaders();
+      response.write(archive.subarray(0, 1), () => setImmediate(() => response.destroy()));
       return;
     }
     response.end(archive);
