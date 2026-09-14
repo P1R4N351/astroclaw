@@ -1,8 +1,8 @@
 // Imessage provider module implements model/runtime integration.
-import { resolveAgentConfig, resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
-import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-runtime";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/channel-core";
-import { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
+import { resolveAgentConfig, resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-runtime";
+import type { PluginRuntime } from "openclaw/plugin-sdk/channel-core";
+import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
 import {
   createChannelInboundDebouncer,
   resolveInboundDebounceMs,
@@ -12,53 +12,53 @@ import {
   shouldDebounceTextInbound,
   type ChannelInboundTurnPlan,
   type ChannelInboundMediaInput,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { fanInChannelIngressLifecycles } from "astroclaw/plugin-sdk/channel-ingress-runtime";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { fanInChannelIngressLifecycles } from "openclaw/plugin-sdk/channel-ingress-runtime";
 import {
   bindIngressLifecycleToReplyOptions,
   createChannelMessageReplyPipeline,
   resolveChannelStreamingBlockEnabled,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { createChannelPairingChallengeIssuer } from "astroclaw/plugin-sdk/channel-pairing";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { createChannelPairingChallengeIssuer } from "openclaw/plugin-sdk/channel-pairing";
 import {
   resolveChannelGroups,
   resolveChannelGroupsConfigPath,
-} from "astroclaw/plugin-sdk/channel-policy";
-import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
+} from "openclaw/plugin-sdk/channel-policy";
+import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
 import {
   ensureConfiguredBindingRouteReady,
   readChannelAllowFromStore,
   upsertChannelPairingRequest,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
-import { channelReadyPatch } from "astroclaw/plugin-sdk/gateway-runtime";
-import { redactIdentifier } from "astroclaw/plugin-sdk/logging-core";
-import { isInboundPathAllowed, kindFromMime } from "astroclaw/plugin-sdk/media-runtime";
-import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
-import { resolveTextChunkLimit, type GetReplyOptions } from "astroclaw/plugin-sdk/reply-runtime";
-import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import { channelReadyPatch } from "openclaw/plugin-sdk/gateway-runtime";
+import { redactIdentifier } from "openclaw/plugin-sdk/logging-core";
+import { isInboundPathAllowed, kindFromMime } from "openclaw/plugin-sdk/media-runtime";
+import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import { resolveTextChunkLimit, type GetReplyOptions } from "openclaw/plugin-sdk/reply-runtime";
+import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
 import {
   createRuntimeConfigReader,
   getRuntimeConfig,
   type OpenClawConfig,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { danger, logVerbose, shouldLogVerbose, warn } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { danger, logVerbose, shouldLogVerbose, warn } from "openclaw/plugin-sdk/runtime-env";
 import {
   resolveOpenProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "astroclaw/plugin-sdk/runtime-group-policy";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/runtime-group-policy";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
 import {
   getSessionEntry,
   readSessionUpdatedAt,
   resolveSendPolicy,
   resolveStorePath,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-import { openNodeSqliteDatabase } from "astroclaw/plugin-sdk/sqlite-runtime";
-import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { sliceUtf16Safe, truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
-import { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
+} from "openclaw/plugin-sdk/session-store-runtime";
+import { openNodeSqliteDatabase } from "openclaw/plugin-sdk/sqlite-runtime";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { sliceUtf16Safe, truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+import { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
 import { resolveIMessageAccount } from "../accounts.js";
 import { iMessageApprovalControlBindings } from "../approval-control-binding-window.js";
 import type { IMessageApprovalGatewayRuntime } from "../approval-gateway-types.js";
@@ -75,11 +75,7 @@ import {
   resolveIMessageAttachmentRoots,
   resolveIMessageRemoteAttachmentRoots,
 } from "../media-contract.js";
-import {
-  getCachedIMessagePrivateApiStatus,
-  imessageRpcSupportsMethod,
-  probeIMessage,
-} from "../probe.js";
+import { imessageRpcSupportsMethod, probeIMessage, probeIMessagePrivateApi } from "../probe.js";
 import {
   hasIMessageQuestionReactionTarget,
   maybeResolveIMessageQuestionReaction,
@@ -937,10 +933,14 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
     const storePath = resolveStorePath(cfg.session?.store, {
       agentId: decision.route.agentId,
     });
-    const privateApiStatus = getCachedIMessagePrivateApiStatus(cliPath);
+    // A bridge stall invalidates the process-wide capability snapshot before
+    // recovery re-injects the helper. Re-resolve a missing/expired snapshot so
+    // later inbound turns can resume typing and read receipts without waiting
+    // for an unrelated action or a gateway restart to populate the cache.
+    const privateApiStatus = await probeIMessagePrivateApi(cliPath, probeTimeoutMs);
     const supportsTyping = imessageRpcSupportsMethod(privateApiStatus, "typing");
     const supportsRead = imessageRpcSupportsMethod(privateApiStatus, "read");
-    if (privateApiStatus?.available === true) {
+    if (privateApiStatus.available) {
       // Surface a single warning per restart when the bridge is up but we
       // had to gate off typing/read because the imsg build pre-dates the
       // capability list. Otherwise the user sees no typing bubble / no
