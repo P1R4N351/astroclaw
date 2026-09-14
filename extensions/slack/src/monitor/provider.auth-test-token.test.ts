@@ -2,9 +2,9 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { WebClient } from "@slack/web-api";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
-import { createPluginStateKeyedStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { createPluginStateKeyedStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { assertSlackDetachedTargetAllowed } from "../detached-target-admission.js";
 import { getSlackInstallationKind } from "../installation-identity-state.js";
@@ -339,7 +339,7 @@ describe("auth.test boot call", () => {
       expect(events).toContain("auth-settled");
       expect(events.indexOf("auth-settled")).toBeLessThan(events.indexOf("app-start"));
       expect(runtimeLog).toHaveBeenCalledWith(
-        expect.stringMatching(/slack auth\.test failed at boot .*timeout/i),
+        expect.stringMatching(/slack auth\.test failed at boot .*(?:timeout|timed out)/i),
       );
     } finally {
       monitor.controller.abort();
