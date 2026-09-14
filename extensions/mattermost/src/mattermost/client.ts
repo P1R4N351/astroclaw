@@ -1,27 +1,30 @@
 // Mattermost plugin module implements client behavior.
-import { bufferToBlobPart } from "astroclaw/plugin-sdk/blob-runtime";
-import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
-import { collectErrorGraphCandidates } from "astroclaw/plugin-sdk/error-runtime";
-import { buildTimeoutAbortSignal } from "astroclaw/plugin-sdk/extension-shared";
-import { responseWithRelease } from "astroclaw/plugin-sdk/fetch-runtime";
-import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import { bufferToBlobPart } from "openclaw/plugin-sdk/blob-runtime";
+import { createChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
+import { collectErrorGraphCandidates } from "openclaw/plugin-sdk/error-runtime";
+import { buildTimeoutAbortSignal } from "openclaw/plugin-sdk/extension-shared";
+import {
+  captureChannelReadAuthority,
+  responseWithRelease,
+} from "openclaw/plugin-sdk/fetch-runtime";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import {
   readProviderJsonResponse,
   redactProviderResponseErrorText,
-} from "astroclaw/plugin-sdk/provider-http";
+} from "openclaw/plugin-sdk/provider-http";
 import {
   readResponseTextPrefix,
   readResponseWithLimit,
-} from "astroclaw/plugin-sdk/response-limit-runtime";
-import { retryAsync } from "astroclaw/plugin-sdk/retry-runtime";
+} from "openclaw/plugin-sdk/response-limit-runtime";
+import { retryAsync } from "openclaw/plugin-sdk/retry-runtime";
 import {
   fetchWithSsrFGuard,
   ssrfPolicyFromPrivateNetworkOptIn,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 
 const MATTERMOST_ERROR_BODY_LIMIT_BYTES = 8 * 1024;
@@ -204,6 +207,8 @@ export function createMattermostClient(params: {
     input: RequestInfo | URL,
     init?: MattermostRequestInit,
   ): Promise<Response> => {
+    const assertReadAuthority = captureChannelReadAuthority();
+    assertReadAuthority?.();
     const url =
       typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     const { timeoutMs: initTimeoutMs, ...requestInit } = init ?? {};
@@ -211,6 +216,7 @@ export function createMattermostClient(params: {
     const { response, release } = await fetchWithSsrFGuard({
       url,
       init: requestInit,
+      beforeRequest: assertReadAuthority,
       auditContext: "mattermost-api",
       policy: ssrfPolicyFromPrivateNetworkOptIn(params.allowPrivateNetwork),
       signal: requestInit.signal ?? undefined,
@@ -223,6 +229,8 @@ export function createMattermostClient(params: {
     | ((input: RequestInfo | URL, init?: MattermostRequestInit) => Promise<Response>)
     | undefined = externalFetchImpl
     ? async (input, init) => {
+        const assertReadAuthority = captureChannelReadAuthority();
+        assertReadAuthority?.();
         const url =
           typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
         const { timeoutMs: initTimeoutMs, ...requestInit } = init ?? {};
