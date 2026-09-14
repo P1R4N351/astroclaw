@@ -8,6 +8,7 @@ import {
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
 } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import type { ISyncResponse } from "matrix-js-sdk/lib/matrix.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getMatrixRuntime } from "../../runtime.js";
@@ -80,13 +81,14 @@ describe("SqliteBackedMatrixSyncStore", () => {
     installMatrixTestRuntime();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+    await closeOpenClawStateDatabaseAsync();
+    resetPluginStateStoreForTests();
     for (const dir of tempDirs.splice(0)) {
       fs.rmSync(dir, { recursive: true, force: true });
     }
-    resetPluginStateStoreForTests();
   });
 
   it("persists sync data so restart resumes from the saved cursor", async () => {
