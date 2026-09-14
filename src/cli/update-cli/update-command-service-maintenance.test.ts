@@ -14,7 +14,7 @@ import {
 } from "../../daemon/service.test-helpers.js";
 import { sha256Hex } from "../../infra/crypto-digest.js";
 import { openNodeSqliteDatabase } from "../../infra/node-sqlite.js";
-import * as openClawTmp from "../../infra/tmp-astroclaw-dir.js";
+import * as openClawTmp from "../../infra/tmp-openclaw-dir.js";
 import { CONTROL_PLANE_UPDATE_SENTINEL_META_ENV } from "../../infra/update-control-plane-sentinel.js";
 import { createManagedHandoffLeaseStore } from "../../infra/update-managed-service-handoff-lease.js";
 import { createUpdateRun } from "../../infra/update-run-ledger.js";
@@ -55,7 +55,7 @@ afterEach(() => vi.restoreAllMocks());
 
 async function withServiceHome(run: (home: string) => Promise<void>): Promise<void> {
   const home = await makeTempWorkspace("openclaw-update-service-");
-  vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(home);
+  vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(home);
   try {
     await withEnvAsync(
       {
@@ -384,7 +384,7 @@ it.runIf(process.platform === "linux" || process.platform === "darwin").each(
       const root = await fs.realpath(process.cwd());
       const metaPath = path.join(home, "handoff-meta.json");
       const runId = randomUUID();
-      vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(home);
+      vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(home);
       createUpdateRun({ runId, trigger: "cli" }, { env: process.env });
       await fs.writeFile(
         metaPath,
@@ -587,6 +587,54 @@ it.each([
   }),
 );
 
+it("retains the inspected systemd manager route during preparation", () =>
+  withServiceHome(async (home) => {
+    mockProcessPlatform("linux");
+    const seenRoutes: Array<string | undefined> = [];
+    mocks.service.mockReturnValue(
+      createMockGatewayService({
+        readCommand: async (env) => {
+          seenRoutes.push(env.DBUS_SESSION_BUS_ADDRESS);
+          return {
+            programArguments: [
+              process.execPath,
+              path.join(process.cwd(), "openclaw.mjs"),
+              "gateway",
+            ],
+            environment: { HOME: home },
+          };
+        },
+        readRuntime: async () => ({ status: "running", systemd: { managerUid: 2001 } }),
+        isLoaded: async () => true,
+        stop: async () => undefined,
+      }),
+    );
+    const params = {
+      updateInstallKind: "package" as const,
+      root: process.cwd(),
+      shouldRestart: true,
+      jsonMode: true,
+      phase: "inspect" as const,
+    };
+    const before = await maybeStopManagedServiceBeforeMutableUpdate(params);
+    const admittedRoute = "unix:path=/run/user/2001/bus";
+    before.serviceEnv = {
+      ...before.serviceEnv,
+      DBUS_SESSION_BUS_ADDRESS: admittedRoute,
+    };
+    const readsBeforePreparation = seenRoutes.length;
+
+    await expect(
+      maybeStopManagedServiceBeforeMutableUpdate({
+        ...params,
+        phase: "prepare",
+        expectedService: before,
+      }),
+    ).resolves.toMatchObject({ stopped: true });
+
+    expect(seenRoutes.slice(readsBeforePreparation)).toEqual([admittedRoute, admittedRoute]);
+  }));
+
 it.each([
   "shipped handoff",
   "matching UID",
@@ -704,7 +752,7 @@ it.each(["before stop", "after stop"] as const)(
   "refuses a rebound live executor %s without a new native effect",
   (when) =>
     withServiceHome(async (home) => {
-      vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(
+      vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(
         path.join(home, "private-tmp"),
       );
       const root = process.cwd();
