@@ -1,7 +1,7 @@
 // Resolves diagnostics feature flags from config and environment.
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeUniqueStringEntriesLower } from "@astroclaw/normalization-core/string-normalization";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const DIAGNOSTICS_ENV = "OPENCLAW_DIAGNOSTICS";
 
@@ -26,10 +26,7 @@ function parseEnvFlags(raw?: string): ParsedEnvFlags {
     return { flags: ["*"], disablesAll: false };
   }
   return {
-    flags: trimmed
-      .split(/[,\s]+/)
-      .map((value) => normalizeLowercaseStringOrEmpty(value))
-      .filter(Boolean),
+    flags: trimmed.split(/[,\s]+/),
     disablesAll: false,
   };
 }
