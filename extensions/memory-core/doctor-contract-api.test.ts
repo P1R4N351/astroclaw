@@ -3,23 +3,23 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { buildSessionEntry } from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { buildSessionEntry } from "openclaw/plugin-sdk/memory-core-host-engine-sessions";
 import {
   ensureMemoryIndexSchema,
   loadSqliteVecExtension,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { readMemoryHostEventRecords } from "astroclaw/plugin-sdk/memory-host-events";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { readMemoryHostEventRecords } from "openclaw/plugin-sdk/memory-host-events";
 import {
   createPluginStateKeyedStoreForTests,
   getPluginStateCapacityForTests,
   importPluginStateEntriesForDoctorForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import type {
   OpenKeyedStoreOptions,
   PluginDoctorStateMigrationContext,
-} from "astroclaw/plugin-sdk/runtime-doctor-migrations";
+} from "openclaw/plugin-sdk/runtime-doctor-migrations";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stateMigrations } from "./doctor-contract-api.js";
 import {
@@ -27,7 +27,7 @@ import {
   configureMemoryCoreDreamingState,
   writeMemoryCoreWorkspaceEntry,
 } from "./src/dreaming-state.js";
-import { bm25RankToScore, buildFtsQuery } from "./src/memory/hybrid.js";
+import { bm25RankToScore, buildFtsQuery } from "./src/memory/keyword-query.js";
 import { runVectorKnnQuery } from "./src/memory/manager-search-knn.js";
 import { searchKeyword, searchVector } from "./src/memory/manager-search.js";
 import {
@@ -1478,21 +1478,28 @@ describe("memory-core doctor dreaming migration", () => {
     });
   });
 
-  it("leaves invalid legacy JSON in place", async () => {
-    const recallPath = path.join(workspaceDir, "memory", ".dreams", "short-term-recall.json");
-    await fs.writeFile(recallPath, "{", "utf8");
+  it.each([
+    { fileName: "short-term-recall.json", label: "short-term recall" },
+    { fileName: "phase-signals.json", label: "phase signals" },
+  ])("leaves invalid legacy $label JSON in place", async ({ fileName, label }) => {
+    const sourcePath = path.join(workspaceDir, "memory", ".dreams", fileName);
+    await fs.writeFile(sourcePath, "{", "utf8");
 
     const result = await dreamingStateMigration().migrateLegacyState(migrationParams());
 
     expect(result.changes).toEqual([]);
     expect(result.warnings).toEqual([
-      expect.stringContaining("Skipped Memory Core short-term recall import"),
+      expect.stringContaining(`Skipped Memory Core ${label} import`),
     ]);
-    await fs.access(recallPath);
-    await expect(fs.access(`${recallPath}.migrated`)).rejects.toThrow();
+    await fs.access(sourcePath);
+    await expect(fs.access(`${sourcePath}.migrated`)).rejects.toThrow();
     configureMemoryCoreDreamingState(context().openPluginStateKeyedStore);
-    const recall = await shortTermTesting.readRecallStore(workspaceDir, new Date().toISOString());
-    expect(recall.entries).toEqual({});
+    const nowIso = new Date().toISOString();
+    const store =
+      fileName === "short-term-recall.json"
+        ? await shortTermTesting.readRecallStore(workspaceDir, nowIso)
+        : await shortTermTesting.readPhaseSignalStore(workspaceDir, nowIso);
+    expect(store.entries).toEqual({});
   });
 
   it("uses migration env when resolving default workspaces", async () => {
