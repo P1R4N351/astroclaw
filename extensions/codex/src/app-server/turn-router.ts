@@ -1,7 +1,7 @@
 /** Keyed routing for all turn traffic on one shared Codex app-server client. */
 import { AsyncResource } from "node:async_hooks";
-import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import type { CodexAppServerClient } from "./client.js";
 import { redactCodexEventKind } from "./event-projector-diagnostics.js";
 import {
@@ -670,7 +670,7 @@ class ClientTurnRouter implements CodexAppServerTurnRouter {
   }
 }
 
-async function waitForPromiseOrAbort(
+export async function waitForPromiseOrAbort(
   promise: Promise<unknown>,
   signal: AbortSignal,
 ): Promise<boolean> {
