@@ -5,10 +5,6 @@ import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
 import officialExternalChannelSeed from "./lib/official-external-channel-seed.json" with { type: "json" };
 import { collectExcludedPackagedExtensionDirs } from "./lib/packaged-extension-dirs.mts";
-import {
-  findPluginManifestPath,
-  pluginPackageMetadata,
-} from "./lib/plugin-manifest-filenames.mjs";
 import { isRecord, trimString } from "./lib/record-shared.mjs";
 import { writeTextFileIfChanged } from "./runtime-postbuild-shared.mjs";
 
@@ -23,12 +19,14 @@ type CatalogEntry = Partial<Record<"version" | "description" | "source" | "kind"
   name: string;
   openclaw: {
     plugin?: Record<string, unknown>;
+    setupFeatures?: Record<string, unknown>;
     catalog?: Record<string, unknown>;
     contracts?: Record<string, string[] | undefined>;
     channel: Record<string, unknown>;
     channelHostConfig?: Record<string, unknown>;
     channelConfigs?: Record<string, { schema?: unknown; label?: string }>;
     providerEndpoints?: Array<Record<string, unknown>>;
+    legacyNpmPackageNames?: string[];
     install: CatalogInstall;
   };
 };
@@ -75,11 +73,11 @@ function readRepositoryPackageJsons(repoRoot: string) {
       continue;
     }
     try {
-      const pluginManifestPath = findPluginManifestPath(path.join(extensionsRoot, dirent.name));
+      const pluginManifestPath = path.join(extensionsRoot, dirent.name, "openclaw.plugin.json");
       packageJsons.push({
         dirName: dirent.name,
         packageJson: JSON.parse(fs.readFileSync(packageJsonPath, "utf8")),
-        pluginManifest: pluginManifestPath
+        pluginManifest: fs.existsSync(pluginManifestPath)
           ? JSON.parse(fs.readFileSync(pluginManifestPath, "utf8"))
           : undefined,
       });
@@ -176,8 +174,7 @@ function buildCatalogEntry(packageJson: unknown, pluginManifest: unknown): Catal
     return null;
   }
   const packageName = trimString(packageJson.name);
-  const metadata = pluginPackageMetadata(packageJson);
-  const manifest = isRecord(metadata) ? metadata : null;
+  const manifest = isRecord(packageJson.openclaw) ? packageJson.openclaw : null;
   const release = manifest && isRecord(manifest.release) ? manifest.release : null;
   const channel = manifest && isRecord(manifest.channel) ? manifest.channel : null;
   if (!packageName || !channel || release?.publishToNpm !== true) {
@@ -437,9 +434,7 @@ export function buildOfficialChannelDocsCatalog(params: CatalogParams = {}): {
 
   for (const { dirName, packageJson } of readRepositoryPackageJsons(repoRoot)) {
     const manifest =
-      isRecord(packageJson) && isRecord(pluginPackageMetadata(packageJson))
-        ? (pluginPackageMetadata(packageJson) as Record<string, unknown>)
-        : {};
+      isRecord(packageJson) && isRecord(packageJson.openclaw) ? packageJson.openclaw : {};
     const channel = isRecord(manifest.channel) ? manifest.channel : null;
     if (!channel) {
       continue;
@@ -612,9 +607,7 @@ function buildHiddenChannelDocsRoutes(repoRoot: string) {
   }
   for (const { packageJson } of readRepositoryPackageJsons(repoRoot)) {
     const manifest =
-      isRecord(packageJson) && isRecord(pluginPackageMetadata(packageJson))
-        ? (pluginPackageMetadata(packageJson) as Record<string, unknown>)
-        : {};
+      isRecord(packageJson) && isRecord(packageJson.openclaw) ? packageJson.openclaw : {};
     const channel = isRecord(manifest.channel) ? manifest.channel : null;
     const channelId = trimString(channel?.id);
     if (channelId && channel) {
