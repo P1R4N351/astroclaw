@@ -31,7 +31,7 @@ import { formatErrorMessage, isMissingPathError } from "../infra/errors.js";
 import * as nodeSqlite from "../infra/node-sqlite.js";
 import type { PackageUpdateTransaction } from "../infra/package-update-steps.js";
 import { SUPERVISOR_HINT_ENV_VARS } from "../infra/supervisor-markers.js";
-import * as updateTempRoot from "../infra/tmp-astroclaw-dir.js";
+import * as updateTempRoot from "../infra/tmp-openclaw-dir.js";
 import { isBetaTag } from "../infra/update-channels.js";
 import { applyDevUpdateTargetEnv } from "../infra/update-dev-target.js";
 import type { UpdateDoctorConfigChange } from "../infra/update-doctor-config.js";
@@ -2121,7 +2121,7 @@ describe("update-cli", () => {
     vi.spyOn(nodeSqlite, "resolveImmutableSqliteFileUri").mockImplementation((file) =>
       immutableHostUri(file, sqliteHostPlatform),
     );
-    vi.spyOn(updateTempRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(executorTmp);
+    vi.spyOn(updateTempRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(executorTmp);
     const pidAlive = await import("../shared/pid-alive.js");
     const readHostProcessStartTime = pidAlive.getFileLockProcessStartTime;
     // Service-platform doubles cannot change the OS that owns real fixture PIDs.
@@ -7664,7 +7664,7 @@ describe("update-cli", () => {
     ).toMatchObject({ status: "succeeded", downtimeMs: 0 });
   });
 
-  it("keeps an explicit same-version channel no-op skipped without rewriting config", async () => {
+  it("keeps an explicit same-version channel no-op skipped without snapshot capacity or config rewrites", async () => {
     const root = await mockPackageInstallAtCaseDir("openclaw-current-package", VERSION);
     const stateDir = tempDirs.make("openclaw-update-channel-noop-");
     initializeExistingUpdateProfile({ ...process.env, OPENCLAW_STATE_DIR: stateDir });
@@ -7677,6 +7677,8 @@ describe("update-cli", () => {
       update: { channel: "beta" },
     });
     mockRunningManagedGateway(["node", path.join(root, "dist", "index.js"), "gateway", "run"]);
+
+    vi.spyOn(fsSync, "statfsSync").mockReturnValue(statfsFixture({ bavail: 0 }));
 
     await withEnvAsync({ OPENCLAW_STATE_DIR: stateDir }, async () => {
       await updateCommand({ channel: "beta", yes: true, restart: true, json: true });
@@ -7818,6 +7820,83 @@ describe("update-cli", () => {
     expect(defaultRuntime.exit).not.toHaveBeenCalledWith(1);
     expect(getLogOutput()).toContain("Low disk space near");
   });
+
+  it.each(["insufficient", "alternative", "unknown", "plenty", "package-only"] as const)(
+    "checks initial snapshot capacity before staging (%s)",
+    async (scenario) => {
+      const pkgRoot = await mockPackageInstallAtCaseDir();
+      initializeExistingUpdateProfile();
+      const stateDir = await fs.realpath(profileStateDir());
+      const captureDir = `${stateDir}.update-captures`;
+      await fs.mkdir(captureDir);
+      vi.stubEnv("TMPDIR", tempDirs.make("initial-snapshot-temp-"));
+      vi.spyOn(fsSync, "statfsSync").mockImplementation((checkedPath) => {
+        if (scenario === "unknown") {
+          throw new Error("capacity unavailable");
+        }
+        const location = String(checkedPath);
+        const low =
+          scenario === "insufficient" ||
+          (scenario === "alternative" && location !== captureDir) ||
+          (scenario === "package-only" && location === path.dirname(pkgRoot));
+        return statfsFixture({ bavail: low ? 32 : 2048, bsize: 1024 * 1024 });
+      });
+      const allocate = vi.spyOn(fs, "mkdtemp");
+
+      const update = updateCommand({ yes: true, json: true });
+      if (scenario === "insufficient") {
+        await expect(update).rejects.toMatchObject({ code: 1 });
+      } else {
+        await update;
+      }
+
+      const record = listUpdateRuns({ limit: 1 })[0];
+      if (scenario === "insufficient") {
+        expect(lastWriteJsonCall()).toMatchObject({
+          status: "error",
+          reason: "snapshot-capacity-insufficient",
+        });
+        expect(packageInstallCommandCall()).toBeUndefined();
+        expect(
+          allocate.mock.calls.some(
+            ([prefix]) =>
+              prefix.includes(".openclaw.update-stage-") ||
+              prefix.includes("openclaw-update-canary-"),
+          ),
+        ).toBe(false);
+        expect(record).toMatchObject({
+          status: "failed",
+          reason: "snapshot-capacity-insufficient",
+        });
+        expect(record?.steps).toContainEqual(
+          expect.objectContaining({
+            step: "snapshot-space-preflight",
+            status: "failed",
+            snapshotCapacity: expect.objectContaining({
+              pluginBytes: null,
+              candidates: expect.arrayContaining([
+                expect.objectContaining({ availableBytes: 32 * 1024 * 1024 }),
+              ]),
+            }),
+          }),
+        );
+        expect(getErrorOutput()).toContain("bytes needed");
+        expect(getErrorOutput()).toContain("33554432 bytes free");
+        expect(getErrorOutput()).toContain("SQLite family");
+      } else {
+        expectPackageInstallSpec("openclaw@9999.0.0");
+        expect(lastWriteJsonCall()).toMatchObject({ status: "ok" });
+        expect(record?.steps).toContainEqual(
+          expect.objectContaining({
+            step: "warning:snapshot-space-preflight",
+            detail: expect.stringContaining("Snapshot capacity estimate incomplete"),
+          }),
+        );
+        expect(getErrorOutput()).toContain("SQLite family");
+        expect(getErrorOutput()).toContain("openclaw.sqlite");
+      }
+    },
+  );
 
   const packageUpdateInGatewayMessage = [
     "Package updates cannot run from inside the gateway service process.",
