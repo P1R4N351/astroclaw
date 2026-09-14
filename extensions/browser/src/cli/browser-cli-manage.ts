@@ -1,9 +1,9 @@
-import { redactCdpUrl } from "astroclaw/plugin-sdk/browser-cdp";
 /**
  * Browser CLI management commands for lifecycle, profiles, tabs, and doctor
  * checks.
  */
 import type { Command } from "commander";
+import { redactCdpUrl } from "openclaw/plugin-sdk/browser-cdp";
 import { formatBrowserGraphicsSummary } from "../browser/chrome.graphics.js";
 import type {
   BrowserCreateProfileResult,
@@ -873,7 +873,7 @@ export function registerBrowserManageCommands(
         }
         const msg = result.deleted
           ? `🦞 Deleted profile "${result.profile}" (user data removed)`
-          : `🦞 Deleted profile "${result.profile}" (no user data found)`;
+          : `🦞 Deleted profile "${result.profile}" (user data removal not confirmed)`;
         defaultRuntime.log(info(msg));
       });
     });
