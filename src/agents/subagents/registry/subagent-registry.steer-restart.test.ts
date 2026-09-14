@@ -2,9 +2,10 @@
 // commands while preserving lifecycle hooks and completion delivery.
 
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContextEngine } from "../../../context-engine/types.js";
+import * as gatewayCallRuntime from "../../../gateway/call.js";
 import { openOpenClawStateDatabase } from "../../../state/openclaw-state-db.js";
 import {
   resetTaskFlowRegistryForTests,
@@ -48,15 +49,15 @@ const sessionStore = vi.hoisted(
     ),
 );
 
-vi.mock("../../../gateway/call.js", () => ({
-  callGateway: vi.fn(async (opts: unknown) => {
-    const request = opts as { method?: string };
+const gatewayCall = vi
+  .spyOn(gatewayCallRuntime, "callGateway")
+  .mockImplementation(async (request) => {
     if (request.method === "agent.wait") {
       return { status: "pending" };
     }
     return {};
-  }),
-}));
+  });
+afterAll(() => gatewayCall.mockRestore());
 
 vi.mock("../../../infra/agent-events.js", () => ({
   getAgentEventLifecycleGeneration: () => "test-generation",
@@ -921,7 +922,8 @@ describe("subagent registry steer restarts", () => {
       },
     };
 
-    expect(mod.isSubagentSessionRunActive(childSessionKey)).toBe(true);
+    // Registration alone does not own an executor; the admitted transition has an owner test.
+    expect(mod.isSubagentSessionRunActive(childSessionKey)).toBe(false);
     const updated = mod.markSubagentRunTerminated({
       childSessionKey,
       reason: "manual kill",
