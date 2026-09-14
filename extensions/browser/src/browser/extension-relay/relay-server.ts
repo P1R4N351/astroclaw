@@ -2,16 +2,19 @@
 import crypto from "node:crypto";
 import http, { type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { Duplex } from "node:stream";
-import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
-import { isLoopbackHost } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
+import { isLoopbackHost } from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   rawDataToString,
   readRequestBodyWithLimit,
   resolveRequestClientIp,
   WEBHOOK_BODY_READ_DEFAULTS,
-} from "astroclaw/plugin-sdk/webhook-ingress";
-import { rejectWebSocketUpgrade } from "astroclaw/plugin-sdk/websocket-runtime";
-import { WebSocketServer, type WebSocket } from "ws";
+} from "openclaw/plugin-sdk/webhook-ingress";
+import {
+  rejectWebSocketUpgrade,
+  WebSocketServer,
+  type WebSocket,
+} from "openclaw/plugin-sdk/websocket-runtime";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { randomRelayId } from "./auth-v2-crypto.js";
 import { authenticateExtensionWebSocket } from "./auth-v2-websocket.js";
