@@ -77,6 +77,7 @@ export function renderModelSetupWizard(props: WizardViewProps): TemplateResult |
                       : nothing}
                     ${renderWizardStepControls({
                       step: props.state.step,
+                      externalAuthInput: props.state.externalAuthInput,
                       value: props.value,
                       busy: props.state.busy,
                       inputId: WIZARD_TEXT_INPUT_ID,
@@ -94,7 +95,9 @@ export function renderModelSetupWizard(props: WizardViewProps): TemplateResult |
                       onValueChange: props.onValueChange,
                       onAnswer: props.onAnswer,
                     })}
-                    ${props.state.busy
+                    ${props.state.busy &&
+                    !props.state.step.externalUrl &&
+                    !props.state.step.deviceCode
                       ? html`<div role="status">${t("modelSetup.wizard.working")}</div>`
                       : nothing}
                   `}
