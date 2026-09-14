@@ -5,6 +5,7 @@ import { ref } from "lit/directives/ref.js";
 import { icons } from "../../../components/icons.ts";
 import { renderPanelLoadingSkeleton } from "../../../components/panel-loading-skeleton.ts";
 import { t } from "../../../i18n/index.ts";
+import { registerBackgroundTasksEnglish } from "../../../i18n/locales/en-background-tasks.ts";
 import { uiConversationMatches } from "../../../lib/sessions/session-key.ts";
 import {
   isActiveTask,
@@ -17,6 +18,8 @@ import {
 import type { TaskSummary } from "../../../lib/tasks/task-summary.ts";
 import {
   backgroundTaskStatusLabel,
+  backgroundTaskIsExecuting,
+  backgroundTaskDeliveryLabel,
   newestTaskSnapshot,
   STATUS_TONES,
 } from "./chat-background-tasks-shared.ts";
@@ -33,6 +36,8 @@ import {
   retryTaskTranscript,
   type TaskDetailHost,
 } from "./chat-task-detail-state.ts";
+
+registerBackgroundTasksEnglish();
 
 export function renderTaskDetailPanel(params: {
   backgroundTasks: BackgroundTasksProps;
@@ -85,7 +90,7 @@ export function renderTaskDetailPanel(params: {
   return html`
     <div class="sidebar-panel chat-task-detail" data-task-detail-panel>
       ${renderTaskHeader(taskDisplayTitle(currentTask, detailedTask), currentTask, backgroundTasks)}
-      ${content}
+      ${renderTaskObservation(currentTask, backgroundTasks)} ${content}
     </div>
   `;
 }
@@ -108,7 +113,7 @@ function renderTaskHeader(
         <div class="sidebar-title" title=${title}>${title}</div>
         ${task
           ? html`<div class="chat-task-detail__meta">
-              ${task.status === "running"
+              ${backgroundTaskIsExecuting(task)
                 ? html`<span class="chat-tasks-rail__task-pulse" aria-hidden="true"></span>`
                 : nothing}
               <span
@@ -140,10 +145,6 @@ function renderTaskHeader(
               ${task.runtime !== "subagent"
                 ? html`<span aria-hidden="true">·</span><span>${taskRuntimeLabel(task)}</span>`
                 : nothing}
-              ${active && task.lastToolName
-                ? html`<span aria-hidden="true">·</span
-                    ><span class="chat-task-detail__tool">${task.lastToolName}</span>`
-                : nothing}
             </div>`
           : nothing}
       </div>
@@ -162,6 +163,88 @@ function renderTaskHeader(
         : nothing}
     </div>
   `;
+}
+
+function renderTaskObservation(task: TaskSummary, props: BackgroundTasksProps) {
+  const active = isActiveTask(task);
+  const currentTool = backgroundTaskIsExecuting(task) ? task.execution?.currentTool : undefined;
+  const activityAt = active ? taskTimestampMs(task.execution?.lastActivityAt) : 0;
+  const wait = active && task.execution?.state === "waiting" ? task.execution.wait : undefined;
+  const delivery = backgroundTaskDeliveryLabel(task);
+  const lastTool = active && !currentTool ? task.lastToolName : undefined;
+  if (!currentTool && !activityAt && !wait && !delivery && !lastTool) {
+    return nothing;
+  }
+  return html`<div class="chat-task-detail__observation">
+    ${currentTool
+      ? html`<div class="chat-task-detail__fact">
+          <span class="chat-task-detail__fact-label">${t("chat.backgroundTasks.currentTool")}</span>
+          <code>${currentTool.name}</code>
+          <openclaw-elapsed-time
+            .startMs=${taskTimestampMs(currentTool.startedAt)}
+          ></openclaw-elapsed-time>
+        </div>`
+      : lastTool
+        ? html`<div class="chat-task-detail__fact">
+            <span class="chat-task-detail__fact-label">${t("chat.backgroundTasks.lastTool")}</span>
+            <code>${lastTool}</code>
+          </div>`
+        : nothing}
+    ${activityAt
+      ? html`<div class="chat-task-detail__fact">
+          <span class="chat-task-detail__fact-label"
+            >${t("chat.backgroundTasks.lastActivity")}</span
+          >
+          <span
+            ><openclaw-elapsed-time .startMs=${activityAt}></openclaw-elapsed-time> ${t(
+              "chat.backgroundTasks.activityAgo",
+            )}</span
+          >
+        </div>`
+      : nothing}
+    ${wait?.kind === "children" && wait.pendingCount !== undefined
+      ? html`<div class="chat-task-detail__fact">
+          ${t(
+            wait.pendingCount === 1
+              ? "chat.backgroundTasks.pendingChildOne"
+              : "chat.backgroundTasks.pendingChildMany",
+            { count: String(wait.pendingCount) },
+          )}
+        </div>`
+      : nothing}
+    ${wait?.dependencies?.some((dependency) => dependency.label)
+      ? html`<ul class="chat-task-detail__dependencies">
+          ${wait.dependencies
+            .filter((dependency) => dependency.label)
+            .map((dependency) => {
+              const child = dependency.taskId
+                ? props.tasks?.find((candidate) => candidate.id === dependency.taskId)
+                : undefined;
+              return html`<li>
+                ${child && props.onOpenTaskDetail
+                  ? html`<button
+                      class="chat-task-detail__dependency"
+                      type="button"
+                      @click=${() => props.onOpenTaskDetail?.(child)}
+                    >
+                      ${dependency.label}
+                    </button>`
+                  : dependency.label}
+              </li>`;
+            })}
+        </ul>`
+      : nothing}
+    ${delivery
+      ? html`<div
+          class="chat-task-detail__delivery ${task.deliveryStatus === "failed" ||
+          task.deliveryStatus === "parent_missing"
+            ? "chat-task-detail__delivery--error"
+            : ""}"
+        >
+          ${delivery}
+        </div>`
+      : nothing}
+  </div>`;
 }
 
 function renderTaskTranscript(params: {
@@ -302,7 +385,13 @@ function renderTaskNow(task: TaskSummary) {
           : ""}"
       >
         <span class="chat-task-feed__label"
-          >${active ? t("chat.backgroundTasks.now") : backgroundTaskStatusLabel(task)}</span
+          >${active
+            ? t(
+                backgroundTaskIsExecuting(task)
+                  ? "chat.backgroundTasks.now"
+                  : "chat.backgroundTasks.latestUpdate",
+              )
+            : backgroundTaskStatusLabel(task)}</span
         >
         ${text}
       </div>`
