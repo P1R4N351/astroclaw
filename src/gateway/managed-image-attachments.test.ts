@@ -41,7 +41,11 @@ import {
   closeOpenClawAgentDatabasesForTest,
   openOpenClawAgentDatabase,
 } from "../state/openclaw-agent-db.js";
-import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
+import {
+  closeOpenClawStateDatabaseAsync,
+  closeOpenClawStateDatabaseForTest,
+} from "../state/openclaw-state-db.js";
+import { captureOpenClawStateWorkerContext } from "../state/openclaw-state-worker-context.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import {
   attachManagedImageRecordToMessage,
@@ -458,6 +462,7 @@ describe("handleManagedOutgoingImageHttpRequest", () => {
   });
 
   afterEach(async () => {
+    await closeOpenClawStateDatabaseAsync();
     closeOpenClawStateDatabaseForTest();
     await fs.rm(stateDir, { recursive: true, force: true });
   });
@@ -1460,6 +1465,7 @@ describe("createManagedOutgoingImageBlocks", () => {
   });
 
   afterEach(async () => {
+    await closeOpenClawStateDatabaseAsync();
     closeOpenClawStateDatabaseForTest();
     await fs.rm(stateDir, { recursive: true, force: true });
   });
@@ -1992,6 +1998,7 @@ describe("createManagedOutgoingImageBlocks", () => {
         },
       );
     } finally {
+      await closeOpenClawStateDatabaseAsync();
       closeOpenClawStateDatabaseForTest();
       await fs.rm(openClawHome, { recursive: true, force: true });
       await fs.rm(externalConfigDir, { recursive: true, force: true });
@@ -2560,6 +2567,7 @@ describe("attachManagedOutgoingImagesToMessage", () => {
   });
 
   afterEach(async () => {
+    await closeOpenClawStateDatabaseAsync();
     closeOpenClawStateDatabaseForTest();
     await fs.rm(stateDir, { recursive: true, force: true });
   });
@@ -2596,6 +2604,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
   afterEach(async () => {
     closeOpenClawAgentDatabasesForTest();
+    await closeOpenClawStateDatabaseAsync();
     closeOpenClawStateDatabaseForTest();
     await fs.rm(stateDir, { recursive: true, force: true });
   });
@@ -2659,6 +2668,9 @@ describe("cleanupManagedOutgoingImageRecords", () => {
     if (!record) {
       throw new Error("expected pending managed media record");
     }
+    const queueContext = captureOpenClawStateWorkerContext({
+      env: { ...process.env, OPENCLAW_STATE_DIR: stateDir },
+    });
     const queueId = await enqueueSessionDelivery(
       {
         kind: "agentTurn",
@@ -2670,7 +2682,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
           "/tmp/generated.png": blocks as Array<Record<string, unknown>>,
         },
       },
-      stateDir,
+      queueContext,
     );
     const afterTtl = Date.parse(record.createdAt) + 16 * 60 * 1000;
 
@@ -2678,7 +2690,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
       cleanupManagedOutgoingImageRecords({ stateDir, nowMs: afterTtl }),
     ).resolves.toEqual({ deletedRecordCount: 0, deletedFileCount: 0, retainedCount: 1 });
 
-    await completeSessionDelivery(queueId, stateDir);
+    await completeSessionDelivery(queueId, queueContext);
     await expect(
       cleanupManagedOutgoingImageRecords({ stateDir, nowMs: afterTtl }),
     ).resolves.toEqual({ deletedRecordCount: 1, deletedFileCount: 1, retainedCount: 0 });
