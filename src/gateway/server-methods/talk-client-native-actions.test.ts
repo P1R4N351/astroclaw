@@ -1,6 +1,6 @@
 import { setImmediate as nextEventLoopTurn } from "node:timers/promises";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import { createAssistantMessageEventStream } from "astroclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream } from "openclaw/plugin-sdk/llm";
 import { describe, expect, it, vi } from "vitest";
 import { extractText } from "../../../ui/src/lib/chat/message-extract.ts";
 import * as admission from "../../agents/admitted-run-context.js";
@@ -38,10 +38,8 @@ import {
 } from "../../talk/client-voice-session.js";
 import { projectChatDisplayMessages } from "../chat-display-projection.js";
 import { createTranscriptUpdateBroadcastHandler } from "../server-session-events.js";
-import {
-  readSessionMessagesAsync,
-  readSessionPreviewItemsFromTranscript,
-} from "../session-transcript-readers.js";
+import { readSessionPreviewItemsFromTranscript } from "../session-transcript-preview.js";
+import { readSessionMessagesAsync } from "../session-transcript-readers.js";
 import { closeTalkClientGatewayControlSession } from "../talk-client-gateway-control.js";
 import {
   AGENT_ID,
