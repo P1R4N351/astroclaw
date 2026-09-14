@@ -3,9 +3,9 @@ import { createServer, request as createHttpRequest, type Server } from "node:ht
 import type { AddressInfo } from "node:net";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { postRawWebhook } from "astroclaw/plugin-sdk/test-env";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { postRawWebhook } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildDiscordActivityCustomId } from "../component-custom-id.js";
 import { createDiscordActivityHttpHandler } from "./http.js";
@@ -582,6 +582,9 @@ describe("Discord Activity widget routes", () => {
     const firstCsp = firstDocument.headers.get("content-security-policy");
     expect(firstCsp).toContain("sandbox allow-scripts");
     expect(firstCsp).toContain("connect-src 'none'");
+    expect(firstCsp).toContain("https://cdn.jsdelivr.net");
+    expect(firstCsp).toContain("https://fonts.googleapis.com");
+    expect(firstCsp).toContain("https://fonts.gstatic.com");
     expect(await firstDocument.text()).toContain("document.body.dataset.ready");
     const secondDocument = await fetch(documentUrl);
     expect(secondDocument.status).toBe(404);
