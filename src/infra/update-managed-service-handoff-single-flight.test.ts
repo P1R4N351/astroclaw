@@ -13,7 +13,7 @@ import {
 } from "./update-managed-service-handoff.test-support.js";
 
 const spawnMock = vi.hoisted(() => vi.fn());
-const resolvePreferredAstroclawTmpDirMock = vi.hoisted(() => vi.fn());
+const resolvePreferredOpenClawTmpDirMock = vi.hoisted(() => vi.fn());
 const forceKillChildProcessTreeMock = vi.hoisted(() => vi.fn());
 const findInstalledSystemdGatewayScopeMock = vi.hoisted(() =>
   vi.fn(
@@ -73,14 +73,14 @@ vi.mock("../process/child-process-tree.js", async (importOriginal) => ({
   forceKillChildProcessTree: forceKillChildProcessTreeMock,
 }));
 
-vi.mock("./tmp-astroclaw-dir.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./tmp-astroclaw-dir.js")>()),
-  resolvePreferredAstroclawTmpDir: resolvePreferredAstroclawTmpDirMock,
+vi.mock("./tmp-openclaw-dir.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./tmp-openclaw-dir.js")>()),
+  resolvePreferredOpenClawTmpDir: resolvePreferredOpenClawTmpDirMock,
 }));
 
 beforeEach(async () => {
   // Competing helpers share this fixture's coordinator, never the operator's database.
-  resolvePreferredAstroclawTmpDirMock.mockReturnValue(
+  resolvePreferredOpenClawTmpDirMock.mockReturnValue(
     tempRoots.make("openclaw-handoff-coordinator-"),
   );
   let pid = 24680;
@@ -90,9 +90,16 @@ beforeEach(async () => {
   vi.spyOn(processIdentity, "getFileLockProcessStartTime").mockImplementation((targetPid) =>
     targetPid === process.pid ? parentStartIdentity : liveChildren.has(targetPid) ? 17 : null,
   );
-  vi.spyOn(processIdentity, "isPidAlive").mockImplementation(
-    (targetPid) => targetPid === process.pid || liveChildren.has(targetPid),
-  );
+  const kill = process.kill.bind(process);
+  vi.spyOn(process, "kill").mockImplementation((targetPid, signal) => {
+    if (signal !== 0 || targetPid === process.pid) {
+      return kill(targetPid, signal);
+    }
+    if (liveChildren.has(targetPid)) {
+      return true;
+    }
+    throw Object.assign(new Error("fixture process is absent"), { code: "ESRCH" });
+  });
   forceKillChildProcessTreeMock.mockReset();
   forceKillChildProcessTreeMock.mockImplementation((child: ReturnType<typeof createReadyChild>) => {
     child.stdout.destroy();
