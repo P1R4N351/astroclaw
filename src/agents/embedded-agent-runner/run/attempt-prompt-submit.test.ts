@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   loadTranscriptEventsSync,
@@ -809,7 +809,7 @@ describe("submitEmbeddedAttemptPrompt", () => {
       ...input,
       activeSession,
       images: [{ type: "image", data: "aW1hZ2U=", mimeType: "image/png" }],
-      leasedSteering: { leaseId: "lease-1", runIds: ["missing-run"] },
+      leasedSteering: { leaseId: "lease-1", runIds: ["missing-run"], isCurrent: () => true },
       promptActiveSession,
       runtimeOnly: true,
     });
