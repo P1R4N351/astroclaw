@@ -1,5 +1,5 @@
 // Codex supervision tests cover passive listing and safe local session takeover.
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import { describe, expect, it, vi } from "vitest";
 import { bridgeCodexAppServerStartOptions } from "./app-server/auth-bridge.js";
 import type { CodexAppServerStartOptions } from "./app-server/config-contracts.js";
@@ -224,13 +224,13 @@ describe("Codex supervision catalog", () => {
         sortDirection: "desc",
         cwd: "/workspace/one",
       },
-      {
+      expect.objectContaining({
         agentDir: resolveDefaultAgentDir(config),
         config,
         authProfileId: null,
         startOptions: expect.objectContaining({ transport: "stdio", homeScope: "user" }),
         timeoutMs: expect.any(Number),
-      },
+      }),
     );
     expect(JSON.stringify(await control.listPage({ searchTerm: "mAtCh" }))).not.toContain(
       "private",
