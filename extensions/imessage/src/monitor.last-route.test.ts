@@ -3,23 +3,23 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
-import * as channelInbound from "openclaw/plugin-sdk/channel-inbound";
-import { createTestInboundDebounceFlush } from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
+import * as channelInbound from "astroclaw/plugin-sdk/channel-inbound";
+import { createTestInboundDebounceFlush } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   recordInboundSession,
   type ensureConfiguredBindingRouteReady,
-} from "openclaw/plugin-sdk/conversation-runtime";
+} from "astroclaw/plugin-sdk/conversation-runtime";
 import {
   createTestRegistry,
   resetPluginRuntimeStateForTest,
   setActivePluginRegistry,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import type { dispatchReplyWithBufferedBlockDispatcher } from "openclaw/plugin-sdk/reply-runtime";
-import { getSessionEntry, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
-import type { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import type { dispatchReplyWithBufferedBlockDispatcher } from "astroclaw/plugin-sdk/reply-runtime";
+import { getSessionEntry, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import type { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { createIMessageRpcClient } from "./client.js";
 import {
@@ -220,12 +220,12 @@ const createChannelInboundDebouncerMock = vi.hoisted(() =>
   ),
 );
 
-vi.mock("openclaw/plugin-sdk/transport-ready-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/transport-ready-runtime", () => ({
   waitForTransportReady: waitForTransportReadyMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-runtime")>();
   return {
     ...actual,
     ensureConfiguredBindingRouteReady: ensureConfiguredBindingRouteReadyMock,
@@ -234,8 +234,8 @@ vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
   return {
     ...actual,
     createChannelInboundDebouncer: createChannelInboundDebouncerMock,
@@ -721,13 +721,9 @@ describe("iMessage monitor last-route updates", () => {
           }),
         ),
       ),
-      afterNotify: async () => {
-        await vi.waitFor(() => {
-          expect(dispatchReplyWithBufferedBlockDispatcherMock).toHaveBeenCalledTimes(texts.length);
-        });
-      },
       monitor: { runtime },
     });
+    expect(dispatchReplyWithBufferedBlockDispatcherMock).toHaveBeenCalledTimes(texts.length);
     expect(
       dispatchReplyWithBufferedBlockDispatcherMock.mock.calls.map(
         ([params]) => params.ctx.BodyForAgent,
