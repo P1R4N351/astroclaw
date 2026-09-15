@@ -1,4 +1,5 @@
-import { createAssistantMessageEventStream, type Message } from "openclaw/plugin-sdk/llm";
+import { randomUUID } from "node:crypto";
+import { createAssistantMessageEventStream, type Message } from "astroclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
@@ -319,7 +320,7 @@ describe("runEmbeddedAttemptExecutionPhase", () => {
         model: testModel,
         modelId: testModel.id,
         provider: testModel.provider,
-        sessionId: `async-fragment-${stopReason}-${cacheRead}-${completion}`,
+        sessionId: randomUUID(),
       });
       Object.assign(runtime, {
         anthropicPayloadLogger: undefined,
