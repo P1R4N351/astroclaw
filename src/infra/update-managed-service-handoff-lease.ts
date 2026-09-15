@@ -9,7 +9,7 @@ import { isChildProcessTreeAlive } from "../process/child-process-tree.js";
 import { hasErrnoCode } from "./errno.js";
 import { executeSqliteQuerySync, executeSqliteQueryTakeFirstSync } from "./kysely-sync.js";
 import type { SqliteTransactionOptions } from "./sqlite-transaction.js";
-import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
 import { createManagedHandoffBootIdentityReader } from "./update-managed-service-handoff-boot.js";
 import { canCleanupLegacyManagedHandoff } from "./update-managed-service-handoff-cleanup.js";
 import {
@@ -51,7 +51,7 @@ export type ManagedHandoffLease = ManagedHandoffLeasePayload & {
 };
 
 export function resolveManagedUpdateLeaseDatabasePath(): string {
-  return path.join(resolvePreferredOpenClawTmpDir(), "managed-update-handoffs.sqlite");
+  return path.join(resolvePreferredAstroclawTmpDir(), "managed-update-handoffs.sqlite");
 }
 
 type LeaseRead =
@@ -680,6 +680,7 @@ export function createManagedHandoffLeaseStore(
     retarget,
     activate,
     owns,
+    hasUnsettledChildren,
     acceptParentBoundExecutor,
     current,
     readGeneration,
