@@ -3,24 +3,24 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
-import { parseSqliteSessionFileMarker } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
+import { parseSqliteSessionFileMarker } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   type SessionTranscriptTargetParams,
-} from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/session-transcript-runtime";
 import {
   closeOpenClawAgentDatabasesForTest,
   closeOpenClawStateDatabaseAsync,
-} from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import {
   afterAll,
   afterEach,
@@ -33,6 +33,7 @@ import {
   vi,
 } from "vitest";
 import plugin, { testing } from "./index.js";
+import * as recallRun from "./recall-run.js";
 import { resolveActiveRecallForRun } from "./recall-state.js";
 import * as transcriptWatch from "./transcript-watch.js";
 
@@ -86,14 +87,14 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/memory-host-search", () => ({
+vi.mock("astroclaw/plugin-sdk/memory-host-search", () => ({
   closeActiveMemorySearchManager: hoisted.closeActiveMemorySearchManager,
   getActiveMemorySearchManager: hoisted.getActiveMemorySearchManager,
 }));
 
-vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/memory-host-core")>(
-    "openclaw/plugin-sdk/memory-host-core",
+vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/memory-host-core")>(
+    "astroclaw/plugin-sdk/memory-host-core",
   );
   return {
     ...actual,
@@ -107,9 +108,9 @@ vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
-    "openclaw/plugin-sdk/session-store-runtime",
+vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
+    "astroclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -119,10 +120,10 @@ vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async () => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/session-transcript-runtime")
-  >("openclaw/plugin-sdk/session-transcript-runtime");
+    typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
+  >("astroclaw/plugin-sdk/session-transcript-runtime");
   return {
     ...actual,
     readSessionTranscriptRawDelta: async (
@@ -3321,11 +3322,11 @@ describe("active-memory plugin", () => {
     testing.setTimeoutPartialDataGraceMsForTests(50);
     registerPluginConfig({ timeoutMs: 100, maxSummaryChars: 80, logging: true });
     const sessionRuntime = await vi.importActual<
-      typeof import("openclaw/plugin-sdk/session-store-runtime")
-    >("openclaw/plugin-sdk/session-store-runtime");
+      typeof import("astroclaw/plugin-sdk/session-store-runtime")
+    >("astroclaw/plugin-sdk/session-store-runtime");
     const transcriptRuntime = await vi.importActual<
-      typeof import("openclaw/plugin-sdk/session-transcript-runtime")
-    >("openclaw/plugin-sdk/session-transcript-runtime");
+      typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
+    >("astroclaw/plugin-sdk/session-transcript-runtime");
     hoisted.patchSessionEntry.mockImplementationOnce(sessionRuntime.patchSessionEntry);
     hoisted.cleanupSessionLifecycleArtifacts.mockImplementationOnce(
       sessionRuntime.cleanupSessionLifecycleArtifacts,
@@ -4338,10 +4339,7 @@ describe("active-memory plugin", () => {
     registerPluginConfig({ timeoutMs: 100, logging: true });
     const sessionKey = "agent:main:unsettled-timeout";
     seedSession(sessionKey, "s-unsettled-timeout", 0);
-    let resolveLateWrite: () => void = () => {};
-    const lateWriteDone = new Promise<void>((resolve) => {
-      resolveLateWrite = resolve;
-    });
+    const recallRunSpy = vi.spyOn(recallRun, "runRecallSubagent");
     let releaseLateWrite: () => void = () => {};
     const lateWriteRelease = new Promise<void>((resolve) => {
       releaseLateWrite = resolve;
@@ -4379,7 +4377,6 @@ describe("active-memory plugin", () => {
             },
           },
         ]);
-        resolveLateWrite();
         return { payloads: [] };
       },
     );
@@ -4396,8 +4393,10 @@ describe("active-memory plugin", () => {
       expectLinesNotToContain(lines, "timeout_partial");
     } finally {
       releaseLateWrite();
-      await lateWriteDone;
+      // Join the recall owner before shared mocks and session state can be reset.
+      await Promise.allSettled(recallRunSpy.mock.results.map(({ value }) => value));
     }
+    expect(hoisted.sessionStore[lastEmbeddedSessionKey()]).toBeUndefined();
   });
 
   it("does not recover a timeout partial after an unmirrored custom memory tool fails", async () => {
@@ -4886,7 +4885,7 @@ describe("active-memory plugin", () => {
       const staleReadStarted = createDeferred<void>();
       const releaseStaleRead = createDeferred<void>();
       if (stalePoll) {
-        const transcriptRuntime = await import("openclaw/plugin-sdk/session-transcript-runtime");
+        const transcriptRuntime = await import("astroclaw/plugin-sdk/session-transcript-runtime");
         const readDelta = transcriptRuntime.readSessionTranscriptRawDelta;
         let heldRead = false;
         vi.spyOn(transcriptRuntime, "readSessionTranscriptRawDelta").mockImplementation(
@@ -5076,6 +5075,7 @@ describe("active-memory plugin", () => {
     registerPluginConfig({ timeoutMs: CONFIGURED_TIMEOUT_MS, logging: true });
     const sessionKey = "agent:main:terminal-unavailable";
     hoisted.sessionStore[sessionKey] = { sessionId: "s-terminal-unavailable", updatedAt: 0 };
+    const recallRunSpy = vi.spyOn(recallRun, "runRecallSubagent");
     runEmbeddedAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
         await writeTranscriptJsonl(params.sessionFile, [
@@ -5096,27 +5096,32 @@ describe("active-memory plugin", () => {
       },
     );
 
-    const result = await runPromptBuild(
-      { prompt: "what food do i usually order? unavailable" },
-      { sessionKey },
-    );
+    try {
+      const result = await runPromptBuild(
+        { prompt: "what food do i usually order? unavailable" },
+        { sessionKey },
+      );
 
-    expectPrependContextContains(result, unavailableRecallContext);
-    const infoLines = vi
-      .mocked(api.logger.info)
-      .mock.calls.map((call: unknown[]) => String(call[0]));
-    expectLinesToContain(infoLines, "done status=unavailable");
-    expectLinesToContain(infoLines, "reason=search-error");
-    expectLinesNotToContain(infoLines, "fixture-secret");
-    expectLinesNotToContain(infoLines, "/private/runtime");
-    expectLinesNotToContain(infoLines, "done status=timeout");
-    const lines = getActiveMemoryLines(sessionKey);
-    expect(lines).toHaveLength(2);
-    expectLinesToContain(lines, "🧩 Active Memory: status=unavailable");
-    expectLinesToContain(
-      lines,
-      "🔎 Active Memory Debug: Memory search is unavailable due to an embedding/provider error. Check the embedding provider configuration, then retry memory_search.",
-    );
+      expectPrependContextContains(result, unavailableRecallContext);
+      const infoLines = vi
+        .mocked(api.logger.info)
+        .mock.calls.map((call: unknown[]) => String(call[0]));
+      expectLinesToContain(infoLines, "done status=unavailable");
+      expectLinesToContain(infoLines, "reason=search-error");
+      expectLinesNotToContain(infoLines, "fixture-secret");
+      expectLinesNotToContain(infoLines, "/private/runtime");
+      expectLinesNotToContain(infoLines, "done status=timeout");
+      const lines = getActiveMemoryLines(sessionKey);
+      expect(lines).toHaveLength(2);
+      expectLinesToContain(lines, "🧩 Active Memory: status=unavailable");
+      expectLinesToContain(
+        lines,
+        "🔎 Active Memory Debug: Memory search is unavailable due to an embedding/provider error. Check the embedding provider configuration, then retry memory_search.",
+      );
+    } finally {
+      await Promise.allSettled(recallRunSpy.mock.results.map(({ value }) => value));
+    }
+    expect(hoisted.sessionStore[lastEmbeddedSessionKey()]).toBeUndefined();
   });
 
   it("does not fast-fail memory_get misses but rejects ungrounded completed output", async () => {
