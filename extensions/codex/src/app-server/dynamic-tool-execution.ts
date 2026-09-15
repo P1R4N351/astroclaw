@@ -8,17 +8,17 @@ import {
   normalizeQuestionTimeoutSeconds,
   resolveToolExecutionErrorKind,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { copyInternalToolResultState } from "openclaw/plugin-sdk/agent-harness-tool-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { copyInternalToolResultState } from "astroclaw/plugin-sdk/agent-harness-tool-runtime";
 import {
   hasPendingInternalDiagnosticEvent,
   type DiagnosticEventPayload,
-} from "openclaw/plugin-sdk/diagnostic-runtime";
+} from "astroclaw/plugin-sdk/diagnostic-runtime";
 import {
   addTimerTimeoutGraceMs,
   parseStrictNonNegativeInteger,
-} from "openclaw/plugin-sdk/number-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/number-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   createFailedDynamicToolResponse,
   type CodexDynamicToolRuntimeResponse,
@@ -638,10 +638,6 @@ function readConfiguredDynamicToolTimeoutMs(
           CODEX_DYNAMIC_IMAGE_TOOL_TIMEOUT_MS,
       ),
     );
-  }
-
-  if (toolName === "message") {
-    return CODEX_DYNAMIC_MESSAGE_TOOL_TIMEOUT_MS;
   }
 
   return undefined;
