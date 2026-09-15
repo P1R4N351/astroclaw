@@ -182,9 +182,7 @@ export class AgentSelect extends OpenClawLightDomElement {
           ${selectedBadge
             ? html`<span class="agent-select__badge">${selectedBadge}</span>`
             : nothing}
-          <span class="agent-select__chevron" aria-hidden="true"
-            >${this.variant === "compact" ? icons.chevronsUpDown : icons.chevronDown}</span
-          >
+          <span class="agent-select__chevron" aria-hidden="true">${icons.chevronDown}</span>
         </button>
         ${this.menuLabel
           ? html`<div class="agent-select__menu-title">${this.menuLabel}</div>`
