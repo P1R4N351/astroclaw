@@ -1,23 +1,22 @@
-// Memory Core plugin module owns shared manager synchronization state.
-import type { FSWatcher } from "chokidar";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentDir,
   resolveUserPath,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   ensureMemoryIndexSchema,
   loadSqliteVecExtension,
   MEMORY_INDEX_VECTOR_TABLE,
   type MemorySessionSyncTarget,
-  type MemoryEntryProvenance,
   type MemorySource,
   type MemorySyncParams,
   type MemorySyncProgressUpdate,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+// Memory Core plugin module owns shared manager synchronization state.
+import type { FSWatcher } from "chokidar";
 import type { MemoryCoreAcquireLocalService } from "./embedding-local-service.js";
 import {
   resolveEmbeddingProviderIndexIdentity,
@@ -26,6 +25,7 @@ import {
   type EmbeddingProviderRuntime,
 } from "./embeddings.js";
 import { MemoryManagerDatabaseContext } from "./manager-database-context.js";
+import type { MemoryIndexEntry } from "./manager-index-preparation.js";
 import {
   resolveMemoryPrimaryProviderRequest,
   type MemoryProviderLifecycleState,
@@ -49,20 +49,6 @@ export type MemorySyncProgressState = {
   total: number;
   label?: string;
   report: (update: MemorySyncProgressUpdate) => void;
-};
-
-export type MemoryIndexEntry = {
-  path: string;
-  absPath: string;
-  mtimeMs: number;
-  size: number;
-  hash: string;
-  kind?: "markdown" | "multimodal";
-  content?: string;
-  contentText?: string;
-  lineMap?: number[];
-  lineProvenance?: MemoryEntryProvenance[];
-  sessionId?: string;
 };
 
 export type MemoryIndexWorkItem = {
@@ -469,8 +455,14 @@ export abstract class MemoryManagerSyncBase extends MemoryManagerDatabaseContext
       return false;
     }
     if (!this.database.vectorReady) {
-      this.database.vectorReady = this.withTimeout(
-        this.loadVectorExtension(),
+      const database = this.database;
+      // The timeout-facing promise may settle first. Private admission retains
+      // the actual setup so late native extension work cannot race writes/close.
+      const setup = database.isShadow
+        ? database.withPrivateAccess(() => this.loadVectorExtension(), { reentrant: true })
+        : this.loadVectorExtension();
+      database.vectorReady = this.withTimeout(
+        setup,
         VECTOR_LOAD_TIMEOUT_MS,
         `sqlite-vec load timed out after ${Math.round(VECTOR_LOAD_TIMEOUT_MS / 1000)}s`,
       );
@@ -489,11 +481,13 @@ export abstract class MemoryManagerSyncBase extends MemoryManagerDatabaseContext
     if (ready && typeof dimensions === "number" && dimensions > 0) {
       // Another process may have published a vectorless index while this
       // connection retained the previous dimensions in memory.
-      const persistedMeta = this.readMeta();
-      if (persistedMeta && persistedMeta.vectorDims !== this.vector.dims) {
-        this.vector.dims = persistedMeta.vectorDims;
-      }
-      await this.withDatabaseWrite(() => this.ensureVectorTable(dimensions));
+      await this.withDatabaseWrite(() => {
+        const persistedMeta = this.readMeta();
+        if (persistedMeta && persistedMeta.vectorDims !== this.vector.dims) {
+          this.vector.dims = persistedMeta.vectorDims;
+        }
+        this.ensureVectorTable(dimensions);
+      });
     }
     return ready;
   }
