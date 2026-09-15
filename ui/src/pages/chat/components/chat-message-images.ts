@@ -4,6 +4,7 @@ import { Directive } from "lit/directive.js";
 import { keyed } from "lit/directives/keyed.js";
 import { repeat } from "lit/directives/repeat.js";
 import { normalizeBasePath } from "../../../app-route-paths.ts";
+import { fetchControlUiResource, subscribeBrowserAuthRestored } from "../../../app/browser-http.ts";
 import { t } from "../../../i18n/index.ts";
 import {
   reserveExternalWindowForDeferredNavigation,
@@ -536,6 +537,20 @@ function resolveManagedOutgoingImageResource(
     opts?.onRequestUpdate,
     `${variantUrl}::${artifactKey}`,
   );
+  if (resource.subscribers.size > 0 && !resource.releaseAuthRecovery) {
+    resource.releaseAuthRecovery = subscribeBrowserAuthRestored(() => {
+      if (!isChatMediaResourceCurrent(resource) || resource.value !== null) {
+        return;
+      }
+      resource.value = undefined;
+      resource.retryAttempted = false;
+      resource.unavailableAt = undefined;
+      scheduleChatMediaResourceRefresh(resource, undefined, () =>
+        notifyChatMediaResourceSubscribers(resource),
+      );
+      notifyChatMediaResourceSubscribers(resource);
+    });
+  }
   const cached = readManagedImageBlobUrl(cacheKey);
   if (cached) {
     resource.value = cached;
@@ -651,7 +666,7 @@ async function fetchManagedOutgoingImageBlob(
   try {
     // Root deployments use /api directly; subpath deployments expose the same
     // media route beneath the configured Control UI base path.
-    const response = await fetch(requestUrl, {
+    const response = await fetchControlUiResource(requestUrl, {
       method: "GET",
       headers,
       credentials: "same-origin",
