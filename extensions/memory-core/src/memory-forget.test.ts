@@ -3,12 +3,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { zstdCompressSync } from "node:zlib";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { loadSqliteVecExtension } from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { deleteSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
-import { openOpenClawAgentDatabase } from "astroclaw/plugin-sdk/sqlite-runtime";
-import { openOpenClawStateDatabase } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { loadSqliteVecExtension } from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { deleteSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
+import { openOpenClawAgentDatabase } from "openclaw/plugin-sdk/sqlite-runtime";
+import { openOpenClawStateDatabase } from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DREAMING_MEMORY_BACKUP_NAMESPACE,
@@ -835,11 +835,10 @@ describe("memory forget", () => {
                 : failure === "sources"
                   ? "BEFORE DELETE ON memory_index_sources WHEN OLD.source = 'sessions'"
                   : "BEFORE DELETE ON memory_entry_origins WHEN OLD.entry_key = 'mixed-entry'";
-          // Attach the fault to the actual purge connection after schema validation,
-          // so an unexpected persistent trigger cannot fail database admission first.
+          // KV writes use the admitted worker; agent writes retain this native connection.
           const faultDb = failure === "backup" ? openOpenClawStateDatabase().db : agentDatabase.db;
           faultDb.exec(
-            `CREATE TEMP TRIGGER abort_forget ${trigger} BEGIN SELECT RAISE(ABORT, '${failureMessage}'); END`,
+            `CREATE ${failure === "backup" ? "" : "TEMP "}TRIGGER abort_forget ${trigger} BEGIN SELECT RAISE(ABORT, '${failureMessage}'); END`,
           );
           try {
             await expect(
