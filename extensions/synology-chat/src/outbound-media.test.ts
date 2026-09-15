@@ -1,18 +1,19 @@
 // Synology Chat tests cover guarded outbound attachment staging and same-route capability serving.
 import fs from "node:fs";
-import type { HostedOutboundMediaChunkRecord } from "astroclaw/plugin-sdk/outbound-media";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+import type { HostedOutboundMediaChunkRecord } from "openclaw/plugin-sdk/outbound-media";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
 import type {
   OpenKeyedStoreOptions,
   PluginStateKeyedStore,
-} from "astroclaw/plugin-sdk/plugin-state-runtime";
+} from "openclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
-import { useAutoCleanupTempDirTracker } from "astroclaw/plugin-sdk/test-env";
-import type { loadWebMedia as loadWebMediaType } from "astroclaw/plugin-sdk/web-media";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { useAutoCleanupTempDirTracker } from "openclaw/plugin-sdk/test-env";
+import type { loadWebMedia as loadWebMediaType } from "openclaw/plugin-sdk/web-media";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveSynologyHostedMediaRoute } from "./hosted-media-route.js";
 import {
@@ -43,12 +44,13 @@ function makeRes(options: { finishOnEnd?: boolean } = {}) {
   return res;
 }
 
-vi.mock("astroclaw/plugin-sdk/web-media", () => ({
+vi.mock("openclaw/plugin-sdk/web-media", () => ({
   loadWebMedia: loadWebMediaMock,
 }));
 
 const testStateDirs = useAutoCleanupTempDirTracker((cleanup) => {
-  afterAll(() => {
+  afterAll(async () => {
+    await closeOpenClawStateDatabaseAsync();
     resetPluginStateStoreForTests();
     cleanup();
   });
@@ -56,7 +58,7 @@ const testStateDirs = useAutoCleanupTempDirTracker((cleanup) => {
 // Each test gets clean SQLite state; reopen cases retain it within that test.
 const testStateDir = testStateDirs.make(
   "openclaw-synology-media-",
-  resolvePreferredAstroclawTmpDir(),
+  resolvePreferredOpenClawTmpDir(),
 );
 const testStateEnv: NodeJS.ProcessEnv = {
   ...process.env,
@@ -143,7 +145,8 @@ function utf32Buffer(value: string, endian: "le" | "be", includeBom = true): Buf
 }
 
 describe("Synology Chat hosted outbound media", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await closeOpenClawStateDatabaseAsync();
     resetPluginStateStoreForTests();
     fs.rmSync(testStateDir, { recursive: true, force: true });
     fs.mkdirSync(testStateDir, { recursive: true });
