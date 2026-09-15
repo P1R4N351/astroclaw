@@ -7,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { createDeferred } from "../../test/helpers/promise.js";
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { OpenClawConfig } from "../config/types.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { CLI_OUTPUT_MAX_BUFFER } from "./defaults.constants.js";
 import { createSafeAudioFixtureBuffer } from "./runner.test-utils.js";
@@ -355,6 +355,7 @@ describe("applyMediaUnderstanding", () => {
     vi.doMock("../media/media-services.js", () => ({
       runFfmpeg: runFfmpegMock,
       convertHeicToJpeg: convertHeicToJpegMock,
+      readImageMetadataFromHeader: () => null,
     }));
     vi.doMock("../process/exec.js", () => ({
       runExec: runExecMock,
@@ -400,7 +401,7 @@ describe("applyMediaUnderstanding", () => {
     });
     ({ applyMediaUnderstanding } = await import("./apply.js"));
 
-    const baseDir = resolvePreferredOpenClawTmpDir();
+    const baseDir = resolvePreferredAstroclawTmpDir();
     await fs.mkdir(baseDir, { recursive: true });
     suiteTempMediaRootDir = await fs.mkdtemp(path.join(baseDir, TEMP_MEDIA_PREFIX));
   });
