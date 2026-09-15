@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { withTempHome } from "openclaw/plugin-sdk/test-env";
+import { withTempHome } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
 import { createConfigIO } from "../../config/io.js";
@@ -399,7 +399,7 @@ describe("post-plugin update readiness", () => {
         result: { status: "error", failureFacts },
       });
       throw Object.assign(new Error("Doctor exited"), {
-        exitCode: 1,
+        exitCode: 23,
         stderr: "Last cleanup message",
       });
     });
@@ -408,7 +408,7 @@ describe("post-plugin update readiness", () => {
         ...updateOptions,
         phase: "pre-plugin",
       }),
-    ).rejects.toMatchObject({ failureFacts });
+    ).rejects.toMatchObject({ failureFacts, exitCode: 23 });
     const result = await completePostCorePluginUpdate(updateOptions);
     expect(result.pluginUpdate).toMatchObject({ status: "error", failureFacts });
   });
