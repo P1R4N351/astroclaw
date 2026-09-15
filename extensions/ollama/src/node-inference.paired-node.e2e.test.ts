@@ -6,10 +6,10 @@ import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
-import { GatewayClient } from "astroclaw/plugin-sdk/gateway-runtime";
-import type { OpenClawPluginNodeHostCommand } from "astroclaw/plugin-sdk/plugin-entry";
-import { stopChildProcess } from "astroclaw/plugin-sdk/test-env";
-import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { GatewayClient } from "openclaw/plugin-sdk/gateway-runtime";
+import type { OpenClawPluginNodeHostCommand } from "openclaw/plugin-sdk/plugin-entry";
+import { stopChildProcess } from "openclaw/plugin-sdk/test-env";
+import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { describe, expect, it, vi } from "vitest";
 import { createOllamaNodeHostCommands } from "./node-inference.js";
 
@@ -83,12 +83,14 @@ describe("Ollama paired-node Gateway inference", () => {
           },
         });
 
+        const gatewayEntryArgs =
+          process.env.OPENCLAW_E2E_USE_PREBUILT_DIST === "1"
+            ? ["dist/entry.js"]
+            : ["--import", "tsx", "src/entry.ts"];
         gateway = spawn(
           process.execPath,
           [
-            "--import",
-            "tsx",
-            "src/entry.ts",
+            ...gatewayEntryArgs,
             "gateway",
             "--port",
             String(gatewayPort),
