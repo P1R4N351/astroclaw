@@ -1,15 +1,15 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withFileLock } from "openclaw/plugin-sdk/file-lock";
-import { listMemoryArtifactProvenance } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { withFileLock } from "astroclaw/plugin-sdk/file-lock";
+import { listMemoryArtifactProvenance } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
 import {
   DEFAULT_MEMORY_DEEP_DREAMING_MAX_PROMOTED_SNIPPET_TOKENS,
   formatMemoryDreamingDay,
-} from "openclaw/plugin-sdk/memory-core-host-status";
-import { appendMemoryHostEvent } from "openclaw/plugin-sdk/memory-host-events";
-import { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-status";
+import { appendMemoryHostEvent } from "astroclaw/plugin-sdk/memory-host-events";
+import { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   appendConsolidationSkippedSummary,
   appendConsolidationSummary,
@@ -31,6 +31,7 @@ import {
   extractPromotionKeys,
   hashMemoryContent,
   isAtomicReplacePermissionError,
+  MemoryAtomicPublicationError,
   MemoryWriteConflictError,
   readMemoryContent,
   resolveMemoryWritePath,
@@ -541,8 +542,8 @@ export async function applyShortTermPromotions(
         }
       }
       if (consolidationResult && consolidationPlan) {
-        // Reserve the union before publishing its replacement. A failed origin
-        // write must leave MEMORY unchanged; uncommitted rewrites release only new rows.
+        // Reserve lineage before publication; release new rows only when the
+        // file owner rules out a replacement or reconciles an unchanged target.
         const rollbackOrigins = reserveMemoryEntryOrigins({
           agentIds: originAgentIds,
           previousMemory: existingMemory,
@@ -561,6 +562,9 @@ export async function applyShortTermPromotions(
           }
           appendedCandidates = toAppend.length;
         } catch (error) {
+          if (error instanceof MemoryAtomicPublicationError) {
+            throw error;
+          }
           rollbackOrigins();
           if (
             !(error instanceof MemoryWriteConflictError) &&
