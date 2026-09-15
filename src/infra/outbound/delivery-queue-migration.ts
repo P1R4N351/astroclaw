@@ -1,7 +1,7 @@
 // One-time pre-D4 queue migration. Normal recovery reads only prepared rows.
 import { randomUUID } from "node:crypto";
 import { createRenderedMessageBatchPlan } from "../../channels/message/rendered-batch.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveOutboundMediaMaxBytes } from "../../media/configured-max-bytes.js";
 import { getOrCreatePromise } from "../../shared/lazy-promise.js";
 import {
@@ -190,7 +190,7 @@ async function prepareLegacyEntryCheckpoint(params: {
     leaseTimer.unref();
     try {
       preparedBatch = await prepareOutboundPayloadBatch(preparationParams, {
-        onBeforeFirstModifier: () => {
+        onBeforeFirstModifier: async () => {
           if (leaseLost) {
             throw new Error(`Legacy delivery ${params.entry.id} preparation lease was lost`);
           }
