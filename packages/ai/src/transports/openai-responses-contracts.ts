@@ -2,7 +2,7 @@ import {
   PROVIDER_POST_DISPATCH_AMBIGUITY_ERROR_CODE,
   type Api,
   type ProviderReplayState,
-} from "@astroclaw/llm-core";
+} from "@astroclaw/llm-core/types";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import type {
   FunctionTool,
