@@ -66,10 +66,6 @@ export type ModelProvidersPageTestElement = HTMLElement & {
   selectedAgentId: string;
 };
 
-export type AgentSelectElement = HTMLElement & {
-  onSelect: (value: string) => void;
-};
-
 export function modelPickers(page: Element): SelectPicker[] {
   return [
     ...page.querySelectorAll<SelectPicker>(".model-providers__defaults openclaw-select-picker"),
@@ -237,7 +233,8 @@ export function createHarness(initialScopeId: string) {
   };
   const gatewaySource = createApplicationGateway(snapshot);
   let selectionListener: (() => void) | undefined;
-  const agentSelection = {
+  const settingsAgentSelection = {
+    intentRevision: 0,
     state: {
       selectedId: initialScopeId as string | null,
       scopeId: initialScopeId as string | null,
@@ -305,7 +302,11 @@ export function createHarness(initialScopeId: string) {
       refreshList: vi.fn(),
       subscribe,
     },
-    agentSelection,
+    settingsAgentSelection,
+    agentSelection: {
+      state: { selectedId: "main", scopeId: "main" },
+      subscribe: () => () => undefined,
+    },
     runtimeConfig,
     overlays: {
       snapshot: { updateRunning: false, updateReconciliationPending: false },
@@ -314,7 +315,7 @@ export function createHarness(initialScopeId: string) {
     navigate: vi.fn(),
   } as unknown as ApplicationContext;
   return {
-    agentSelection,
+    settingsAgentSelection,
     context,
     gatewaySource,
     deferNextAuthStatus,
@@ -392,7 +393,8 @@ export function createEmptyModelProvidersRouteData(
     gatewaySnapshot: { ...context.gateway.snapshot, phase: "stopped", client: null },
     data: EMPTY_MODEL_PROVIDERS_DATA,
     client: null,
-    agentId: context.agentSelection.state.selectedId,
+    agentId: context.settingsAgentSelection.state.selectedId,
+    selectionIntentRevision: context.settingsAgentSelection.intentRevision,
   };
 }
 
