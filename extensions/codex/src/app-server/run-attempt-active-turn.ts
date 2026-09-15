@@ -6,10 +6,10 @@ import {
   formatErrorMessage,
   resolveAttemptFsWorkspaceOnly,
   setActiveEmbeddedRun,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-local-roots";
-import { hasPromptImageInput } from "openclaw/plugin-sdk/session-transcript-runtime";
-import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-local-roots";
+import { hasPromptImageInput } from "astroclaw/plugin-sdk/session-transcript-runtime";
+import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { terminateCodexBackgroundTerminals } from "./attempt-client-cleanup.js";
 import { isTerminalTurnStatus } from "./attempt-notifications.js";
 import {
@@ -221,7 +221,7 @@ export function activateCodexAttemptTurn(
     state.terminalTurnNotificationQueued = true;
     deadlines.beginSettlement(Date.now());
   }
-  emitLifecycleStart();
+  emitLifecycleStart({ provider: projectionParams.provider, model: projectionParams.modelId });
   const activeProjector = projectorRef.current;
   noteProgress("turn:start");
   const abortListener = () => {
