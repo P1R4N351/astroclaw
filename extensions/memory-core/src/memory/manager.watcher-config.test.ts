@@ -6,12 +6,14 @@ import path from "node:path";
 import type {
   MemorySearchConfig,
   OpenClawConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import {
+  closeOpenClawAgentDatabasesAsync,
   closeOpenClawAgentDatabasesForTest,
   closeOpenClawStateDatabaseAsync,
-} from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+import { captureEnv } from "astroclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type WatchIgnoredFn = (watchPath: string, stats?: { isDirectory?: () => boolean }) => boolean;
@@ -128,23 +130,17 @@ const {
 
 const CHOKIDAR_FACTORY_KEY = Symbol.for("openclaw.test.memoryWatchFactory");
 const NATIVE_FACTORY_KEY = Symbol.for("openclaw.test.memoryNativeWatchFactory");
-const originalWatcherStateDir = process.env.OPENCLAW_STATE_DIR;
+const watcherEnv = captureEnv(["OPENCLAW_STATE_DIR"]);
 
 function setWatcherStateDir(stateDir: string): void {
   Reflect.set(process.env, "OPENCLAW_STATE_DIR", stateDir);
 }
 
-function restoreWatcherStateDir(): void {
-  if (originalWatcherStateDir === undefined) {
-    Reflect.deleteProperty(process.env, "OPENCLAW_STATE_DIR");
-  } else {
-    Reflect.set(process.env, "OPENCLAW_STATE_DIR", originalWatcherStateDir);
-  }
-}
-
-vi.mock("openclaw/plugin-sdk/memory-core-host-engine-foundation", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-foundation", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/memory-core-host-engine-foundation")>();
+    await importOriginal<
+      typeof import("astroclaw/plugin-sdk/memory-core-host-engine-foundation")
+    >();
   return {
     ...actual,
     createSubsystemLogger: (subsystem: string) => ({
@@ -173,7 +169,7 @@ vi.mock("./embeddings.js", () => ({
   }),
 }));
 
-import { clearEmbeddingProviders as clearRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { clearEmbeddingProviders as clearRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { closeAllMemorySearchManagers, getMemorySearchManager } from "./index.js";
 import type { MemoryIndexManager } from "./manager.js";
 import { isolateMemoryManagerTestConfig } from "./test-config-helpers.js";
@@ -205,22 +201,25 @@ describe("memory watcher config", () => {
     createdChokidarWatchers.length = 0;
     createdNativeWatchers.length = 0;
     nativeWatchMockFailingDir.current = null;
-    if (manager) {
-      await manager.close();
-      manager = null;
-    }
-    await closeAllMemorySearchManagers();
-    clearRegistry();
-    restoreWatcherStateDir();
-    // The agent close releases its leases through shared state and reopens it, so the
-    // shared handle is released second; otherwise Windows fails the removal with EBUSY.
-    closeOpenClawAgentDatabasesForTest();
-    await closeOpenClawStateDatabaseAsync();
-    resetPluginStateStoreForTests();
-    if (workspaceDir) {
-      await fs.rm(workspaceDir, { recursive: true, force: true });
-      workspaceDir = "";
-      extraDir = "";
+    try {
+      if (manager) {
+        await manager.close();
+        manager = null;
+      }
+      await closeAllMemorySearchManagers();
+      clearRegistry();
+      // Agent lease release can reopen shared state; drain that owner first.
+      await closeOpenClawAgentDatabasesAsync();
+      closeOpenClawAgentDatabasesForTest();
+      await closeOpenClawStateDatabaseAsync();
+      resetPluginStateStoreForTests();
+      if (workspaceDir) {
+        await fs.rm(workspaceDir, { recursive: true, force: true });
+        workspaceDir = "";
+        extraDir = "";
+      }
+    } finally {
+      watcherEnv.restore();
     }
   });
 
