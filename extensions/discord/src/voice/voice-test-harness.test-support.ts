@@ -1,8 +1,8 @@
 import { PassThrough } from "node:stream";
 import { DAVESession } from "@discordjs/voice";
+import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
+import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
 import { VoiceOpcodes, type VoiceSendPayload } from "discord-api-types/voice/v8";
-import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
-import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelType } from "../internal/discord.js";
 import { createVoiceCaptureState } from "./capture-state.js";
@@ -54,10 +54,9 @@ const {
   isSecretOwnerAvailableMock,
   canonicalizeRealtimeVoiceProviderIdMock,
 } = voiceTestMocks;
-const [managerModule, realtimeModule] = await Promise.all([
-  import("./voice-runtime.js"),
-  import("./realtime-session.runtime.js"),
-]);
+// Parallel entry points can race Vitest's async audio mock and capture different exports.
+const managerModule = await import("./voice-runtime.js");
+const realtimeModule = await import("./realtime-session.runtime.js");
 
 const { configureVoiceStateGateway, createClient, createClientWithMember } =
   createDiscordVoiceTestHelpers(updateVoiceStateMock);
