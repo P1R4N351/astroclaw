@@ -1,6 +1,6 @@
-import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 // Ollama tests cover embedding provider plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-auth";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/provider-auth";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createStreamingResponse } from "../../test-support/streaming-error-response.js";
 
@@ -13,7 +13,7 @@ const { fetchConfiguredLocalOriginWithSsrFGuardMock } = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: vi.fn(),
   formatErrorMessage: coerceErrorMessage,
   ssrfPolicyFromHttpBaseUrlAllowedOrigin: (baseUrl: string) => {
@@ -23,7 +23,7 @@ vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
 }));
 
 // Import-resolution gating for this private helper is covered in sdk-alias.test.ts.
-vi.mock("openclaw/plugin-sdk/ssrf-runtime-internal", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime-internal", () => ({
   fetchConfiguredLocalOriginWithSsrFGuard: fetchConfiguredLocalOriginWithSsrFGuardMock,
 }));
 
@@ -347,8 +347,8 @@ describe("ollama embedding provider", () => {
           provider: providerId,
         }),
       ).rejects.toThrow(
-        `models.providers.${providerId}.${
-          surface === "headers" ? "headers.X-Proxy-Auth" : "apiKey"
+        `models.providers["${providerId}"].${
+          surface === "headers" ? 'headers["X-Proxy-Auth"]' : "apiKey"
         }`,
       );
       expect(fetchMock).not.toHaveBeenCalled();
