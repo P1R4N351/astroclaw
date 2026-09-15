@@ -5,6 +5,7 @@ import { icons } from "../../../components/icons.ts";
 import { t } from "../../../i18n/index.ts";
 import { formatDurationCompact } from "../../../lib/format-duration.ts";
 import { resolveSessionDisplayName } from "../../../lib/session-display.ts";
+import { isSessionRunActive } from "../../../lib/session-run-state.ts";
 import { areUiSessionKeysEquivalent } from "../../../lib/sessions/session-key.ts";
 
 type SwarmDotStatus = "queued" | "running" | "done" | "failed";
@@ -78,15 +79,17 @@ export function renderChatSwarmProgress({
   sessionKey: string;
   agentId?: string;
 }): TemplateResult | typeof nothing {
-  const summary = sessions.find(
+  const parentRow = sessions.find(
     (row) =>
       areUiSessionKeysEquivalent(row.key, sessionKey) &&
       ((sessionKey !== "global" && sessionKey !== "unknown") ||
         Boolean(agentId && row.agentId === agentId)),
-  )?.swarm;
+  );
+  const summary = parentRow?.swarm;
   if (!summary?.groups.length) {
     return nothing;
   }
+  const parentActive = parentRow ? isSessionRunActive(parentRow) : false;
   const details = collectSwarmTasks(sessions, summary.groups);
   return html` <aside
     class="chat-swarm"
@@ -161,7 +164,11 @@ export function renderChatSwarmProgress({
                   <div class="chat-swarm__counts">${counts}</div>
                   ${terminal
                     ? html`<div class="chat-swarm__outcome">
-                        ${t("labsPage.swarm.childOutcome")}
+                        ${t(
+                          parentActive
+                            ? "labsPage.swarm.childOutcomeProcessing"
+                            : "labsPage.swarm.childOutcome",
+                        )}
                       </div>`
                     : nothing}
                   <span class="chat-swarm__disclosure"
@@ -170,7 +177,13 @@ export function renderChatSwarmProgress({
                 `}
           </summary>
           ${successful
-            ? html`<div class="chat-swarm__outcome">${t("labsPage.swarm.childOutcome")}</div>`
+            ? html`<div class="chat-swarm__outcome">
+                ${t(
+                  parentActive
+                    ? "labsPage.swarm.childOutcomeProcessing"
+                    : "labsPage.swarm.childOutcome",
+                )}
+              </div>`
             : nothing}
           <div class="chat-swarm__tasks" role="list">
             ${tasks.length === 0
