@@ -2021,6 +2021,7 @@ describe("config mutate helpers", () => {
     ]);
     expect(validationMocks.validateConfigObjectWithPlugins).toHaveBeenCalledWith(nextConfig, {
       pluginValidation: "skip",
+      deferredPluginMigrations: [],
     });
     expect(ioMocks.createConfigIO).toHaveBeenCalledWith({
       configPath,
