@@ -7,6 +7,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
 import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "astroclaw/plugin-sdk/channel-outbound";
 import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import {
   isIngressClaimOwnedByOtherLiveProcess as isTelegramSpooledUpdateClaimOwnedByOtherLiveProcess,
   resolveIngressRetryDelayMs,
@@ -1198,10 +1199,7 @@ describe("TelegramPollingSession", () => {
   it("keeps isolated intake moving while the durable offset catches up", async () => {
     await withTempSpool(async (tempDir) => {
       const abort = new AbortController();
-      let releaseOffsetWrite: (() => void) | undefined;
-      const offsetWrite = new Promise<void>((resolve) => {
-        releaseOffsetWrite = resolve;
-      });
+      const offsetWrite = createDeferred<void>();
       const handleUpdate = vi.fn(async () => undefined);
       const worker = createListeningIngressWorker();
       const { runPromise } = startIsolatedIngressSession({
@@ -1209,7 +1207,7 @@ describe("TelegramPollingSession", () => {
         spoolDir: tempDir,
         handleUpdate,
         createWorker: worker.createWorker,
-        persistUpdateId: vi.fn(async () => await offsetWrite),
+        persistUpdateId: vi.fn(async () => await offsetWrite.promise),
       });
       try {
         await waitForTelegramTestState(() => expect(worker.hasListener()).toBe(true));
@@ -1228,7 +1226,7 @@ describe("TelegramPollingSession", () => {
         );
         await waitForTelegramTestState(() => expect(handleUpdate).toHaveBeenCalledOnce());
       } finally {
-        releaseOffsetWrite?.();
+        offsetWrite.resolve();
         abort.abort();
         await runPromise;
       }
