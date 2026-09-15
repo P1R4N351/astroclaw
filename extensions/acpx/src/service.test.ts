@@ -8,6 +8,7 @@ import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
 } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import {
   resolvePreferredAstroclawTmpDir,
   tempWorkspace,
@@ -163,6 +164,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  await closeOpenClawStateDatabaseAsync();
   resetPluginStateStoreForTests();
   runtimeRegistry.clear();
   prepareAcpxCodexAuthConfigMock.mockClear();
