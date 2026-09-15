@@ -5,22 +5,22 @@ import {
   listAgentIds,
   resolveAgentDir,
   resolveSessionAgentIdsStrict,
-} from "openclaw/plugin-sdk/agent-scope-runtime";
+} from "astroclaw/plugin-sdk/agent-scope-runtime";
 import {
   canonicalPathFromExistingAncestor,
   isPathInside,
-} from "openclaw/plugin-sdk/file-access-runtime";
-import { withFileLock, type FileLockOptions } from "openclaw/plugin-sdk/file-lock";
-import type { PluginStateKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
-import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/file-access-runtime";
+import { withFileLock, type FileLockOptions } from "astroclaw/plugin-sdk/file-lock";
+import type { PluginStateKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
 import {
   archiveLegacyStateSource,
   legacyStateFileExists,
   type PluginDoctorStateMigration,
-} from "openclaw/plugin-sdk/runtime-doctor-migrations";
-import { pathExists } from "openclaw/plugin-sdk/security-runtime";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-paths";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/runtime-doctor-migrations";
+import { pathExists } from "astroclaw/plugin-sdk/security-runtime";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-paths";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   CODEX_APP_SERVER_BINDING_MAX_ENTRIES,
   CODEX_APP_SERVER_BINDING_NAMESPACE,
@@ -527,6 +527,12 @@ async function migrateSource(
         // blocking every later Gateway startup.
         return retainNotice(`its session is owned by agent harness ${owner.agentHarnessId}`);
       }
+      const readEvidence = params.context.readSessionIdentityEvidenceBatch;
+      const canonicalOwner =
+        owner && readEvidence
+          ? (await readEvidence([{ agentId: owner.agentId, sessionId: owner.sessionId }]))[0]
+          : undefined;
+      const canCreateOwner = !readEvidence || canonicalOwner?.state === "unknown";
       const sourceSessionFile =
         typeof raw.sessionFile === "string" && raw.sessionFile.trim()
           ? raw.sessionFile
@@ -642,7 +648,16 @@ async function migrateSource(
         }
       }
       if (owner) {
-        const ownershipWarning = await recordSessionOwner(owner, params.env);
+        const ownershipResult = await recordSessionOwner(owner, params.env, {
+          canCreateOwner,
+          readEvidence,
+        });
+        const ownershipWarning =
+          typeof ownershipResult === "string"
+            ? ownershipResult
+            : ownershipResult
+              ? "its canonical session was deleted"
+              : undefined;
         if (ownershipWarning) {
           if (sessionEntry?.value.state === "active") {
             const update = store.update;
@@ -672,11 +687,14 @@ async function migrateSource(
           // Imported active session state is retired before reaching here.
           // The remaining sidecar may belong to the new owner, so preserve it
           // as a note; failed retirement and revalidation stay warnings above.
-          return retainNotice(ownershipWarning);
-        }
-        for (const entry of entries) {
-          if (!hasExpected(await store.lookup(entry.key), entry.value)) {
-            return retain(`canonical plugin state changed at ${entry.key}`);
+          if (typeof ownershipResult === "string") {
+            return retainNotice(ownershipWarning);
+          }
+        } else {
+          for (const entry of entries) {
+            if (!hasExpected(await store.lookup(entry.key), entry.value)) {
+              return retain(`canonical plugin state changed at ${entry.key}`);
+            }
           }
         }
       }
@@ -709,8 +727,12 @@ async function migrateSource(
 async function recordSessionOwner(
   owner: LegacyBindingOwner,
   env: NodeJS.ProcessEnv,
-): Promise<string | undefined> {
-  const { patchSessionEntry } = await import("openclaw/plugin-sdk/session-store-runtime");
+  options: {
+    canCreateOwner: boolean;
+    readEvidence: MigrationParams["context"]["readSessionIdentityEvidenceBatch"];
+  },
+): Promise<string | { deleted: true } | undefined> {
+  const { patchSessionEntry } = await import("astroclaw/plugin-sdk/session-store-runtime");
   const currentIndex = await readLegacySessionIndex(owner.storePath);
   if ("failure" in currentIndex) {
     return "its legacy session owner could not be revalidated";
@@ -747,20 +769,26 @@ async function recordSessionOwner(
   }
 
   let observedForeignHarness: string | undefined;
+  let observedCanonicalEntry = false;
   const updated = await patchSessionEntry({
     agentId: owner.agentId,
     env,
-    fallbackEntry: {
-      sessionId: owner.sessionId,
-      updatedAt: currentOwner.entry.updatedAt ?? owner.updatedAt ?? 0,
-      ...(owner.lifecycleRevision ? { lifecycleRevision: owner.lifecycleRevision } : {}),
-    },
+    ...(options.canCreateOwner
+      ? {
+          fallbackEntry: {
+            sessionId: owner.sessionId,
+            updatedAt: currentOwner.entry.updatedAt ?? owner.updatedAt ?? 0,
+            ...(owner.lifecycleRevision ? { lifecycleRevision: owner.lifecycleRevision } : {}),
+          },
+        }
+      : {}),
     preserveActivity: true,
     requireWriteSuccess: true,
     skipMaintenance: true,
     storePath: owner.storePath,
     sessionKey: owner.sessionKey,
-    update: (entry) => {
+    update: (entry, { existingEntry }) => {
+      observedCanonicalEntry = existingEntry !== undefined;
       if (
         entry.sessionId.trim() !== owner.sessionId ||
         entry.lifecycleRevision !== owner.lifecycleRevision
@@ -780,6 +808,14 @@ async function recordSessionOwner(
     },
   });
   if (!updated) {
+    if (!options.canCreateOwner && !observedCanonicalEntry && options.readEvidence) {
+      const current = (
+        await options.readEvidence([{ agentId: owner.agentId, sessionId: owner.sessionId }])
+      )[0];
+      if (current?.state === "absent") {
+        return { deleted: true };
+      }
+    }
     return observedForeignHarness
       ? `its session is owned by agent harness ${observedForeignHarness}`
       : "its session owner changed before Codex ownership could be recorded";
