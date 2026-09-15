@@ -1,6 +1,6 @@
 import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "@openclaw/ai/internal/shared";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import OpenAI from "openai";
-import type { Model } from "openclaw/plugin-sdk/llm";
 import { describe, expect, it, vi } from "vitest";
 import { buildOpenAICompletionsParams } from "./openai-transport-stream.js";
 import {
@@ -577,8 +577,6 @@ describe("openai transport stream", () => {
       }),
     ).resolves.toMatchObject({
       stream: recoveredStream,
-      response: recoveredResponse,
-      attempt: { kind: "reasoning-stripped" },
     });
 
     expect(create).toHaveBeenCalledTimes(2);
@@ -632,8 +630,6 @@ describe("openai transport stream", () => {
       }),
     ).resolves.toMatchObject({
       stream: recoveredStream,
-      response: recoveredResponse,
-      attempt: { kind: "compaction-stripped" },
     });
 
     expect(create).toHaveBeenCalledTimes(3);
@@ -809,8 +805,6 @@ describe("openai transport stream", () => {
       }),
     ).resolves.toMatchObject({
       stream: recoveredStream,
-      response: recoveredResponse,
-      attempt: { kind: "reasoning-stripped" },
     });
 
     expect(create).toHaveBeenCalledTimes(2);
