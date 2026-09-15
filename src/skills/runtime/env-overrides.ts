@@ -1,12 +1,13 @@
 // Skill environment override helpers expose safe env vars requested by active skills.
 import { sanitizeEnvVars, validateEnvVarValue } from "../../agents/sandbox/sanitize-env-vars.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { normalizeResolvedSecretInputString } from "../../config/types.secrets.js";
 import {
   isDangerousHostEnvOverrideVarName,
   isDangerousHostEnvVarName,
 } from "../../infra/host-env-security.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
+import { appendConfigPathSegment } from "../../shared/dot-path.js";
 import { isSkillSecretOwnerUnavailable, resolveSkillConfig } from "../loading/config.js";
 import { resolveSkillKey } from "../loading/frontmatter.js";
 import { resolveSkillRuntimeConfig } from "../loading/runtime-config.js";
@@ -31,7 +32,7 @@ type ActiveSkillEnvEntry = {
 const activeSkillEnvEntries = new Map<string, ActiveSkillEnvEntry>();
 
 /** Returns a snapshot of env var keys currently injected by skill overrides. */
-export function getActiveSkillEnvKeys(): ReadonlySet<string> {
+export function getActiveSkillEnvKeysCore(): ReadonlySet<string> {
   return new Set(activeSkillEnvEntries.keys());
 }
 
@@ -181,7 +182,7 @@ function applySkillConfigEnvOverrides(params: {
     const resolvedApiKey =
       normalizeResolvedSecretInputString({
         value: skillConfig.apiKey,
-        path: `skills.entries.${skillKey}.apiKey`,
+        path: `${appendConfigPathSegment("skills.entries", skillKey)}.apiKey`,
       }) ?? "";
     if (resolvedApiKey) {
       pendingOverrides[normalizedPrimaryEnv] = resolvedApiKey;
