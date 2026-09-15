@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import {
   hashText,
   INVALID_PROJECT_ANNOTATION_KEY,
@@ -10,14 +10,14 @@ import {
   MEMORY_INDEX_CHUNK_PROVENANCE_TABLE,
   type MemorySessionSyncTarget,
   type MemorySyncParams,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
-import { deleteSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { resolveOpenClawAgentSqlitePath } from "openclaw/plugin-sdk/sqlite-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+import { deleteSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { resolveOpenClawAgentSqlitePath } from "astroclaw/plugin-sdk/sqlite-runtime";
 import {
   closeOpenClawAgentDatabasesForTest,
   openOpenClawAgentDatabase,
-} from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { describe, expect, it, vi } from "vitest";
 import {
   createManagerIndexFixture,
@@ -70,23 +70,35 @@ describe("memory index", () => {
     ).run(model, providerKey, providerFixture.identityAlias.provider);
   }
 
-  it("does not prepare vector deletes after in-place reset drops a missing vector table", async () => {
+  it("rebuilds a missing vector table through forced sync with cached readiness", async () => {
     const cfg = createCfg({
       vectorEnabled: true,
     });
     const manager = await getFreshManager(cfg);
     trackManager(manager);
-    type VectorState = { available: boolean | null; dims?: number };
-    const vector = Reflect.get(manager, "vector") as VectorState;
-    vector.available = true;
-    vector.dims = 4;
-    Reflect.set(Reflect.get(manager, "database"), "vectorReady", Promise.resolve(true));
+    await manager.sync({ reason: "test", force: true });
+    const db = Reflect.get(manager, "db") as DatabaseSync;
+    expect(db.prepare("SELECT COUNT(*) AS count FROM memory_index_chunks_vec").get()).toEqual({
+      count: 1,
+    });
+    await expect(manager.probeVectorAvailability()).resolves.toBe(true);
+    expect(manager.status().vector).toMatchObject({ storeAvailable: true, dims: 4 });
+    db.exec("DROP TABLE memory_index_chunks_vec");
+    expect(
+      db.prepare("SELECT name FROM sqlite_master WHERE name = 'memory_index_chunks_vec'").get(),
+    ).toBeUndefined();
 
-    await expect(
-      Reflect.apply(Reflect.get(manager, "runInPlaceReindex"), manager, [
-        { reason: "test", force: true },
-      ]),
-    ).resolves.toBeUndefined();
+    await manager.sync({ reason: "test", force: true });
+    const chunks = db.prepare("SELECT id, text FROM memory_index_chunks ORDER BY id").all();
+    expect(chunks).toEqual([
+      { id: expect.any(String), text: expect.stringContaining("Alpha memory line.") },
+    ]);
+    expect(db.prepare("SELECT id FROM memory_index_chunks_vec ORDER BY id").all()).toEqual(
+      chunks.map(({ id }) => ({ id })),
+    );
+    expect(await manager.search("alpha")).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: "memory/2026-01-12.md" })]),
+    );
   });
 
   it("indexes memory files and searches", async () => {
