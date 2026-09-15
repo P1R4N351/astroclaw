@@ -1,11 +1,12 @@
 /** Host fallback secret contracts for external channels without contract artifacts. */
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   getOfficialExternalChannelSecretContract,
   getOfficialExternalPluginCatalogManifest,
   listOfficialExternalChannelCatalogEntries,
 } from "../plugins/official-external-plugin-catalog.js";
+import { appendConfigPathSegment } from "../shared/dot-path.js";
 import {
   createChannelSecretTargetRegistryEntries,
   getChannelRecord,
@@ -113,7 +114,7 @@ export function loadOfficialExternalChannelSecretContractApi(
           }
           collectSecretInputAssignment({
             value: account[field.field],
-            path: `channels.${contract.channelId}.accounts.${accountId}.${field.field}`,
+            path: `${appendConfigPathSegment(`channels.${contract.channelId}.accounts`, accountId)}.${field.field}`,
             expected: "string",
             defaults,
             context,
