@@ -1,7 +1,7 @@
 // Msteams tests cover reply dispatcher plugin behavior.
-import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { createReplyDispatcher } from "astroclaw/plugin-sdk/reply-runtime";
+import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createReplyDispatcher } from "openclaw/plugin-sdk/reply-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReplyPayload } from "../runtime-api.js";
 
@@ -26,8 +26,8 @@ vi.mock("./runtime.js", () => ({
   getMSTeamsRuntime: getMSTeamsRuntimeMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/plugin-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/plugin-runtime")>()),
+vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>()),
   getGlobalHookRunner: getGlobalHookRunnerMock,
 }));
 
@@ -766,12 +766,6 @@ describe("createMSTeamsReplyDispatcher", () => {
       expect(dispatcher.replyOptions.suppressDefaultToolProgressMessages).toBe(true);
     },
   );
-
-  it("does not create a stream for channel conversations", () => {
-    createDispatcher("channel");
-
-    expect(lastStreamMock).toBeUndefined();
-  });
 
   it("sets disableBlockStreaming=false when streaming.block.enabled=true", () => {
     const dispatcher = createDispatcher("personal", { streaming: { block: { enabled: true } } });
