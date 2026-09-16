@@ -1,9 +1,9 @@
 import { getEventListeners } from "node:events";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { initializeGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { patchSessionEntry, upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { initializeGlobalHookRunner } from "astroclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { patchSessionEntry, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import { describe, expect, it, vi } from "vitest";
 import * as appServerPolicy from "./app-server-policy.js";
 import { applyCodexAppServerAuthProfile, bridgeCodexAppServerStartOptions } from "./auth-bridge.js";
@@ -158,7 +158,7 @@ describe("prepareCodexAttemptConnection", () => {
       const reclaim = vi.spyOn(testCodexAppServerBindingStore, "prepareSessionGenerationReclaim");
       const connect = vi
         .spyOn(bindingConnection, "resolveCodexBindingAppServerConnection")
-        .mockImplementation(() => {
+        .mockImplementation(async () => {
           throw new Error("invalid ownership reached connection preparation");
         });
 
