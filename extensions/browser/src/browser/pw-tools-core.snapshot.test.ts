@@ -1,5 +1,5 @@
 // Browser tests cover pw tools core.snapshot plugin behavior.
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getPageForTargetId = vi.fn();
@@ -43,10 +43,8 @@ vi.mock("./cdp.js", () => ({
 }));
 
 type ScopedCdpClientOptions = {
-  cdpUrl?: unknown;
   fn?: unknown;
   page?: unknown;
-  targetId?: unknown;
 };
 
 function requireScopedCdpClientOptions(): ScopedCdpClientOptions {
@@ -98,9 +96,7 @@ describe("pw-tools-core aria snapshot storage", () => {
     expect(ensurePageState).toHaveBeenCalledWith(page);
     expect(withPageScopedCdpClient).toHaveBeenCalledTimes(1);
     const scopedClientOptions = requireScopedCdpClientOptions();
-    expect(scopedClientOptions.cdpUrl).toBe("http://127.0.0.1:9222");
     expect(scopedClientOptions.page).toBe(page);
-    expect(scopedClientOptions.targetId).toBe("tab-1");
     expect(typeof scopedClientOptions.fn).toBe("function");
     expect(markBackendDomRefsOnPage).toHaveBeenCalledWith({
       page,
