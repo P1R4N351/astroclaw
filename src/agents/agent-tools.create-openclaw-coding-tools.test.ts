@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentTool, AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import type { AgentTool, AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -55,7 +55,11 @@ import {
   createSandboxFsBridgeFromResolver,
 } from "./test-helpers/host-sandbox-fs-bridge.js";
 import { buildEmptyExplicitToolAllowlistError } from "./tool-allowlist-guard.js";
-import { DEFAULT_PLUGIN_TOOLS_ALLOWLIST_ENTRY, normalizeToolPolicyName } from "./tool-policy.js";
+import {
+  attachToolAllowlistIntersection,
+  DEFAULT_PLUGIN_TOOLS_ALLOWLIST_ENTRY,
+  normalizeToolPolicyName,
+} from "./tool-policy.js";
 import { replaceWithEffectiveCronCreatorToolAllowlist } from "./tools/cron-tool.js";
 import { getGatewayToolCallerIdentity } from "./tools/gateway-caller-context.js";
 
@@ -699,19 +703,30 @@ describe("createOpenClawCodingTools", () => {
     expect(inheritedAllow?.includes("exec")).toBe(false);
   });
 
-  it("lets direct restricted callers inherit runtime toolsAllow into subagent spawns", () => {
+  it.each([
+    {
+      label: "explicit tools",
+      toolsAllow: ["sessions_spawn", "read"],
+      expected: ["sessions_spawn", "read"],
+    },
+    {
+      label: "overlapping globs",
+      toolsAllow: attachToolAllowlistIntersection([], [["sessions_*"], ["*_spawn"]]),
+      expected: ["sessions_spawn"],
+    },
+  ])("lets direct callers inherit $label into subagent spawns", ({ toolsAllow, expected }) => {
     const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
     createOpenClawToolsMock.mockClear();
 
     createOpenClawCodingTools({
       config: testConfig,
-      runtimeToolAllowlist: ["sessions_spawn", "read"],
+      runtimeToolAllowlist: toolsAllow,
       inheritRuntimeToolAllowlist: true,
     });
 
     expect(createOpenClawToolsMock).toHaveBeenCalledTimes(1);
     const inheritedAllow = latestCreateOpenClawToolsOptions().inheritedToolAllowlist;
-    expectListIncludes(inheritedAllow, ["sessions_spawn", "read"]);
+    expectListIncludes(inheritedAllow, expected);
     expect(inheritedAllow?.includes("exec")).toBe(false);
   });
 
