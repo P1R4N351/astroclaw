@@ -1,11 +1,11 @@
 // Discord tests cover message handler.preflight.acp bindings plugin behavior.
-import * as conversationBindingRuntime from "openclaw/plugin-sdk/conversation-binding-runtime";
+import * as conversationBindingRuntime from "astroclaw/plugin-sdk/conversation-binding-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const ensureConfiguredBindingRouteReadyMock = vi.hoisted(() => vi.fn());
 const resolveConfiguredBindingRouteMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/conversation-binding-runtime", async () => {
+vi.mock("astroclaw/plugin-sdk/conversation-binding-runtime", async () => {
   const { createConfiguredBindingConversationRuntimeModuleMock } =
     await import("../test-support/configured-binding-runtime.js");
   return await createConfiguredBindingConversationRuntimeModuleMock(
@@ -14,13 +14,13 @@ vi.mock("openclaw/plugin-sdk/conversation-binding-runtime", async () => {
       resolveConfiguredBindingRouteMock,
     },
     () =>
-      vi.importActual<typeof import("openclaw/plugin-sdk/conversation-binding-runtime")>(
-        "openclaw/plugin-sdk/conversation-binding-runtime",
+      vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-binding-runtime")>(
+        "astroclaw/plugin-sdk/conversation-binding-runtime",
       ),
   );
 });
 
-import { testing as sessionBindingTesting } from "openclaw/plugin-sdk/conversation-runtime";
+import { testing as sessionBindingTesting } from "astroclaw/plugin-sdk/conversation-runtime";
 import { preflightDiscordMessage } from "./message-handler.preflight.js";
 import {
   createDiscordMessage,
@@ -152,7 +152,7 @@ function createBasePreflightParams(overrides?: Record<string, unknown>) {
       discordConfig: {
         allowBots: true,
       } as NonNullable<
-        import("openclaw/plugin-sdk/config-contracts").OpenClawConfig["channels"]
+        import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig["channels"]
       >["discord"],
       data: createGuildEvent({
         channelId: CHANNEL_ID,
@@ -166,7 +166,7 @@ function createBasePreflightParams(overrides?: Record<string, unknown>) {
     discordConfig: {
       allowBots: true,
     } as NonNullable<
-      import("openclaw/plugin-sdk/config-contracts").OpenClawConfig["channels"]
+      import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig["channels"]
     >["discord"],
     ...overrides,
   } satisfies Parameters<typeof preflightDiscordMessage>[0];
@@ -321,9 +321,9 @@ describe("preflightDiscordMessage configured ACP bindings", () => {
 
   it("hydrates empty guild message payloads from REST before ensuring configured ACP bindings", async () => {
     const { result, restGet } = await runRestHydrationPreflight({
-      messageId: "m-rest",
+      messageId: "1001",
       restPayload: {
-        id: "m-rest",
+        id: "1001",
         content: "hello from rest",
         attachments: [],
         embeds: [],
@@ -345,9 +345,9 @@ describe("preflightDiscordMessage configured ACP bindings", () => {
 
   it("hydrates sticker-only guild message payloads from REST before ensuring configured ACP bindings", async () => {
     const { result, restGet } = await runRestHydrationPreflight({
-      messageId: "m-rest-sticker",
+      messageId: "1002",
       restPayload: {
-        id: "m-rest-sticker",
+        id: "1002",
         content: "",
         attachments: [],
         embeds: [],
