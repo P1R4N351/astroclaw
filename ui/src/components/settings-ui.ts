@@ -376,6 +376,7 @@ export function renderSettingsSegmented<T extends string>(
     }>;
     disabled?: boolean;
     ariaLabel?: string;
+    descriptionId?: string;
     className?: string;
     carapace?: boolean;
   } & (
@@ -438,6 +439,7 @@ export function renderSettingsSegmented<T extends string>(
     <wa-radio-group
       class="settings-segmented ${props.carapace ? "oc-segmented" : ""} ${props.className ?? ""}"
       size="s"
+      aria-describedby=${props.descriptionId ?? nothing}
       orientation="horizontal"
       .value=${live(props.value)}
       ?disabled=${live(props.disabled ?? false)}
