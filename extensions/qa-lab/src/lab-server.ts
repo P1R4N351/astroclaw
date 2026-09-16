@@ -3,12 +3,12 @@ import { once } from "node:events";
 import fs from "node:fs";
 import { createServer, type IncomingMessage } from "node:http";
 import path from "node:path";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   acquireDebugProxyCaptureStore,
   resolveDebugProxySettings,
-} from "astroclaw/plugin-sdk/proxy-capture";
+} from "openclaw/plugin-sdk/proxy-capture";
 import {
   closeQaHttpServer,
   dispatchQaHttpRequest,
@@ -260,7 +260,7 @@ function detectQaEvidenceArtifactContentType(filePath: string): string {
 }
 
 async function startQaGatewayLoop(params: { state: QaBusState; baseUrl: string }) {
-  const { qaChannelPlugin, setQaChannelRuntime } = await import("astroclaw/plugin-sdk/qa-channel");
+  const { qaChannelPlugin, setQaChannelRuntime } = await import("openclaw/plugin-sdk/qa-channel");
   const runtime = createQaRunnerRuntime();
   setQaChannelRuntime(runtime);
   const cfg = createQaLabConfig(params.baseUrl);
@@ -796,16 +796,7 @@ export async function startQaLabServer(
             // Keep generated artifacts visible when authenticated verdict validation fails.
             let artifacts: ReturnType<typeof createIdleQaRunnerSnapshot>["artifacts"] = null;
             try {
-              const [{ runQaSuite }, channelDriverSelection] = await Promise.all([
-                import("./suite-launch.runtime.js"),
-                selection.channelDriver === "crabline" && selection.channel
-                  ? import("@openclaw/crabline").then((module) =>
-                      module.resolveOpenClawCrablineChannelDriverSelection({
-                        channel: selection.channel!,
-                      }),
-                    )
-                  : Promise.resolve(undefined),
-              ]);
+              const { runQaSuite } = await import("./suite-launch.runtime.js");
               const runtimeResult = await runQaSuite({
                 lab: labHandle ?? undefined,
                 startLab: startQaLabServer,
@@ -814,10 +805,7 @@ export async function startQaLabServer(
                 outputDir: createQaRunOutputDir(repoRoot),
                 channelDriver: selection.channelDriver,
                 ...(adapterFactories ? { adapterFactories } : {}),
-                ...(selection.channelDriver === "live" && selection.channel
-                  ? { channelId: selection.channel }
-                  : {}),
-                ...(channelDriverSelection ? { channelDriverSelection } : {}),
+                ...(selection.channel ? { channelId: selection.channel } : {}),
                 evidenceMode: selection.evidenceMode,
                 providerMode: selection.providerMode,
                 primaryModel: selection.primaryModel,
