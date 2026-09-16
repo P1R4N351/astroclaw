@@ -1,3 +1,4 @@
+import { useProviderCatalogMetadata } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { buildOpenAICompatibleLiveModelProviderConfig } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 // Qwen tests cover provider catalog plugin behavior.
 import { describe, expect, it } from "vitest";
@@ -17,6 +18,8 @@ import {
   resolveQwenTokenPlanBaseUrl,
 } from "./api.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
+
+useProviderCatalogMetadata(new URL(".", import.meta.url));
 
 type QwenProvider = ReturnType<typeof buildQwenProvider>;
 
