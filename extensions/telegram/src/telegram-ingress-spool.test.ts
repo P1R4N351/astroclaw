@@ -2,14 +2,14 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { beginTelegramPollRegistration } from "./poll-answer-context.js";
 import { recordTelegramPollRegistryEntry } from "./poll-registry.js";
@@ -174,36 +174,40 @@ describe("telegram ingress spool mapping", () => {
       });
 
       monitor.start();
-      await monitor.waitForIdle();
-      const admissions = await Promise.all([
-        monitor.admit(voteUpdate),
-        monitor.admit(messageUpdate),
-      ]);
-      expect(admissions.map((result) => result.kind)).toEqual(["durable", "durable"]);
-      expect(await queue.listPending({ limit: "all" })).toEqual([
-        expect.objectContaining({
-          id: telegramQueueEventId(9),
-          payload: expect.objectContaining({
-            preparedPollAnswer: {
-              entry: expect.objectContaining({ threadSpec: { scope: "forum", id: 99 } }),
-            },
+      try {
+        await monitor.waitForIdle();
+        const admissions = await Promise.all([
+          monitor.admit(voteUpdate),
+          monitor.admit(messageUpdate),
+        ]);
+        expect(admissions.map((result) => result.kind)).toEqual(["durable", "durable"]);
+        await monitor.waitForPumpIdle();
+        await vi.waitFor(() => expect(dispatchOrder).toEqual([9]));
+        expect(onError).not.toHaveBeenCalled();
+        expect(await queue.listClaims()).toEqual([
+          expect.objectContaining({
+            id: telegramQueueEventId(9),
+            laneKey: "telegram:-100123:topic:99",
+            payload: expect.objectContaining({
+              preparedPollAnswer: {
+                entry: expect.objectContaining({ threadSpec: { scope: "forum", id: 99 } }),
+              },
+            }),
           }),
-        }),
-        expect.objectContaining({ id: telegramQueueEventId(10) }),
-      ]);
-      await monitor.waitForPumpIdle();
-      expect(onError).not.toHaveBeenCalled();
-      expect(dispatchOrder).toEqual([9]);
-      expect(await queue.listClaims()).toEqual([
-        expect.objectContaining({ laneKey: "telegram:-100123:topic:99" }),
-      ]);
-      expect(await queue.listPending({ limit: "all" })).toEqual([
-        expect.objectContaining({ laneKey: "telegram:-100123:topic:99" }),
-      ]);
-      releaseVote();
-      await monitor.waitForIdle();
-      expect(dispatchOrder).toEqual([9, 10]);
-      await monitor.stop();
+        ]);
+        expect(await queue.listPending({ limit: "all" })).toEqual([
+          expect.objectContaining({
+            id: telegramQueueEventId(10),
+            laneKey: "telegram:-100123:topic:99",
+          }),
+        ]);
+        releaseVote();
+        await monitor.waitForIdle();
+        expect(dispatchOrder).toEqual([9, 10]);
+      } finally {
+        releaseVote();
+        await monitor.stop();
+      }
     });
   });
 
