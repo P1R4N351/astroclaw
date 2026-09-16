@@ -1,11 +1,11 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { performance } from "node:perf_hooks";
 import { setImmediate as nextTurn } from "node:timers/promises";
-import * as diagnosticRuntime from "openclaw/plugin-sdk/diagnostic-runtime";
-import type { DiagnosticEventPayload } from "openclaw/plugin-sdk/diagnostic-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { runWithDiagnosticTraceContext } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { resetLogger, setLoggerOverride } from "openclaw/plugin-sdk/runtime-env";
+import * as diagnosticRuntime from "astroclaw/plugin-sdk/diagnostic-runtime";
+import type { DiagnosticEventPayload } from "astroclaw/plugin-sdk/diagnostic-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { runWithDiagnosticTraceContext } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { resetLogger, setLoggerOverride } from "astroclaw/plugin-sdk/runtime-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   CodexControlRequestObservation,
@@ -29,8 +29,8 @@ import {
 
 const sink = vi.hoisted(() => ({ throwing: false, attempts: 0 }));
 
-vi.mock("openclaw/plugin-sdk/diagnostic-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/diagnostic-runtime")>();
+vi.mock("astroclaw/plugin-sdk/diagnostic-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/diagnostic-runtime")>();
   return {
     ...actual,
     createSubsystemLogger: (...args: Parameters<typeof actual.createSubsystemLogger>) => {
