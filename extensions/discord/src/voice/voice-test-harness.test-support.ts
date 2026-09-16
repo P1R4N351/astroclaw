@@ -1,8 +1,8 @@
 import { PassThrough } from "node:stream";
 import { DAVESession } from "@discordjs/voice";
-import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
 import { VoiceOpcodes, type VoiceSendPayload } from "discord-api-types/voice/v8";
+import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelType } from "../internal/discord.js";
 import { createVoiceCaptureState } from "./capture-state.js";
@@ -43,6 +43,7 @@ const {
   loggerWarnMock,
   loggerErrorMock,
   resolveConfiguredRealtimeVoiceProviderMock,
+  registerRealtimeVoiceSelectionMock,
   createRealtimeVoiceBridgeSessionMock,
   controlRealtimeVoiceAgentRunMock,
   createRealtimeSessionMock,
@@ -160,6 +161,7 @@ function buildVoiceTestHarness() {
       suppress: false,
     });
     resolveConfiguredRealtimeVoiceProviderMock.mockClear();
+    registerRealtimeVoiceSelectionMock.mockClear();
     resolveConfiguredRealtimeVoiceProviderMock.mockReturnValue({
       provider: { id: "openai" },
       capabilities: { supportsActivationNameGating: true },
@@ -676,6 +678,7 @@ function buildVoiceTestHarness() {
     loggerWarnMock,
     loggerErrorMock,
     resolveConfiguredRealtimeVoiceProviderMock,
+    registerRealtimeVoiceSelectionMock,
     createRealtimeVoiceBridgeSessionMock,
     controlRealtimeVoiceAgentRunMock,
     createRealtimeSessionMock,
@@ -739,7 +742,5 @@ export type DiscordVoiceTestHarness = ReturnType<typeof buildVoiceTestHarness>;
 export function defineDiscordVoiceTests(
   register: (harness: DiscordVoiceTestHarness) => void,
 ): void {
-  describe("DiscordVoiceManager", () => {
-    register(buildVoiceTestHarness());
-  });
+  describe("DiscordVoiceManager", () => register(buildVoiceTestHarness()));
 }
