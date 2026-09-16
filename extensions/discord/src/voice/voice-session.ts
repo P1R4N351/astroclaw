@@ -1,6 +1,6 @@
-import type { OpenClawConfig, DiscordAccountConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+import type { OpenClawConfig, DiscordAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
 import type { Client } from "../internal/discord.js";
 import type { VoicePlugin } from "../internal/voice.js";
 import { formatMention } from "../mentions.js";
@@ -667,7 +667,7 @@ export class DiscordVoiceSessions {
           void entry.stop("realtime terminal error");
         }
       },
-      runAgentTurn: ({ context, message, toolsAllow, userId, isCurrent, signal }) =>
+      runAgentTurn: ({ context, message, toolsAllow, userId, isCurrent, signal, voiceSelection }) =>
         this.params.receive.runDiscordRealtimeAgentTurn({
           context,
           entry,
@@ -676,6 +676,7 @@ export class DiscordVoiceSessions {
           userId,
           isCurrent,
           ...(signal ? { signal } : {}),
+          voiceSelection,
         }),
       resolveSpeakerContext: (userId) =>
         this.params.receive.resolveDiscordVoiceIngressContext(entry, userId),
