@@ -4,25 +4,25 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { Tool as SdkTool, ToolInvocation, ToolResultObject } from "@github/copilot-sdk";
-import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
 import {
   type AnyAgentTool,
   type SandboxContext,
   wrapToolWithBeforeToolCallHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
   createOwnerBackedContractTool,
   textToolResult,
-} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { readMemoryArtifactProvenance } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { readMemoryArtifactProvenance } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
 import {
   loadPluginManifestRegistryCore,
   resetPluginRuntimeStateForTest,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { withTempDir } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { withTempDir } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCopilotTestHostCapabilities } from "./host-capability.test-support.js";
 import { createCopilotToolBridge as createCopilotToolBridgeImpl } from "./tool-bridge.js";
@@ -1142,7 +1142,10 @@ describe("createCopilotToolBridge", () => {
         await createCopilotToolBridge({
           attemptParams: {
             contextTokenBudget,
+            modelId: "configured-alias",
             model: {
+              provider: "openai",
+              id: "gpt-5.6-sol",
               api: "openai-responses",
               contextWindow: 200_000,
               input: ["text", "image"],
@@ -1157,6 +1160,7 @@ describe("createCopilotToolBridge", () => {
         expect(opts.modelContextWindowTokens).toBe(contextTokenBudget ?? 200_000);
         expect(opts.modelHasVision).toBe(true);
         expect(opts.modelCompat).toEqual({ some: "shape" });
+        expect(opts.requesterModel).toEqual({ provider: "openai", model: "gpt-5.6-sol" });
       },
     );
 
