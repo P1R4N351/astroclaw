@@ -1,13 +1,13 @@
 // Codex tests cover shared client plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
 import type {
   AgentHarnessTaskRecord,
   AgentHarnessTaskRuntime,
-} from "astroclaw/plugin-sdk/agent-harness-task-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { withTempDir } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/agent-harness-task-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { withTempDir } from "openclaw/plugin-sdk/test-env";
 import { SemVer } from "semver";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocketServer, type RawData } from "ws";
@@ -114,8 +114,8 @@ vi.mock("./desktop-generation.js", () => ({
   waitForCodexDesktopGeneration: mocks.waitForCodexDesktopGeneration,
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-registration", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-registration")>()),
+vi.mock("openclaw/plugin-sdk/agent-harness-registration", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-registration")>()),
   resolveDefaultAgentDir: mocks.resolveDefaultAgentDir,
 }));
 
@@ -1380,6 +1380,39 @@ describe("shared Codex app-server client", () => {
     },
   );
 
+  it.each(["shared", "isolated"] as const)(
+    "preserves the elapsed startup budget across a wall-clock jump for a %s client",
+    async (kind) => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      const harness = createAutoInitializingClientHarness();
+      vi.spyOn(CodexAppServerClient, "start").mockResolvedValue(harness.client);
+      const entered = createDeferred<void>();
+      const released = createDeferred<void>();
+      mocks.resolveManagedCodexAppServerStartOptions.mockImplementationOnce(
+        async (startOptions) => {
+          entered.resolve();
+          await released.promise;
+          return startOptions;
+        },
+      );
+      const acquire =
+        kind === "shared" ? getSharedCodexAppServerClient : createIsolatedCodexAppServerClient;
+      const pending = acquire({ timeoutMs: 1_000 });
+      const accepted = expect(pending).resolves.toBe(harness.client);
+      try {
+        await entered.promise;
+        vi.setSystemTime(Date.now() + 300_100);
+        released.resolve();
+        await accepted;
+        expect(harness.process.stdin.destroyed).toBe(false);
+      } finally {
+        released.resolve();
+        vi.useRealTimers();
+        await harness.client.closeAndWait();
+      }
+    },
+  );
+
   it("closes and clears a shared app-server when initialize times out", async () => {
     vi.useFakeTimers();
     const first = createClientHarness();
@@ -1563,7 +1596,7 @@ describe("shared Codex app-server client", () => {
     const harness = createClientHarness();
     vi.spyOn(CodexAppServerClient, "start").mockResolvedValue(harness.client);
     let now = 0;
-    vi.spyOn(Date, "now").mockImplementation(() => now);
+    vi.spyOn(performance, "now").mockImplementation(() => now);
 
     const clientPromise = createIsolatedCodexAppServerClient({ timeoutMs: 100 });
     await vi.waitFor(() => expect(harness.writes.length).toBeGreaterThanOrEqual(1));
