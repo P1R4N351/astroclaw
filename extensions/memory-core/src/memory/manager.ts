@@ -1,5 +1,5 @@
 // Memory Core plugin module implements the concrete memory index manager.
-import { formatErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentWorkspaceDir,
@@ -7,7 +7,7 @@ import {
   resolveUserPath,
   type OpenClawConfig,
   type ResolvedMemorySearchConfig,
-} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   MEMORY_EMBEDDING_CACHE_TABLE,
   MEMORY_INDEX_FTS_TABLE,
@@ -16,13 +16,13 @@ import {
   type MemorySearchManager,
   type MemorySessionSyncTarget,
   type MemorySyncParams,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
-import { createPluginRuntimeStore } from "openclaw/plugin-sdk/runtime-store";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+import { createPluginRuntimeStore } from "astroclaw/plugin-sdk/runtime-store";
 import {
   borrowOpenClawAgentDatabase,
   withOpenClawAgentDatabaseWrite,
-} from "openclaw/plugin-sdk/sqlite-runtime";
+} from "astroclaw/plugin-sdk/sqlite-runtime";
 import { runInMemoryBackgroundContext } from "./background-context.js";
 import type { MemoryCoreAcquireLocalService } from "./embedding-local-service.js";
 import type { EmbeddingProvider, EmbeddingProviderRequest } from "./embeddings.js";
@@ -448,9 +448,29 @@ export class MemoryIndexManager extends MemorySearchOrchestration implements Mem
         const dbPath = resolveUserPath(this.settings.store.databasePath);
         const lock = await waitForMemoryReindexLock(dbPath, { waitForActive: true });
         try {
+          // A previous failed close still owns native/lease cleanup. Finish it
+          // before opening a new generation instead of reusing a revoked owner.
+          await this.publishedDatabase.closePublicationWorker();
           this.beginSyncProviderGeneration({ forceFtsOnly: keywordOnly });
           try {
-            await this.runSync(params);
+            // Keep one native publication connection for this generation, then
+            // release its broker capacity even when the manager stays cached.
+            await this.runSync(params).then(
+              () => this.publishedDatabase.closePublicationWorker(),
+              async (error: unknown) => {
+                const [cleanup] = await Promise.allSettled([
+                  this.publishedDatabase.closePublicationWorker(),
+                ]);
+                if (cleanup.status === "rejected") {
+                  throw new AggregateError(
+                    [error, cleanup.reason],
+                    `${String(error)}; Memory sync cleanup failed: ${String(cleanup.reason)}`,
+                    { cause: error },
+                  );
+                }
+                throw error;
+              },
+            );
           } finally {
             this.endSyncProviderGeneration();
           }
@@ -709,6 +729,7 @@ export class MemoryIndexManager extends MemorySearchOrchestration implements Mem
     try {
       await this.retryFailedClose();
     } finally {
+      await this.publishedDatabase.closePublicationWorker();
       this.publishedDatabase.release();
       this.closeTeardownComplete = true;
     }
