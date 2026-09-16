@@ -31,7 +31,7 @@ import { formatErrorMessage, isMissingPathError } from "../infra/errors.js";
 import * as nodeSqlite from "../infra/node-sqlite.js";
 import type { PackageUpdateTransaction } from "../infra/package-update-steps.js";
 import { SUPERVISOR_HINT_ENV_VARS } from "../infra/supervisor-markers.js";
-import * as updateTempRoot from "../infra/tmp-openclaw-dir.js";
+import * as updateTempRoot from "../infra/tmp-astroclaw-dir.js";
 import { isBetaTag } from "../infra/update-channels.js";
 import { applyDevUpdateTargetEnv } from "../infra/update-dev-target.js";
 import type { UpdateDoctorConfigChange } from "../infra/update-doctor-config.js";
@@ -2121,7 +2121,7 @@ describe("update-cli", () => {
     vi.spyOn(nodeSqlite, "resolveImmutableSqliteFileUri").mockImplementation((file) =>
       immutableHostUri(file, sqliteHostPlatform),
     );
-    vi.spyOn(updateTempRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(executorTmp);
+    vi.spyOn(updateTempRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(executorTmp);
     const pidAlive = await import("../shared/pid-alive.js");
     const readHostProcessStartTime = pidAlive.getFileLockProcessStartTime;
     // Service-platform doubles cannot change the OS that owns real fixture PIDs.
@@ -13572,6 +13572,12 @@ describe("update-cli", () => {
       new ExitError(1),
     );
 
+    expect(lastWriteJsonCall()).toMatchObject({
+      status: "error",
+      steps: expect.arrayContaining([
+        expect.objectContaining({ name: "gateway verification", exitCode: 1 }),
+      ]),
+    });
     const diagnostics = getErrorOutput();
     expect(defaultRuntime.exit).not.toHaveBeenCalled();
     expect(diagnostics).toContain("Gateway probe failed: timeout");
