@@ -1,14 +1,13 @@
-// Lmstudio plugin module implements models behavior.
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 import {
   SELF_HOSTED_DEFAULT_CONTEXT_WINDOW,
   SELF_HOSTED_DEFAULT_COST,
   SELF_HOSTED_DEFAULT_MAX_TOKENS,
-} from "astroclaw/plugin-sdk/provider-setup";
-import { asPositiveSafeInteger, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-setup";
+import { asPositiveSafeInteger, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { LMSTUDIO_DEFAULT_BASE_URL, LMSTUDIO_DEFAULT_LOAD_CONTEXT_LENGTH } from "./defaults.js";
 import {
   buildLmstudioReasoningEffortMap,
@@ -127,13 +126,12 @@ function resolveLmstudioTransportReasoningEfforts(allowedOptions: readonly strin
   );
 }
 
-function buildLmstudioReasoningCompat(
-  allowedOptions: readonly string[],
+export function resolveLmstudioReasoningCompat(
+  entry: Pick<LmstudioModelWire, "capabilities">,
 ): ModelDefinitionConfig["compat"] | undefined {
-  const supportedReasoningEfforts = resolveLmstudioTransportReasoningEfforts(allowedOptions);
-  if (supportedReasoningEfforts.length === 0) {
-    return undefined;
-  }
+  const supportedReasoningEfforts = resolveLmstudioTransportReasoningEfforts(
+    normalizeReasoningOptions(entry.capabilities?.reasoning?.allowed_options),
+  );
   if (!supportedReasoningEfforts.some((option) => option !== "none")) {
     return undefined;
   }
@@ -142,20 +140,6 @@ function buildLmstudioReasoningCompat(
     supportedReasoningEfforts,
     reasoningEffortMap: buildLmstudioReasoningEffortMap(supportedReasoningEfforts),
   };
-}
-
-export function resolveLmstudioReasoningCompat(
-  entry: Pick<LmstudioModelWire, "capabilities">,
-): ModelDefinitionConfig["compat"] | undefined {
-  const reasoning = entry.capabilities?.reasoning;
-  if (reasoning === undefined || reasoning === null) {
-    return undefined;
-  }
-  const allowedOptions = normalizeReasoningOptions(reasoning.allowed_options);
-  if (allowedOptions.length === 0) {
-    return undefined;
-  }
-  return buildLmstudioReasoningCompat(allowedOptions);
 }
 
 /**
