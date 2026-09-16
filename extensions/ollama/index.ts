@@ -1,11 +1,11 @@
 // Ollama plugin entrypoint registers its OpenClaw integration.
 import { collectConfiguredModelRefValues } from "@astroclaw/model-catalog-core/configured-model-refs";
 import { findNormalizedProviderKey } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import type { MediaUnderstandingProvider } from "openclaw/plugin-sdk/media-understanding";
-import type { MemoryEmbeddingProviderAdapter } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
-import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import type { MediaUnderstandingProvider } from "astroclaw/plugin-sdk/media-understanding";
+import type { MemoryEmbeddingProviderAdapter } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type OpenClawPluginApi,
@@ -18,21 +18,21 @@ import {
   type ProviderPlugin,
   type ProviderReplayPolicy,
   type ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import {
   buildApiKeyCredential,
   coerceSecretRef,
   isNonSecretApiKeyMarker,
-} from "openclaw/plugin-sdk/provider-auth";
-import { runLiveProviderCatalog } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
-import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-entry";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { runLiveProviderCatalog } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-entry";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "openclaw/plugin-sdk/provider-model-shared";
-import { buildOpenAICompatibleReplayPolicy } from "openclaw/plugin-sdk/provider-model-shared";
-import { buildProviderToolCompatFamilyHooks } from "openclaw/plugin-sdk/provider-tools";
-import { resolveConfiguredSecretInputString } from "openclaw/plugin-sdk/secret-input-runtime";
+} from "astroclaw/plugin-sdk/provider-model-shared";
+import { buildOpenAICompatibleReplayPolicy } from "astroclaw/plugin-sdk/provider-model-shared";
+import { buildProviderToolCompatFamilyHooks } from "astroclaw/plugin-sdk/provider-tools";
+import { resolveConfiguredSecretInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
 import {
   normalizeResolvedModel,
   resolveThinkingProfile as resolveOllamaThinkingProfile,
@@ -110,7 +110,7 @@ const ollamaMediaUnderstandingProvider: MediaUnderstandingProvider = {
 
 async function checkWsl2CrashLoopRiskLazily(api: OpenClawPluginApi): Promise<void> {
   try {
-    const { isWSL2Sync } = await import("openclaw/plugin-sdk/runtime-env");
+    const { isWSL2Sync } = await import("astroclaw/plugin-sdk/runtime-env");
     if (!isWSL2Sync()) {
       return;
     }
@@ -1024,7 +1024,7 @@ export default definePluginEntry({
             config: ctx.config ?? {},
             env: process.env,
             value: providerConfig.apiKey,
-            path: `models.providers.${ctx.provider}.apiKey`,
+            path: `models.providers[${JSON.stringify(ctx.provider)}].apiKey`,
             unresolvedReasonStyle: "detailed",
           });
           if (resolved.unresolvedRefReason) {
