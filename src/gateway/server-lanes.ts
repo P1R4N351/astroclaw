@@ -3,7 +3,7 @@ import { enableSessionSuspensionWritesForGatewayStart } from "../agents/session-
 // Pushes config-derived agent/cron limits into the process command queue.
 import { resolveAgentMaxConcurrent, resolveSubagentMaxConcurrent } from "../config/agent-limits.js";
 import { resolveCronMaxConcurrentRuns } from "../config/cron-limits.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   getCommandLaneSnapshot,
   publishLaneConfiguration,
@@ -98,4 +98,7 @@ export function applyGatewayLaneConcurrency(
     setCommandLaneConcurrency(CommandLane.Nested, 1);
   }
   setCommandLaneConcurrency(CommandLane.Subagent, concurrency.subagent);
+  // Recall can be awaited while its parent holds a main or subagent slot.
+  // Keep a separate, finite helper budget shared by every agent and session.
+  setCommandLaneConcurrency(CommandLane.ActiveMemory, concurrency.subagent);
 }
