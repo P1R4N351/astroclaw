@@ -2,25 +2,25 @@
 import type {
   ProviderResolveDynamicModelContext,
   ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
-import type { LiveModelCatalogFetchGuard } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
-import type { ProviderCatalogOutcome } from "openclaw/plugin-sdk/provider-catalog-shared";
-import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
+import type { LiveModelCatalogFetchGuard } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+import type { ProviderCatalogOutcome } from "astroclaw/plugin-sdk/provider-catalog-shared";
+import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-entry";
 import {
   buildFamilyForwardCompatModel,
   buildManifestModelProviderConfig,
   DEFAULT_CONTEXT_TOKENS,
   normalizeProviderId,
-} from "openclaw/plugin-sdk/provider-model-metadata";
+} from "astroclaw/plugin-sdk/provider-model-metadata";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
   ProviderPlugin,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
   OPENAI_CODEX_RESPONSES_BASE_URL,
@@ -70,7 +70,7 @@ import {
 import { resolveUnifiedOpenAIThinkingProfile } from "./thinking-policy.js";
 
 type OpenAILiveModelReaders = Pick<
-  typeof import("openclaw/plugin-sdk/provider-catalog-live-runtime"),
+  typeof import("astroclaw/plugin-sdk/provider-catalog-live-runtime"),
   | "readLiveModelCatalogBooleanField"
   | "readLiveModelCatalogPositiveSafeIntegerField"
   | "readLiveModelCatalogStringField"
@@ -273,8 +273,8 @@ async function buildOpenAILiveProviderConfig(
     { getCachedLiveProviderModelRows, LiveModelCatalogHttpError },
     { isNonSecretApiKeyMarker },
   ] = await Promise.all([
-    import("openclaw/plugin-sdk/provider-catalog-live-runtime"),
-    import("openclaw/plugin-sdk/provider-auth"),
+    import("astroclaw/plugin-sdk/provider-catalog-live-runtime"),
+    import("astroclaw/plugin-sdk/provider-auth"),
   ]);
   const rejectionScope =
     params.apiKey && !params.discoveryApiKey && isNonSecretApiKeyMarker(params.apiKey)
@@ -569,7 +569,7 @@ async function buildOpenAICodexLiveProviderConfig(params: {
   fetchGuard?: LiveModelCatalogFetchGuard;
   signal?: AbortSignal;
 }): Promise<OpenAILiveProviderCatalog> {
-  const catalogRuntime = await import("openclaw/plugin-sdk/provider-catalog-live-runtime");
+  const catalogRuntime = await import("astroclaw/plugin-sdk/provider-catalog-live-runtime");
   const { getCachedLiveProviderModelRows, LiveModelCatalogHttpError } = catalogRuntime;
   try {
     const rows = await getCachedLiveProviderModelRows({
@@ -953,8 +953,8 @@ export function buildOpenAIProvider(): ProviderPlugin {
           { resolveApiKeyForProvider, resolveProviderAuthProfileMetadata },
           { isNonSecretApiKeyMarker },
         ] = await Promise.all([
-          import("openclaw/plugin-sdk/provider-auth-runtime"),
-          import("openclaw/plugin-sdk/provider-auth"),
+          import("astroclaw/plugin-sdk/provider-auth-runtime"),
+          import("astroclaw/plugin-sdk/provider-auth"),
         ]);
         let runtimeAuth: Awaited<ReturnType<typeof resolveApiKeyForProvider>> | undefined;
         if (auth.profileId || auth.mode === "none") {
@@ -1138,9 +1138,9 @@ export function buildOpenAIProvider(): ProviderPlugin {
       /content_filter.*(?:prompt|input).*(?:too long|exceed)/i.test(errorMessage),
     classifyFailoverReason: ({ code }) => classifyOpenAiFailoverCode(code),
     resolveReasoningOutputMode: () => "native",
-    resolveThinkingProfile: ({ provider, modelId, agentRuntime, api, compat }) =>
+    resolveThinkingProfile: ({ provider, modelId, agentRuntime, api, compat, thinkingLevelMap }) =>
       normalizeProviderId(provider) === PROVIDER_ID
-        ? resolveUnifiedOpenAIThinkingProfile(modelId, agentRuntime, compat, api)
+        ? resolveUnifiedOpenAIThinkingProfile(modelId, agentRuntime, compat, api, thinkingLevelMap)
         : null,
     isModernModelRef: ({ modelId }) =>
       matchesExactOrPrefix(modelId, OPENAI_PROVIDER_MODERN_MODEL_IDS),
