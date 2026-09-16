@@ -98,6 +98,7 @@ class ChatSentComments extends OpenClawLightDomContentsElement {
           () => {
             this.revealed = true;
           },
+          true,
         )
       : nothing}
     ${this.sources.map((source, index) =>
