@@ -2,17 +2,17 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveSessionAgentIdStrict } from "astroclaw/plugin-sdk/agent-scope-runtime";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
-import { resolveAgentIdFromSessionKey } from "astroclaw/plugin-sdk/session-key-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolveSessionAgentIdStrict } from "openclaw/plugin-sdk/agent-scope-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { readJsonFileWithFallback } from "openclaw/plugin-sdk/json-store";
+import { resolveAgentIdFromSessionKey } from "openclaw/plugin-sdk/session-key-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   registerSessionBindingAdapter,
   resolveThreadBindingFarewellText,
   type SessionBindingAdapter,
   unregisterSessionBindingAdapter,
-} from "astroclaw/plugin-sdk/thread-bindings-session-runtime";
+} from "openclaw/plugin-sdk/thread-bindings-session-runtime";
 import { getMatrixRuntime } from "../runtime.js";
 import { claimCurrentTokenStorageState, resolveMatrixStateFilePath } from "./client/storage.js";
 import type { MatrixAuth } from "./client/types.js";
@@ -360,7 +360,7 @@ export async function createMatrixThreadBindingManager(params: {
           env: params.env,
           stateDir: sqliteStateDir,
         });
-        claimCurrentTokenStorageState({ rootDir: sqliteStateDir });
+        await claimCurrentTokenStorageState({ rootDir: sqliteStateDir });
       });
     persistQueue = next;
     return next;
