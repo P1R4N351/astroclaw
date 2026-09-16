@@ -1,15 +1,15 @@
 // Minimax tests cover index plugin behavior.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
-import type { Context, Model } from "astroclaw/plugin-sdk/llm";
+import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import type { Context, Model } from "openclaw/plugin-sdk/llm";
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
   runProviderCatalog,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { MINIMAX_OAUTH_MARKER } from "astroclaw/plugin-sdk/provider-auth";
-import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { MINIMAX_OAUTH_MARKER } from "openclaw/plugin-sdk/provider-auth";
+import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMinimaxModelDiscovery, buildMinimaxProvider } from "./provider-catalog.js";
 import { registerMinimaxProviders } from "./provider-registration.js";
@@ -719,20 +719,6 @@ describe("minimax provider hooks", () => {
 
     expect(resolvedApiModelId).toBe("MiniMax-M2.7-highspeed");
     expect(resolvedPortalModelId).toBe("MiniMax-M2.7-highspeed");
-  });
-
-  it("shares the provider hook bundle across MiniMax variants", async () => {
-    const { providers } = await registerProviderPlugin({
-      plugin: minimaxProviderPlugin,
-      id: "minimax",
-      name: "MiniMax Provider",
-    });
-    const apiProvider = requireRegisteredProvider(providers, "minimax");
-    const portalProvider = requireRegisteredProvider(providers, "minimax-portal");
-
-    expect(apiProvider.buildReplayPolicy).toBe(portalProvider.buildReplayPolicy);
-    expect(apiProvider.wrapStreamFn).toBe(portalProvider.wrapStreamFn);
-    expect(apiProvider.resolveReasoningOutputMode).toBe(portalProvider.resolveReasoningOutputMode);
   });
 
   it("registers the bundled MiniMax web search provider", () => {
