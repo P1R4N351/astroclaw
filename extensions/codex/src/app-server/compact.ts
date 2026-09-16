@@ -4,14 +4,14 @@ import {
   resolveCompactionTimeoutMs,
   type CompactEmbeddedAgentSessionParams,
   type EmbeddedAgentCompactResult,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { resolveAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
-import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-scope-runtime";
-import { createDedupeCache } from "astroclaw/plugin-sdk/dedupe-runtime";
-import { coerceErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import type { SandboxContext } from "astroclaw/plugin-sdk/sandbox";
-import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { resolveAgentDir } from "openclaw/plugin-sdk/agent-runtime";
+import { resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-scope-runtime";
+import { createDedupeCache } from "openclaw/plugin-sdk/dedupe-runtime";
+import { coerceErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import type { SandboxContext } from "openclaw/plugin-sdk/sandbox";
+import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { isIncognitoSessionKey } from "../incognito-session.js";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
@@ -384,36 +384,11 @@ function warnIfIgnoringOpenClawCompactionOverrides(
 }
 
 function readIgnoredCompactionOverridePaths(params: CompactEmbeddedAgentSessionParams): string[] {
-  const ignored = new Set<string>();
-  for (const entry of readCompactionOverrideEntries(params)) {
-    const localProvider =
-      typeof entry.record.provider === "string" ? entry.record.provider.trim() : "";
-    if (typeof entry.record.model === "string" && entry.record.model.trim()) {
-      ignored.add(`${entry.path}.compaction.model`);
-    }
-    if (typeof entry.record.thinkingLevel === "string" && entry.record.thinkingLevel.trim()) {
-      ignored.add(`${entry.path}.compaction.thinkingLevel`);
-    }
-    if (localProvider) {
-      ignored.add(`${entry.path}.compaction.provider`);
-    }
-  }
-  return [...ignored];
-}
-
-function readCompactionOverrideEntries(params: CompactEmbeddedAgentSessionParams): Array<{
-  path: string;
-  record: Record<string, unknown>;
-}> {
-  const entries: Array<{
-    path: string;
-    record: Record<string, unknown>;
-  }> = [];
-  const defaultRecord = asOptionalRecord(params.config?.agents?.defaults?.compaction);
-  if (defaultRecord) {
-    entries.push({ path: "agents.defaults", record: defaultRecord });
-  }
-  return entries;
+  const compaction = asOptionalRecord(params.config?.agents?.defaults?.compaction);
+  return ["model", "thinkingLevel", "provider"].flatMap((field) => {
+    const value = compaction?.[field];
+    return typeof value === "string" && value.trim() ? [`agents.defaults.compaction.${field}`] : [];
+  });
 }
 
 function readAgentIdFromSessionKey(sessionKey: string | undefined): string | undefined {
