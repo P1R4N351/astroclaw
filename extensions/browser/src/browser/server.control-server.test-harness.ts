@@ -1,4 +1,4 @@
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 /**
  * Shared Browser control-server test harness with mocked Chrome, CDP,
  * Playwright, Chrome MCP, config, and media dependencies.
@@ -541,7 +541,9 @@ vi.mock("./chrome.js", () => ({
     };
   }),
   resolveOpenClawUserDataDir: vi.fn(() => chromeUserDataDir.dir),
-  stopOwnedOpenClawChrome: vi.fn(async () => false),
+  stopOwnedOpenClawChrome: vi.fn<typeof import("./chrome.js").stopOwnedOpenClawChrome>(
+    async () => ({ status: "not-running" }),
+  ),
   stopOpenClawChrome: vi.fn(async () => {
     state.reachable = false;
   }),
