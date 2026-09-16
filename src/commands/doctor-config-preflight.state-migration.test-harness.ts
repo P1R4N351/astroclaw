@@ -160,6 +160,7 @@ const inspectPluginMigrationAvailability = vi.hoisted(() =>
     requiredPluginIds: [],
     inspectionRequiredPluginIds: [],
     statelessPluginIds: [],
+    runtimePluginAliases: [],
   })),
 );
 
@@ -279,6 +280,7 @@ export function resetStateMigrationPreflightMocks(): void {
     requiredPluginIds: [],
     inspectionRequiredPluginIds: [],
     statelessPluginIds: [],
+    runtimePluginAliases: [],
   });
   acquireStartupMigrationLeaseWithWait.mockResolvedValue(startupMigrationLease);
   pluginMigrationFingerprint.mockReset();
