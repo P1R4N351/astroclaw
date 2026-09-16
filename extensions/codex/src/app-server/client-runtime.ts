@@ -1,7 +1,7 @@
 /** Client-scoped Codex auth and account observers. */
 import { createHash } from "node:crypto";
-import { embeddedAgentLog, formatErrorMessage } from "openclaw/plugin-sdk/agent-harness-runtime";
-import { pruneMapToMaxSize } from "openclaw/plugin-sdk/collection-runtime";
+import { embeddedAgentLog, formatErrorMessage } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { pruneMapToMaxSize } from "astroclaw/plugin-sdk/collection-runtime";
 import { readCodexSessionMeta } from "../session-catalog-provenance.js";
 import { refreshCodexAppServerAuthTokens, type CodexAppServerAuthHandoff } from "./auth-bridge.js";
 import { fingerprintTokenAuthProfileCacheKey } from "./auth-cache-key.js";
@@ -643,6 +643,32 @@ export function isCodexAppServerLiveThreadClaimed(
 ): boolean {
   const runtime = configuredClients.get(client);
   return runtime !== undefined && !runtime.closed && runtime.claimedThreads.has(threadId);
+}
+
+export function hasCodexAppServerSiblingThreadWork(
+  client: CodexAppServerClient,
+  threadId: string,
+): boolean {
+  const runtime = configuredClients.get(client);
+  if (!runtime || runtime.closed) {
+    return false;
+  }
+  // A protected parent can be settled while its native children still write.
+  if (runtime.protectedThreads.size > 0) {
+    return true;
+  }
+  // Ephemeral history exists only on this process, even after its turn settles.
+  for (const [retainedThreadId, retained] of runtime.retainedThreads) {
+    if (retainedThreadId !== threadId && retained.ephemeralPolicy !== undefined) {
+      return true;
+    }
+  }
+  for (const claimedThreadId of runtime.claimedThreads.keys()) {
+    if (claimedThreadId !== threadId) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Release the exact physical subscription and finish only its observed ownership generation. */
