@@ -5,10 +5,10 @@ import {
   invokeNativeHookRelay,
   nativeHookRelayTesting,
   resolveActiveEmbeddedRunSessionId,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import * as mediaStore from "openclaw/plugin-sdk/media-store";
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import * as mediaStore from "astroclaw/plugin-sdk/media-store";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { describe, expect, it, vi } from "vitest";
 import * as approvalBridge from "./approval-bridge.js";
 import type { EmbeddedRunAttemptResult } from "./attempt-terminal.js";
@@ -809,6 +809,7 @@ describe("runCodexAppServerAttempt native lifecycle", () => {
 
   it("waits for native completion after tool events buffered during turn start", async () => {
     vi.useFakeTimers();
+    const turnStartRequested = createDeferred<void>();
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     const request = vi.fn(async (method: string) => {
       if (method === "config/read") {
@@ -837,6 +838,7 @@ describe("runCodexAppServerAttempt native lifecycle", () => {
             status: "completed",
           }),
         );
+        turnStartRequested.resolve();
         return turnStartResult("turn-1", "inProgress");
       }
       return {};
@@ -863,11 +865,8 @@ describe("runCodexAppServerAttempt native lifecycle", () => {
     const run = runCodexAppServerAttempt(params).finally(() => {
       settled = true;
     });
-    await vi.waitFor(
-      () =>
-        expect(request).toHaveBeenCalledWith("turn/start", expect.anything(), expect.anything()),
-      fastWait,
-    );
+    await Promise.race([run, turnStartRequested.promise]);
+    expect(request).toHaveBeenCalledWith("turn/start", expect.anything(), expect.anything());
 
     await vi.advanceTimersByTimeAsync(11 * 60_000);
     expect(settled).toBe(false);
@@ -1657,6 +1656,7 @@ describe("runCodexAppServerAttempt native lifecycle", () => {
     // turn/completed handler must not strand resolveCompletion, otherwise the
     // gateway session lane stays locked and every follow-up message queues
     // behind a run that will never resolve.
+    const turnStartRequested = createDeferred<void>();
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let turnStarted = false;
     const request = vi.fn(async (method: string) => {
@@ -1671,6 +1671,7 @@ describe("runCodexAppServerAttempt native lifecycle", () => {
       }
       if (method === "turn/start") {
         turnStarted = true;
+        turnStartRequested.resolve();
         return turnStartResult("turn-1", "inProgress");
       }
       return {};
@@ -1698,9 +1699,8 @@ describe("runCodexAppServerAttempt native lifecycle", () => {
       throw new Error("downstream consumer exploded");
     };
     const run = runCodexAppServerAttempt(params);
-    await vi.waitFor(() =>
-      expect(request.mock.calls.map(([method]) => method)).toContain("turn/start"),
-    );
+    await Promise.race([run, turnStartRequested.promise]);
+    expect(request.mock.calls.map(([method]) => method)).toContain("turn/start");
     await notify({
       method: "turn/completed",
       params: {
