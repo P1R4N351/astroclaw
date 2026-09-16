@@ -4,7 +4,7 @@ import {
   collectConfiguredAgentHarnessRuntimes,
   type ConfiguredAgentHarnessRuntimeOptions,
 } from "../../../agents/harness-runtimes.js";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import type { PluginPackageInstall } from "../../../plugins/manifest.js";
 
 type ConfiguredRuntimePluginInstallCandidate = {
@@ -74,8 +74,8 @@ function acpxRuntimeIsConfigured(cfg: OpenClawConfig): boolean {
   );
 }
 
-/** Collect runtime plugin ids implied by configured harness runtimes and ACPX settings. */
-export function collectConfiguredRuntimePluginIds(
+/** Collect runtime ids without loading plugin metadata during startup planning. */
+export function collectConfiguredRuntimeIds(
   cfg: OpenClawConfig,
   options?: ConfiguredAgentHarnessRuntimeOptions,
 ): string[] {
