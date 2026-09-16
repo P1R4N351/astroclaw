@@ -1,39 +1,39 @@
 // Imessage plugin module implements send behavior.
 import { constants, accessSync } from "node:fs";
 import { basename } from "node:path";
-import type { ChannelApprovalKind } from "astroclaw/plugin-sdk/approval-handler-runtime";
-import { addApprovalReactionHintToText } from "astroclaw/plugin-sdk/approval-reaction-runtime";
-import type { ExecApprovalReplyDecision } from "astroclaw/plugin-sdk/approval-reply-runtime";
+import type { ChannelApprovalKind } from "openclaw/plugin-sdk/approval-handler-runtime";
+import { addApprovalReactionHintToText } from "openclaw/plugin-sdk/approval-reaction-runtime";
+import type { ExecApprovalReplyDecision } from "openclaw/plugin-sdk/approval-reply-runtime";
 import {
   createChannelPartialDeliveryError,
   type MediaPlaceholderTextFact,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 import {
   createMessageReceiptFromOutboundResults,
   type MessageReceipt,
   type MessageReceiptPartKind,
   type MessageReceiptSourceResult,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
 import {
   extractOriginalFilename,
   kindFromMime,
   resolveOutboundAttachmentFromUrl,
   type OutboundMediaAccess,
-} from "astroclaw/plugin-sdk/media-runtime";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { sleep as delay } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/media-runtime";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { sleep as delay } from "openclaw/plugin-sdk/runtime-env";
 import {
   asOptionalRecord,
   normalizeOptionalString as stringValue,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
 import {
   convertMarkdownTables,
   stripInlineDirectiveTagsForDelivery,
-} from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/text-chunking";
 import {
   hasExclusiveIMessageLocalDatabase,
   resolveIMessageAccount,
@@ -402,7 +402,7 @@ async function withOriginalIMessageAttachmentPath<T>(
   // The bridge exposes this basename and copies its bytes before returning;
   // keep the UUID-backed media-store file intact while its private alias is live.
   return await withTempWorkspace(
-    { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "openclaw-imessage-outbound-" },
+    { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "openclaw-imessage-outbound-" },
     async (workspace) => await send(await workspace.copyIn(filename, filePath)),
   );
 }
@@ -610,7 +610,7 @@ async function trySendAttachmentForTarget(params: {
   let pendingEchoKey: string | undefined;
   try {
     if (echoScope) {
-      pendingEchoKey = rememberPersistedIMessageEcho({
+      pendingEchoKey = await rememberPersistedIMessageEcho({
         scope: echoScope,
         text: params.echoText,
         media: params.echoMedia,
@@ -659,7 +659,7 @@ async function trySendAttachmentForTarget(params: {
       ]);
     });
   } catch (error) {
-    forgetPersistedIMessageEchoKey(pendingEchoKey);
+    await forgetPersistedIMessageEchoKey(pendingEchoKey);
     if (!params.audioAsVoice && isAttachmentCommandFallbackError(error)) {
       return null;
     }
@@ -668,7 +668,7 @@ async function trySendAttachmentForTarget(params: {
   const failure = resolveIMessageSendFailure(result);
   if (failure) {
     const error = new Error(failure);
-    forgetPersistedIMessageEchoKey(pendingEchoKey);
+    await forgetPersistedIMessageEchoKey(pendingEchoKey);
     if (!params.audioAsVoice && isAttachmentCommandFallbackError(error)) {
       return null;
     }
@@ -684,7 +684,7 @@ async function trySendAttachmentForTarget(params: {
   });
   const messageId = resolvedId ?? (result.ok || result.success ? "ok" : "unknown");
   if (echoScope) {
-    rememberPersistedIMessageEcho({
+    await rememberPersistedIMessageEcho({
       scope: echoScope,
       text: params.echoText,
       media: params.echoMedia,
@@ -692,7 +692,7 @@ async function trySendAttachmentForTarget(params: {
     });
   }
   if (resolvedId && isConcreteIMessageMessageId(resolvedId)) {
-    rememberIMessageReplyCache({
+    await rememberIMessageReplyCache({
       accountId: params.accountId,
       messageId: resolvedId,
       chatGuid:
@@ -754,7 +754,7 @@ export async function sendMessageIMessage(
     resolveTargetService(target) ??
     (account.config.service as IMessageService | undefined);
   const sendTransport = (account.config.sendTransport ?? "auto") as IMessageSendTransport;
-  const resolvedReplyToId = resolveAuthorizedIMessageReplyReference({
+  const resolvedReplyToId = await resolveAuthorizedIMessageReplyReference({
     account,
     target,
     cliPath,
@@ -991,7 +991,7 @@ export async function sendMessageIMessage(
   try {
     try {
       if (echoScope) {
-        pendingEchoKey = rememberPersistedIMessageEcho({
+        pendingEchoKey = await rememberPersistedIMessageEcho({
           scope: echoScope,
           text: echoText,
           media: echoMedia,
@@ -1070,7 +1070,7 @@ export async function sendMessageIMessage(
       });
     }
     if (echoScope) {
-      rememberPersistedIMessageEcho({
+      await rememberPersistedIMessageEcho({
         scope: echoScope,
         text: echoText,
         media: echoMedia,
@@ -1088,7 +1088,7 @@ export async function sendMessageIMessage(
     );
     if (resolvedId && isConcreteIMessageMessageId(resolvedId)) {
       const chatContext = chatContextFromIMessageTarget(target, confirmedService ?? service);
-      rememberIMessageReplyCache({
+      await rememberIMessageReplyCache({
         accountId: account.accountId,
         messageId: resolvedId,
         ...chatContext,
@@ -1131,7 +1131,7 @@ export async function sendMessageIMessage(
       }),
     };
   } catch (error) {
-    forgetPersistedIMessageEchoKey(pendingEchoKey);
+    await forgetPersistedIMessageEchoKey(pendingEchoKey);
     throw error;
   } finally {
     if (shouldClose) {
