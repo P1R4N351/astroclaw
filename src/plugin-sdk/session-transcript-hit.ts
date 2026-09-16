@@ -5,7 +5,7 @@ import { uniqueStrings } from "../../packages/normalization-core/src/string-norm
 import { parseUsageCountedSessionIdFromFileName } from "../config/sessions/artifacts.js";
 import { loadCombinedSessionStoreForGatewayCore as loadGatewaySessionStore } from "../config/sessions/combined-store-gateway.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isIncognitoSessionKey, normalizeAgentId } from "../routing/session-key.js";
 export {
   formatSessionTranscriptMemoryHitKey,
@@ -26,7 +26,12 @@ export function loadCombinedSessionStoreForGateway(
   cfg: OpenClawConfig,
   opts: { agentId?: string; configuredAgentsOnly?: boolean } = {},
 ) {
-  const result = loadGatewaySessionStore(cfg, { ...opts, includeIncognito: false });
+  // This published view has no projection option; installed plugins receive complete entries.
+  const result = loadGatewaySessionStore(cfg, {
+    ...opts,
+    includeIncognito: false,
+    projection: "full",
+  });
   return {
     storePath: result.storePath,
     // Plugin search hits can be re-persisted into durable transcripts, so the
