@@ -1,6 +1,6 @@
 // Verifies nodes outPath normalization and workspace-only sandbox enforcement.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { applyNodesToolWorkspaceGuard } from "./astroclaw-tools.nodes-workspace-guard.js";
+import { applyNodesToolWorkspaceGuard } from "./openclaw-tools.nodes-workspace-guard.js";
 import type { AnyAgentTool } from "./tools/common.js";
 
 const mocks = vi.hoisted(() => ({
@@ -31,9 +31,10 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("./sandbox-paths.js", () => ({
-  assertSandboxPath: mocks.assertSandboxPath,
-}));
+vi.mock("./sandbox-paths.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./sandbox-paths.js")>();
+  return { ...actual, assertSandboxPath: mocks.assertSandboxPath };
+});
 
 const WORKSPACE_ROOT = "/tmp/openclaw-workspace-nodes-guard";
 
