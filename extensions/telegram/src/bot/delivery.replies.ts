@@ -1,10 +1,13 @@
-import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+// Telegram plugin module implements delivery.replies behavior.
+import type { Bot } from "grammy";
+import type { Message } from "grammy/types";
+import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
 import {
   createOutboundPayloadPlan,
   createMessageReceiptFromOutboundResults,
   projectOutboundPayloadPlanForDelivery,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import type { MarkdownTableMode, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { MarkdownTableMode, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
 import {
   buildCanonicalSentMessageHookContext,
   createInternalHookEvent,
@@ -13,25 +16,22 @@ import {
   toPluginMessageContext,
   toPluginMessageSentEvent,
   triggerInternalHook,
-} from "astroclaw/plugin-sdk/hook-runtime";
-import type { ReplyPayloadDelivery } from "astroclaw/plugin-sdk/interactive-runtime";
-import { normalizeMessagePresentation } from "astroclaw/plugin-sdk/interactive-runtime";
+} from "openclaw/plugin-sdk/hook-runtime";
+import type { ReplyPayloadDelivery } from "openclaw/plugin-sdk/interactive-runtime";
+import { normalizeMessagePresentation } from "openclaw/plugin-sdk/interactive-runtime";
 import {
   buildOutboundMediaLoadOptions,
   probeVideoDimensions,
-} from "astroclaw/plugin-sdk/media-runtime";
-import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
-import { getGlobalHookRunner } from "astroclaw/plugin-sdk/plugin-runtime";
-import type { ChunkMode } from "astroclaw/plugin-sdk/reply-chunking";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
-import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { loadWebMedia } from "astroclaw/plugin-sdk/web-media";
-// Telegram plugin module implements delivery.replies behavior.
-import type { Bot } from "grammy";
-import type { Message } from "grammy/types";
+} from "openclaw/plugin-sdk/media-runtime";
+import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
+import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
+import type { ChunkMode } from "openclaw/plugin-sdk/reply-chunking";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
+import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
 import { resolveTelegramInlineButtons, type TelegramInlineButtons } from "../button-types.js";
 import {
   canonicalizeTelegramPresentationPayload,
@@ -185,7 +185,7 @@ async function deliverTextReply(params: {
   replyToId?: number;
   replyToMode: ReplyToMode;
   progress: DeliveryProgress;
-  recordMessageId: (messageId: number) => void;
+  recordMessageId: (messageId: number) => Promise<void>;
   quoteOnlyOnFirstChunk?: boolean;
 }): Promise<number | undefined> {
   const chunks = filterEmptyTelegramTextChunks(params.chunkText(params.text));
@@ -255,7 +255,7 @@ async function deliverTextReply(params: {
         });
       }
       params.runtime.log?.(`telegram text delivery ok chat=${params.chatId} message=${messageId}`);
-      params.recordMessageId(messageId);
+      await params.recordMessageId(messageId);
       await params.progress.promptContext?.accept({ messageId, text: plainText });
     },
   });
@@ -297,7 +297,7 @@ async function deliverMediaReply(params: {
   replyToId?: number;
   replyToMode: ReplyToMode;
   progress: DeliveryProgress;
-  recordMessageId: (messageId: number) => void;
+  recordMessageId: (messageId: number) => Promise<void>;
   textMode?: "html";
 }): Promise<{
   firstDeliveredMessageId?: number;
@@ -334,7 +334,7 @@ async function deliverMediaReply(params: {
     if (captionRemoved) {
       visibleFallbackText = "";
     }
-    params.recordMessageId(messageId);
+    await params.recordMessageId(messageId);
     await recordPromptContextMessage(message, plainText || undefined);
     markDelivered(params.progress);
   };
@@ -717,7 +717,7 @@ export function emitTelegramMessageSentHooks(params: EmitMessageSentHookParams):
 
 export async function deliverReplies(params: {
   replies: ReplyPayload[];
-  cfg?: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
+  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
   ownerAgentId?: string;
   chatId: string;
   accountId?: string;
@@ -772,15 +772,15 @@ export async function deliverReplies(params: {
     deliveredCount: 0,
     ...(params.promptContextSequence ? { promptContext: params.promptContextSequence } : {}),
   };
-  const recordMessageId = (messageId: number) => {
+  const recordMessageId = async (messageId: number) => {
     if (params.accountId || params.ownerAgentId) {
-      recordSentMessage(params.chatId, messageId, params.cfg, {
+      await recordSentMessage(params.chatId, messageId, params.cfg, {
         accountId: params.accountId,
         agentId: params.ownerAgentId,
       });
       return;
     }
-    recordSentMessage(params.chatId, messageId, params.cfg);
+    await recordSentMessage(params.chatId, messageId, params.cfg);
   };
   const mediaLoader = params.mediaLoader ?? loadWebMedia;
   const transcriptMirror = params.transcriptMirror;
