@@ -1,4 +1,4 @@
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { CodexCommandExecParams, CodexCommandExecResponse } from "./command-exec-protocol.js";
 import type {
   CodexAppInfo,
@@ -466,6 +466,7 @@ export type CodexThread = {
   preview?: string | null;
   createdAt?: number | null;
   updatedAt?: number | null;
+  recencyAt?: number | null;
   status?: CodexThreadStatus | null;
   canAcceptDirectInput?: boolean | null;
   /** Codex 0.153+: current loaded selection, otherwise latest persisted model. */
