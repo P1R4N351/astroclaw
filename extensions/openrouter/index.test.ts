@@ -1,15 +1,15 @@
 // Openrouter tests cover index plugin behavior.
 import { readFileSync } from "node:fs";
-import { createAssistantMessageEventStream } from "openclaw/plugin-sdk/llm";
+import { createAssistantMessageEventStream } from "astroclaw/plugin-sdk/llm";
 import {
   registerProviderPlugin,
   registerSingleProviderPlugin,
   resolveProviderPluginChoice,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import {
   expectPassthroughReplayPolicy,
   expectUnifiedModelCatalogProviderRegistration,
-} from "openclaw/plugin-sdk/provider-test-contracts";
+} from "astroclaw/plugin-sdk/provider-test-contracts";
 import { describe, expect, it, vi } from "vitest";
 
 const { getOpenRouterModelCapabilitiesMock, loadOpenRouterModelCapabilitiesMock } = vi.hoisted(
@@ -19,9 +19,9 @@ const { getOpenRouterModelCapabilitiesMock, loadOpenRouterModelCapabilitiesMock 
   }),
 );
 
-vi.mock("openclaw/plugin-sdk/provider-stream-family", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/provider-stream-family", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/provider-stream-family")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-stream-family")>();
   return {
     ...actual,
     getOpenRouterModelCapabilities: getOpenRouterModelCapabilitiesMock,
@@ -68,8 +68,8 @@ async function captureOpenRouterWrappedPayload(params: {
   let capturedPayload: Record<string, unknown> | undefined;
   const baseStreamFn = vi.fn(
     (
-      ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
-    ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
+      ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
+    ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
       void args[2]?.onPayload?.(params.payload, args[0]);
       if (!params.forwardPayload) {
         capturedPayload = params.payload;
@@ -388,6 +388,8 @@ describe("openrouter provider hooks", () => {
     getOpenRouterModelCapabilitiesMock.mockReturnValue({
       name: "Claude Sonnet 4.6",
       reasoning: true,
+      compat: { supportedReasoningEfforts: ["high", "low"] },
+      thinkingLevelMap: { off: null },
       input: ["text", "image"],
       supportsTools: true,
       cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 },
@@ -412,7 +414,8 @@ describe("openrouter provider hooks", () => {
       name: "Claude Sonnet 4.6",
       reasoning: true,
       input: ["text", "image"],
-      compat: { supportsTools: true },
+      compat: { supportsTools: true, supportedReasoningEfforts: ["high", "low"] },
+      thinkingLevelMap: { off: null },
       contextWindow: 200_000,
       maxTokens: 64_000,
     });
@@ -865,22 +868,23 @@ describe("openrouter provider hooks", () => {
     } as never);
     expect(normalizedAnthropicModel?.id).toBe("anthropic/claude-sonnet-4.6");
 
+    const autoModel = {
+      provider: "openrouter",
+      id: "openrouter/auto",
+      name: "OpenRouter Auto",
+      api: "openai-completions",
+      baseUrl: "https://openrouter.ai/api/v1",
+      reasoning: false,
+      input: ["text", "image"],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 200_000,
+      maxTokens: 8192,
+    };
     expect(
       provider.normalizeResolvedModel?.({
         provider: "openrouter",
         modelId: "openrouter/auto",
-        model: {
-          provider: "openrouter",
-          id: "openrouter/auto",
-          name: "OpenRouter Auto",
-          api: "openai-completions",
-          baseUrl: "https://openrouter.ai/api/v1",
-          reasoning: false,
-          input: ["text", "image"],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-          contextWindow: 200_000,
-          maxTokens: 8192,
-        },
+        model: autoModel,
       } as never),
     ).toBeUndefined();
 
@@ -888,16 +892,8 @@ describe("openrouter provider hooks", () => {
       provider: "openrouter",
       modelId: "openrouter/openrouter/auto",
       model: {
-        provider: "openrouter",
+        ...autoModel,
         id: "openrouter/openrouter/auto",
-        name: "OpenRouter Auto",
-        api: "openai-completions",
-        baseUrl: "https://openrouter.ai/api/v1",
-        reasoning: false,
-        input: ["text", "image"],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: 200_000,
-        maxTokens: 8192,
       },
     } as never);
     expect(normalizedDuplicatedAutoModel?.id).toBe("openrouter/auto");
@@ -919,8 +915,8 @@ describe("openrouter provider hooks", () => {
     let capturedPayload: Record<string, unknown> | undefined;
     const baseStreamFn = vi.fn(
       (
-        ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
-      ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
+        ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
+      ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
         const payload: Record<string, unknown> = {};
         void args[2]?.onPayload?.(payload, args[0]);
         capturedPayload = payload;
@@ -1091,8 +1087,8 @@ describe("openrouter provider hooks", () => {
     const payloads: Array<Record<string, unknown>> = [];
     const baseStreamFn = vi.fn(
       (
-        ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
-      ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
+        ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
+      ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
         const payload = { reasoning: { effort: "high" }, messages: [] };
         void args[2]?.onPayload?.(payload, args[0]);
         payloads.push(payload);
@@ -1144,7 +1140,7 @@ describe("openrouter provider hooks", () => {
         messages: [{ role: "assistant", content: "done", reasoning_content: "" }],
       },
     });
-    expect(capturedPayload).not.toHaveProperty("reasoning");
+    expect(capturedPayload?.reasoning).toEqual({ effort: "none" });
     expect(capturedPayload).not.toHaveProperty("thinking");
     expect(capturedPayload).not.toHaveProperty("reasoning_effort");
     expect(capturedPayload?.messages).toEqual([{ role: "assistant", content: "done" }]);
@@ -1155,8 +1151,8 @@ describe("openrouter provider hooks", () => {
     const payloads: Array<Record<string, unknown>> = [];
     const baseStreamFn = vi.fn(
       (
-        ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
-      ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
+        ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
+      ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
         const payload = {
           messages: [{ role: "assistant", tool_calls: [{ id: "call_1", type: "function" }] }],
         };
@@ -1252,8 +1248,8 @@ describe("openrouter provider hooks", () => {
     const payloads: Array<Record<string, unknown>> = [];
     const baseStreamFn = vi.fn(
       (
-        ...args: Parameters<import("openclaw/plugin-sdk/agent-core").StreamFn>
-      ): ReturnType<import("openclaw/plugin-sdk/agent-core").StreamFn> => {
+        ...args: Parameters<import("astroclaw/plugin-sdk/agent-core").StreamFn>
+      ): ReturnType<import("astroclaw/plugin-sdk/agent-core").StreamFn> => {
         const payload = {
           messages: [
             { role: "user", content: "Return JSON." },
