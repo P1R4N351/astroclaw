@@ -1,7 +1,7 @@
 import { readByteStreamWithLimit } from "@astroclaw/media-core/read-byte-stream-with-limit";
 import { parseStrictPositiveInteger } from "@astroclaw/normalization-core/number-coercion";
 import { isRecord as isPlainRecord } from "@astroclaw/normalization-core/record-coerce";
-import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
+import { readNonBlankString } from "@astroclaw/normalization-core/string-coerce";
 import { normalizeStringEntries } from "@astroclaw/normalization-core/string-normalization";
 import JSON5 from "json5";
 import { rejectConfigNonFiniteNumbers, visitConfigValueTree } from "../config/io.read-helpers.js";
@@ -478,7 +478,7 @@ async function readStdinText(): Promise<string> {
 }
 
 async function readConfigPatchInput(opts: ConfigPatchOptions): Promise<unknown> {
-  const file = normalizeOptionalString(opts.file);
+  const file = readNonBlankString(opts.file);
   const stdin = Boolean(opts.stdin);
   if (Boolean(file) === stdin) {
     throw configPatchModeError("provide exactly one of --file <path> or --stdin.");
