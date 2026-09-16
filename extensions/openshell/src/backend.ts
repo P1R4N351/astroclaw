@@ -7,8 +7,8 @@ import {
   movePathWithCopyFallback,
   type MovePathPublicationReceipt,
 } from "@openclaw/fs-safe/atomic";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/keyed-async-queue";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { KeyedAsyncQueue } from "openclaw/plugin-sdk/keyed-async-queue";
 import type {
   CreateSandboxBackendParams,
   OpenClawConfig,
@@ -17,19 +17,19 @@ import type {
   SandboxBackendFactory,
   SandboxBackendManager,
   SandboxFsBridge,
-} from "astroclaw/plugin-sdk/sandbox";
+} from "openclaw/plugin-sdk/sandbox";
 import {
   createRemoteShellSandboxFsBridge,
   disposeSshSandboxSession,
   prepareSshSandboxExec,
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   runSshSandboxCommand,
   sanitizeEnvVars,
   shellEscape,
   withTempWorkspace,
-} from "astroclaw/plugin-sdk/sandbox";
-import { canonicalPathFromExistingAncestor } from "astroclaw/plugin-sdk/security-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/sandbox";
+import { canonicalPathFromExistingAncestor } from "openclaw/plugin-sdk/security-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { OpenShellFsBridgeContext, OpenShellSandboxBackend } from "./backend.types.js";
 import {
   buildValidatedExecRemoteCommand,
@@ -395,6 +395,9 @@ class OpenShellSandboxBackendImpl {
     // Hold one lease across validation and both commits, not just the remote step.
     // Otherwise exec publication can erase a successful file-tool write or expose partial reads.
     return {
+      get pathMappings() {
+        return bridge.pathMappings;
+      },
       resolvePath: (params) => bridge.resolvePath(params),
       readFile: (params) =>
         this.runWorkspaceOperation(() => bridge.readFile(params), params.signal),
@@ -1430,7 +1433,7 @@ async function restoreLocalShadow(preserved: PreservedLocalShadow): Promise<Erro
 }
 
 function resolveOpenShellTmpRoot(): string {
-  return path.resolve(resolvePreferredAstroclawTmpDir());
+  return path.resolve(resolvePreferredOpenClawTmpDir());
 }
 
 function normalizeRemotePath(remotePath: string): string {
