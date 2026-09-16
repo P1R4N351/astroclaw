@@ -3,15 +3,15 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
 import {
   embeddedAgentLog,
   isToolWrappedWithBeforeToolCallHook,
   resolveAgentHarnessBeforePromptBuildResult,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
   wrapToolWithBeforeToolCallHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { readMemoryArtifactProvenance } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { readMemoryArtifactProvenance } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
 import {
   createAgentHarnessHostCapabilitiesForTest,
   createMockPluginRegistry,
@@ -22,13 +22,13 @@ import {
   resetGlobalHookRunner,
   resetPluginRuntimeStateForTest,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import {
   clearRuntimeConfigSnapshot,
   getRuntimeConfigSnapshot,
   getRuntimeConfigSourceSnapshot,
   setRuntimeConfigSnapshot,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dynamicToolBuildState } from "./dynamic-tool-build-state.js";
 import {
@@ -62,8 +62,8 @@ const hoisted = vi.hoisted(() => ({
   loadNodeExecAvailability: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness")>();
+vi.mock("openclaw/plugin-sdk/agent-harness", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness")>();
 
   return {
     ...actual,
@@ -76,9 +76,8 @@ vi.mock("astroclaw/plugin-sdk/agent-harness", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     normalizeAgentRuntimeTools: (...args: Parameters<typeof actual.normalizeAgentRuntimeTools>) => {
@@ -88,9 +87,9 @@ vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => 
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/node-selection-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/node-selection-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/node-selection-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/node-selection-runtime")>();
   return { ...actual, loadNodeExecAvailability: hoisted.loadNodeExecAvailability };
 });
 
@@ -2714,7 +2713,7 @@ describe("Codex app-server dynamic tool build", () => {
   );
 
   it.each(["ultra", "off"] as const)(
-    "passes active %s thinking into shared OpenClaw tool construction",
+    "passes active %s thinking and prepared model into shared OpenClaw tool construction",
     async (thinkLevel) => {
       const sessionFile = path.join(tempDir, "session.jsonl");
       const workspaceDir = path.join(tempDir, "workspace");
@@ -2722,6 +2721,8 @@ describe("Codex app-server dynamic tool build", () => {
       params.disableTools = false;
       params.delegationCapability = "report_only";
       params.thinkLevel = thinkLevel;
+      params.modelId = "configured-alias";
+      params.model = { ...params.model, provider: "openai", id: "gpt-5.6-sol" };
       params.runtimePlan = createCodexRuntimePlanFixture();
       const factoryOptions: unknown[] = [];
       setOpenClawCodingToolsFactoryForTests((options) => {
@@ -2735,6 +2736,7 @@ describe("Codex app-server dynamic tool build", () => {
       expect(factoryOptions[0]).toMatchObject({
         delegationCapability: "report_only",
         requesterThinkingLevel: thinkLevel,
+        requesterModel: { provider: "openai", model: "gpt-5.6-sol" },
       });
     },
   );
