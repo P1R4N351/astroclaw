@@ -1,6 +1,6 @@
 // Browser tests cover browser tool plugin behavior.
 import { fileURLToPath } from "node:url";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { Value } from "typebox/value";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveBrowserToolTimeoutMs } from "./browser-tool.routing.js";
@@ -207,10 +207,10 @@ const configMocks = vi.hoisted(() => ({
     }
   >(() => ({ browser: {} })),
 }));
-vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
+vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/runtime-config-snapshot")
-  >("openclaw/plugin-sdk/runtime-config-snapshot");
+    typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")
+  >("astroclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
     getRuntimeConfig: configMocks.loadConfig,
@@ -267,8 +267,27 @@ vi.mock("./sdk-setup-tools.js", async () => {
 vi.mock("./browser-tool.runtime.js", async () => {
   const { BrowserToolOutputSchema, createBrowserToolSchema, resolveBrowserToolCapabilities } =
     await vi.importActual<typeof import("./browser-tool.schema.js")>("./browser-tool.schema.js");
-  const { normalizeBrowserTabsResult } =
+  const actualClient =
     await vi.importActual<typeof import("./browser/client.js")>("./browser/client.js");
+  const actualActions = await vi.importActual<typeof import("./browser/client-actions.js")>(
+    "./browser/client-actions.js",
+  );
+  const actualMethods: Record<string, (...args: never[]) => unknown> = {
+    ...actualClient,
+    ...actualActions,
+  };
+  // Node requests exercise the shared client projection before reaching the mocked Gateway.
+  const routedClients = Object.fromEntries(
+    Object.entries({ ...browserClientMocks, ...browserActionsMocks }).map(([name, local]) => [
+      name,
+      (...args: unknown[]) =>
+        Reflect.apply(
+          typeof args[0] === "function" ? actualMethods[name]! : local,
+          undefined,
+          args,
+        ),
+    ]),
+  );
   const { wrapExternalContent } = await vi.importActual<typeof import("./sdk-security-runtime.js")>(
     "./sdk-security-runtime.js",
   );
@@ -295,10 +314,8 @@ vi.mock("./browser-tool.runtime.js", async () => {
     DEFAULT_UPLOAD_DIR: "/tmp/openclaw-browser-uploads",
     BrowserToolOutputSchema,
     createBrowserToolSchema,
-    normalizeBrowserTabsResult,
     resolveBrowserToolCapabilities,
-    ...browserActionsMocks,
-    ...browserClientMocks,
+    ...routedClients,
     ...browserConfigMocks,
     ...configMocks,
     ...gatewayMocks,
@@ -3170,28 +3187,6 @@ describe("browser tool url alias support", () => {
   });
 
   it.each([
-    { requestedTimeoutMs: 10, expectedTimeoutMs: 1_000 },
-    { requestedTimeoutMs: 180_000, expectedTimeoutMs: 120_000 },
-    { requestedTimeoutMs: Number.MAX_SAFE_INTEGER, expectedTimeoutMs: 120_000 },
-  ])(
-    "normalizes host navigation timeout $requestedTimeoutMs before browser dispatch",
-    async ({ requestedTimeoutMs, expectedTimeoutMs }) => {
-      await createBrowserTool().execute?.("call-1", {
-        action: "navigate",
-        target: "host",
-        url: "https://example.com/slow",
-        targetId: "tab-1",
-        timeoutMs: requestedTimeoutMs,
-      });
-
-      expect(browserActionsMocks.browserNavigate).toHaveBeenCalledWith(
-        undefined,
-        expect.objectContaining({ timeoutMs: expectedTimeoutMs }),
-      );
-    },
-  );
-
-  it.each([
     { label: "default", requestedTimeoutMs: undefined, expectedTimeoutMs: 20_000 },
     { label: "explicit", requestedTimeoutMs: 45_000, expectedTimeoutMs: 45_000 },
     { label: "minimum", requestedTimeoutMs: 10, expectedTimeoutMs: 1_000 },
@@ -3911,11 +3906,11 @@ describe("browser tool snapshot labels", () => {
   it("keeps private labeled snapshots visible to the model but out of channel delivery", async () => {
     const [{ imageResultFromFile }, { extractToolResultMediaArtifact, filterToolResultMediaUrls }] =
       await Promise.all([
-        vi.importActual<typeof import("openclaw/plugin-sdk/channel-actions")>(
-          "openclaw/plugin-sdk/channel-actions",
+        vi.importActual<typeof import("astroclaw/plugin-sdk/channel-actions")>(
+          "astroclaw/plugin-sdk/channel-actions",
         ),
-        vi.importActual<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>(
-          "openclaw/plugin-sdk/agent-harness-runtime",
+        vi.importActual<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>(
+          "astroclaw/plugin-sdk/agent-harness-runtime",
         ),
       ]);
     const imagePath = fileURLToPath(
