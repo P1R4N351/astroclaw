@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentTool, AgentToolResult } from "astroclaw/plugin-sdk/agent-core";
+import type { AgentTool, AgentToolResult } from "openclaw/plugin-sdk/agent-core";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
@@ -1528,7 +1528,7 @@ describe("createOpenClawCodingTools", () => {
     }
   });
 
-  it("forwards the native channel id through standard tool construction", () => {
+  it("forwards prepared runtime context through standard tool construction", () => {
     const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
     createOpenClawToolsMock.mockClear();
 
@@ -1537,6 +1537,9 @@ describe("createOpenClawCodingTools", () => {
       chatType: "group",
       nativeChannelId: "oc_native_chat",
       messageActionTurnCapability: "turn-capability-1",
+      modelProvider: "custom",
+      modelId: "alias",
+      requesterModel: { provider: "custom", model: "custom/resolved" },
     });
 
     expect(latestCreateOpenClawToolsOptions().nativeChannelId).toBe("oc_native_chat");
@@ -1544,6 +1547,10 @@ describe("createOpenClawCodingTools", () => {
     expect(latestCreateOpenClawToolsOptions().messageActionTurnCapability).toBe(
       "turn-capability-1",
     );
+    expect(latestCreateOpenClawToolsOptions().requesterModel).toEqual({
+      provider: "custom",
+      model: "custom/resolved",
+    });
   });
 
   it("separates scheduled Gateway authority from the live delivery account", () => {
