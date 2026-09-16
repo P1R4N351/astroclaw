@@ -1,15 +1,15 @@
 // Minimax tests cover index plugin behavior.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { Context, Model } from "openclaw/plugin-sdk/llm";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import type { Context, Model } from "astroclaw/plugin-sdk/llm";
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
   runProviderCatalog,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { MINIMAX_OAUTH_MARKER } from "openclaw/plugin-sdk/provider-auth";
-import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { MINIMAX_OAUTH_MARKER } from "astroclaw/plugin-sdk/provider-auth";
+import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMinimaxModelDiscovery, buildMinimaxProvider } from "./provider-catalog.js";
 import { registerMinimaxProviders } from "./provider-registration.js";
@@ -835,6 +835,7 @@ describe("minimax provider hooks", () => {
       throw new Error("expected minimax portal oauth auth method");
     }
 
+    const assertCurrent = vi.fn();
     const result = await oauthMethod.run({
       prompter: {
         progress() {
@@ -843,7 +844,13 @@ describe("minimax provider hooks", () => {
         note: vi.fn(async () => undefined),
       },
       openUrl: vi.fn(async () => undefined),
+      assertCurrent,
     } as never);
+
+    const { loginMiniMaxPortalOAuth } = await import("./oauth.runtime.js");
+    expect(vi.mocked(loginMiniMaxPortalOAuth)).toHaveBeenCalledWith(
+      expect.objectContaining({ assertCurrent }),
+    );
 
     expect(result?.configPatch?.models?.providers?.["minimax-portal"]).toEqual({
       baseUrl: "https://api.minimax.io/anthropic",
