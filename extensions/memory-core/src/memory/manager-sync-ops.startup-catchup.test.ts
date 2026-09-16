@@ -2,23 +2,23 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   buildSessionEntry,
   statSessionEntrySync,
-} from "openclaw/plugin-sdk/memory-core-host-engine-sessions";
-import type { MemorySyncParams } from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
+import type { MemorySyncParams } from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   clearConfigCache,
   clearRuntimeConfigSnapshot,
-} from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { deleteSessionEntry, upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { deleteSessionEntry, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   publishSessionTranscriptUpdateByIdentity,
-} from "openclaw/plugin-sdk/session-transcript-runtime";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+} from "astroclaw/plugin-sdk/session-transcript-runtime";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SessionStartupCatchupHarness,
@@ -267,7 +267,7 @@ describe("session startup catch-up", () => {
     const harness = new SessionStartupCatchupHarness([
       {
         path: state.path,
-        hash: "current-hash",
+        hash: `sqlite:${state.revisionMs}:current-hash`,
         mtime: state.mtimeMs,
         size: state.size,
       },
@@ -380,7 +380,7 @@ describe("session startup catch-up", () => {
     expect(restarted.indexedPaths).toEqual([]);
   });
 
-  it("indexes a SQLite transcript whose updatedAt rolled back", async () => {
+  it("upgrades an indexed SQLite activity fingerprint during startup catch-up", async () => {
     const session = await writeSqliteSession({
       content: "SQLite rollback",
       updatedAt: 10,
@@ -415,7 +415,7 @@ describe("session startup catch-up", () => {
     expect(harness.indexedContents).toEqual(["User: SQLite rollback"]);
   });
 
-  it("converges an unchanged SQLite updatedAt rollback after deferred session sync", async () => {
+  it("converges a legacy SQLite activity fingerprint without reindexing unchanged text", async () => {
     const session = await writeSqliteSession({ updatedAt: 10 });
     const entry = await buildSessionEntry(session.sessionKey, {
       agentId: "main",
@@ -450,7 +450,7 @@ describe("session startup catch-up", () => {
     expect(harness.indexedContents).toEqual([]);
     expect(harness.getIndexedSourceState(entry.path)).toEqual({
       path: entry.path,
-      hash: entry.hash,
+      hash: `sqlite:${entry.revisionMs}:${entry.hash}`,
       mtime: entry.mtimeMs,
       size: entry.size,
     });
