@@ -4,9 +4,9 @@ import {
   embeddedAgentLog,
   formatErrorMessage,
   runAgentHarnessLlmOutputHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { appendSessionYieldContext } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { appendSessionYieldContext } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { classifyCodexModelCallFailureKind } from "./attempt-diagnostics.js";
 import {
   buildCodexAppServerPromptTimeoutOutcome,
@@ -665,31 +665,37 @@ export async function finalizeCodexAttempt(
     const terminalAssistantText = collectTerminalAssistantText(result);
     if (
       terminalAssistantText &&
-      (!streamState.eventEmitted || streamState.needsTerminalSnapshot) &&
-      !finalAborted &&
-      !finalPromptError
+      (assistantTranscriptIdempotencyKey ||
+        ((!streamState.eventEmitted || streamState.needsTerminalSnapshot) &&
+          !finalAborted &&
+          !finalPromptError))
     ) {
       void emitCodexAppServerEvent(params, {
         stream: "assistant",
-        data: { text: terminalAssistantText },
+        data: {
+          text: terminalAssistantText,
+          // The receipt identifies the selected persisted occurrence, which can
+          // exclude candidates streamed before a native tool or sleep boundary.
+          ...(assistantTranscriptIdempotencyKey
+            ? {
+                itemId: assistantTranscriptIdempotencyKey,
+                replace: true,
+                replaceable: true,
+              }
+            : {}),
+        },
       });
     }
-    emitLifecycleTerminal(
-      finalPromptError
-        ? {
-            phase: "error",
-            error: formatErrorMessage(finalPromptError),
-            ...buildLifecycleTerminalMeta({ aborted: finalAborted, timedOut: effectiveTimedOut }),
-          }
-        : {
-            phase: "end",
-            ...buildLifecycleTerminalMeta({
-              aborted: finalAborted,
-              timedOut: effectiveTimedOut,
-              yielded: toolState.yieldDetected,
-            }),
-          },
-    );
+    emitLifecycleTerminal({
+      phase: finalPromptError ? "error" : "end",
+      ...(finalPromptError ? { error: formatErrorMessage(finalPromptError) } : {}),
+      ...(assistantTranscriptIdempotencyKey ? { assistantTranscriptIdempotencyKey } : {}),
+      ...buildLifecycleTerminalMeta({
+        aborted: finalAborted,
+        timedOut: effectiveTimedOut,
+        yielded: finalPromptError ? undefined : toolState.yieldDetected,
+      }),
+    });
     // Preserve the exact result identity carrying host-issued TTS delivery provenance.
     const finalizedResult: EmbeddedRunAttemptResult = Object.assign(result, {
       ...(runtimeModelSelection ? { runtimeModelSelection } : {}),
