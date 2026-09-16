@@ -1,25 +1,25 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   buildSessionEntry,
   listSessionTranscriptCorpusEntriesForAgent,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
+} from "openclaw/plugin-sdk/memory-core-host-engine-sessions";
 import {
   MEMORY_CHUNKING_VERSION,
   type MemorySessionSyncTarget,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resolveRuntimeWorkerUrl, WorkerTaskPool } from "astroclaw/plugin-sdk/process-runtime";
-import { deleteSessionEntry, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resolveRuntimeWorkerUrl, WorkerTaskPool } from "openclaw/plugin-sdk/process-runtime";
+import { deleteSessionEntry, upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   readSessionTranscriptEvents,
-} from "astroclaw/plugin-sdk/session-transcript-runtime";
-import { resolveOpenClawAgentSqlitePath } from "astroclaw/plugin-sdk/sqlite-runtime";
-import { appendSqliteSessionTranscriptEventForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
-import { asOptionalRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/session-transcript-runtime";
+import { resolveOpenClawAgentSqlitePath } from "openclaw/plugin-sdk/sqlite-runtime";
+import { appendSqliteSessionTranscriptEventForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+import { asOptionalRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { describe, expect, it, vi } from "vitest";
 import {
   recordMemoryEntryOrigins,
@@ -208,7 +208,7 @@ describe("memory session update sync", () => {
         },
       });
       const unchangedTranscript = await readSessionTranscriptEvents(target);
-      let legacySourceHash: string | undefined;
+      let expectedSourceHash: string | undefined;
       if (mode === "unchanged legacy index") {
         const corpus = (await listSessionTranscriptCorpusEntriesForAgent("main")).find(
           (entry) => entry.sessionId === sessionId,
@@ -244,7 +244,7 @@ describe("memory session update sync", () => {
             "UPDATE memory_index_meta SET value = json_set(value, '$.chunkingVersion', 4) WHERE key = 'memory_index_meta_v1'",
           )
           .run();
-        legacySourceHash = entry.hash;
+        expectedSourceHash = `sqlite:${entry.revisionMs}:${entry.hash}`;
         await manager.close();
         manager = await getFreshManager(cfg, "cli");
         await manager.sync({ reason: "watch" });
@@ -273,14 +273,14 @@ describe("memory session update sync", () => {
             text: "User: Retained owner preference.\nAssistant: Retained derived answer.",
           },
         ]);
-        if (legacySourceHash !== undefined) {
+        if (expectedSourceHash !== undefined) {
           expect(
             observer
               .prepare(
                 "SELECT hash FROM memory_index_sources WHERE path = ? AND source = 'sessions'",
               )
               .get(`sessions/main/${sessionId}.jsonl`)?.hash,
-          ).toBe(legacySourceHash);
+          ).toBe(expectedSourceHash);
           expect(
             observer
               .prepare(
