@@ -1,6 +1,11 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
+import { captureChannelReadAuthority } from "astroclaw/plugin-sdk/fetch-runtime";
+import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/keyed-async-queue";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import type { PinnedDispatcherPolicy } from "astroclaw/plugin-sdk/ssrf-dispatcher";
+import type { SsrFPolicy } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   Filter,
   createClient as createMatrixJsClient,
@@ -8,11 +13,6 @@ import {
   type MatrixClient as MatrixJsClient,
 } from "matrix-js-sdk/lib/matrix.js";
 import { VerificationMethod } from "matrix-js-sdk/lib/types.js";
-import { captureChannelReadAuthority } from "openclaw/plugin-sdk/fetch-runtime";
-import { KeyedAsyncQueue } from "openclaw/plugin-sdk/keyed-async-queue";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import type { PinnedDispatcherPolicy } from "openclaw/plugin-sdk/ssrf-dispatcher";
-import type { SsrFPolicy } from "openclaw/plugin-sdk/ssrf-runtime";
 import { SqliteBackedMatrixSyncStore } from "../client/file-sync-store.js";
 import { createMatrixJsSdkClientLogger } from "../client/logging.js";
 import type { MatrixSnapshotStateRuntime } from "../crypto-state-store.js";
@@ -193,7 +193,7 @@ export abstract class MatrixClientBase {
     this.stateRuntime = opts.stateRuntime;
     this.selfUserId = opts.userId?.trim() || null;
     this.autoBootstrapCrypto = opts.autoBootstrapCrypto !== false;
-    this.recoveryKeyStore = new MatrixRecoveryKeyStore(opts.recoveryKeyPath);
+    this.recoveryKeyStore = new MatrixRecoveryKeyStore(opts.recoveryKeyPath, opts.stateRuntime);
     const cryptoCallbacks = this.encryptionEnabled
       ? this.recoveryKeyStore.buildCryptoCallbacks()
       : undefined;
@@ -211,6 +211,9 @@ export abstract class MatrixClientBase {
       logger: createMatrixJsSdkClientLogger("MatrixClient"),
       localTimeoutMs: this.localTimeoutMs,
       fetchFn: (async (resource: RequestInfo | URL, init?: RequestInit) => {
+        // The SDK cache callback is void; even stores without a key getter must
+        // settle its admitted writes before another request reaches the wire.
+        await this.recoveryKeyStore.drainPendingPersistence();
         const pendingGuard = this.messageWireDispatchGuards.beforeRequest(resource, init);
         if (pendingGuard) {
           await pendingGuard;
@@ -319,7 +322,7 @@ export abstract class MatrixClientBase {
           return false;
         }
         const keyTuple = await secretStorage.getKey(defaultKeyId);
-        const key = this.recoveryKeyStore.getSecretStorageKeyCandidate(defaultKeyId);
+        const key = await this.recoveryKeyStore.getSecretStorageKeyCandidate(defaultKeyId);
         if (!keyTuple || !key) {
           return false;
         }
@@ -579,39 +582,41 @@ export abstract class MatrixClientBase {
   }
 
   private async stopClientGeneration(persist: boolean): Promise<void> {
-    if (persist) {
-      await this.quiesceSync();
-    } else {
-      await this.quiesceSync().catch(noop);
-      this.syncStore?.discardPendingSyncCursorPersistence();
-    }
-    this.requestAbortController.abort(new Error("Matrix client generation is no longer active."));
-    // A one-off read can still be preparing crypto when its owner closes.
-    // Join that initialization before stopping the backend it may publish.
-    await this.cryptoInitializationPromise?.catch(noop);
-    if (this.idbPersistTimer) {
-      clearInterval(this.idbPersistTimer);
-      this.idbPersistTimer = null;
-    }
-    this.idbPersistAbortController?.abort();
-    const activePeriodicPersist = this.idbPersistPromise;
     try {
-      this.stopSdkClient();
-      this.decryptBridge?.stop();
+      if (persist) {
+        await this.quiesceSync();
+      } else {
+        await this.quiesceSync().catch(noop);
+        this.syncStore?.discardPendingSyncCursorPersistence();
+      }
+      this.requestAbortController.abort(new Error("Matrix client generation is no longer active."));
+      // A one-off read can still be preparing crypto when its owner closes.
+      // Join that initialization before stopping the backend it may publish.
+      await this.cryptoInitializationPromise?.catch(noop);
+      clearInterval(this.idbPersistTimer ?? undefined);
+      this.idbPersistTimer = null;
+      this.idbPersistAbortController?.abort();
+      const activePeriodicPersist = this.idbPersistPromise;
+      try {
+        this.stopSdkClient();
+        this.decryptBridge?.stop();
+      } finally {
+        this.cryptoRequestOwner.disable();
+      }
+      await Promise.all([this.recoveryKeyStore.close(), activePeriodicPersist]);
+      if (persist) {
+        const runtime = loadedMatrixCryptoRuntime ?? (await loadMatrixCryptoRuntime());
+        await runtime.persistIdbToDisk({
+          snapshotPath: this.idbSnapshotPath,
+          databasePrefix: this.cryptoDatabasePrefix,
+          strict: true,
+          stateRuntime: this.stateRuntime,
+        });
+        this.syncStore?.markCleanShutdown();
+        await this.syncStore?.flush();
+      }
     } finally {
-      this.cryptoRequestOwner.disable();
-    }
-    await activePeriodicPersist;
-    if (persist) {
-      const runtime = loadedMatrixCryptoRuntime ?? (await loadMatrixCryptoRuntime());
-      await runtime.persistIdbToDisk({
-        snapshotPath: this.idbSnapshotPath,
-        databasePrefix: this.cryptoDatabasePrefix,
-        strict: true,
-        stateRuntime: this.stateRuntime,
-      });
-      this.syncStore?.markCleanShutdown();
-      await this.syncStore?.flush();
+      await this.recoveryKeyStore.close();
     }
   }
 
