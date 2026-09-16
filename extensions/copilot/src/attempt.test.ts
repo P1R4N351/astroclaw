@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { CopilotClient, Tool as SdkTool } from "@github/copilot-sdk";
-import * as agentHarnessRuntime from "openclaw/plugin-sdk/agent-harness-runtime";
+import * as agentHarnessRuntime from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   abortAgentHarnessRun,
   applyEmbeddedAttemptToolsAllow,
@@ -17,21 +17,21 @@ import {
   type AgentMessage,
   type AnyAgentTool,
   type SandboxContext,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import * as agentHarnessTaskRuntime from "openclaw/plugin-sdk/agent-harness-task-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import * as agentHarnessTaskRuntime from "astroclaw/plugin-sdk/agent-harness-task-runtime";
 import type {
   AgentHarnessTaskRecord,
   AgentHarnessTaskRuntime,
   AgentHarnessTaskRuntimeScope,
-} from "openclaw/plugin-sdk/agent-harness-task-runtime";
-import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+} from "astroclaw/plugin-sdk/agent-harness-task-runtime";
+import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import {
   initializeGlobalHookRunner,
   resetGlobalHookRunner,
-} from "openclaw/plugin-sdk/hook-runtime";
-import { createMockPluginRegistry } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import { createMockPluginRegistry } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runCopilotAttempt } from "./attempt.js";
 import { createCopilotTestHostCapabilities } from "./host-capability.test-support.js";
@@ -62,7 +62,7 @@ const gatewayQuestionMock = vi.hoisted(() => ({
   claimPendingAgentQuestionAnswer: undefined as
     | ((
         ...args: Parameters<
-          typeof import("openclaw/plugin-sdk/agent-harness-runtime").claimPendingAgentQuestionAnswer
+          typeof import("astroclaw/plugin-sdk/agent-harness-runtime").claimPendingAgentQuestionAnswer
         >
       ) => Promise<boolean>)
     | undefined,
@@ -71,8 +71,9 @@ const gatewayQuestionMock = vi.hoisted(() => ({
   setActiveEmbeddedRun: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
   type QuestionDispatcher = Exclude<
     Parameters<typeof actual.runAgentHarnessGatewayQuestion>[0]["gatewayCall"],
     AgentHarnessQuestionGatewayCall | undefined
@@ -214,9 +215,9 @@ const transcriptRuntimeMock = vi.hoisted(() => ({
   }),
   readVisible: vi.fn(async () => []),
 }));
-vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-runtime")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-runtime")>();
   return {
     ...actual,
     appendSessionTranscriptMessageByIdentity: transcriptRuntimeMock.append,
@@ -1106,27 +1107,36 @@ describe("runCopilotAttempt", () => {
     expect(cfg.hooks?.onPreToolUse).toEqual(expect.any(Function));
   });
 
-  it("does not emit llm_output when cancellation happens before the SDK turn starts", async () => {
-    const llmOutput = vi.fn();
-    initializeGlobalHookRunner(
-      createMockPluginRegistry([{ hookName: "llm_output", handler: llmOutput }]),
-    );
-    const controller = new AbortController();
-    const sdk = makeFakeSdk();
+  it.each(["sync", "async"] as const)(
+    "does not emit llm_output when cancellation happens during %s session establishment",
+    async (mode) => {
+      const llmOutput = vi.fn();
+      initializeGlobalHookRunner(
+        createMockPluginRegistry([{ hookName: "llm_output", handler: llmOutput }]),
+      );
+      const controller = new AbortController();
+      const sdk = makeFakeSdk();
 
-    const result = await runCopilotAttempt(
-      makeParams({ abortSignal: controller.signal } as never),
-      {
-        onSessionEstablished: () => controller.abort(),
-        pool: makeFakePool(sdk),
-      },
-    );
-    await waitForEventLoopTurn();
+      const result = await runCopilotAttempt(
+        makeParams({ abortSignal: controller.signal } as never),
+        {
+          onSessionEstablished:
+            mode === "sync"
+              ? () => controller.abort()
+              : async () => {
+                  await waitForEventLoopTurn();
+                  controller.abort();
+                },
+          pool: makeFakePool(sdk),
+        },
+      );
+      await waitForEventLoopTurn();
 
-    expect(projectAgentRunAttemptTerminal(result.terminal).aborted).toBe(true);
-    expect(sdk.sessions[0]?.sendAndWait).not.toHaveBeenCalled();
-    expect(llmOutput).not.toHaveBeenCalled();
-  });
+      expect(projectAgentRunAttemptTerminal(result.terminal).aborted).toBe(true);
+      expect(sdk.sessions[0]?.sendAndWait).not.toHaveBeenCalled();
+      expect(llmOutput).not.toHaveBeenCalled();
+    },
+  );
 
   it("waits for agent_end hooks before resolving one-shot attempts", async () => {
     let releaseAgentEnd: () => void = () => undefined;
