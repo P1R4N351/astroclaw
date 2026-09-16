@@ -10,9 +10,9 @@ import {
   type CodexBundleMcpThreadConfig,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
   type resolveSandboxContext,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
-import { sleepWithAbort } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+import { sleepWithAbort } from "openclaw/plugin-sdk/runtime-env";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
   CodexAppServerUnsafeSubscriptionError,
@@ -320,8 +320,9 @@ export async function startCodexAttemptThread(params: {
               config: params.config,
             });
             const turnRouter = getCodexAppServerTurnRouter(activeStartupClient);
+            let computerUseTools: string[] = [];
             try {
-              await ensureCodexComputerUse({
+              const computerUseStatus = await ensureCodexComputerUse({
                 client: activeStartupClient,
                 pluginConfig: params.pluginConfig,
                 config: params.config,
@@ -329,6 +330,7 @@ export async function startCodexAttemptThread(params: {
                 timeoutMs: params.appServer.requestTimeoutMs,
                 signal: startupAbandonController.signal,
               });
+              computerUseTools = computerUseStatus.tools;
             } catch (error) {
               if (
                 startupAbandonController.signal.aborted ||
@@ -556,6 +558,7 @@ export async function startCodexAttemptThread(params: {
               startCodexComputerUseHealthMonitor({
                 client: activeStartupClient,
                 config: params.computerUseConfig,
+                tools: computerUseTools,
               });
               startupAttemptSucceeded = true;
               return {
