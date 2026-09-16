@@ -1,5 +1,5 @@
 // Codex supervision tests cover passive listing and safe local session takeover.
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { describe, expect, it, vi } from "vitest";
 import { bridgeCodexAppServerStartOptions } from "./app-server/auth-bridge.js";
 import type { CodexAppServerStartOptions } from "./app-server/config-contracts.js";
@@ -220,7 +220,7 @@ describe("Codex supervision catalog", () => {
         archived: false,
         limit: 25,
         modelProviders: [],
-        sortKey: "updated_at",
+        sortKey: "recency_at",
         sortDirection: "desc",
         cwd: "/workspace/one",
       },
