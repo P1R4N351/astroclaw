@@ -223,7 +223,21 @@ export function renderSessionWorkspaceRail(
             })}
           </div>
         `;
-  const parentPath = !browser?.search ? browser?.parentPath : null;
+  // A listing may omit an unavailable folder; navigation still belongs to the current intent.
+  const unavailableFolder =
+    !browser &&
+    sessionWorkspace.list !== null &&
+    !sessionWorkspace.loading &&
+    !search &&
+    sessionWorkspace.browserPath !== "";
+  const parentPath = unavailableFolder
+    ? sessionWorkspace.browserPath.slice(
+        0,
+        Math.max(0, sessionWorkspace.browserPath.lastIndexOf("/")),
+      )
+    : !browser?.search
+      ? browser?.parentPath
+      : null;
   const renderBrowserRows = () => html`
     ${browser?.search
       ? html`<div class="chat-workspace-rail__browser-caption">
@@ -243,9 +257,11 @@ export function renderSessionWorkspaceRail(
       ${entries.length === 0
         ? html`<div class="chat-workspace-rail__state">
             ${t(
-              browser?.search
-                ? "chat.workspaceFiles.noSearchResults"
-                : "chat.workspaceFiles.noBrowserFiles",
+              unavailableFolder
+                ? "chat.workspaceFiles.folderUnavailable"
+                : browser?.search
+                  ? "chat.workspaceFiles.noSearchResults"
+                  : "chat.workspaceFiles.noBrowserFiles",
             )}
           </div>`
         : nothing}
@@ -489,7 +505,7 @@ export function renderSessionWorkspaceRail(
                   t("chat.workspaceFiles.browser"),
                   entries.length,
                   true,
-                  browser ? renderBrowserRows() : nothing,
+                  browser || unavailableFolder ? renderBrowserRows() : nothing,
                 )}
               </div>
             `}
