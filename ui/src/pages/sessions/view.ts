@@ -66,6 +66,7 @@ type TranscriptSearchState =
   | { status: "error"; message: string }
   | {
       status: "results";
+      sessions: GatewaySessionRow[];
       results: SessionsSearchHit[];
       indexing: boolean;
       truncated: boolean;
@@ -372,10 +373,11 @@ function transcriptSearchSessionLabel(hit: SessionsSearchHit, rows: GatewaySessi
   );
 }
 
-function renderTranscriptSearch(props: SessionsProps, rows: GatewaySessionRow[]) {
+function renderTranscriptSearch(props: SessionsProps) {
   const hasQuery = props.transcriptSearchQuery.trim().length > 0;
   const state = props.transcriptSearch;
   const results = state.status === "results" ? state.results : [];
+  const rows = state.status === "results" ? state.sessions : [];
   const loading = state.status === "loading";
   return html`
     <section
@@ -1008,7 +1010,7 @@ export function renderSessions(props: SessionsProps) {
       {
         title: t("sessionsView.transcriptSearchTitle"),
       },
-      renderTranscriptSearch(props, rawRows),
+      renderTranscriptSearch(props),
     ),
     renderSettingsSection(
       {
