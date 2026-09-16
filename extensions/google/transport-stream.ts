@@ -1,5 +1,5 @@
 // Google plugin module implements transport stream behavior.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
 import {
   getEnvApiKey,
   resolveProviderContext,
@@ -12,17 +12,17 @@ import {
   type SimpleStreamOptions,
   type ThinkingLevel,
   type VideoContent,
-} from "openclaw/plugin-sdk/llm";
-import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/llm";
+import { parseStrictNonNegativeInteger } from "astroclaw/plugin-sdk/number-runtime";
 import {
   collectProviderApiKeysForExecution,
   executeWithApiKeyRotation,
-} from "openclaw/plugin-sdk/provider-auth-runtime";
+} from "astroclaw/plugin-sdk/provider-auth-runtime";
 import {
   createProviderHttpError,
   providerOperationRetryConfig,
   resolveProviderRequestHeaders,
-} from "openclaw/plugin-sdk/provider-http";
+} from "astroclaw/plugin-sdk/provider-http";
 import {
   buildGuardedModelFetch,
   consumeGoogleGenerateContentStream,
@@ -38,12 +38,12 @@ import {
   sanitizeTransportPayloadText,
   stripSystemPromptCacheBoundary,
   transformTransportMessages,
-} from "openclaw/plugin-sdk/provider-transport-runtime";
+} from "astroclaw/plugin-sdk/provider-transport-runtime";
 import {
   isRecord,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { parseGeminiAuth } from "./gemini-auth.js";
 import { stripGoogleProviderPrefix } from "./model-id.js";
 import { isGoogleNativeVideoModelId } from "./provider-models.js";
@@ -658,16 +658,6 @@ function shouldRetryGoogleGemini3FirstResponse(params: {
   return isGoogleGemini3ProModel(params.model.id) || isGoogleGemini3FlashModel(params.model.id);
 }
 
-function resolveGoogleGemini3RetryThinkingLevel(modelId: string): GoogleThinkingLevel | undefined {
-  if (isGoogleGemini3ProModel(modelId)) {
-    return "LOW";
-  }
-  if (isGoogleGemini3FlashModel(modelId)) {
-    return "MINIMAL";
-  }
-  return undefined;
-}
-
 function cloneGoogleGenerateContentRequest(
   params: GoogleGenerateContentRequest,
 ): GoogleGenerateContentRequest {
@@ -679,7 +669,10 @@ function buildGoogleGemini3FirstResponseRetryParams(params: {
   model: GoogleTransportModel;
   request: GoogleGenerateContentRequest;
 }): GoogleGenerateContentRequest | undefined {
-  const thinkingLevel = resolveGoogleGemini3RetryThinkingLevel(params.model.id);
+  const thinkingLevel = resolveGoogleGemini3ThinkingLevel({
+    modelId: params.model.id,
+    thinkingLevel: "off",
+  });
   if (!thinkingLevel) {
     return undefined;
   }
