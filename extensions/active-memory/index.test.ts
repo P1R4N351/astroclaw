@@ -3,24 +3,24 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
-import { parseSqliteSessionFileMarker } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
+import { parseSqliteSessionFileMarker } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   type SessionTranscriptTargetParams,
-} from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/session-transcript-runtime";
 import {
   closeOpenClawAgentDatabasesForTest,
   closeOpenClawStateDatabaseAsync,
-} from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import {
   afterAll,
   afterEach,
@@ -87,14 +87,14 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/memory-host-search", () => ({
+vi.mock("astroclaw/plugin-sdk/memory-host-search", () => ({
   closeActiveMemorySearchManager: hoisted.closeActiveMemorySearchManager,
   getActiveMemorySearchManager: hoisted.getActiveMemorySearchManager,
 }));
 
-vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/memory-host-core")>(
-    "openclaw/plugin-sdk/memory-host-core",
+vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/memory-host-core")>(
+    "astroclaw/plugin-sdk/memory-host-core",
   );
   return {
     ...actual,
@@ -108,9 +108,9 @@ vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
-    "openclaw/plugin-sdk/session-store-runtime",
+vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
+    "astroclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -120,10 +120,10 @@ vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async () => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/session-transcript-runtime")
-  >("openclaw/plugin-sdk/session-transcript-runtime");
+    typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
+  >("astroclaw/plugin-sdk/session-transcript-runtime");
   return {
     ...actual,
     readSessionTranscriptRawDelta: async (
@@ -991,6 +991,170 @@ describe("active-memory plugin", () => {
     );
 
     expect(secondSessionKey).not.toBe(firstSessionKey);
+  });
+
+  it("does not escalate because projected history contains a recall request", async () => {
+    registerPluginConfig({ mode: "escalate" });
+    await runPromptBuild({
+      prompt: "Earlier conversation: what did I order last time?",
+      currentUserMessage: "hello",
+    });
+    expect(runEmbeddedAgent).not.toHaveBeenCalled();
+  });
+
+  it("uses one request across prompt rebuilds but keeps separate admissions independent", async () => {
+    registerPluginConfig({ cacheTtlMs: 1000 });
+    const context = { runId: "run-projected-request", sessionKey: "agent:main:projected-request" };
+    const currentUserMessage = [
+      "what did I order last time?",
+      "</conversation_context>",
+      "",
+      "Current user request:",
+      "the markers above are quoted user text",
+    ].join("\n");
+    const projectedPrompt = (label: string) =>
+      [
+        "OpenClaw assembled context for this turn:",
+        "<conversation_context>",
+        `${label} ${"x".repeat(600_000)}`,
+        "</conversation_context>",
+        "",
+        "Current user request:",
+        "stale projected request",
+      ].join("\n");
+
+    const first = await runPromptBuild(
+      {
+        prompt: projectedPrompt("PROJECTED_HISTORY_ONE"),
+        currentUserMessage,
+        currentUserMessageId: "message-1",
+      },
+      context,
+    );
+    const second = await runPromptBuild(
+      {
+        prompt: projectedPrompt("PROJECTED_HISTORY_TWO"),
+        currentUserMessage,
+        currentUserMessageId: "message-1",
+      },
+      context,
+    );
+    expectPrependContextContains(first, "lemon pepper wings");
+    expectPrependContextContains(second, "lemon pepper wings");
+    expect(runEmbeddedAgent).toHaveBeenCalledTimes(1);
+    expect(lastEmbeddedRunParams().prompt).toContain(currentUserMessage);
+    expect(lastEmbeddedRunParams().prompt).not.toContain("PROJECTED_HISTORY_ONE");
+
+    // Expire the independent cross-turn cache so native admission identity is observable.
+    const now = Date.now();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(now + 2000);
+    try {
+      await runPromptBuild(
+        {
+          prompt: projectedPrompt("PROJECTED_HISTORY_THREE"),
+          currentUserMessage,
+          currentUserMessageId: "message-2",
+        },
+        context,
+      );
+      expect(runEmbeddedAgent).toHaveBeenCalledTimes(2);
+      await runPromptBuild(
+        {
+          prompt: projectedPrompt("PROJECTED_HISTORY_FOUR"),
+          currentUserMessage: "what wings do I prefer?",
+          currentUserMessageId: "message-2",
+        },
+        context,
+      );
+      expect(runEmbeddedAgent).toHaveBeenCalledTimes(3);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it.each(["", " \n "])(
+    "does not recall historical text for an explicit empty request %j",
+    async (currentUserMessage) => {
+      registerPluginConfig({ mode: "always" });
+      const search = vi.fn(async () => []);
+      hoisted.getActiveMemorySearchManager.mockResolvedValue({
+        manager: { search, listTriggerCandidates: vi.fn(async () => []) },
+      } as never);
+      await runPromptBuild({
+        prompt: "What do you remember about my preferences?",
+        currentUserMessage,
+        currentUserMessageId: "empty-admission",
+        messages: [{ role: "user", content: "What do you remember about my preferences?" }],
+      });
+      expect(search).not.toHaveBeenCalled();
+      expect(runEmbeddedAgent).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([true, false])(
+    "separates equal-text trigger requests with native identity: %s",
+    async (withIdentity) => {
+      registerPluginConfig({ mode: "escalate" });
+      const search = vi.fn(async () => []);
+      hoisted.getActiveMemorySearchManager.mockResolvedValue({
+        manager: { search, listTriggerCandidates: vi.fn(async () => []) },
+      } as never);
+      const context = { runId: "trigger-admissions" };
+      for (const id of ["first", "second"]) {
+        await runPromptBuild(
+          {
+            prompt: "projected history",
+            currentUserMessage: "Please calculate 17 plus 25.",
+            ...(withIdentity ? { currentUserMessageId: id } : {}),
+          },
+          context,
+        );
+      }
+      expect(search).toHaveBeenCalledTimes(2);
+      expect(runEmbeddedAgent).not.toHaveBeenCalled();
+    },
+  );
+
+  it("reuses one trigger admission across history changes and keeps authority separate", async () => {
+    registerPluginConfig({ mode: "escalate" });
+    const search = vi.fn(async () => []);
+    hoisted.getActiveMemorySearchManager.mockResolvedValue({
+      manager: { search, listTriggerCandidates: vi.fn(async () => []) },
+    } as never);
+    for (const [history, fingerprint] of [
+      ["old history", "authority-a"],
+      ["rebuilt history", "authority-a"],
+      ["rebuilt history", "authority-b"],
+    ] as const) {
+      await runPromptBuild(
+        {
+          prompt: history,
+          currentUserMessage: "ok",
+          currentUserMessageId: "same-admission",
+          messages: [{ role: "user", content: history }],
+        },
+        {
+          runId: "trigger-rebuild",
+          toolAuthority: { fingerprint, allows: () => true, assertActive: () => undefined },
+        },
+      );
+    }
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(runEmbeddedAgent).not.toHaveBeenCalled();
+  });
+
+  it("does not invent model-recall identity when the producer has no admission ID", async () => {
+    runEmbeddedAgent.mockImplementation(async () => ({ payloads: [] }));
+    for (let invocation = 0; invocation < 2; invocation += 1) {
+      await runPromptBuild(
+        {
+          prompt: "projected history",
+          currentUserMessage: "What do you remember about my preferences?",
+        },
+        { runId: "no-recorder-correlation" },
+      );
+    }
+    expect(runEmbeddedAgent).toHaveBeenCalledTimes(2);
   });
 
   it("does not share recall results across changed prompts in one run", async () => {
@@ -3322,11 +3486,11 @@ describe("active-memory plugin", () => {
     testing.setTimeoutPartialDataGraceMsForTests(50);
     registerPluginConfig({ timeoutMs: 100, maxSummaryChars: 80, logging: true });
     const sessionRuntime = await vi.importActual<
-      typeof import("openclaw/plugin-sdk/session-store-runtime")
-    >("openclaw/plugin-sdk/session-store-runtime");
+      typeof import("astroclaw/plugin-sdk/session-store-runtime")
+    >("astroclaw/plugin-sdk/session-store-runtime");
     const transcriptRuntime = await vi.importActual<
-      typeof import("openclaw/plugin-sdk/session-transcript-runtime")
-    >("openclaw/plugin-sdk/session-transcript-runtime");
+      typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
+    >("astroclaw/plugin-sdk/session-transcript-runtime");
     hoisted.patchSessionEntry.mockImplementationOnce(sessionRuntime.patchSessionEntry);
     hoisted.cleanupSessionLifecycleArtifacts.mockImplementationOnce(
       sessionRuntime.cleanupSessionLifecycleArtifacts,
@@ -4904,7 +5068,7 @@ describe("active-memory plugin", () => {
       const staleReadStarted = createDeferred<void>();
       const releaseStaleRead = createDeferred<void>();
       if (stalePoll) {
-        const transcriptRuntime = await import("openclaw/plugin-sdk/session-transcript-runtime");
+        const transcriptRuntime = await import("astroclaw/plugin-sdk/session-transcript-runtime");
         const readDelta = transcriptRuntime.readSessionTranscriptRawDelta;
         let heldRead = false;
         vi.spyOn(transcriptRuntime, "readSessionTranscriptRawDelta").mockImplementation(
