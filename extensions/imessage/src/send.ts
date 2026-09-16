@@ -1,39 +1,39 @@
 // Imessage plugin module implements send behavior.
 import { constants, accessSync } from "node:fs";
 import { basename } from "node:path";
-import type { ChannelApprovalKind } from "openclaw/plugin-sdk/approval-handler-runtime";
-import { addApprovalReactionHintToText } from "openclaw/plugin-sdk/approval-reaction-runtime";
-import type { ExecApprovalReplyDecision } from "openclaw/plugin-sdk/approval-reply-runtime";
+import type { ChannelApprovalKind } from "astroclaw/plugin-sdk/approval-handler-runtime";
+import { addApprovalReactionHintToText } from "astroclaw/plugin-sdk/approval-reaction-runtime";
+import type { ExecApprovalReplyDecision } from "astroclaw/plugin-sdk/approval-reply-runtime";
 import {
   createChannelPartialDeliveryError,
   type MediaPlaceholderTextFact,
-} from "openclaw/plugin-sdk/channel-inbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
 import {
   createMessageReceiptFromOutboundResults,
   type MessageReceipt,
   type MessageReceiptPartKind,
   type MessageReceiptSourceResult,
-} from "openclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
-import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
 import {
   extractOriginalFilename,
   kindFromMime,
   resolveOutboundAttachmentFromUrl,
   type OutboundMediaAccess,
-} from "openclaw/plugin-sdk/media-runtime";
-import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
-import { sleep as delay } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/media-runtime";
+import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import { sleep as delay } from "astroclaw/plugin-sdk/runtime-env";
 import {
   asOptionalRecord,
   normalizeOptionalString as stringValue,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "astroclaw/plugin-sdk/temp-path";
 import {
   convertMarkdownTables,
   stripInlineDirectiveTagsForDelivery,
-} from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/text-chunking";
 import {
   hasExclusiveIMessageLocalDatabase,
   resolveIMessageAccount,
@@ -402,7 +402,7 @@ async function withOriginalIMessageAttachmentPath<T>(
   // The bridge exposes this basename and copies its bytes before returning;
   // keep the UUID-backed media-store file intact while its private alias is live.
   return await withTempWorkspace(
-    { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "openclaw-imessage-outbound-" },
+    { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "openclaw-imessage-outbound-" },
     async (workspace) => await send(await workspace.copyIn(filename, filePath)),
   );
 }
@@ -463,20 +463,6 @@ async function requestIMessageRpcSend(
 function isIMessageRpcSendTimeout(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /imsg rpc timeout \(send\)/i.test(message);
-}
-
-async function runIMessageCliJson(
-  cliPath: string,
-  dbPath: string | undefined,
-  args: readonly string[],
-  timeoutMs?: number,
-): Promise<Record<string, unknown>> {
-  return await runIMessageCliJsonCommand({
-    args,
-    cliPath,
-    dbPath,
-    timeoutMs,
-  });
 }
 
 function resultService(value: unknown): Exclude<IMessageService, "auto"> | undefined {
@@ -859,7 +845,7 @@ export async function sendMessageIMessage(
   let effectiveReplyToId = resolvedReplyToId;
   const runCliJson =
     opts.runCliJson ??
-    ((args: readonly string[]) => runIMessageCliJson(cliPath, dbPath, args, timeoutMs));
+    ((args: readonly string[]) => runIMessageCliJsonCommand({ args, cliPath, dbPath, timeoutMs }));
   const requestOwnedRpc = async (method: string, rpcParams: Record<string, unknown>) => {
     const rpcClient = opts.createClient
       ? await opts.createClient({ cliPath, dbPath, remoteHost })
@@ -977,14 +963,6 @@ export async function sendMessageIMessage(
       ? await opts.createClient({ cliPath, dbPath, remoteHost })
       : await createIMessageRpcClient({ cliPath, dbPath, remoteHost }));
   const shouldClose = !opts.client;
-  let closedClient = false;
-  const stopOwnedClient = async () => {
-    if (!shouldClose || closedClient) {
-      return;
-    }
-    closedClient = true;
-    await client.stop();
-  };
   const requestSuccessfulSend = async (sendParams: Record<string, unknown>) => {
     const request = async (nativeParams: Record<string, unknown>) =>
       await requestIMessageRpcSend(client, "send", nativeParams, timeoutMs);
@@ -1156,7 +1134,9 @@ export async function sendMessageIMessage(
     forgetPersistedIMessageEchoKey(pendingEchoKey);
     throw error;
   } finally {
-    await stopOwnedClient();
+    if (shouldClose) {
+      await client.stop();
+    }
   }
 }
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
