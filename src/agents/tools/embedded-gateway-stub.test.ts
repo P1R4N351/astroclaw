@@ -40,7 +40,6 @@ const runtime = vi.hoisted(() => ({
     ({ offset, rawPageMessages }: { offset: number; rawPageMessages: number }) =>
       offset + rawPageMessages,
   ),
-  shouldReplayOldestChatHistoryRecord: vi.fn(() => false),
   resolveEffectiveChatHistoryMaxChars: vi.fn(() => 100_000),
   getMaxChatHistoryMessagesBytes: vi.fn(() => 100_000),
   CHAT_HISTORY_MAX_SINGLE_MESSAGE_BYTES: 100_000,
@@ -63,7 +62,6 @@ describe("embedded gateway stub", () => {
     runtime.resolveSessionKeyFromResolveParams.mockReset();
     runtime.readChatHistoryPage.mockClear();
     runtime.resolveChatHistoryNextOffset.mockClear();
-    runtime.shouldReplayOldestChatHistoryRecord.mockClear();
     runtime.loadSessionEntry.mockClear();
     runtime.resolveSessionAgentId.mockClear();
     runtime.resolveSessionStoreKey.mockClear();
@@ -334,7 +332,6 @@ describe("embedded gateway stub", () => {
       pagination: { offset: 0, totalMessages: 10, rawPageMessages: 5 },
     });
     runtime.capArrayByJsonBytes.mockReturnValueOnce({ items: bounded });
-    runtime.shouldReplayOldestChatHistoryRecord.mockReturnValueOnce(true);
     runtime.resolveChatHistoryNextOffset.mockReturnValueOnce(3);
 
     const result = await createEmbeddedCallGateway()({
@@ -347,7 +344,7 @@ describe("embedded gateway stub", () => {
       totalMessages: 10,
       offset: 0,
       rawPageMessages: 5,
-      replayOldestRecord: true,
+      projected: messages,
     });
     expect(result).toMatchObject({ messages: bounded, nextOffset: 3, hasMore: true });
   });
