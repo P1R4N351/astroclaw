@@ -6,12 +6,12 @@ import path from "node:path";
 import {
   clearActiveEmbeddedRun,
   setActiveEmbeddedRun,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import type { ExecApprovalsFile } from "astroclaw/plugin-sdk/exec-approvals-runtime";
-import type { PluginConversationBinding } from "astroclaw/plugin-sdk/plugin-entry";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
-import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { ExecApprovalsFile } from "openclaw/plugin-sdk/exec-approvals-runtime";
+import type { PluginConversationBinding } from "openclaw/plugin-sdk/plugin-entry";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sharedClientMocks = vi.hoisted(() => ({
@@ -85,9 +85,8 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>();
+vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>();
   return {
     ...actual,
     resolveSandboxContext: resolveSandboxContextMock,
@@ -99,9 +98,9 @@ vi.mock("./app-server/config-layer-policy.js", async (importOriginal) => ({
   readCodexEffectiveConfig: configLayerPolicyMocks.readCodexEffectiveConfig,
 }));
 
-vi.mock("astroclaw/plugin-sdk/conversation-binding-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/conversation-binding-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-binding-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/conversation-binding-runtime")>();
   return {
     ...actual,
     getSessionBindingService: () => ({
@@ -142,38 +141,38 @@ vi.mock("./app-server/shared-client.js", () => ({
       assertCurrent: () => undefined,
     })),
 }));
-vi.mock("astroclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/exec-approvals-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/exec-approvals-runtime")>();
   return {
     ...actual,
     loadExecApprovals: execApprovalsRuntimeMocks.loadExecApprovals,
   };
 });
-vi.mock("astroclaw/plugin-sdk/agent-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/agent-runtime")>();
+vi.mock("openclaw/plugin-sdk/agent-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-runtime")>();
   return {
     ...agentRuntimeMocks,
     findPersistedAuthProfileCredential: actual.findPersistedAuthProfileCredential,
     refreshOAuthCredentialForRuntime: actual.refreshOAuthCredentialForRuntime,
   };
 });
-vi.mock("astroclaw/plugin-sdk/provider-auth", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth")>()),
+vi.mock("openclaw/plugin-sdk/provider-auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/provider-auth")>()),
   ensureAuthProfileStore: agentRuntimeMocks.ensureAuthProfileStore,
   resolveAuthProfileOrder: providerAuthMocks.resolveAuthProfileOrder,
 }));
-vi.mock("astroclaw/plugin-sdk/agent-scope-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/agent-scope-runtime")>()),
+vi.mock("openclaw/plugin-sdk/agent-scope-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/agent-scope-runtime")>()),
   resolveSessionAgentIdsStrict: agentRuntimeMocks.resolveSessionAgentIdsStrict,
   resolveAgentWorkspaceDir: agentRuntimeMocks.resolveAgentWorkspaceDir,
 }));
-vi.mock("astroclaw/plugin-sdk/agent-harness-registration", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-registration")>()),
+vi.mock("openclaw/plugin-sdk/agent-harness-registration", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-registration")>()),
   resolveDefaultAgentDir: agentRuntimeMocks.resolveDefaultAgentDir,
 }));
-vi.mock("astroclaw/plugin-sdk/provider-auth-aliases", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth-aliases")>()),
+vi.mock("openclaw/plugin-sdk/provider-auth-aliases", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/provider-auth-aliases")>()),
   resolveProviderIdForAuth: agentRuntimeMocks.resolveProviderIdForAuth,
 }));
 
@@ -1514,13 +1513,12 @@ describe("codex conversation binding", () => {
         client: harness.client,
         release: vi.fn(),
       });
-      vi.useFakeTimers({ toFake: ["Date"] });
-      const startedAt = Date.now();
+      const elapsedClock = vi.spyOn(performance, "now").mockReturnValue(0);
       let resumeAccepted = false;
       const request = vi.spyOn(harness.client, "request").mockImplementation(async (method) => {
         if (method === "thread/read") {
           if (expiresDuring === "preflight") {
-            vi.setSystemTime(startedAt + 1_001);
+            elapsedClock.mockReturnValue(1_001);
           }
           return { thread: response.thread } as never;
         }
@@ -1549,14 +1547,14 @@ describe("codex conversation binding", () => {
                     throw new Error("Invalid Codex app-server binding row");
                   }
                   if (expiresDuring === "retention") {
-                    vi.setSystemTime(startedAt + 1_001);
+                    elapsedClock.mockReturnValue(1_001);
                   }
                 }
                 return testCodexAppServerBindingStore.read(identity);
               },
               mutate: async (...args) => {
                 if (expiresDuring === "commit") {
-                  vi.setSystemTime(startedAt + 1_001);
+                  elapsedClock.mockReturnValue(1_001);
                 }
                 return await testCodexAppServerBindingStore.mutate(...args);
               },
@@ -1586,7 +1584,7 @@ describe("codex conversation binding", () => {
       } finally {
         retry.mockRestore();
         harness.client.close();
-        vi.useRealTimers();
+        elapsedClock.mockRestore();
       }
     },
   );
