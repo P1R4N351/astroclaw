@@ -3,7 +3,7 @@ import {
   stripMemoryAnnotationCarriers,
   type MemorySearchDeadlineControl,
   type MemorySource,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
 import {
   asToolParamsRecord,
   jsonResult,
@@ -14,9 +14,9 @@ import {
   resolveRuntimeConfigCacheKey,
   type MemoryCorpusSearchResult,
   type OpenClawConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import type { MemorySearchResult } from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
-import { resolveMemoryDreamingConfig } from "astroclaw/plugin-sdk/memory-core-host-status";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import type { MemorySearchResult } from "openclaw/plugin-sdk/memory-core-host-runtime-files";
+import { resolveMemoryDreamingConfig } from "openclaw/plugin-sdk/memory-core-host-status";
 import {
   attemptMemoryCorpus,
   composeMemoryCorpusMetadata,
@@ -41,7 +41,6 @@ import {
   resolveMemorySearchAbortError,
   runMemorySearchWithDeadline,
 } from "./memory/search-deadline.js";
-import { recordShortTermRecalls } from "./short-term-promotion.js";
 import {
   decorateCitations,
   resolveMemoryCitationsMode,
@@ -503,14 +502,18 @@ export function createMemorySearchTool(options: MemoryToolOptions) {
                 cfg,
               });
               if ((memory?.outcome === "ok" || memory?.outcome === "partial") && dreaming.enabled) {
-                void recordShortTermRecalls({
+                const recall = {
                   workspaceDir: memoryValue?.workspaceDir,
                   query,
                   results: recalled,
+                  nowMs: Date.now(),
                   timezone: dreaming.timezone,
-                }).catch(() => {
-                  // Gateway recall persistence stays off the reply latency path.
-                });
+                };
+                void import("./short-term-promotion-record.js")
+                  .then(({ recordShortTermRecalls }) => recordShortTermRecalls(recall))
+                  .catch(() => {
+                    // Gateway recall persistence stays off the reply latency path.
+                  });
               }
               const attempts = [
                 ...((requestedCorpus === "all" || memory?.outcome === "partial") && memory
