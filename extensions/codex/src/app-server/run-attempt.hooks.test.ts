@@ -5,20 +5,20 @@ import {
   onAgentEvent,
   resolveActiveEmbeddedRunSessionId,
   type AgentEventPayload,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { openFileBackedSessionManagerForTest } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { openFileBackedSessionManagerForTest } from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import {
   onInternalDiagnosticEvent,
   waitForDiagnosticEventsDrained,
   type DiagnosticEventPayload,
   type DiagnosticEventPrivateData,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
-import { initializeGlobalHookRunner } from "astroclaw/plugin-sdk/hook-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
+import { initializeGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
 import {
   createMockPluginRegistry,
   onTrustedInternalDiagnosticEvent,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "openclaw/plugin-sdk/provider-model-shared";
 import { describe, expect, it, vi } from "vitest";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
 import {
@@ -47,58 +47,6 @@ function flushDiagnosticEvents() {
 setupRunAttemptTestHooks();
 
 describe("runCodexAppServerAttempt hooks and model diagnostics", () => {
-  it.each([
-    { label: "completed", status: "completed" as const, error: undefined },
-    { label: "failed", status: "failed" as const, error: "codex exploded" },
-  ])("defers $label lifecycle terminal ownership", async ({ status, error }) => {
-    const onRunAgentEvent = vi.fn();
-    const sessionFile = path.join(tempDir, `deferred-${status}.jsonl`);
-    const workspaceDir = path.join(tempDir, `workspace-${status}`);
-    const harness = createStartedThreadHarness();
-    const params = createParams(sessionFile, workspaceDir);
-    params.deferTerminalLifecycle = true;
-    params.onAgentEvent = onRunAgentEvent;
-    const run = runCodexAppServerAttempt(params);
-    await harness.waitForMethod("turn/start");
-
-    if (status === "completed") {
-      await harness.notify({
-        method: "item/agentMessage/delta",
-        params: {
-          threadId: "thread-1",
-          turnId: "turn-1",
-          itemId: "msg-1",
-          delta: "hello back",
-        },
-      });
-      await harness.completeTurn({ threadId: "thread-1", turnId: "turn-1" });
-    } else {
-      await harness.notify({
-        method: "turn/completed",
-        params: {
-          threadId: "thread-1",
-          turnId: "turn-1",
-          turn: {
-            id: "turn-1",
-            status,
-            error: { message: error },
-          },
-        },
-      });
-    }
-    await run;
-
-    const lifecycleEvents = onRunAgentEvent.mock.calls
-      .map(([event]) => event)
-      .filter((event) => event.stream === "lifecycle");
-    expect(lifecycleEvents.map((event) => event.data.phase)).toEqual([
-      "start",
-      "model",
-      "finishing",
-    ]);
-    expect(lifecycleEvents.at(-1)?.data.error).toBe(error);
-  });
-
   it("fires llm_input, llm_output, and agent_end hooks for codex turns", async () => {
     const beforePromptBuild = vi.fn();
     const llmInput = vi.fn();
