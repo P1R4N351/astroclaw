@@ -4178,6 +4178,7 @@ describe("prepareCliRunContext", () => {
   it.each(["main", "worker"])(
     "binds current turn context into the bundle MCP client grant with explicit %s owner",
     async (explicitAgentId) => {
+      const messageActionTurnCapability = "test-current-message-authority";
       const getActiveMcpLoopbackRuntime = vi.fn(() => ({
         port: 31783,
         ownerToken: "loopback-owner-token",
@@ -4230,6 +4231,7 @@ describe("prepareCliRunContext", () => {
         provider: "native-cli",
         modelProvider: "anthropic",
         runId: "run-test-room-event-tools",
+        messageActionTurnCapability,
         sessionEntry: {
           execHost: "node",
           execNode: "mac-a",
@@ -4279,6 +4281,9 @@ describe("prepareCliRunContext", () => {
         OPENCLAW_MCP_TOKEN: "loopback-token",
         OPENCLAW_MCP_CLI_CAPTURE_KEY: "",
       });
+      expect(JSON.stringify(context.preparedBackend.env)).not.toContain(
+        messageActionTurnCapability,
+      );
       expect(mintMcpLoopbackClientGrant).toHaveBeenCalledWith({
         context: {
           sessionKey: "agent:main:telegram:group:chat123",
@@ -4337,6 +4342,7 @@ describe("prepareCliRunContext", () => {
         },
         runtimeOwnerToken: "loopback-owner-token",
         admittedRunContext: context.params.admittedRunContext,
+        messageActionTurnCapability,
         bindQuestionAnswerAuthority: expect.any(Function),
         toolAuth: {
           agentDir: expect.any(String),
