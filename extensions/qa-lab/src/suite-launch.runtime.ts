@@ -2,8 +2,8 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatErrorMessage, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { runPluginCommandWithTimeout } from "astroclaw/plugin-sdk/run-command";
+import { formatErrorMessage, toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { runPluginCommandWithTimeout } from "openclaw/plugin-sdk/run-command";
 import { toRepoRelativePath } from "./cli-paths.js";
 import { QaSuiteArtifactError, QaSuiteInfraError } from "./errors.js";
 import { captureQaEvidenceLaunchIdentity } from "./evidence-environment.js";
@@ -53,6 +53,7 @@ import {
   scenarioRequiresIsolatedQaSuiteWorker,
 } from "./suite-planning.js";
 import { createQaSuiteProgressController } from "./suite-progress.js";
+import { rejectRemovedQaChannelDriverSelection } from "./suite-types.js";
 import {
   buildQaSuiteSummaryJson,
   shouldLogQaSuiteProgress,
@@ -482,7 +483,6 @@ function summarizeQaEvidenceChannel(
 type QaFlowChannelGroup = {
   channel: string | undefined;
   channelId: string | undefined;
-  channelDriverSelection: QaSuiteRunParams["channelDriverSelection"];
   isolatesAdapterInstances?: boolean;
   scenarios: QaSeedScenarioWithSource[];
 };
@@ -621,7 +621,6 @@ async function resolveQaFlowChannelGroups(
     return [...groups].map(([channel, groupedScenarios]) => ({
       channel,
       channelId: channel,
-      channelDriverSelection: runParams.channelDriverSelection,
       isolatesAdapterInstances: isolatesInstances(channel),
       scenarios: groupedScenarios,
     }));
@@ -629,27 +628,23 @@ async function resolveQaFlowChannelGroups(
   if (runParams?.channelDriver !== "crabline") {
     return [
       {
-        channel: runParams?.channelId ?? runParams?.channelDriverSelection?.channel,
+        channel: runParams?.channelId,
         channelId: runParams?.channelId,
-        channelDriverSelection: runParams?.channelDriverSelection,
         scenarios: [...scenarios],
       },
     ];
   }
   // Package-only live lanes mount the QA harness without its dev tree. Load
   // Crabline only for Crabline-owned runs so unrelated transports stay isolated.
-  const {
-    isCrablineServerChannel,
-    OPENCLAW_CRABLINE_DEFAULT_CHANNEL,
-    resolveOpenClawCrablineChannelDriverSelection,
-  } = await import("@openclaw/crabline");
+  const { isCrablineServerChannel, OPENCLAW_CRABLINE_DEFAULT_CHANNEL } =
+    await import("@openclaw/crabline");
   if (runParams.expandScenarioChannels) {
     const groups = groupQaScenariosByExecutionCell(
       scenarios,
       expandQaScenarioExecutionCells({
         scenarios,
         channelDriver: "crabline",
-        channel: runParams.channelDriverSelection?.channel,
+        channel: runParams.channelId,
         defaultChannel: OPENCLAW_CRABLINE_DEFAULT_CHANNEL,
         supportsChannel: isCrablineServerChannel,
         expandChannels: true,
@@ -657,16 +652,13 @@ async function resolveQaFlowChannelGroups(
     );
     return [...groups].map(([channel, groupedScenarios]) => ({
       channel,
-      channelId: undefined,
-      channelDriverSelection: channel
-        ? resolveOpenClawCrablineChannelDriverSelection({ channel })
-        : undefined,
+      channelId: channel,
       scenarios: groupedScenarios,
     }));
   }
   const channels = resolveQaSuiteScenarioChannels({
     defaultChannel: OPENCLAW_CRABLINE_DEFAULT_CHANNEL,
-    explicitChannel: runParams.channelDriverSelection?.channel,
+    explicitChannel: runParams.channelId,
     scenarios: [...scenarios],
   });
   const [singleChannel] = channels;
@@ -674,10 +666,7 @@ async function resolveQaFlowChannelGroups(
     return [
       {
         channel: singleChannel,
-        channelId: undefined,
-        channelDriverSelection:
-          runParams.channelDriverSelection ??
-          resolveOpenClawCrablineChannelDriverSelection({ channel: singleChannel }),
+        channelId: singleChannel,
         scenarios: [...scenarios],
       },
     ];
@@ -686,8 +675,7 @@ async function resolveQaFlowChannelGroups(
   // launch one flow partition per channel and aggregate them at this owner.
   return channels.map((channel) => ({
     channel,
-    channelId: undefined,
-    channelDriverSelection: resolveOpenClawCrablineChannelDriverSelection({ channel }),
+    channelId: channel,
     scenarios: scenarios.filter(
       (scenario) =>
         (normalizeQaSuiteScenarioChannel(scenario) ?? OPENCLAW_CRABLINE_DEFAULT_CHANNEL) ===
@@ -1116,7 +1104,7 @@ async function runUnifiedQaSuite(params: {
       : isQaFastModeEnabled({ primaryModel, alternateModel });
   const transportId = normalizeQaTransportId(params.runParams?.transportId);
   const defaultConcurrency =
-    params.runParams?.channelDriver === "crabline" || params.runParams?.channelDriverSelection
+    params.runParams?.channelDriver === "crabline"
       ? 1
       : defaultQaSuiteConcurrencyForTransport(transportId);
   const failFast = params.runParams?.failFast === true;
@@ -1223,7 +1211,7 @@ async function runUnifiedQaSuite(params: {
       // Serializing their isolated workers keeps state-mutating smoke checks from
       // flaking under concurrent child gateways while preserving non-driver speed.
       const channelDriverFlowRequiresExclusiveWorkers =
-        Boolean(channelGroup.channelDriverSelection || usesContributedChannelDriver) &&
+        (params.runParams?.channelDriver === "crabline" || usesContributedChannelDriver) &&
         !channelGroup.isolatesAdapterInstances;
       const isolatedFlowConcurrencyLimit = channelDriverFlowRequiresExclusiveWorkers
         ? 1
@@ -1269,11 +1257,7 @@ async function runUnifiedQaSuite(params: {
         ]
           .filter((part): part is string => Boolean(part))
           .join("-");
-        const taskChannelId =
-          channelGroup.channelId ??
-          channelGroup.channelDriverSelection?.channel ??
-          channelGroup.channel ??
-          transportId;
+        const taskChannelId = channelGroup.channelId ?? channelGroup.channel ?? transportId;
         const partitionOutputDir = partitionName
           ? flowSuitePartitionOutputDir(outputDir, partitionName)
           : suitePartitionOutputDir(outputDir, "flow");
@@ -1339,7 +1323,6 @@ async function runUnifiedQaSuite(params: {
                   : params.runParams?.forcedRuntime,
               concurrency: partition.concurrency,
               channelId: channelGroup.channelId,
-              channelDriverSelection: channelGroup.channelDriverSelection,
               workerStartStaggerMs: isolatedPartition
                 ? (params.runParams?.workerStartStaggerMs ??
                   resolveQaSuiteWorkerStartStaggerMs(
@@ -1755,6 +1738,7 @@ async function runUnifiedQaSuite(params: {
 
 export async function runQaSuite(...args: [QaSuiteRunParams?]): Promise<QaSuiteRuntimeResult> {
   const runParams = args[0];
+  rejectRemovedQaChannelDriverSelection(runParams);
   const plan = await resolveSuiteExecutionPlan(runParams);
   if (plan.kind === "unified") {
     const { observedCells, ...result } = await runUnifiedQaSuite({
