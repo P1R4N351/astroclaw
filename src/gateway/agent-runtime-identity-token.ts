@@ -145,6 +145,12 @@ const spawnModelAutoSelectionSchema = z.object({
 const sessionSpawnContextSchema = z
   .object({
     completionOwnerSessionKey: normalizedRequiredStringSchema.optional(),
+    resolvedModel: z
+      .object({
+        provider: normalizedRequiredStringSchema,
+        model: normalizedRequiredStringSchema,
+      })
+      .optional(),
     inheritedToolPolicy: z.object({
       version: z.literal(1),
       allow: stringListSchema,
@@ -158,6 +164,7 @@ const sessionSpawnContextSchema = z
         ? { completionOwnerSessionKey: context.completionOwnerSessionKey }
         : {}),
       inheritedToolPolicy: context.inheritedToolPolicy,
+      ...(context.resolvedModel ? { resolvedModel: context.resolvedModel } : {}),
       ...(context.spawnModelAutoSelection
         ? { spawnModelAutoSelection: context.spawnModelAutoSelection }
         : {}),
@@ -645,6 +652,8 @@ function resolveAgentRuntimeIdentityPayload(
   if (payload.executionLineageHandoffId && !handoff) {
     return undefined;
   }
+  const executionIdentity = handoff?.executionIdentity ?? payload.executionIdentity;
+  const sessionSpawnContext = handoff?.sessionSpawnContext ?? payload.sessionSpawnContext;
   const identity: AgentRuntimeIdentity = {
     kind: "agentRuntime",
     agentId: payload.agentId,
@@ -654,11 +663,7 @@ function resolveAgentRuntimeIdentityPayload(
     ...(payload.approvalOwnerPluginId
       ? { approvalOwnerPluginId: payload.approvalOwnerPluginId }
       : {}),
-    ...(handoff?.executionIdentity
-      ? { executionIdentity: handoff.executionIdentity }
-      : payload.executionIdentity
-        ? { executionIdentity: payload.executionIdentity }
-        : {}),
+    ...(executionIdentity ? { executionIdentity } : {}),
     ...(payload.turnSourceChannel ? { turnSourceChannel: payload.turnSourceChannel } : {}),
     ...(payload.turnSourceLocal === true ? { turnSourceLocal: true } : {}),
     ...(payload.turnSourceTo ? { turnSourceTo: payload.turnSourceTo } : {}),
@@ -681,11 +686,7 @@ function resolveAgentRuntimeIdentityPayload(
     ...(payload.cronCreatorAuthorityGrant
       ? { cronCreatorAuthorityGrant: payload.cronCreatorAuthorityGrant }
       : {}),
-    ...(handoff?.sessionSpawnContext
-      ? { sessionSpawnContext: handoff.sessionSpawnContext }
-      : payload.sessionSpawnContext
-        ? { sessionSpawnContext: payload.sessionSpawnContext }
-        : {}),
+    ...(sessionSpawnContext ? { sessionSpawnContext } : {}),
   };
   return handoff
     ? withAgentRuntimeExecutionLineageRedemption(identity, handoff.redemption)
