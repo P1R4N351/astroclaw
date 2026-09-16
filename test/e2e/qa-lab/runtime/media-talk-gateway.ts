@@ -5,8 +5,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   createQaBusState,
   createQaChannelTransport,
@@ -84,7 +84,7 @@ const SCENARIOS = {
     docsRefs: ["docs/nodes/talk.md", "docs/web/control-ui.md"],
     codeRefs: [
       SOURCE_PATH,
-      "src/gateway/server-methods/talk-client.ts",
+      "src/gateway/talk/handlers/client.ts",
       "src/talk/agent-run-control.ts",
       "src/agents/embedded-agent-runner/runs.ts",
     ],
