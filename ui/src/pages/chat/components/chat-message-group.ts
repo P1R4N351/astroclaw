@@ -63,7 +63,7 @@ import {
   shouldToggleSelectableDisclosure,
   syncToolDisclosureOverflow,
 } from "./chat-tool-cards.ts";
-import { renderToolFailures } from "./chat-tool-failure.ts";
+import { renderToolOutcomeSummary } from "./chat-tool-outcome-summary.ts";
 import { shouldAnimateUserTurnEntry } from "./chat-user-turn-entry.ts";
 import { renderTurnRecapRow } from "./chat-working-indicator.ts";
 
@@ -326,7 +326,7 @@ export function renderActivityGroup(
                   : icons.shieldCheck}</span
             >`
           : nothing}
-        ${activityExpanded ? nothing : renderToolFailures(cards)}
+        ${activityExpanded ? nothing : renderToolOutcomeSummary(cards)}
         <span class="chat-tool-row__chevron" aria-hidden="true">${icons.chevronRight}</span>
       </button>
       <div class="chat-activity-group__body" id=${activityBodyId} ?hidden=${!activityExpanded}>
