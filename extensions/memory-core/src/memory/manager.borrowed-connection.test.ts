@@ -2,21 +2,21 @@ import { unlinkSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   listSessionTranscriptCorpusEntriesForAgent,
   sessionPathForFile,
   sessionPathForSessionIdentity,
-} from "openclaw/plugin-sdk/memory-core-host-engine-sessions";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
 import {
   ensureMemoryChunkProvenance,
   loadSqliteVecExtension,
-} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { deleteSessionEntry, upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { withSessionTranscriptWriteLock } from "openclaw/plugin-sdk/session-transcript-runtime";
-import * as sqliteRuntime from "openclaw/plugin-sdk/sqlite-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { deleteSessionEntry, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { withSessionTranscriptWriteLock } from "astroclaw/plugin-sdk/session-transcript-runtime";
+import * as sqliteRuntime from "astroclaw/plugin-sdk/sqlite-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { recordMemorySessionTombstones } from "../memory-entry-origins.js";
 import { MemoryIndexRevisionConflictError } from "./manager-db.js";
@@ -559,6 +559,7 @@ describe("memory manager shared agent connection", () => {
     const writer = new DatabaseSync(shared.path);
     writer.exec("BEGIN IMMEDIATE");
     const started = performance.now();
+    const writerReleased = createDeferred<void>();
     const observedCacheCounts = new Set<number>();
     let observeCacheTimer: NodeJS.Immediate | undefined;
     const observeCache = () => {
@@ -574,12 +575,15 @@ describe("memory manager shared agent connection", () => {
       if (scenario === "cache-prune") {
         observeCache();
       }
+      writerReleased.resolve();
     }, 100);
     const sync = manager.sync({ reason: sessionWork ? "session-delta" : "watch" });
+    void sync.catch(() => undefined);
     try {
-      const [results] = await Promise.all([reader.search("Alpha"), sync]);
+      const [results] = await Promise.all([reader.search("Alpha"), writerReleased.promise]);
       expect(results.some((result) => result.path === "memory/2026-01-12.md")).toBe(true);
       expect(performance.now() - started).toBeLessThan(1000);
+      await sync;
       if (scenario === "deleted-memory") {
         expect(
           shared.db
