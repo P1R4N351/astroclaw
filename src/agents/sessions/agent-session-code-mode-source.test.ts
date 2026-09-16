@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { AssistantMessage, Model } from "openclaw/plugin-sdk/llm";
+import type { AssistantMessage, Model } from "astroclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
@@ -21,6 +21,7 @@ import {
 import { createMockPluginRegistry } from "../../plugins/hooks.test-helpers.js";
 import { createNestedToolActivity } from "../../sessions/nested-tool-activity.js";
 import { closeOpenClawAgentDatabaseByPath } from "../../state/openclaw-agent-db.js";
+import { cleanupSessionStateForTest } from "../../test-utils/session-state-cleanup.js";
 import { toToolDefinitions } from "../agent-tool-definition-adapter.js";
 import { isCodeModeExecTool } from "../code-mode-control-tools.js";
 import { createCodeModeHarness, resetCodeModeTestState } from "../code-mode.test-support.js";
@@ -40,8 +41,15 @@ import { createResourceLoader } from "./agent-session-loop-resource-loader.test-
 import type { MessageEndEvent, ToolDefinition } from "./extensions/types.js";
 import { SessionManager } from "./session-manager.js";
 
+const tempDirs = useAutoCleanupTempDirTracker((cleanup) =>
+  afterEach(async () => {
+    for (const stateDir of tempDirs.dirs) {
+      await cleanupSessionStateForTest({ stateDir });
+    }
+    cleanup();
+  }),
+);
 registerAgentSessionLoopTestLifecycle();
-const tempDirs = useAutoCleanupTempDirTracker(afterEach);
 afterEach(() => {
   resetDiagnosticEventsForTest();
   resetDiagnosticRunActivityForTest();
