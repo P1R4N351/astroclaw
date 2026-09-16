@@ -4,6 +4,7 @@ import {
   normalizeOptionalLowercaseString,
   readStringValue,
 } from "@astroclaw/normalization-core/string-coerce";
+import { resolveOpenAIModelReasoningEfforts } from "@openclaw/ai/internal/openai";
 import { applyCompletionsAnthropicCacheControl } from "@openclaw/ai/transports";
 import { resolveProviderRequestPolicy } from "../../../agents/provider-attribution.js";
 import {
@@ -215,7 +216,12 @@ export function createOpenRouterWrapper(
         headers,
       },
       (payload) => {
-        normalizeOpenAICompatibleReasoningPayload(payload, thinkingLevel);
+        normalizeOpenAICompatibleReasoningPayload(
+          payload,
+          resolveOpenAIModelReasoningEfforts({ compat: model.compat })?.length === 0
+            ? undefined
+            : thinkingLevel,
+        );
       },
     );
   };
