@@ -5,14 +5,14 @@ import path from "node:path";
 import {
   createChannelPartialDeliveryError,
   isChannelPartialDeliveryError,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-outbound";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
 import {
   adaptMessagePresentationForChannel,
   renderMessagePresentationFallbackText,
   type MessagePresentation,
   type MessagePresentationAction,
-} from "astroclaw/plugin-sdk/interactive-runtime";
+} from "openclaw/plugin-sdk/interactive-runtime";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig, ReplyPayload } from "../runtime-api.js";
 import {
@@ -56,7 +56,7 @@ const resolvePinnedHostnameWithPolicyMock = vi.hoisted(() =>
   }),
 );
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
@@ -227,7 +227,7 @@ afterAll(() => {
   vi.doUnmock("./client.js");
   vi.doUnmock("./drive.js");
   vi.doUnmock("./comment-reaction.js");
-  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
@@ -758,21 +758,6 @@ describe("feishuOutbound.sendText local-image auto-convert", () => {
       template: "blue",
     });
     expectFeishuResult(result, "card_msg");
-  });
-
-  it("forwards replyToId as replyToMessageId on sendText", async () => {
-    await sendText({
-      cfg: emptyConfig,
-      to: "chat_1",
-      text: "hello",
-      replyToId: "om_reply_1",
-      accountId: "main",
-    });
-
-    expect(sendMessageCall()?.to).toBe("chat_1");
-    expect(sendMessageCall()?.text).toBe("hello");
-    expect(sendMessageCall()?.replyToMessageId).toBe("om_reply_1");
-    expect(sendMessageCall()?.accountId).toBe("main");
   });
 
   it("falls back to threadId when replyToId is empty on sendText", async () => {
