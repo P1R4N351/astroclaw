@@ -31,7 +31,7 @@ import { formatErrorMessage, isMissingPathError } from "../infra/errors.js";
 import * as nodeSqlite from "../infra/node-sqlite.js";
 import type { PackageUpdateTransaction } from "../infra/package-update-steps.js";
 import { SUPERVISOR_HINT_ENV_VARS } from "../infra/supervisor-markers.js";
-import * as updateTempRoot from "../infra/tmp-astroclaw-dir.js";
+import * as updateTempRoot from "../infra/tmp-openclaw-dir.js";
 import { isBetaTag } from "../infra/update-channels.js";
 import { applyDevUpdateTargetEnv } from "../infra/update-dev-target.js";
 import type { UpdateDoctorConfigChange } from "../infra/update-doctor-config.js";
@@ -2121,7 +2121,7 @@ describe("update-cli", () => {
     vi.spyOn(nodeSqlite, "resolveImmutableSqliteFileUri").mockImplementation((file) =>
       immutableHostUri(file, sqliteHostPlatform),
     );
-    vi.spyOn(updateTempRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(executorTmp);
+    vi.spyOn(updateTempRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(executorTmp);
     const pidAlive = await import("../shared/pid-alive.js");
     const readHostProcessStartTime = pidAlive.getFileLockProcessStartTime;
     // Service-platform doubles cannot change the OS that owns real fixture PIDs.
@@ -5837,6 +5837,42 @@ describe("update-cli", () => {
     expect(cleanupStaleManagedServiceUpdateHandoffs).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { installKind: "git", installedVersion: "2026.9.3" },
+    { installKind: "package", installedVersion: "2026.9.3" },
+    { installKind: "git", installedVersion: null },
+  ] as const)(
+    "registered update CLI previews known versions for $installKind ($installedVersion)",
+    async ({ installKind, installedVersion }) => {
+      await mockPackageInstallAtCaseDir("openclaw-preview-version");
+      vi.mocked(resolveUpdateInstallKind).mockResolvedValue(installKind);
+      readPackageVersion.mockResolvedValue(installedVersion);
+      vi.mocked(readConfigFileSnapshot).mockResolvedValue({
+        ...baseSnapshot,
+        config: { update: { channel: "dev" } },
+      });
+
+      await invokeUpdateCli({ dryRun: true, json: true, restart: false });
+
+      expect(lastWriteJsonCall()).toMatchObject({
+        currentVersion: installedVersion ?? VERSION,
+        targetVersion: null,
+        targetVersionReason: expect.stringContaining("Git"),
+        switchToGit: installKind === "package",
+        run: {
+          before: { version: installedVersion ?? VERSION },
+          status: "skipped",
+          reason: "dry-run",
+        },
+      });
+      await invokeUpdateCli({ dryRun: true, restart: false });
+      expect(getLogOutput()).toContain(`Current version: ${installedVersion ?? VERSION}`);
+      expect(getLogOutput()).toContain("Target version: unresolved");
+      expectNoSideEffects(runGatewayUpdate, replaceConfigFile, runDaemonInstall, runDaemonRestart);
+      expect(packageInstallCommandCall()).toBeUndefined();
+    },
+  );
+
   it("does not clean managed-service handoffs during a JSON dry run", async () => {
     const stateDir = tempDirs.make("openclaw-update-run-preview-");
     initializeExistingUpdateProfile({ ...process.env, OPENCLAW_STATE_DIR: stateDir });
@@ -6576,6 +6612,7 @@ describe("update-cli", () => {
     expect(lastWriteJsonCall()).toMatchObject({
       dryRun: true,
       targetVersion: null,
+      targetVersionReason: "The package artifact is not staged during a dry-run.",
       notes: expect.arrayContaining([
         expect.stringContaining(
           "Configured plugin availability will be checked against the staged package",
@@ -6608,6 +6645,7 @@ describe("update-cli", () => {
         `Run global package manager update with spec ${packageSpec}`,
       ]),
     });
+    expect(lastWriteJsonCall()).not.toHaveProperty("targetVersionReason");
   });
 
   it("previews the resolved package owner without probing for another manager", async () => {
