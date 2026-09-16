@@ -5,7 +5,7 @@ import { inspect } from "node:util";
 import { resolveTimerTimeoutMs } from "@astroclaw/normalization-core/number-coercion";
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
-import { cancel, isCancel } from "@clack/prompts";
+import { cancel } from "@clack/prompts";
 import { stylePromptTitle } from "../../packages/terminal-core/src/prompt-style.js";
 import { resolveAgentEffectiveModelPrimary, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../agents/workspace.js";
@@ -44,7 +44,7 @@ export { resolveAdvertisedControlUiLinks, resolveControlUiLinks, resolveLocalCon
 
 /** Handles Clack cancellation by exiting through the runtime. */
 export function guardCancel<T>(value: T | symbol, runtime: RuntimeEnv, exitCode = 0): T {
-  if (isCancel(value)) {
+  if (typeof value === "symbol") {
     cancel(stylePromptTitle("Setup cancelled.") ?? "Setup cancelled.");
     runtime.exit(exitCode);
     throw new Error("unreachable");
