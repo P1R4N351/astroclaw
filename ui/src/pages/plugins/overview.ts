@@ -170,3 +170,11 @@ export function renderPluginCapabilitySection(
       </section>`
     : nothing}`;
 }
+
+export function renderPluginAskAction(onAsk?: () => void) {
+  return onAsk
+    ? html`<button type="button" class="btn oc-action oc-action-secondary" @click=${onAsk}>
+        ${t("nav.askOpenClaw")}
+      </button>`
+    : nothing;
+}
