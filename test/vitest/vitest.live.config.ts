@@ -21,12 +21,14 @@ export default defineConfig({
     // Live suites need immediate provider/gateway progress output rather than
     // Vitest's buffered per-test console capture.
     disableConsoleIntercept: true,
+    // Live Gateway suites exercise host-owned shared-state SQLite workers.
+    // A thread pool turns the in-process Gateway into an application worker,
+    // where shared-state admission correctly requires an unavailable host broker.
+    pool: "forks",
     maxWorkers: 1,
     setupFiles: [
       ...new Set(
-        [...(baseTest.setupFiles ?? []), "test/setup-astroclaw-runtime.ts"].map(
-          resolveRepoRootPath,
-        ),
+        [...(baseTest.setupFiles ?? []), "test/setup-openclaw-runtime.ts"].map(resolveRepoRootPath),
       ),
     ],
     include: [
