@@ -1,6 +1,6 @@
-import type { MarkdownTableMode } from "openclaw/plugin-sdk/config-contracts";
+import type { MarkdownTableMode } from "astroclaw/plugin-sdk/config-contracts";
 // Telegram helper module supports format behavior.
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   FILE_REF_EXTENSIONS_WITH_TLD,
   findCodeRegions,
@@ -11,7 +11,7 @@ import {
   type MarkdownIR,
   renderMarkdownIRChunksWithinLimit,
   tokenizeHtmlTags,
-} from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/text-chunking";
 import {
   protectTelegramAssistantTranscriptRoleHeaders,
   TELEGRAM_ASSISTANT_TRANSCRIPT_PREFIX,
@@ -482,7 +482,7 @@ function wrapSegmentFileRefs(
   preDepth: number,
   anchorDepth: number,
 ): string {
-  if (!text || codeDepth > 0 || preDepth > 0 || anchorDepth > 0) {
+  if (codeDepth > 0 || preDepth > 0 || anchorDepth > 0 || !text.includes(".")) {
     return text;
   }
   const wrappedStandalone = text.replace(getFileReferencePattern(), wrapStandaloneFileRef);
