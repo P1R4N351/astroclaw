@@ -15,9 +15,11 @@ import {
   renderPluginCapabilitySection,
   renderPluginMetadata,
   renderPluginPublisher,
+  renderPluginAskAction,
 } from "./overview.ts";
 
 export type PluginCatalogDetailProps = {
+  onAskPlugin?: () => void;
   skillsSection?: TemplateResult;
   connected: boolean;
   result: PluginDiscoveryDetailResult | null;
@@ -60,25 +62,24 @@ function renderDetail(result: PluginDiscoveryDetailResult, props: PluginCatalogD
     icon: html`${imageWithFallback(packageIcon, (url, onError) =>
       url ? html`<img src=${url} alt="" @error=${onError} />` : icons.box,
     )}`,
-    titleAction:
-      plugin.local.action === "install"
-        ? renderReasonedDisabledControl(
-            props.installBlockedReason,
-            html`<button
-              type="button"
-              class="btn primary oc-action oc-action-primary plugin-catalog-detail__install"
-              ?disabled=${!props.installBlockedReason && !props.canInstall}
-              aria-disabled=${!props.canInstall ? "true" : nothing}
-              @click=${() => {
-                if (props.canInstall) {
-                  props.onInstall();
-                }
-              }}
-            >
-              ${t("pluginsPage.install")}
-            </button>`,
-          )
-        : undefined,
+    titleAction: html`${plugin.local.action === "install"
+      ? renderReasonedDisabledControl(
+          props.installBlockedReason,
+          html`<button
+            type="button"
+            class="btn primary oc-action oc-action-primary plugin-catalog-detail__install"
+            ?disabled=${!props.installBlockedReason && !props.canInstall}
+            aria-disabled=${!props.canInstall ? "true" : nothing}
+            @click=${() => {
+              if (props.canInstall) {
+                props.onInstall();
+              }
+            }}
+          >
+            ${t("pluginsPage.install")}
+          </button>`,
+        )
+      : nothing}${renderPluginAskAction(props.onAskPlugin)}`,
     identity: renderPluginPublisher(result),
     sidebar: renderPluginMetadata(result),
     panel: html`${props.skillsSection ??
