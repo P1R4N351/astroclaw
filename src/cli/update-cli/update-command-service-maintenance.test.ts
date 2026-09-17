@@ -16,7 +16,7 @@ import {
 } from "../../daemon/service.test-helpers.js";
 import { sha256Hex } from "../../infra/crypto-digest.js";
 import { openNodeSqliteDatabase } from "../../infra/node-sqlite.js";
-import * as openClawTmp from "../../infra/tmp-astroclaw-dir.js";
+import * as openClawTmp from "../../infra/tmp-openclaw-dir.js";
 import { CONTROL_PLANE_UPDATE_SENTINEL_META_ENV } from "../../infra/update-control-plane-sentinel.js";
 import { createManagedHandoffLeaseStore } from "../../infra/update-managed-service-handoff-lease.js";
 import { createUpdateRun } from "../../infra/update-run-ledger.js";
@@ -57,7 +57,7 @@ afterEach(() => vi.restoreAllMocks());
 
 async function withServiceHome(run: (home: string) => Promise<void>): Promise<void> {
   const home = await makeTempWorkspace("openclaw-update-service-");
-  vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(home);
+  vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(home);
   try {
     await withEnvAsync(
       {
@@ -448,7 +448,7 @@ it.runIf(process.platform === "linux" || process.platform === "darwin").each(
       const root = await fs.realpath(process.cwd());
       const metaPath = path.join(home, "handoff-meta.json");
       const runId = randomUUID();
-      vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(home);
+      vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(home);
       createUpdateRun({ runId, trigger: "cli" }, { env: process.env });
       await fs.writeFile(
         metaPath,
@@ -707,7 +707,11 @@ it.each([
   "different unit",
   "different profile",
   "foreign executable",
+  "unchanged protected command",
   "changed protected command",
+  "changed protected environment",
+  "changed protected working directory",
+  "changed protected override",
 ])("revalidates the shipped managed-service stop record: %s", (scenario) =>
   withServiceHome(async (home) => {
     mockProcessPlatform("linux");
@@ -716,7 +720,8 @@ it.each([
       programArguments: [process.execPath, path.join(root, "openclaw.mjs"), "gateway"],
       environment: { HOME: home },
     };
-    // v2026.9.2/v2026.9.3 forward this stop record to the fresh migration finalizer.
+    const protectedCommand = scenario.includes("protected");
+    // Stable updaters through v2026.9.4 omit metadata for known-empty systemd overrides.
     const before: PreManagedServiceStop = {
       stoppedAtMs: 1,
       stopped: true,
@@ -731,7 +736,7 @@ it.each([
         kind: "owned",
         root,
         fingerprint: sha256Hex(stableStringify(command)),
-        refreshDefinition: scenario !== "changed protected command",
+        refreshDefinition: !protectedCommand,
       },
     };
     if (scenario === "matching UID" || scenario === "mismatching UID") {
@@ -740,6 +745,14 @@ it.each([
     const service = createMockGatewayService({
       readCommand: async () => ({
         ...command,
+        ...(protectedCommand
+          ? {
+              managedDefinition: command,
+              managedOverrides:
+                scenario === "changed protected override" ? { launcher: "command" as const } : {},
+            }
+          : {}),
+        ...(scenario === "changed protected working directory" ? { workingDirectory: home } : {}),
         programArguments:
           scenario === "foreign executable"
             ? [process.execPath, path.join(home, "other", "openclaw.mjs"), "gateway"]
@@ -748,6 +761,7 @@ it.each([
               : command.programArguments,
         environment: {
           ...command.environment,
+          ...(scenario === "changed protected environment" ? { FIXTURE_VALUE: "changed" } : {}),
           ...(scenario === "different unit" ? { OPENCLAW_SYSTEMD_UNIT: "other-gateway" } : {}),
           ...(scenario === "different profile"
             ? {
@@ -774,8 +788,15 @@ it.each([
       root,
       preManagedServiceStop: before,
     });
-    if (scenario === "shipped handoff" || scenario === "matching UID") {
-      await expect(revalidated).resolves.toMatchObject({ kind: "owned", refreshDefinition: true });
+    if (
+      scenario === "shipped handoff" ||
+      scenario === "matching UID" ||
+      scenario === "unchanged protected command"
+    ) {
+      await expect(revalidated).resolves.toMatchObject({
+        kind: "owned",
+        refreshDefinition: !protectedCommand,
+      });
     } else {
       await expect(revalidated).rejects.toThrow(/ownership or manager identity changed/);
     }
@@ -816,7 +837,7 @@ it.each(["before stop", "after stop"] as const)(
   "refuses a rebound live executor %s without a new native effect",
   (when) =>
     withServiceHome(async (home) => {
-      vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(
+      vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(
         path.join(home, "private-tmp"),
       );
       const root = process.cwd();
