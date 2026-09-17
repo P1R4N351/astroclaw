@@ -3,24 +3,24 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
-import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { toErrorObject as toLintErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
-import { parseSqliteSessionFileMarker } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
+import { parseSqliteSessionFileMarker } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   type SessionTranscriptTargetParams,
-} from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/session-transcript-runtime";
 import {
   closeOpenClawAgentDatabasesForTest,
   closeOpenClawStateDatabaseAsync,
-} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+} from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import {
   afterAll,
   afterEach,
@@ -41,24 +41,10 @@ import * as transcriptWatch from "./transcript-watch.js";
 const UNPAIRED_SURROGATE_RE =
   /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
-async function expectPathMissing(targetPath: string): Promise<void> {
-  try {
-    await fs.access(targetPath);
-  } catch (error) {
-    expect((error as NodeJS.ErrnoException).code).toBe("ENOENT");
-    return;
-  }
-  throw new Error(`expected missing path ${targetPath}`);
-}
-
 async function expectSingleTranscriptArtifact(directory: string): Promise<string> {
   const files = await fs.readdir(directory);
   expect(files).toEqual([expect.stringMatching(/^active-memory-[a-z0-9]+-[a-f0-9]{8}\.jsonl$/)]);
-  const filename = files[0];
-  if (!filename) {
-    throw new Error(`expected active-memory transcript in ${directory}`);
-  }
-  return path.join(directory, filename);
+  return path.join(directory, expectDefined(files[0], "transcript artifact"));
 }
 
 const hoisted = vi.hoisted(() => {
@@ -87,14 +73,14 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/memory-host-search", () => ({
+vi.mock("openclaw/plugin-sdk/memory-host-search", () => ({
   closeActiveMemorySearchManager: hoisted.closeActiveMemorySearchManager,
   getActiveMemorySearchManager: hoisted.getActiveMemorySearchManager,
 }));
 
-vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/memory-host-core")>(
-    "astroclaw/plugin-sdk/memory-host-core",
+vi.mock("openclaw/plugin-sdk/memory-host-core", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/memory-host-core")>(
+    "openclaw/plugin-sdk/memory-host-core",
   );
   return {
     ...actual,
@@ -108,9 +94,9 @@ vi.mock("astroclaw/plugin-sdk/memory-host-core", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
-    "astroclaw/plugin-sdk/session-store-runtime",
+vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
+    "openclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -120,10 +106,10 @@ vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-transcript-runtime", async () => {
+vi.mock("openclaw/plugin-sdk/session-transcript-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
-  >("astroclaw/plugin-sdk/session-transcript-runtime");
+    typeof import("openclaw/plugin-sdk/session-transcript-runtime")
+  >("openclaw/plugin-sdk/session-transcript-runtime");
   return {
     ...actual,
     readSessionTranscriptRawDelta: async (
@@ -3486,11 +3472,11 @@ describe("active-memory plugin", () => {
     testing.setTimeoutPartialDataGraceMsForTests(50);
     registerPluginConfig({ timeoutMs: 100, maxSummaryChars: 80, logging: true });
     const sessionRuntime = await vi.importActual<
-      typeof import("astroclaw/plugin-sdk/session-store-runtime")
-    >("astroclaw/plugin-sdk/session-store-runtime");
+      typeof import("openclaw/plugin-sdk/session-store-runtime")
+    >("openclaw/plugin-sdk/session-store-runtime");
     const transcriptRuntime = await vi.importActual<
-      typeof import("astroclaw/plugin-sdk/session-transcript-runtime")
-    >("astroclaw/plugin-sdk/session-transcript-runtime");
+      typeof import("openclaw/plugin-sdk/session-transcript-runtime")
+    >("openclaw/plugin-sdk/session-transcript-runtime");
     hoisted.patchSessionEntry.mockImplementationOnce(sessionRuntime.patchSessionEntry);
     hoisted.cleanupSessionLifecycleArtifacts.mockImplementationOnce(
       sessionRuntime.cleanupSessionLifecycleArtifacts,
@@ -5068,7 +5054,7 @@ describe("active-memory plugin", () => {
       const staleReadStarted = createDeferred<void>();
       const releaseStaleRead = createDeferred<void>();
       if (stalePoll) {
-        const transcriptRuntime = await import("astroclaw/plugin-sdk/session-transcript-runtime");
+        const transcriptRuntime = await import("openclaw/plugin-sdk/session-transcript-runtime");
         const readDelta = transcriptRuntime.readSessionTranscriptRawDelta;
         let heldRead = false;
         vi.spyOn(transcriptRuntime, "readSessionTranscriptRawDelta").mockImplementation(
@@ -5966,7 +5952,9 @@ describe("active-memory plugin", () => {
     await runPromptBuild({ prompt: "what wings should i order? temp transcript path" });
 
     expect(mkdtempSpy).not.toHaveBeenCalled();
-    await expectPathMissing(path.join(stateDir, "plugins", "active-memory", "transcripts"));
+    await expect(
+      fs.access(path.join(stateDir, "plugins", "active-memory", "transcripts")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("persists subagent transcripts in a separate directory when enabled", async () => {
@@ -6271,69 +6259,72 @@ describe("active-memory plugin", () => {
     expectLinesToContain(infoLines, "circuit breaker open");
   });
 
-  it("resets circuit breaker after a successful recall", async () => {
-    const CONFIGURED_TIMEOUT_MS = 25;
-    testing.setMinimumTimeoutMsForTests(1);
-    testing.setSetupGraceTimeoutMsForTests(0);
-    registerPluginConfig({
-      timeoutMs: CONFIGURED_TIMEOUT_MS,
-      logging: true,
-      circuitBreakerMaxTimeouts: 1,
-      circuitBreakerCooldownMs: 60_000,
-    });
+  it.each(["cooldown", "a successful recall"] as const)(
+    "allows recall again after %s clears consecutive timeouts",
+    async (resetReason) => {
+      vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+      const CONFIGURED_TIMEOUT_MS = 25;
+      const COOLDOWN_MS = 60_000;
+      testing.setMinimumTimeoutMsForTests(1);
+      testing.setSetupGraceTimeoutMsForTests(0);
+      registerPluginConfig({
+        timeoutMs: CONFIGURED_TIMEOUT_MS,
+        logging: true,
+        circuitBreakerMaxTimeouts: resetReason === "cooldown" ? 1 : 2,
+        circuitBreakerCooldownMs: COOLDOWN_MS,
+      });
+      const sessionKey = "agent:main:cb-reset";
+      const recallRunSpy = vi.spyOn(recallRun, "runRecallSubagent");
+      const timeOutRecall = async (prompt: string) => {
+        const embeddedStarted = createDeferred<void>();
+        runEmbeddedAgent.mockImplementationOnce(
+          async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
+            await writeTranscriptJsonl(params.sessionFile, []);
+            embeddedStarted.resolve();
+            return await waitForAbort(params.abortSignal);
+          },
+        );
+        const resultPromise = runPromptBuild({ prompt }, { sessionKey });
+        await embeddedStarted.promise;
+        await vi.advanceTimersByTimeAsync(CONFIGURED_TIMEOUT_MS);
+        await Promise.allSettled(recallRunSpy.mock.results.map(({ value }) => value));
+        expect(await resultPromise).toBeUndefined();
+      };
+      const recallSuccessfully = async (prompt: string, summary: string) => {
+        runEmbeddedAgent.mockImplementationOnce(async (params: { sessionFile: string }) => {
+          await writeUsableMemoryTranscript(params.sessionFile, summary);
+          return { payloads: [{ text: summary }] };
+        });
+        const result = await runPromptBuild({ prompt }, { sessionKey });
+        expect(result?.prependContext).toContain(summary);
+      };
 
-    // First call: timeout (trips the breaker with max=1).
-    runEmbeddedAgent.mockImplementationOnce(
-      async (params: { abortSignal?: AbortSignal }) => await waitForAbort(params.abortSignal),
-    );
-    await runPromptBuild(
-      { prompt: "cb reset test timeout" },
-      {
-        sessionKey: "agent:main:cb-reset",
-      },
-    );
-    expect(runEmbeddedAgent).toHaveBeenCalledTimes(1);
+      try {
+        await timeOutRecall("cb reset test timeout");
+        expect(runEmbeddedAgent).toHaveBeenCalledTimes(1);
 
-    // Second call should be skipped by circuit breaker.
-    await runPromptBuild(
-      { prompt: "cb reset test skipped" },
-      {
-        sessionKey: "agent:main:cb-reset",
-      },
-    );
-    expect(runEmbeddedAgent).toHaveBeenCalledTimes(1);
+        if (resetReason === "cooldown") {
+          await runPromptBuild({ prompt: "cb reset test skipped" }, { sessionKey });
+          expect(runEmbeddedAgent).toHaveBeenCalledTimes(1);
+          await vi.advanceTimersByTimeAsync(COOLDOWN_MS);
+        } else {
+          await recallSuccessfully("cb reset first success", "lemon pepper wings");
+          expect(runEmbeddedAgent).toHaveBeenCalledTimes(2);
+          await timeOutRecall("cb reset second timeout");
+          expect(runEmbeddedAgent).toHaveBeenCalledTimes(3);
+        }
 
-    // Simulate cooldown expiry by manipulating the circuit breaker entry.
-    const cbKey = testing.buildCircuitBreakerKey("main", "github-copilot", "gpt-5.4-mini");
-    const entry = testing.getCircuitBreakerEntry(cbKey);
-    if (entry) {
-      entry.lastTimeoutAt = Date.now() - 120_000;
-    }
-
-    // Third call should go through (cooldown expired) and succeed.
-    runEmbeddedAgent.mockImplementationOnce(async () => ({
-      payloads: [{ text: "- lemon pepper wings" }],
-    }));
-    await runPromptBuild(
-      { prompt: "cb reset test success" },
-      {
-        sessionKey: "agent:main:cb-reset",
-      },
-    );
-    expect(runEmbeddedAgent).toHaveBeenCalledTimes(2);
-
-    // Fourth call should also go through since the breaker was reset on success.
-    runEmbeddedAgent.mockImplementationOnce(async () => ({
-      payloads: [{ text: "- buffalo wings" }],
-    }));
-    await runPromptBuild(
-      { prompt: "cb reset test still ok" },
-      {
-        sessionKey: "agent:main:cb-reset",
-      },
-    );
-    expect(runEmbeddedAgent).toHaveBeenCalledTimes(3);
-  });
+        await recallSuccessfully("cb reset test success", "buffalo wings");
+        expect(runEmbeddedAgent).toHaveBeenCalledTimes(resetReason === "cooldown" ? 2 : 4);
+        if (resetReason === "cooldown") {
+          await recallSuccessfully("cb reset test still ok", "blue cheese");
+          expect(runEmbeddedAgent).toHaveBeenCalledTimes(3);
+        }
+      } finally {
+        await Promise.allSettled(recallRunSpy.mock.results.map(({ value }) => value));
+      }
+    },
+  );
 
   it("normalizes circuit breaker config with defaults", () => {
     const config = testing.normalizePluginConfig({});
