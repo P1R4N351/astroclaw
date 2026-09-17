@@ -38,12 +38,13 @@ import { registerManagedUpdateHandoffTriageTests } from "./update-managed-servic
 import { signalMockManagedUpdateHandoffReady } from "./update-managed-service-handoff.test-support.js";
 import { recordUpdateRunStep } from "./update-run-ledger.js";
 
-const { forceKillChildProcessTreeMock, resolvePreferredAstroclawTmpDirMock, spawnMock } =
-  vi.hoisted(() => ({
+const { forceKillChildProcessTreeMock, resolvePreferredOpenClawTmpDirMock, spawnMock } = vi.hoisted(
+  () => ({
     forceKillChildProcessTreeMock: vi.fn(),
-    resolvePreferredAstroclawTmpDirMock: vi.fn(),
+    resolvePreferredOpenClawTmpDirMock: vi.fn(),
     spawnMock: vi.fn(),
-  }));
+  }),
+);
 const MOCK_INSTALL_ROOT = path.join(os.tmpdir(), `openclaw-handoff-lifecycle-${process.pid}`);
 
 function createSpawnMock(params?: { pid?: number }) {
@@ -75,9 +76,9 @@ vi.mock("../process/child-process-tree.js", async () => {
   return { ...actual, forceKillChildProcessTree: forceKillChildProcessTreeMock };
 });
 
-vi.mock("./tmp-astroclaw-dir.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./tmp-astroclaw-dir.js")>()),
-  resolvePreferredAstroclawTmpDir: resolvePreferredAstroclawTmpDirMock,
+vi.mock("./tmp-openclaw-dir.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./tmp-openclaw-dir.js")>()),
+  resolvePreferredOpenClawTmpDir: resolvePreferredOpenClawTmpDirMock,
 }));
 
 const tempDirs = new Set<string>();
@@ -103,7 +104,7 @@ beforeEach(async () => {
     await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-handoff-coordinator-")),
   );
   tempDirs.add(coordinatorDir);
-  resolvePreferredAstroclawTmpDirMock.mockReturnValue(coordinatorDir);
+  resolvePreferredOpenClawTmpDirMock.mockReturnValue(coordinatorDir);
   forceKillChildProcessTreeMock.mockReset();
   spawnMock.mockReset();
   spawnMock.mockImplementation((_command: string, args: string[]) => {
@@ -512,7 +513,7 @@ describe("managed service update handoff", () => {
         );
         expect(
           run?.steps.find((step) => step.step === "repairing" && step.status === "failed")?.detail,
-        ).toContain(phase === "validating" ? "candidate rehearsal" : "live");
+        ).toContain(phase === "validating" ? "update checks" : "installed version");
         expect(run?.repair[0]?.reason).toBe("requester-revoked");
       } else {
         expect(run?.repair[0]).toMatchObject({ status: "succeeded" });
