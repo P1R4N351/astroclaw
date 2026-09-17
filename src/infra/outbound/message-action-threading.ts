@@ -7,7 +7,7 @@ import type {
   ChannelThreadingAdapter,
   ChannelThreadingToolContext,
 } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type {
   OutboundSessionRoute,
   ResolveOutboundSessionRouteParams,
@@ -48,7 +48,11 @@ export function resolveAndApplyOutboundThreadId(
         accountId: context.accountId,
         to: context.to,
         toolContext: context.toolContext,
-        replyToId,
+        // An inherited reply names the incoming message, not a user-selected
+        // thread. Let the provider recover its root before canonicalizing it.
+        // Passing a Slack child here suppresses root lookup and posts outside
+        // the conversation. Explicit and unknown reply targets stay intact.
+        replyToId: context.replyToIsExplicit === false ? undefined : replyToId,
       });
   const resolvedThreadId = threadId ?? autoResolvedThreadId;
   if (autoResolvedThreadId && !actionParams.threadId) {
