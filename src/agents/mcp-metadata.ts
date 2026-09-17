@@ -1,7 +1,44 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
 import { truncateUtf16Safe } from "@astroclaw/normalization-core/utf16-slice";
+import type { ClientCapabilities, ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
 
 const MCP_METADATA_TEXT_LIMIT = 1_200;
+const MCP_APPS_CLIENT_EXTENSION = "io.modelcontextprotocol/ui";
+const MCP_APP_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
+
+export function buildMcpClientCapabilities(mcpAppsEnabled: boolean): ClientCapabilities {
+  return mcpAppsEnabled
+    ? {
+        extensions: {
+          [MCP_APPS_CLIENT_EXTENSION]: { mimeTypes: [MCP_APP_RESOURCE_MIME_TYPE] },
+        },
+      }
+    : {};
+}
+
+export function normalizeToolUiVisibility(value: unknown): Array<"app" | "model"> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const normalized = value.filter(
+    (entry): entry is "app" | "model" => entry === "app" || entry === "model",
+  );
+  return [...new Set(normalized)].toSorted();
+}
+
+export function summarizeServerCapabilities(capabilities: ServerCapabilities | undefined) {
+  return {
+    resources: capabilities?.resources
+      ? { listChanged: capabilities.resources.listChanged === true }
+      : undefined,
+    prompts: capabilities?.prompts
+      ? { listChanged: capabilities.prompts.listChanged === true }
+      : undefined,
+    tools: capabilities?.tools
+      ? { listChanged: capabilities.tools.listChanged === true }
+      : undefined,
+  };
+}
 
 /** Scrubs untrusted MCP metadata before exposing it to a model. */
 export function sanitizeMcpMetadataText(value: string | undefined): string | undefined {
