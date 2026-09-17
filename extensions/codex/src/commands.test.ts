@@ -6,22 +6,22 @@ import {
   replaceRuntimeAuthProfileStoreSnapshots,
   resolveDefaultAgentDir,
   type AuthProfileStore,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-binding-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import { MODEL_SELECTION_LOCKED_MESSAGE } from "astroclaw/plugin-sdk/model-session-runtime";
-import type { PluginCommandContext, PluginCommandResult } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/agent-runtime";
+import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-binding-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { MODEL_SELECTION_LOCKED_MESSAGE } from "openclaw/plugin-sdk/model-session-runtime";
+import type { PluginCommandContext, PluginCommandResult } from "openclaw/plugin-sdk/plugin-entry";
 import {
   clearSessionStoreCacheForTest,
   getSessionEntry,
   patchSessionEntry,
   resolveStorePath,
   upsertSessionEntry,
-} from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/session-store-runtime";
 import {
   closeOpenClawAgentDatabasesAsync,
   closeOpenClawStateDatabaseAsync,
-} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+} from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CODEX_CONTROL_METHODS } from "./app-server/capabilities.js";
 import {
@@ -1152,7 +1152,7 @@ describe("codex command", () => {
           ).resolves.toBe(true);
         }
       } finally {
-        parent.unregister();
+        await parent.unregister();
         harness.client.close();
       }
     },
