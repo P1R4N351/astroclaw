@@ -16,7 +16,7 @@ import {
 } from "../../daemon/service.test-helpers.js";
 import { sha256Hex } from "../../infra/crypto-digest.js";
 import { openNodeSqliteDatabase } from "../../infra/node-sqlite.js";
-import * as openClawTmp from "../../infra/tmp-openclaw-dir.js";
+import * as openClawTmp from "../../infra/tmp-astroclaw-dir.js";
 import { CONTROL_PLANE_UPDATE_SENTINEL_META_ENV } from "../../infra/update-control-plane-sentinel.js";
 import { createManagedHandoffLeaseStore } from "../../infra/update-managed-service-handoff-lease.js";
 import { createUpdateRun } from "../../infra/update-run-ledger.js";
@@ -57,7 +57,7 @@ afterEach(() => vi.restoreAllMocks());
 
 async function withServiceHome(run: (home: string) => Promise<void>): Promise<void> {
   const home = await makeTempWorkspace("openclaw-update-service-");
-  vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(home);
+  vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(home);
   try {
     await withEnvAsync(
       {
@@ -81,7 +81,7 @@ async function withServiceHome(run: (home: string) => Promise<void>): Promise<vo
 }
 
 it.each(["systemd-user-bus-unavailable", "service-manager-access-denied"] as const)(
-  "retains the native inspection reason for failed preflight: %s",
+  "retains the native inspection reason without service authority: %s",
   (reason) =>
     withServiceHome(async (home) => {
       mockProcessPlatform("linux");
@@ -96,17 +96,20 @@ it.each(["systemd-user-bus-unavailable", "service-manager-access-denied"] as con
         },
       });
       mocks.service.mockReturnValue(service);
-      await expect(
-        maybeStopManagedServiceBeforeMutableUpdate({
-          root: process.cwd(),
-          updateInstallKind: "package",
-          shouldRestart: true,
-          phase: "inspect",
-          jsonMode: true,
-        }),
-      ).resolves.toMatchObject({
-        serviceUpdateVerdict: { kind: "unavailable", inspectionReason: reason },
+      const inspection = await maybeStopManagedServiceBeforeMutableUpdate({
+        root: process.cwd(),
+        updateInstallKind: "package",
+        shouldRestart: true,
+        phase: "inspect",
+        jsonMode: true,
       });
+      expect(inspection.serviceUpdateVerdict).toMatchObject({
+        kind: "unavailable",
+        inspectionReason: reason,
+      });
+      expect(inspection.serviceEnv === undefined).toBe(true);
+      expect(inspection.serviceDefinitionEnv === undefined).toBe(true);
+      expect(inspection.serviceNodeRunner === undefined).toBe(true);
       expect(service.stop).not.toHaveBeenCalled();
     }),
 );
@@ -139,9 +142,9 @@ it.each([
       jsonMode: true,
     });
     expect(result.serviceUpdateVerdict?.kind).toBe("unavailable");
-    expect(result.blockMessage).toContain(
+    expect(result.serviceMutationSkipMessage).toContain(
       scenario.residual
-        ? "processes remain in its systemd service cgroup"
+        ? "Processes remain in the systemd service cgroup"
         : "Gateway service inspection is unavailable",
     );
     expect(service.stop).not.toHaveBeenCalled();
@@ -265,7 +268,7 @@ it.each(nativeOfflineCases)(
       expect(inspected.serviceUpdateVerdict?.kind).toBe(
         scenario.runtime === "unknown" ? "unavailable" : "owned",
       );
-      expect(inspected.offline).toBe(scenario.offline);
+      expect(inspected.offline).toBe(scenario.runtime === "unknown" ? undefined : scenario.offline);
       for (const [args] of isEnabled.mock.calls) {
         expect(args.timeoutMs).toBe(200);
       }
@@ -278,10 +281,10 @@ it.each(nativeOfflineCases)(
 );
 
 it.each([
-  { code: "ETIMEDOUT", failures: 1, proceeds: true },
-  { code: "ETIMEDOUT", failures: 2, proceeds: false },
-  { code: "ETIMEDOUT", failures: 2, proceeds: false, admitted: true },
-  { code: "ENOENT", failures: 1, proceeds: false },
+  { code: "ETIMEDOUT", failures: 1, recovered: true },
+  { code: "ETIMEDOUT", failures: 2, recovered: false },
+  { code: "ETIMEDOUT", failures: 2, recovered: false, admitted: true },
+  { code: "ENOENT", failures: 1, recovered: false },
 ])("handles Scheduled Task probe failures before update: %j", (scenario) =>
   withServiceHome(async (home) => {
     mockProcessPlatform("win32");
@@ -333,16 +336,20 @@ it.each([
       await expect(inspection).rejects.toThrow("Scheduled Task probe timed out after 30000 ms");
     } else {
       const inspected = await inspection;
-      if (scenario.proceeds) {
+      expect(inspected.blockMessage).toBeUndefined();
+      if (scenario.recovered) {
         expect(inspected.serviceUpdateVerdict?.kind).toBe("owned");
-        expect(inspected.blockMessage).toBeUndefined();
         expect(inspected.running).toBe(true);
       } else {
         expect(inspected.serviceUpdateVerdict?.kind).toBe("unavailable");
-        expect(inspected.blockMessage).toContain("Refusing to mutate code");
+        expect(inspected.serviceMutationSkipMessage).toContain(
+          "Restart the Gateway you launched manually after the update.",
+        );
         if (scenario.code === "ETIMEDOUT") {
-          expect(inspected.blockMessage).toContain("Scheduled Task probe timed out after 30000 ms");
-          expect(inspected.blockMessage).toContain("ETIMEDOUT");
+          expect(inspected.serviceMutationSkipMessage).toContain(
+            "Scheduled Task probe timed out after 30000 ms",
+          );
+          expect(inspected.serviceMutationSkipMessage).toContain("ETIMEDOUT");
         }
       }
     }
@@ -357,7 +364,7 @@ it.each([
   }),
 );
 
-it("preserves a silent Scheduled Task probe failure through update and Doctor refusal", () =>
+it("preserves a silent Scheduled Task probe failure through update and Doctor warnings", () =>
   withServiceHome(async (home) => {
     mockProcessPlatform("win32");
     vi.spyOn(doctorServicePolicy, "shouldManageGatewayService").mockResolvedValue(true);
@@ -386,22 +393,30 @@ it("preserves a silent Scheduled Task probe failure through update and Doctor re
       jsonMode: true,
     });
     expect(inspection).toMatchObject({
-      offline: false,
       stopped: false,
       serviceMutationAllowed: false,
       serviceUpdateVerdict: { kind: "unavailable" },
     });
     const detail = "Scheduled Task probe failed (exit 2): no output from PowerShell.";
-    expect.soft(inspection.blockMessage).toContain(detail);
-    await expect(
-      beginDoctorMaintenance({
-        root: process.cwd(),
-        options: { repair: true },
-        runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
-      }),
-    ).rejects.toThrow(detail);
+    expect(inspection.blockMessage).toBeUndefined();
+    expect(inspection.serviceMutationSkipMessage).toContain(detail);
+    const maintenance = await beginDoctorMaintenance({
+      root: process.cwd(),
+      options: { repair: true },
+      runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
+    });
+    try {
+      expect(maintenance?.warnings).toEqual([expect.stringContaining(detail)]);
+      expect(maintenance?.warnings?.[0]).toContain(
+        "Restart the Gateway you launched manually after the update.",
+      );
+      await maintenance?.finish({});
+    } finally {
+      await maintenance?.release();
+    }
     expect(service.stop).not.toHaveBeenCalled();
     expect(service.install).not.toHaveBeenCalled();
+    expect(service.restart).not.toHaveBeenCalled();
   }));
 
 const servingAncestorMaintenanceCases = [
@@ -433,7 +448,7 @@ it.runIf(process.platform === "linux" || process.platform === "darwin").each(
       const root = await fs.realpath(process.cwd());
       const metaPath = path.join(home, "handoff-meta.json");
       const runId = randomUUID();
-      vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(home);
+      vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(home);
       createUpdateRun({ runId, trigger: "cli" }, { env: process.env });
       await fs.writeFile(
         metaPath,
@@ -801,7 +816,7 @@ it.each(["before stop", "after stop"] as const)(
   "refuses a rebound live executor %s without a new native effect",
   (when) =>
     withServiceHome(async (home) => {
-      vi.spyOn(openClawTmp, "resolvePreferredOpenClawTmpDir").mockReturnValue(
+      vi.spyOn(openClawTmp, "resolvePreferredAstroclawTmpDir").mockReturnValue(
         path.join(home, "private-tmp"),
       );
       const root = process.cwd();
