@@ -21,6 +21,10 @@ import {
   type createExternalAuthRuntime,
 } from "./external-auth.js";
 import type { ExternalCliAuthDiscovery } from "./external-cli-discovery.js";
+import {
+  loadInheritedAuthProfileStore,
+  resolveRuntimeAuthProfileStoreFromSnapshots,
+} from "./inherited-store.js";
 import { isLegacyOAuthRef } from "./legacy-oauth-ref.js";
 import {
   AuthProfileMigrationRequiredError,
@@ -1248,48 +1252,19 @@ export function createAuthProfileStoreRuntime(
     if (getScopedSharedAuthStore()) {
       return null;
     }
-    const mainKey = options?.inheritedAuthDir
-      ? resolveAgentAuthPath(options.inheritedAuthDir)
-      : resolveSharedAuthPath();
-    const requestedKey = agentDir ? resolveAgentAuthPath(agentDir) : resolveSharedAuthPath();
-    const mainStore = getRuntimeAuthProfileStoreSnapshotAtDatabasePath(mainKey);
-
-    if (!agentDir || requestedKey === mainKey) {
-      return mainStore ?? null;
-    }
-    const requestedStore = getRuntimeAuthProfileStoreSnapshotAtDatabasePath(requestedKey);
-
-    if (mainStore && requestedStore) {
-      return mergeAuthProfileStores(mainStore, requestedStore, {
-        preserveBaseRuntimeExternalProfiles: true,
-      });
-    }
-    if (requestedStore) {
-      const persistedMainStore = loadAuthProfileStoreForAgent(options?.inheritedAuthDir, {
-        migrationProvider: options?.migrationProvider,
-        config: options?.config,
-        readOnly: true,
-        syncExternalCli: false,
-        ...resolvePersistedLoadOptions(options),
-      });
-      return mergeAuthProfileStores(persistedMainStore, requestedStore, {
-        preserveBaseRuntimeExternalProfiles: true,
-      });
-    }
-    if (mainStore) {
-      const persistedRequestedStore = loadAuthProfileStoreForAgent(agentDir, {
-        migrationProvider: options?.migrationProvider,
-        config: options?.config,
-        readOnly: true,
-        syncExternalCli: false,
-        ...resolvePersistedLoadOptions(options),
-      });
-      return mergeAuthProfileStores(mainStore, persistedRequestedStore, {
-        preserveBaseRuntimeExternalProfiles: true,
-      });
-    }
-
-    return null;
+    return resolveRuntimeAuthProfileStoreFromSnapshots({
+      agentDir,
+      inheritedAuthDir: options?.inheritedAuthDir,
+      env: getScopedAuthProfileEnv(),
+      loadStore: (directory) =>
+        loadAuthProfileStoreForAgent(directory, {
+          migrationProvider: options?.migrationProvider,
+          config: options?.config,
+          readOnly: true,
+          syncExternalCli: false,
+          ...resolvePersistedLoadOptions(options),
+        }),
+    });
   }
 
   function maybeSyncPersistedExternalCliAuthProfiles(params: {
@@ -1673,14 +1648,14 @@ export function createAuthProfileStoreRuntime(
       );
     }
 
-    const mainStore = loadAuthProfileStoreForAgent(
+    const mainStore = loadInheritedAuthProfileStore(
+      () => loadAuthProfileStoreForAgent(effectiveOptions?.inheritedAuthDir, effectiveOptions, env),
       effectiveOptions?.inheritedAuthDir,
-      effectiveOptions,
-      env,
+      env ?? getScopedAuthProfileEnv(),
     );
-    const mergedStore = mergeAuthProfileStores(mainStore, store, {
-      preserveBaseRuntimeExternalProfiles: true,
-    });
+    const mergedStore = mainStore
+      ? mergeAuthProfileStores(mainStore, store, { preserveBaseRuntimeExternalProfiles: true })
+      : store;
     return setRuntimeLocalProfileMetadata(
       overlayExternalAuthProfiles(mergedStore, {
         agentDir: effectiveAgentDir,
@@ -1828,7 +1803,11 @@ export function createAuthProfileStoreRuntime(
       );
     }
 
-    const mainStore = loadAuthProfileStoreForAgent(options.inheritedAuthDir, options);
+    const mainStore = loadInheritedAuthProfileStore(
+      () => loadAuthProfileStoreForAgent(options.inheritedAuthDir, options),
+      options.inheritedAuthDir,
+      getScopedAuthProfileEnv(),
+    );
     return mergeLocalAuthProfileStoreWithInheritedStore(store, mainStore);
   }
 
@@ -1945,14 +1924,15 @@ export function createAuthProfileStoreRuntime(
       return stripRuntimeExternalProfileMetadata(store);
     }
 
-    const mainStore = loadAuthProfileStoreForAgent(
+    const mainStore = loadInheritedAuthProfileStore(
+      () => loadAuthProfileStoreForAgent(effectiveOptions.inheritedAuthDir, effectiveOptions),
       effectiveOptions.inheritedAuthDir,
-      effectiveOptions,
+      getScopedAuthProfileEnv(),
     );
     return stripRuntimeExternalProfileMetadata(
-      mergeAuthProfileStores(mainStore, store, {
-        preserveBaseRuntimeExternalProfiles: true,
-      }),
+      mainStore
+        ? mergeAuthProfileStores(mainStore, store, { preserveBaseRuntimeExternalProfiles: true })
+        : store,
     );
   }
 
@@ -1975,13 +1955,14 @@ export function createAuthProfileStoreRuntime(
       return store;
     }
 
-    const mainStore = loadAuthProfileStoreForAgent(undefined, {
-      readOnly: true,
-      syncExternalCli: false,
-    });
-    return mergeAuthProfileStores(mainStore, store, {
-      preserveBaseRuntimeExternalProfiles: true,
-    });
+    const mainStore = loadInheritedAuthProfileStore(
+      () => loadAuthProfileStoreForAgent(undefined, { readOnly: true, syncExternalCli: false }),
+      undefined,
+      getScopedAuthProfileEnv(),
+    );
+    return mainStore
+      ? mergeAuthProfileStores(mainStore, store, { preserveBaseRuntimeExternalProfiles: true })
+      : store;
   }
 
   function saveAuthProfileStoreInTransaction(
