@@ -48,7 +48,7 @@ export type MessageToolDiscoveryParams = {
   requesterSenderId?: string;
   senderIsOwner?: boolean;
   /** Host-redeemed scheduled account; never changes the current delivery context. */
-  scheduledAccountScope?: { channel?: string; accountId: string };
+  scheduledAccountScope?: { channels?: readonly string[]; accountId: string };
   preparedMessageToolCatalog?: PreparedMessageToolCatalog;
 };
 
@@ -223,10 +223,13 @@ function resolveDiscoveryAccountId(
   contextualAccountId: ChannelMessageActionDiscoveryInput["accountId"],
 ): ChannelMessageActionDiscoveryInput["accountId"] {
   const scope = params.scheduledAccountScope;
-  const scopedChannel = normalizeMessageChannel(scope?.channel);
+  const normalizedChannel = normalizeMessageChannel(channel);
   return scope &&
-    (scope.channel === undefined ||
-      (scopedChannel !== undefined && scopedChannel === normalizeMessageChannel(channel)))
+    (scope.channels === undefined ||
+      (normalizedChannel !== undefined &&
+        scope.channels.some(
+          (scopedChannel) => normalizeMessageChannel(scopedChannel) === normalizedChannel,
+        )))
     ? scope.accountId
     : contextualAccountId;
 }
@@ -294,7 +297,7 @@ export function resolveMessageToolActionSchemaActions(
 }
 
 function listAllMessageToolActions(params: MessageToolDiscoveryParams): ChannelMessageActionName[] {
-  const pluginActions = params.scheduledAccountScope?.channel
+  const pluginActions = params.scheduledAccountScope?.channels
     ? listMessageActionDiscoveryChannels(params.preparedMessageToolCatalog).flatMap(
         (plugin) =>
           resolveMessageActionDiscoveryForPlugin({
