@@ -2,19 +2,22 @@
  * Anthropic provider runtime registration. It owns API-key/setup-token/Claude
  * CLI auth, dynamic model normalization, usage auth, media, and stream wrappers.
  */
-import { createLazyRuntimeMethod, createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import {
+  createLazyRuntimeMethod,
+  createLazyRuntimeModule,
+} from "astroclaw/plugin-sdk/lazy-runtime";
 import type {
   OpenClawPluginApi,
   ProviderAuthContext,
   ProviderResolveDynamicModelContext,
   ProviderNormalizeResolvedModelContext,
   ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import {
   buildManifestModelProviderConfig,
   type ProviderCatalogResult,
-} from "openclaw/plugin-sdk/provider-catalog-shared";
-import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-entry";
+} from "astroclaw/plugin-sdk/provider-catalog-shared";
+import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-entry";
 import {
   buildProviderReplayFamilyHooks,
   cloneFirstTemplateModel,
@@ -26,18 +29,16 @@ import {
   resolveClaudeMythos5ModelIdentity,
   resolveClaudeOpus5ModelIdentity,
   resolveClaudeSonnet5ModelIdentity,
-  resolveClaudeThinkingProfile,
   supportsClaude1MContext,
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeMaxEffort,
   supportsClaudeNativeXhighEffort,
-} from "openclaw/plugin-sdk/provider-model-shared";
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/provider-model-shared";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { buildAnthropicCliBackend } from "./cli-backend.js";
 import {
   CLAUDE_CLI_CANONICAL_DEFAULT_MODEL_REF,
-  CLAUDE_CLI_OFF_THINKING_PROFILE,
   CLAUDE_CLI_PROFILE_ID,
   CLAUDE_MODEL_ID_ALIASES,
 } from "./cli-constants.js";
@@ -54,6 +55,7 @@ import { resolveFastModeSupport } from "./fast-mode-policy.js";
 import { acceptsAnthropicLiveModelContract } from "./live-model-contract-gate.js";
 import { anthropicMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import anthropicProviderDiscovery from "./provider-discovery.js";
+import { resolveThinkingProfile } from "./provider-policy-api.js";
 import {
   createClaudeSessionNodeInvokePolicies,
   registerClaudeSessionDiscovery,
@@ -65,7 +67,7 @@ import { fetchAnthropicUsage, resolveAnthropicUsageAuth } from "./usage.js";
 const loadAuthRuntime = createLazyRuntimeModule(() => import("./auth.runtime.js"));
 // Static registration must not initialize live catalog transport and policy.
 const buildOpenAICompatibleProviderCatalog = createLazyRuntimeMethod(
-  createLazyRuntimeModule(() => import("openclaw/plugin-sdk/provider-catalog-live-runtime")),
+  createLazyRuntimeModule(() => import("astroclaw/plugin-sdk/provider-catalog-live-runtime")),
   (runtime) => runtime.buildOpenAICompatibleProviderCatalog,
 );
 
@@ -866,17 +868,7 @@ export function buildAnthropicProvider(): ProviderPlugin {
     resolveReasoningOutputMode: () => "native",
     classifyFailoverReason: ({ code, errorType }) =>
       classifyAnthropicFailoverDescriptor(errorType) ?? classifyAnthropicFailoverDescriptor(code),
-    resolveThinkingProfile: ({ provider, modelId, params }) => {
-      const contractModelId = resolveClaudeModelIdentity({ id: modelId, params });
-      return isAnthropicMythos5Model(contractModelId) &&
-        normalizeLowercaseStringOrEmpty(provider) !== PROVIDER_ID
-        ? CLAUDE_CLI_OFF_THINKING_PROFILE
-        : resolveClaudeThinkingProfile(contractModelId, undefined, {
-            includeNativeMax: [PROVIDER_ID, CLAUDE_CLI_BACKEND_ID].includes(
-              normalizeLowercaseStringOrEmpty(provider),
-            ),
-          });
-    },
+    resolveThinkingProfile,
     wrapStreamFn: wrapAnthropicProviderStream,
     resolveFastModeSupport,
     resolveUsageAuth: resolveAnthropicUsageAuth,
