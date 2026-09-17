@@ -1,27 +1,27 @@
 // Slack plugin module implements dispatch behavior.
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
 import {
   dispatchChannelInboundTurn,
   resolveInboundReplyDispatchCounts,
   readAgentRunTerminalOutcome,
   type InboundReplyRecordOptions,
   hasVisibleInboundReplyDispatch,
-} from "astroclaw/plugin-sdk/channel-inbound";
+} from "openclaw/plugin-sdk/channel-inbound";
 import {
   defineFinalizableLivePreviewAdapter,
   deliverWithFinalizableLivePreviewAdapter,
   isChannelProgressDraftWorkToolName,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
 import {
   buildTtsSupplementMediaPayload,
   getReplyPayloadTtsSupplement,
   isReplyPayloadNonTerminalToolErrorWarning,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload, ReplyDispatchRuntimeInfo } from "astroclaw/plugin-sdk/reply-runtime";
-import { danger, logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyPayload, ReplyDispatchRuntimeInfo } from "openclaw/plugin-sdk/reply-runtime";
+import { danger, logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { formatSlackError } from "../../errors.js";
 import { normalizeSlackOutboundText } from "../../format.js";
 import { SLACK_EDIT_TEXT_MAX_BYTES } from "../../limits.js";
@@ -600,6 +600,9 @@ async function dispatchSlackMessageWithSetup(
                 payload.progressText,
                 {
                   itemId: payload.itemId,
+                  ...(progress.preambleOnlyProgress
+                    ? { complete: payload.phase !== "start" && payload.phase !== "update" }
+                    : {}),
                 },
               );
               return accepted || headlineVisible;
