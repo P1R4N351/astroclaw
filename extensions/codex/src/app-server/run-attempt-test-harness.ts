@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
 import {
   abortAndDrainAgentHarnessRun,
   nativeHookRelayTesting,
@@ -10,21 +10,21 @@ import {
   resetAgentEventsForTest,
   runBeforeToolCallHook,
   type EmbeddedRunAttemptParamsV2 as EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { clearRuntimeAuthProfileStoreSnapshots } from "astroclaw/plugin-sdk/agent-runtime";
-import { resetDiagnosticEventsForTest } from "astroclaw/plugin-sdk/diagnostic-runtime";
-import type { ExecApprovalsFile } from "astroclaw/plugin-sdk/exec-approvals-runtime";
-import { clearInternalHooks, resetGlobalHookRunner } from "astroclaw/plugin-sdk/hook-runtime";
-import { clearMemoryPluginState } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import { clearPluginCommands } from "astroclaw/plugin-sdk/plugin-runtime";
-import { createAgentHarnessHostCapabilitiesForTest } from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { clearRuntimeAuthProfileStoreSnapshots } from "openclaw/plugin-sdk/agent-runtime";
+import { resetDiagnosticEventsForTest } from "openclaw/plugin-sdk/diagnostic-runtime";
+import type { ExecApprovalsFile } from "openclaw/plugin-sdk/exec-approvals-runtime";
+import { clearInternalHooks, resetGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
+import { clearMemoryPluginState } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { clearPluginCommands } from "openclaw/plugin-sdk/plugin-runtime";
+import { createAgentHarnessHostCapabilitiesForTest } from "openclaw/plugin-sdk/plugin-test-runtime";
 import {
   deleteSessionEntry,
   resolveStorePath,
   upsertSessionEntry,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-import { closeOpenClawAgentDatabasesForTest } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/session-store-runtime";
+import { closeOpenClawAgentDatabasesForTest } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { defaultCodexAppInventoryCache } from "./app-inventory-cache.js";
 import { CodexAppServerClient } from "./client.js";
@@ -102,9 +102,9 @@ function createHarnessHostCapabilities(
   });
 }
 
-vi.mock("astroclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/exec-approvals-runtime", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/exec-approvals-runtime")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/exec-approvals-runtime")>();
   return {
     ...actual,
     loadExecApprovals: execApprovalsRuntimeMocks.loadExecApprovals,
@@ -614,6 +614,22 @@ export function createAppServerHarness(
   };
 }
 
+function defaultAttemptHarnessResponse(method: string) {
+  if (method === "configRequirements/read") {
+    return { requirements: null };
+  }
+  if (method === "config/read") {
+    return { config: {}, origins: {} };
+  }
+  if (method === "turn/start") {
+    return turnStartResult();
+  }
+  if (method === "thread/backgroundTerminals/list") {
+    return { data: [], nextCursor: null };
+  }
+  return {};
+}
+
 export function createStartedThreadHarness(
   requestImpl: Parameters<typeof createAppServerHarness>[0] = async () => undefined,
   options: Parameters<typeof createAppServerHarness>[1] = {},
@@ -623,34 +639,16 @@ export function createStartedThreadHarness(
     if (override !== undefined) {
       return override;
     }
-    if (method === "configRequirements/read") {
-      return { requirements: null };
-    }
-    if (method === "config/read") {
-      return { config: {}, origins: {} };
-    }
     if (method === "thread/start") {
       return threadStartResult();
     }
-    if (method === "turn/start") {
-      return turnStartResult();
-    }
-    if (method === "thread/backgroundTerminals/list") {
-      return { data: [], nextCursor: null };
-    }
-    return {};
+    return defaultAttemptHarnessResponse(method);
   }, options);
 }
 
 export function createResumeHarness(threadId = "thread-existing") {
   return createAppServerHarness(
     async (method, params) => {
-      if (method === "configRequirements/read") {
-        return { requirements: null };
-      }
-      if (method === "config/read") {
-        return { config: {}, origins: {} };
-      }
       if (method === "thread/resume") {
         // Resume must echo the requested thread; a different id is rejected as
         // an unsafe subscription.
@@ -660,10 +658,7 @@ export function createResumeHarness(threadId = "thread-existing") {
           ...(resumeParams.modelProvider ? { modelProvider: resumeParams.modelProvider } : {}),
         };
       }
-      if (method === "turn/start") {
-        return turnStartResult();
-      }
-      return {};
+      return defaultAttemptHarnessResponse(method);
     },
     { persistedThreads: [threadId] },
   );
@@ -711,7 +706,7 @@ export function setupRunAttemptTestHooks(): void {
     vi.stubEnv("OPENCLAW_TRAJECTORY", "0");
     vi.stubEnv("CODEX_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
-    tempDir = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-codex-run-"));
+    tempDir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-codex-run-"));
     // createParams models an ordinary durable session; seeded native bindings
     // must have the same authoritative core owner as a real resumed conversation.
     await seedRunSessionOwnerForTest("session-1", "agent:main:session-1");
