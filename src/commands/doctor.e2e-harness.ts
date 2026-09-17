@@ -175,6 +175,7 @@ function createLegacyStateMigrationDetectionResult(params?: {
     stateDir: "/tmp/state",
     oauthDir: "/tmp/oauth",
     pluginSessionStoreAgentIds: [],
+    pairingStores: { sourcePaths: [], hasLegacy: false },
     deviceAuth: {
       sourcePath: "/tmp/state/identity/device-auth.json",
       sourcePresent: false,
@@ -423,22 +424,22 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
   isNonSecretApiKeyMarker: () => false,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-model-shared", () => ({
+vi.mock("openclaw/plugin-sdk/provider-model-shared", () => ({
   DEFAULT_CONTEXT_TOKENS: 32768,
   normalizeProviderId: (value: string) => normalizeLowercaseStringOrEmpty(value),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-stream-shared", () => ({
+vi.mock("openclaw/plugin-sdk/provider-stream-shared", () => ({
   createMoonshotThinkingWrapper: () => undefined,
   resolveMoonshotThinkingType: () => undefined,
   streamWithPayloadPatch: () => undefined,
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   createSubsystemLogger: () => ({
     debug: () => {},
     info: () => {},
@@ -493,6 +494,7 @@ vi.mock("./doctor-memory-search.js", () => ({
 }));
 
 vi.mock("../plugins/doctor-contract-registry.js", () => ({
+  withDeferredPluginDoctorMigrations: (_pluginIds: readonly string[], run: () => unknown) => run(),
   applyPluginDoctorCompatibilityMigrations: (config: unknown) => ({
     config,
     changes: [],
@@ -589,6 +591,11 @@ vi.mock("./onboard-helpers.js", () => ({
 vi.mock("../infra/state-migrations.doctor.js", () => ({
   autoMigrateLegacyState,
   detectLegacyStateMigrations,
+  prepareLegacyStateDatabaseSchema: vi.fn(async () => ({
+    outcome: "skipped",
+    changes: [],
+    warnings: [],
+  })),
   runLegacyStateMigrations,
 }));
 
