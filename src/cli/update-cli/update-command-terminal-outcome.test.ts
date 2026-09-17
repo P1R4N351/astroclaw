@@ -14,7 +14,7 @@ import {
   createRetainedPackageSwap,
 } from "../../infra/package-update-swap.test-support.js";
 import { readRestartSentinel } from "../../infra/restart-sentinel.js";
-import * as temporaryRoot from "../../infra/tmp-astroclaw-dir.js";
+import * as temporaryRoot from "../../infra/tmp-openclaw-dir.js";
 import { createManagedHandoffLeaseStore } from "../../infra/update-managed-service-handoff-lease.js";
 import { prepareNativePackageStage } from "../../infra/update-native-package-stage.js";
 import { createUpdateRun, finishUpdateRun, getUpdateRun } from "../../infra/update-run-ledger.js";
@@ -65,7 +65,7 @@ beforeEach(async () => {
   base = await fs.realpath(dirs.make("update-terminal-outcome-"));
   temporary = path.join(base, "private-tmp");
   await fs.mkdir(temporary, { mode: 0o700 });
-  vi.spyOn(temporaryRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(temporary);
+  vi.spyOn(temporaryRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(temporary);
   vi.stubEnv("OPENCLAW_STATE_DIR", path.join(base, "state"));
   vi.stubEnv("OPENCLAW_CONFIG_PATH", path.join(base, "state", "openclaw.json"));
   vi.stubEnv("OPENCLAW_UPDATE_RUN_HANDOFF", "");
@@ -500,7 +500,13 @@ describe("composed cleanup and terminal outcome", () => {
       expect(value.exitCode).toBe(1);
       expect(value.jsonOutput).toHaveLength(1);
       const report = value.jsonOutput[0];
-      expect(report).toMatchObject({ status: "error", reason });
+      expect(report).toMatchObject({
+        status: "error",
+        reason,
+        failedStep: {
+          name: settlementFailed ? "update executor settlement" : "global install backup retention",
+        },
+      });
       expect(value.sentinel).toMatchObject({ payload: { status: "error", stats: { reason } } });
       expect(value.history?.status).toBe("failed");
       expect.soft(value.history?.downtimeMs).toBe(settlementFailed ? null : 0);
