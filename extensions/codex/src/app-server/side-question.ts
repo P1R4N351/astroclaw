@@ -16,18 +16,18 @@ import {
   type EmbeddedRunAttemptParamsV2,
   type NativeHookRelayEvent,
   type registerNativeHookRelay,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { resolveAgentWorkspaceDir } from "openclaw/plugin-sdk/agent-runtime";
-import { resolveSessionAgentIdsStrict } from "openclaw/plugin-sdk/agent-scope-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { resolveAgentWorkspaceDir } from "astroclaw/plugin-sdk/agent-runtime";
+import { resolveSessionAgentIdsStrict } from "astroclaw/plugin-sdk/agent-scope-runtime";
 import {
   loadCodexBundleMcpApprovalConfig,
   resolveCodexMcpToolOverridesForAgent,
-} from "openclaw/plugin-sdk/codex-mcp-projection";
-import { loadExecApprovals } from "openclaw/plugin-sdk/exec-approvals-runtime";
-import { registerNativeHookRelayForBundledRuntime } from "openclaw/plugin-sdk/native-hook-relay-runtime";
-import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
-import { readStringField as readString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/codex-mcp-projection";
+import { loadExecApprovals } from "astroclaw/plugin-sdk/exec-approvals-runtime";
+import { registerNativeHookRelayForBundledRuntime } from "astroclaw/plugin-sdk/native-hook-relay-runtime";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+import { readStringField as readString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { resolveCodexAppServerForModelProvider } from "./app-server-policy.js";
 import { handleCodexAppServerApprovalRequest } from "./approval-bridge.js";
 import {
@@ -1219,7 +1219,7 @@ async function createCodexSideToolBridge(input: {
   let tools: AnyAgentTool[] = [];
   const webFetchHostnameAllowlistRef: { value?: string[] } = {};
   if (supportsModelTools(runtimeModel)) {
-    const createOpenClawCodingTools = (await import("openclaw/plugin-sdk/agent-harness"))
+    const createOpenClawCodingTools = (await import("astroclaw/plugin-sdk/agent-harness"))
       .createOpenClawCodingTools;
     const sandboxSessionKey =
       input.params.sandboxSessionKey?.trim() ||
@@ -1247,7 +1247,7 @@ async function createCodexSideToolBridge(input: {
           send: async (payload: ReplyPayload) => {
             await publishSideToolResult(payload);
           },
-          ...(input.params.messageChannel ? { messageChannel: input.params.messageChannel } : {}),
+          ...(messageToolProvider ? { messageChannel: messageToolProvider } : {}),
         }
       : undefined;
     const allTools = createOpenClawCodingTools({
