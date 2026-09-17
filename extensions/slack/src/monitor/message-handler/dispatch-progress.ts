@@ -7,10 +7,10 @@ import {
   resolveChannelStreamingPreviewToolProgress,
   resolveChannelStreamingSuppressDefaultToolProgressMessages,
   type ChannelProgressDraftCompositorSnapshot,
-} from "astroclaw/plugin-sdk/channel-outbound";
-import type { ReplyDispatchKind, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { ReplyDispatchKind, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
 import { createSlackDraftStream } from "../../draft-stream.js";
 import { formatSlackError } from "../../errors.js";
 import { SLACK_EDIT_TEXT_MAX_BYTES, SLACK_TEXT_LIMIT } from "../../limits.js";
@@ -129,6 +129,11 @@ export function createSlackProgressRuntime(runtimeParams: {
   const progressWorkCounter = createChannelProgressWorkCounter();
   const progressSeed = `${account.accountId}:${message.channel}`;
   const slackProgressStyle = resolveSlackProgressStyle(account.config);
+  // Compact quiet Slack is the latest model preamble, not the shared progress
+  // card's summary. Keep reasoning and tool telemetry (including failures and
+  // edit counters) out of this lane when refactoring channel presentation.
+  const preambleOnlyProgress =
+    isProgressMode && slackProgressStyle === "compact" && !previewToolProgressEnabled;
   // THIS BEHAVIOR IS INTENTIONAL AND MUST NOT BE CASUALLY ADJUSTED.
   // DO NOT CHANGE THIS WITHOUT APPROVAL FROM SJF OR PASHPASHPASH.
   const useDraftProgressCard =
@@ -349,6 +354,7 @@ export function createSlackProgressRuntime(runtimeParams: {
     seed: progressSeed,
     formatLine: formatSlackProgressDraftLine,
     reasoningLinePrefix: "🧠 ",
+    reasoningGate: !preambleOnlyProgress,
     updateOnLineChange: useNativeProgressStreaming || useDraftProgressCard,
     update: async (previewText, options) => {
       if (useNativeProgressStreaming) {
@@ -662,6 +668,7 @@ export function createSlackProgressRuntime(runtimeParams: {
     useNativeProgressStreaming,
     progressDraftActive,
     previewToolProgressEnabled,
+    preambleOnlyProgress,
     suppressDefaultToolProgressMessages,
     progressDraft,
     progressWorkCounter,
