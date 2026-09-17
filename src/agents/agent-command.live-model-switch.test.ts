@@ -40,6 +40,7 @@ import {
   createConfiguredModelCompatRuntimeConfig,
   createTestModelSelection,
   createTestModelVisibilityPolicy,
+  makeSuccessResult,
 } from "./agent-command.live-model-switch.test-helpers.js";
 import { registerAgentCommandRecoveryCases } from "./agent-command.restart-recovery.test-harness.js";
 import { createApiKeyCredential } from "./auth-profiles/credential-fixtures.test-support.js";
@@ -646,6 +647,7 @@ vi.mock("./auth-profiles/session-override.js", () => ({
 }));
 
 vi.mock("./defaults.js", () => ({
+  DEFAULT_CONTEXT_TOKENS: 200_000,
   DEFAULT_MODEL: "claude",
   DEFAULT_PROVIDER: "anthropic",
 }));
@@ -818,18 +820,6 @@ function runSubsequentFallbackAttempt(
 }
 
 type ModelSwitchOptions = ConstructorParameters<typeof LiveSessionModelSwitchError>[0];
-
-function makeSuccessResult(provider: string, model: string) {
-  return {
-    payloads: [{ text: "ok" }],
-    meta: {
-      durationMs: 100,
-      aborted: false,
-      stopReason: "end_turn",
-      agentMeta: { provider, model },
-    },
-  };
-}
 
 function makeEmptyResult(provider: string, model: string) {
   return {
