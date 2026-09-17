@@ -16,10 +16,10 @@ import {
   createPluginManifestRecordFixture,
   createPluginMetadataSnapshotFixture,
 } from "./plugin-metadata.test-support.js";
+import { listTrustedExternalProviderPolicyOwners } from "./provider-policy-owners.js";
 import { resolveDirectBundledProviderPolicySurface } from "./provider-policy-surface.js";
 import {
-  listTrustedExternalProviderPolicyOwners,
-  loadTrustedExternalProviderPolicyArtifacts,
+  loadProviderPolicyArtifacts,
   resolveBundledProviderPolicySurface,
   resolveProviderPolicySurface,
 } from "./provider-public-artifacts.js";
@@ -366,8 +366,8 @@ describe("provider public artifacts", () => {
     }
   });
 
-  it.each(["untrusted", "cold", "loaded", "catalog", "evaluation-error"] as const)(
-    "keeps trusted external policy under its admitted owner (%s)",
+  it.each(["bundled", "untrusted", "cold", "loaded", "catalog", "evaluation-error"] as const)(
+    "keeps provider policy under its admitted owner (%s)",
     async (scenario) => {
       const rootDir = writeExternalPolicyFixture();
       const source = path.join(rootDir, "index.cjs");
@@ -388,8 +388,8 @@ describe("provider public artifacts", () => {
         id: "fixture-policy",
         rootDir,
         source,
-        origin: "global",
-        trustedOfficialInstall: scenario !== "untrusted",
+        origin: scenario === "bundled" ? "bundled" : "global",
+        trustedOfficialInstall: scenario !== "untrusted" && scenario !== "bundled",
         providers: ["fixture-policy"],
       });
       const cache = createPluginCache();
@@ -424,7 +424,7 @@ describe("provider public artifacts", () => {
         }
         const resolve = () =>
           withPluginRuntimeRegistryScope(registry, () =>
-            withPluginCache(cache, () => loadTrustedExternalProviderPolicyArtifacts([metadata])),
+            withPluginCache(cache, () => loadProviderPolicyArtifacts([metadata])?.surface),
           );
         if (scenario === "catalog") {
           const catalog: ModelCatalogSnapshot = {
@@ -450,7 +450,7 @@ describe("provider public artifacts", () => {
         } else if (scenario === "evaluation-error") {
           expect(resolve).toThrow("nested failure");
         } else {
-          const policySurface = resolve()?.surface;
+          const policySurface = resolve();
           if (scenario === "untrusted") {
             expect(policySurface).toBeNull();
             expect(process.listenerCount(event)).toBe(0);
@@ -506,7 +506,7 @@ describe("provider public artifacts", () => {
     const manifestRegistry = { plugins: [plugin] };
 
     const owners = listTrustedExternalProviderPolicyOwners("local", manifestRegistry);
-    expect(loadTrustedExternalProviderPolicyArtifacts(owners)).toEqual({
+    expect(loadProviderPolicyArtifacts(owners)).toEqual({
       owner: plugin,
       surface: null,
     });
@@ -532,7 +532,7 @@ describe("provider public artifacts", () => {
       };
 
       const owners = listTrustedExternalProviderPolicyOwners("fixture-embedding", manifestRegistry);
-      const artifacts = loadTrustedExternalProviderPolicyArtifacts(owners);
+      const artifacts = loadProviderPolicyArtifacts(owners);
 
       expect(artifacts?.owner.id).toBe("b-policy");
       expect(artifacts?.surface?.inspectEmbeddingProviderSetup).toBeTypeOf("function");
