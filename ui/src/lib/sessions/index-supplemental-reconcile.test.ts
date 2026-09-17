@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
 import type { GatewayBrowserClient } from "../../api/gateway.ts";
@@ -79,7 +79,7 @@ describe("supplemental session reconciliation", () => {
         return reconcile(result.session);
       };
       let primary: ReturnType<typeof sessions.refresh>;
-      let supplemental: Promise<boolean>;
+      let supplemental: ReturnType<typeof readDescription>;
       if (first === "primary") {
         primary = sessions.refresh({ agentId: "main", force: true });
         supplemental = readDescription();
