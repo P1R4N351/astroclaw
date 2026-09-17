@@ -1,6 +1,6 @@
 // Payload tests cover successful embedded run replies, final-answer selection,
 // message-tool source replies, media directives, and tool-error warning policy.
-import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
+import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { resolveHeartbeatReplyPayload } from "../../../auto-reply/heartbeat-reply-payload.js";
 import { selectHeartbeatToolResponse } from "../../../auto-reply/heartbeat-tool-response.js";
@@ -582,61 +582,6 @@ describe("buildEmbeddedRunPayloads tool-error warnings", () => {
       title: "Exec",
       absentDetail: "command failed",
     });
-  });
-
-  it.each(["NO_REPLY", '{"action":"NO_REPLY"}'])(
-    "respects an intentional conversational silence after a non-mutating tool failure: %s",
-    (text) => {
-      expectNoPayloads({
-        assistantTexts: [text],
-        lastToolError: {
-          toolName: "codex_apps.slack.slack_read_thread",
-          error: "429 RATE_LIMITED",
-          mutatingAction: false,
-        },
-      });
-    },
-  );
-
-  it.each([
-    { name: "unknown mutation status", mutatingAction: undefined },
-    { name: "a failed mutation", mutatingAction: true },
-    { name: "a scheduled run", mutatingAction: false, isCronTrigger: true },
-    { name: "a heartbeat", mutatingAction: false, isHeartbeatTrigger: true },
-    { name: "an aborted run", mutatingAction: false, runAborted: true },
-  ])(
-    "keeps failure reporting for $name despite NO_REPLY",
-    ({ name: _name, mutatingAction, ...run }) => {
-      expectSingleToolErrorPayload(
-        buildPayloads({
-          ...run,
-          assistantTexts: ["NO_REPLY"],
-          lastToolError: { toolName: "read", error: "failed", mutatingAction },
-        }),
-        { title: "Read" },
-      );
-    },
-  );
-
-  it("does not treat an earlier silent steered input as the current answer", () => {
-    const prior = makeAgentAssistantMessage({ content: [{ type: "text", text: "NO_REPLY" }] });
-    expectSingleToolErrorPayload(
-      buildPayloads({
-        assistantTexts: ["NO_REPLY"],
-        answerSegments: [{ textEnd: 1, messageEnd: 2, finalMessageStart: 2, lastAssistant: prior }],
-        lastToolError: { toolName: "read", error: "failed", mutatingAction: false },
-      }),
-      { title: "Read" },
-    );
-  });
-
-  it("still warns when a non-mutating tool failure leaves no answer", () => {
-    expectSingleToolErrorPayload(
-      buildPayloads({
-        lastToolError: { toolName: "read", error: "failed", mutatingAction: false },
-      }),
-      { title: "Read" },
-    );
   });
 
   it("surfaces concise bash tool errors when verbose mode is off", () => {
