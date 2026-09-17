@@ -8,8 +8,9 @@ import * as triageUpdate from "../../commands/triage-update.js";
 import * as config from "../../config/config.js";
 import * as launchd from "../../daemon/launchd.js";
 import * as gatewayService from "../../daemon/service.js";
+import { createMockGatewayService } from "../../daemon/service.test-helpers.js";
 import { resolvePackageActivationAnchor } from "../../infra/package-update-activation-journal.js";
-import * as temporaryState from "../../infra/tmp-openclaw-dir.js";
+import * as temporaryState from "../../infra/tmp-astroclaw-dir.js";
 import * as updateCheck from "../../infra/update-check.js";
 import { CONTROL_PLANE_UPDATE_SENTINEL_META_ENV } from "../../infra/update-control-plane-sentinel.js";
 import * as updateGlobal from "../../infra/update-global.js";
@@ -131,14 +132,17 @@ function pendingPackageInvocation(
   const manager = vi
     .spyOn(updateShared, "resolveGlobalManager")
     .mockResolvedValue(params.manager ?? "npm");
-  const service = gatewayService.resolveGatewayService();
+  const service = createMockGatewayService({
+    isLoaded: async () => true,
+    readRuntime: async () => ({ status: "running", systemd: { managerUid: 2001 } }),
+  });
   const readCommand = vi.fn(async () =>
     params.redirected
       ? { programArguments: [process.execPath, path.join(target, "dist", "entry.js"), "gateway"] }
       : null,
   );
   vi.spyOn(gatewayService, "resolveGatewayService").mockReturnValue({ ...service, readCommand });
-  vi.spyOn(temporaryState, "resolvePreferredOpenClawTmpDir").mockReturnValue(control);
+  vi.spyOn(temporaryState, "resolvePreferredAstroclawTmpDir").mockReturnValue(control);
   const stateWrite = vi.spyOn(stateOwnership, "assertOpenClawStateWriteAllowedAtPath");
   const configWrite = vi.spyOn(config, "assertConfigWriteAllowedInCurrentMode");
   const createRun = vi.spyOn(ledger, "createUpdateRun");
