@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
 import { createConfigIO } from "../../config/io.js";
@@ -110,6 +110,42 @@ describe("post-plugin update readiness", () => {
       stderr: "",
     }));
   });
+
+  it.each([
+    { phase: "pre-plugin", operatorPolicy: "external" },
+    { phase: "post-plugin", operatorPolicy: "external" },
+    { phase: "pre-plugin", operatorPolicy: undefined },
+    { phase: "post-plugin", operatorPolicy: undefined },
+  ] as const)(
+    "keeps service authority with the parent in the $phase child (operator policy: $operatorPolicy)",
+    async ({ phase, operatorPolicy }) => {
+      vi.stubEnv("OPENCLAW_SERVICE_REPAIR_POLICY", operatorPolicy);
+      const { runExec } =
+        await vi.importActual<typeof import("../../process/exec.js")>("../../process/exec.js");
+      mocks.runExec.mockImplementationOnce(async (_command, _args, options) => {
+        const result = await runExec(
+          process.execPath,
+          [
+            "-e",
+            "process.stdout.write(JSON.stringify({ policy: process.env.OPENCLAW_SERVICE_REPAIR_POLICY, repair: process.env.OPENCLAW_UPDATE_PARENT_ALLOWS_GATEWAY_SERVICE_REPAIR, activation: process.env.OPENCLAW_UPDATE_PARENT_ALLOWS_GATEWAY_ACTIVATION }))",
+          ],
+          options,
+        );
+        expect(JSON.parse(result.stdout)).toEqual({
+          policy: "external",
+          repair: "0",
+          activation: "0",
+        });
+        return result;
+      });
+
+      await runUpdateFinalizationDoctorInFreshProcess({
+        ...updateOptions,
+        phase,
+        root: tempDirs.make("fresh-doctor-policy-"),
+      });
+    },
+  );
 
   it.each([undefined, 5_000])("propagates the primary Doctor timeout %s", async (timeoutMs) => {
     await runUpdateFinalizationDoctorInFreshProcess({
