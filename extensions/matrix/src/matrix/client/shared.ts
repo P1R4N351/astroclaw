@@ -1,13 +1,12 @@
 // Matrix plugin module implements shared behavior.
-import { normalizeOptionalAccountId } from "openclaw/plugin-sdk/account-id";
-import { toStringifiedError as toRetirementError } from "openclaw/plugin-sdk/error-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { normalizeOptionalAccountId } from "astroclaw/plugin-sdk/account-id";
+import { toStringifiedError as toRetirementError } from "astroclaw/plugin-sdk/error-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
 import { getMatrixRuntimeLifecycle, type MatrixRuntimeLifecycle } from "../../runtime.js";
 import type { CoreConfig } from "../../types.js";
 import { getMatrixMonitorTaskSignal } from "../monitor/task-runner.js";
 import type { MatrixClient } from "../sdk.js";
-import { LogService } from "../sdk/logger.js";
 import { awaitMatrixStartupWithAbort, throwIfMatrixStartupAborted } from "../startup-abort.js";
 import { resolveMatrixAuth, resolveMatrixAuthContext } from "./config.js";
 import type { MatrixAuth } from "./types.js";
@@ -53,7 +52,6 @@ type SharedMatrixClientState = {
   client: MatrixClient;
   key: string;
   started: boolean;
-  cryptoReady: boolean;
   startPromise: Promise<void> | null;
   phase: SharedMatrixClientPhase;
   leases: Set<SharedMatrixClientLeaseState>;
@@ -119,7 +117,6 @@ async function createSharedMatrixClient(params: {
     client,
     key: buildSharedClientKey(params.auth),
     started: false,
-    cryptoReady: false,
     startPromise: null,
     phase: "open",
     leases: new Set(),
@@ -183,18 +180,6 @@ async function ensureSharedClientStarted(
   }
 
   const startPromise = (async () => {
-    if (state.auth.encryption && !state.cryptoReady) {
-      try {
-        const joinedRooms = await state.client.getJoinedRooms();
-        if (state.client.crypto) {
-          await state.client.crypto.prepare(joinedRooms);
-          state.cryptoReady = true;
-        }
-      } catch (err) {
-        LogService.warn("MatrixClientLite", "Failed to prepare crypto:", err);
-      }
-    }
-
     await state.client.start({ abortSignal });
     throwIfMatrixStartupAborted(abortSignal);
     state.started = true;
