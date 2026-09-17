@@ -8,6 +8,7 @@ import { expectProviderOnboardPreservesPrimary } from "astroclaw/plugin-sdk/prov
 import { beforeAll, describe, expect, it } from "vitest";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import {
+  ZAI_CN_BASE_URL,
   ZAI_CODING_CN_BASE_URL,
   ZAI_CODING_GLOBAL_BASE_URL,
   ZAI_GLOBAL_BASE_URL,
@@ -128,5 +129,20 @@ describe("zai onboard", () => {
       applyProviderConfig: applyZaiProviderConfig,
       primaryModelRef: "anthropic/claude-opus-4-5",
     });
+  });
+
+  it("declares every endpoint the onboarding can select so the catalog stays eligible", () => {
+    const declaredHosts = new Set(manifest.providerEndpoints.flatMap((entry) => entry.hosts));
+    for (const baseUrl of [
+      ZAI_GLOBAL_BASE_URL,
+      ZAI_CODING_GLOBAL_BASE_URL,
+      ZAI_CN_BASE_URL,
+      ZAI_CODING_CN_BASE_URL,
+    ]) {
+      expect(
+        declaredHosts.has(new URL(baseUrl).hostname),
+        `${baseUrl} must stay declared in providerEndpoints, otherwise the manifest catalog is excluded for that endpoint`,
+      ).toBe(true);
+    }
   });
 });
