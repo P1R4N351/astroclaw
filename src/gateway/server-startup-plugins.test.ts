@@ -125,12 +125,7 @@ const listAmbientOnlyConfiguredChannelIds = vi.hoisted(() =>
   vi.fn((_params: unknown) => [] as string[]),
 );
 const runStartupSessionMigration = vi.hoisted(() => vi.fn(async (_params: unknown) => undefined));
-const migrateLegacyDevicePairingStore = vi.hoisted(() =>
-  vi.fn(async (_params: unknown) => undefined),
-);
-const migrateLegacyNodePairingStore = vi.hoisted(() =>
-  vi.fn(async (_params: unknown) => undefined),
-);
+const listLegacyPairingStoreFiles = vi.hoisted(() => vi.fn(async () => [] as string[]));
 vi.mock("../agents/agent-scope.js", () => ({
   resolveAgentWorkspaceDir: () => "/workspace",
   resolveDefaultAgentId: () => "default",
@@ -159,12 +154,8 @@ vi.mock("../infra/openclaw-root.js", () => ({
   resolveOpenClawPackageRootSync: (params: unknown) => resolveOpenClawPackageRootSync(params),
 }));
 
-vi.mock("../infra/device-pairing-migration.js", () => ({
-  migrateLegacyDevicePairingStore: (params: unknown) => migrateLegacyDevicePairingStore(params),
-}));
-
-vi.mock("../infra/node-pairing-migration.js", () => ({
-  migrateLegacyNodePairingStore: (params: unknown) => migrateLegacyNodePairingStore(params),
+vi.mock("../infra/pairing-files.js", () => ({
+  listLegacyPairingStoreFiles: () => listLegacyPairingStoreFiles(),
 }));
 
 vi.mock("../plugins/channel-presence-policy.js", () => ({
@@ -244,11 +235,10 @@ describe("runGatewayStartupMaintenance", () => {
   beforeEach(() => {
     runChannelPluginStartupMaintenance.mockClear();
     runStartupSessionMigration.mockClear();
-    migrateLegacyDevicePairingStore.mockClear();
-    migrateLegacyNodePairingStore.mockClear();
+    listLegacyPairingStoreFiles.mockReset().mockResolvedValue([]);
   });
 
-  it("runs channel, session, and ordered pairing maintenance for a normal gateway", async () => {
+  it("runs channel and session maintenance for a normal gateway", async () => {
     const log = createLog();
     const { runGatewayStartupMaintenance } = await import("./server-startup-plugins.js");
 
@@ -269,13 +259,7 @@ describe("runGatewayStartupMaintenance", () => {
       env: process.env,
       log,
     });
-    expect(migrateLegacyDevicePairingStore).toHaveBeenCalledWith({ log });
-    expect(migrateLegacyNodePairingStore).toHaveBeenCalledWith({ log });
-    const deviceMigrationOrder = migrateLegacyDevicePairingStore.mock.invocationCallOrder[0];
-    const nodeMigrationOrder = migrateLegacyNodePairingStore.mock.invocationCallOrder[0];
-    expect(deviceMigrationOrder).toBeDefined();
-    expect(nodeMigrationOrder).toBeDefined();
-    expect(deviceMigrationOrder!).toBeLessThan(nodeMigrationOrder!);
+    expect(log.warn).not.toHaveBeenCalled();
   });
 
   it("skips maintenance for a minimal gateway without channel config", async () => {
@@ -290,8 +274,7 @@ describe("runGatewayStartupMaintenance", () => {
 
     expect(runChannelPluginStartupMaintenance).not.toHaveBeenCalled();
     expect(runStartupSessionMigration).not.toHaveBeenCalled();
-    expect(migrateLegacyDevicePairingStore).not.toHaveBeenCalled();
-    expect(migrateLegacyNodePairingStore).not.toHaveBeenCalled();
+    expect(listLegacyPairingStoreFiles).not.toHaveBeenCalled();
   });
 
   it("runs only channel maintenance for a minimal gateway with recovered channel config", async () => {
@@ -312,8 +295,7 @@ describe("runGatewayStartupMaintenance", () => {
       log,
     });
     expect(runStartupSessionMigration).not.toHaveBeenCalled();
-    expect(migrateLegacyDevicePairingStore).not.toHaveBeenCalled();
-    expect(migrateLegacyNodePairingStore).not.toHaveBeenCalled();
+    expect(listLegacyPairingStoreFiles).not.toHaveBeenCalled();
   });
 });
 
@@ -337,16 +319,14 @@ describe("prepareGatewayPluginBootstrap startup plugins", () => {
     resolveOpenClawPackageRootSync.mockClear().mockReturnValue("/package");
     runChannelPluginStartupMaintenance.mockClear();
     runStartupSessionMigration.mockClear();
-    migrateLegacyDevicePairingStore.mockClear();
-    migrateLegacyNodePairingStore.mockClear();
+    listLegacyPairingStoreFiles.mockReset().mockResolvedValue([]);
   });
   it("does not run startup maintenance", async () => {
     await prepareBootstrapWithRuntimeConfig({});
 
     expect(runChannelPluginStartupMaintenance).not.toHaveBeenCalled();
     expect(runStartupSessionMigration).not.toHaveBeenCalled();
-    expect(migrateLegacyDevicePairingStore).not.toHaveBeenCalled();
-    expect(migrateLegacyNodePairingStore).not.toHaveBeenCalled();
+    expect(listLegacyPairingStoreFiles).not.toHaveBeenCalled();
   });
 
   it("hydrates the subagent registry before plugin bootstrap", async () => {
