@@ -12,8 +12,8 @@ describe("live vitest config", () => {
     expect(liveConfig.test?.projects).toBeUndefined();
   });
 
-  it("keeps live tests on thread workers with the non-isolated runner", () => {
-    expect(liveConfig.test?.pool).toBe("threads");
+  it("keeps live tests in host processes with the non-isolated runner", () => {
+    expect(liveConfig.test?.pool).toBe("forks");
     expect(liveConfig.test?.isolate).toBe(false);
     expect(normalizeConfigPath(liveConfig.test?.runner)).toBe("test/non-isolated-runner.ts");
   });
@@ -27,7 +27,7 @@ describe("live vitest config", () => {
     ]);
     expect(normalizeConfigPaths(liveConfig.test?.setupFiles)).toEqual([
       "test/setup.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
   });
 });
