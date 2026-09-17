@@ -4,25 +4,25 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { Tool as SdkTool, ToolInvocation, ToolResultObject } from "@github/copilot-sdk";
-import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "openclaw/plugin-sdk/agent-harness";
+import { createOpenClawCodingTools as createRealOpenClawCodingTools } from "astroclaw/plugin-sdk/agent-harness";
 import {
   type AnyAgentTool,
   type SandboxContext,
   wrapToolWithBeforeToolCallHook,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   buildContractReplyPayloads,
   createContractToolTerminalObserver,
   createOwnerBackedContractTool,
   textToolResult,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { readMemoryArtifactProvenance } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { readMemoryArtifactProvenance } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
 import {
   loadPluginManifestRegistryCore,
   resetPluginRuntimeStateForTest,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { withTempDir } from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { withTempDir } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCopilotTestHostCapabilities } from "./host-capability.test-support.js";
 import { createCopilotToolBridge as createCopilotToolBridgeImpl } from "./tool-bridge.js";
@@ -41,7 +41,7 @@ type CopilotToolBridgeTestInput = Omit<
 type CopilotCodingToolsOptions = NonNullable<
   Parameters<NonNullable<CopilotToolBridgeInput["createOpenClawCodingTools"]>>[0]
 >;
-const testHostCapabilities = createCopilotTestHostCapabilities();
+const testHostCapabilities = createCopilotTestHostCapabilities(createRealOpenClawCodingTools);
 
 function createCopilotToolBridge(input: CopilotToolBridgeTestInput) {
   const { attemptParams, ...baseInput } = input;
