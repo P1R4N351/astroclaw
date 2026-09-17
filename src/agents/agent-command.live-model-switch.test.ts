@@ -374,15 +374,11 @@ vi.mock("@astroclaw/acp-core/runtime/session-identifiers", () => ({
   resolveAcpSessionCwd: () => "/tmp",
 }));
 
-vi.mock("../auto-reply/thinking.js", () => ({
-  formatThinkingLevels: () => "low, medium, high",
-  normalizeThinkLevel: (v?: string) => v || undefined,
-  normalizeVerboseLevel: (v?: string) => v || undefined,
-  isThinkingLevelSupported: (args: unknown) => state.isThinkingLevelSupportedMock(args),
-  resolveSupportedThinkingLevel: (args: { level?: string }) =>
-    state.resolveSupportedThinkingLevelMock(args),
-  supportsXHighThinking: () => false,
-}));
+vi.mock("../auto-reply/thinking.js", async () => {
+  const { createTestThinkingPolicy } =
+    await import("./agent-command.live-model-switch.test-mocks.js");
+  return createTestThinkingPolicy(state);
+});
 
 vi.mock("../cli/command-format.js", () => ({
   formatCliCommand: (cmd: string) => cmd,
