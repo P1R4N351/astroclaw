@@ -1,9 +1,9 @@
 // Qa Lab plugin module implements qa transport behavior.
 import { setTimeout as sleep } from "node:timers/promises";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
-import type { QaRunnerCliRegistration } from "openclaw/plugin-sdk/qa-runner-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
+import type { QaRunnerCliRegistration } from "astroclaw/plugin-sdk/qa-runner-runtime";
 import { QaSuiteInfraError } from "./errors.js";
 import type { QaProviderMode } from "./model-selection.js";
 import { extractQaFailureReplyText } from "./reply-failure.js";
@@ -376,11 +376,12 @@ export abstract class QaStateBackedTransportAdapter implements QaTransportAdapte
     timeoutMs?: number;
     pollIntervalMs?: number;
   }) => Promise<void>;
-  abstract buildAgentDelivery: (params: { target: string }) => {
+  abstract buildAgentDelivery: (params: { target: string; threadId?: string }) => {
     channel: string;
     to?: string;
     replyChannel: string;
     replyTo: string;
+    threadId?: string;
   };
   abstract handleAction: (params: {
     action: QaTransportActionName;
@@ -510,6 +511,7 @@ export function createQaStateBackedTransportAdapter(
       ? { createRuntimeEnvPatch: params.createRuntimeEnvPatch }
       : {}),
     ...(params.prepareFlow ? { prepareFlow: params.prepareFlow } : {}),
+    ...(params.captureArtifacts ? { captureArtifacts: params.captureArtifacts } : {}),
     ...(params.cleanup ? { cleanup: params.cleanup } : {}),
     ...(params.cleanupAfterGatewayStop
       ? { cleanupAfterGatewayStop: params.cleanupAfterGatewayStop }
