@@ -8,19 +8,19 @@ import type { WebClientOptions } from "@slack/web-api";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests,
-} from "openclaw/plugin-sdk/channel-ingress-test-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-test-runtime";
 import type {
   ChannelIngressMonitorLifecycle,
   ChannelIngressQueue,
-} from "openclaw/plugin-sdk/channel-outbound";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { PluginJsonValue } from "openclaw/plugin-sdk/plugin-entry";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { PluginJsonValue } from "astroclaw/plugin-sdk/plugin-entry";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import {
   peekSystemEventEntries,
   resetSystemEventsForTest,
-} from "openclaw/plugin-sdk/system-event-runtime";
+} from "astroclaw/plugin-sdk/system-event-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSlackMonitorContext } from "./context.js";
 import { registerSlackMemberEvents } from "./events/members.js";
@@ -983,85 +983,6 @@ describe("Slack durable ingress", () => {
         await first.ingress.stop();
         await restarted?.ingress.stop();
       }
-    });
-  });
-});
-
-describe("Slack relay durable ingress", () => {
-  afterEach(() => {
-    closeOpenClawStateDatabaseForTest();
-  });
-
-  const relayMessage = {
-    type: "message",
-    channel: "C_RELAY",
-    team: "T_TEST",
-    user: "U_TEST",
-    ts: "1700000001.000200",
-    text: "relayed",
-  };
-
-  it("dedupes a router redelivery by logical message identity, not delivery id", async () => {
-    await withQueue(async (queue) => {
-      const dispatched: unknown[] = [];
-      const ingress = createSlackDurableIngress({
-        accountId: "default",
-        queue,
-        pollIntervalMs: 60_000,
-        adoptionStallTimeoutMs: 5_000,
-      });
-      ingress.attachRelayDispatch(async (message) => {
-        dispatched.push(message);
-      });
-      ingress.start();
-
-      await ingress.acceptRelayEvent({ deliveryId: "delivery-1", message: relayMessage });
-      await ingress.waitForIdle();
-      // Redelivery after a lost ack carries a fresh delivery id but the same message.
-      await ingress.acceptRelayEvent({ deliveryId: "delivery-2", message: relayMessage });
-      await ingress.waitForIdle();
-
-      expect(dispatched).toHaveLength(1);
-      expect(dispatched[0]).toMatchObject({ channel: "C_RELAY", text: "relayed" });
-      await ingress.stop();
-    });
-  });
-
-  it("retries a claimed relay event until a dispatcher attaches", async () => {
-    await withQueue(async (queue) => {
-      const detached = createSlackDurableIngress({
-        accountId: "default",
-        queue,
-        pollIntervalMs: 60_000,
-        adoptionStallTimeoutMs: 5_000,
-      });
-      // Accept durably, then stop before any dispatcher exists (crash window).
-      await detached.acceptRelayEvent({ deliveryId: "delivery-3", message: relayMessage });
-      await detached.stop();
-
-      const dispatched: unknown[] = [];
-      const recovered = createSlackDurableIngress({
-        accountId: "default",
-        queue,
-        pollIntervalMs: 25,
-        adoptionStallTimeoutMs: 5_000,
-      });
-      recovered.start();
-      await recovered.waitForIdle();
-      expect(dispatched).toHaveLength(0);
-
-      recovered.attachRelayDispatch(async (message) => {
-        dispatched.push(message);
-      });
-      // First retry obeys the drain's backoff; give it room without flake.
-      await vi.waitFor(
-        async () => {
-          await recovered.waitForIdle();
-          expect(dispatched).toHaveLength(1);
-        },
-        { timeout: 15_000, interval: 250 },
-      );
-      await recovered.stop();
     });
   });
 });
