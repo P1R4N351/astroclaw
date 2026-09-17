@@ -262,6 +262,16 @@ export const sharedVitestConfig = {
         ),
       },
       {
+        find: "@astroclaw/gateway-protocol/system-agent-context",
+        replacement: path.join(
+          repoRoot,
+          "packages",
+          "gateway-protocol",
+          "src",
+          "system-agent-context.ts",
+        ),
+      },
+      {
         find: "@astroclaw/gateway-protocol/version",
         replacement: path.join(repoRoot, "packages", "gateway-protocol", "src", "version.ts"),
       },
