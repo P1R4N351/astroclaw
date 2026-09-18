@@ -626,7 +626,9 @@ export function renderSessionTree(params: {
                 ${t("sessionsView.showMoreChildren", { count: String(hiddenChildCount) })}
               </button>`
             : nothing}
-          ${renderChildSessionLoadError(host, session.key)}
+          ${(session.childLoadParentKeys ?? [session.key]).map((key) =>
+            renderChildSessionLoadError(host, key),
+          )}
           ${session.loadingChildren && session.children.length === 0
             ? html`<span
                 class="sidebar-session-tree__loading skeleton skeleton-line skeleton-line--medium"
