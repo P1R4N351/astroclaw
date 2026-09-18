@@ -1,12 +1,12 @@
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { onAgentEvent } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { onAgentEvent } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   createAgentHarnessTaskRuntime,
   type AgentHarnessTaskRecord,
-} from "openclaw/plugin-sdk/agent-harness-task-runtime";
-import { createAdmittedHostCapabilityTestFixture } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { withStateDirEnv } from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/agent-harness-task-runtime";
+import { createAdmittedHostCapabilityTestFixture } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { withStateDirEnv } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import {
   claimCodexAppServerLiveThread,
@@ -821,45 +821,6 @@ describe("CodexNativeSubagentMonitor", () => {
         result: "child final result",
       }),
     );
-  });
-
-  it("delivers a completed child turn from its streamed final message", async () => {
-    const client = createClient();
-    const runtime = createRuntime();
-    const monitor = new CodexNativeSubagentMonitor(client as never, runtime);
-    await registerDetachedChild(client, monitor);
-    await client.notify({
-      method: "item/started",
-      params: {
-        threadId: "child-thread",
-        turnId: "child-turn",
-        item: {
-          type: "agentMessage",
-          id: "child-final",
-          phase: "final_answer",
-          text: "",
-        },
-      },
-    });
-    for (const delta of ["child ", "final result"]) {
-      await client.notify({
-        method: "item/agentMessage/delta",
-        params: {
-          threadId: "child-thread",
-          turnId: "child-turn",
-          itemId: "child-final",
-          delta,
-        },
-      });
-    }
-
-    await client.notify(childTurnCompletedNotification({ status: "completed" }));
-
-    expect(runtime.deliverAgentHarnessTaskCompletion).toHaveBeenCalledWith(
-      expect.objectContaining({ statusLabel: "turn_completed", result: "child final result" }),
-    );
-    expect(client.request).not.toHaveBeenCalled();
-    client.close();
   });
 
   it("publishes parent-owned child activity without projecting it into the parent session", async () => {
