@@ -1,6 +1,5 @@
-import { Buffer } from "node:buffer";
 import { stableStringify } from "@astroclaw/normalization-core";
-import { sha256Hex } from "@astroclaw/normalization-core/node-crypto";
+import { sha256Hex, sha256StableValue } from "@astroclaw/normalization-core/node-crypto";
 import { responsesPromptObserver } from "@openclaw/ai/internal/openai";
 import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
 import type { Model } from "openclaw/plugin-sdk/llm";
@@ -47,11 +46,11 @@ function snapshotProviderPrompt(params: {
     baseUrl: params.model.baseUrl,
     effectiveContextTokenBudget: params.effectiveContextTokenBudget,
   });
-  const serialized = stableStringify(params.payload);
+  const payload = sha256StableValue(params.payload);
   return {
     scopeDigest: sha256Hex(scope),
-    digest: sha256Hex(serialized),
-    byteWeight: Buffer.byteLength(serialized),
+    digest: payload.digest,
+    byteWeight: payload.byteWeight,
   };
 }
 
