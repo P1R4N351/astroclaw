@@ -1,30 +1,33 @@
 // Mattermost plugin module implements client behavior.
-import { bufferToBlobPart } from "openclaw/plugin-sdk/blob-runtime";
-import { createChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import { collectErrorGraphCandidates } from "openclaw/plugin-sdk/error-runtime";
-import { buildTimeoutAbortSignal } from "openclaw/plugin-sdk/extension-shared";
+import { bufferToBlobPart } from "astroclaw/plugin-sdk/blob-runtime";
+import { createChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import {
+  collectErrorGraphCandidates,
+  PlatformMessageNotDispatchedError,
+} from "astroclaw/plugin-sdk/error-runtime";
+import { buildTimeoutAbortSignal } from "astroclaw/plugin-sdk/extension-shared";
 import {
   captureChannelReadAuthority,
   responseWithRelease,
-} from "openclaw/plugin-sdk/fetch-runtime";
-import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/fetch-runtime";
+import { resolveTimerTimeoutMs } from "astroclaw/plugin-sdk/number-runtime";
 import {
   readProviderJsonResponse,
   redactProviderResponseErrorText,
-} from "openclaw/plugin-sdk/provider-http";
+} from "astroclaw/plugin-sdk/provider-http";
 import {
   readResponseTextPrefix,
   readResponseWithLimit,
-} from "openclaw/plugin-sdk/response-limit-runtime";
-import { retryAsync } from "openclaw/plugin-sdk/retry-runtime";
+} from "astroclaw/plugin-sdk/response-limit-runtime";
+import { retryAsync } from "astroclaw/plugin-sdk/retry-runtime";
 import {
   fetchWithSsrFGuard,
   ssrfPolicyFromPrivateNetworkOptIn,
-} from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 
 const MATTERMOST_ERROR_BODY_LIMIT_BYTES = 8 * 1024;
@@ -40,12 +43,16 @@ const MATTERMOST_TEXT_RESPONSE_LIMIT_BYTES = 64 * 1024;
 export type MattermostFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 type MattermostRequestInit = RequestInit & {
   timeoutMs?: number;
+  /** Internal dispatch evidence; never forwarded to the HTTP transport. */
+  isMessagePost?: boolean;
 };
 
 export type MattermostClient = {
   baseUrl: string;
   apiBaseUrl: string;
   token: string;
+  /** Operation-local sender fence, independent of ambient read authority. */
+  assertRequestCurrent?: () => void;
   request: <T>(path: string, init?: MattermostRequestInit) => Promise<T>;
   /** Guarded fetch implementation; use in place of raw fetch for outbound requests. */
   fetchImpl: MattermostFetch;
@@ -190,6 +197,7 @@ export function createMattermostClient(params: {
   timeoutMs?: number;
   /** Allow requests to private/internal IPs (self-hosted/LAN deployments). */
   allowPrivateNetwork?: boolean;
+  assertRequestCurrent?: () => void;
 }): MattermostClient {
   const baseUrl = normalizeMattermostBaseUrl(params.baseUrl);
   if (!baseUrl) {
@@ -198,6 +206,27 @@ export function createMattermostClient(params: {
   const apiBaseUrl = `${baseUrl}/api/v4`;
   const token = params.botToken.trim();
   const requestTimeoutMs = resolveTimerTimeoutMs(params.timeoutMs, MATTERMOST_REQUEST_TIMEOUT_MS);
+  const assertSenderCurrent = params.assertRequestCurrent;
+  let postDispatchStarted = false;
+  const assertRequestCurrent = assertSenderCurrent
+    ? () => {
+        try {
+          assertSenderCurrent();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (postDispatchStarted) {
+            // A redirected POST may already have had an effect. Keep that
+            // uncertainty even if the caller's assertion carries no-send proof.
+            throw new AggregateError(
+              [error, new Error("A Mattermost post request was already dispatched")],
+              message,
+              { cause: error },
+            );
+          }
+          throw new PlatformMessageNotDispatchedError(message, { cause: error, retryable: false });
+        }
+      }
+    : undefined;
   // When no custom fetchImpl is provided (production path), use an SSRF-guarded wrapper
   // that validates the target URL before making the request (DNS rebinding protection etc.).
   // A custom fetchImpl is accepted for testing and special cases.
@@ -209,14 +238,21 @@ export function createMattermostClient(params: {
   ): Promise<Response> => {
     const assertReadAuthority = captureChannelReadAuthority();
     assertReadAuthority?.();
+    assertRequestCurrent?.();
     const url =
       typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-    const { timeoutMs: initTimeoutMs, ...requestInit } = init ?? {};
+    const { timeoutMs: initTimeoutMs, isMessagePost, ...requestInit } = init ?? {};
     const timeoutMs = resolveTimerTimeoutMs(initTimeoutMs, requestTimeoutMs);
     const { response, release } = await fetchWithSsrFGuard({
       url,
       init: requestInit,
-      beforeRequest: assertReadAuthority,
+      beforeRequest: () => {
+        assertReadAuthority?.();
+        assertRequestCurrent?.();
+        if (isMessagePost) {
+          postDispatchStarted = true;
+        }
+      },
       auditContext: "mattermost-api",
       policy: ssrfPolicyFromPrivateNetworkOptIn(params.allowPrivateNetwork),
       signal: requestInit.signal ?? undefined,
@@ -233,7 +269,7 @@ export function createMattermostClient(params: {
         assertReadAuthority?.();
         const url =
           typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-        const { timeoutMs: initTimeoutMs, ...requestInit } = init ?? {};
+        const { timeoutMs: initTimeoutMs, isMessagePost, ...requestInit } = init ?? {};
         const timeoutMs = resolveTimerTimeoutMs(initTimeoutMs, requestTimeoutMs);
         const { signal: timeoutSignal, cleanup } = buildTimeoutAbortSignal({
           timeoutMs,
@@ -246,6 +282,10 @@ export function createMattermostClient(params: {
             ? AbortSignal.any([callerSignal, timeoutSignal])
             : (callerSignal ?? timeoutSignal);
         try {
+          assertRequestCurrent?.();
+          if (isMessagePost) {
+            postDispatchStarted = true;
+          }
           const response = await externalFetchImpl(input, { ...requestInit, signal });
           // Match guarded production fetches: retain cancellation and the
           // request deadline until the custom response body is consumed.
@@ -266,7 +306,8 @@ export function createMattermostClient(params: {
     if (typeof init?.body === "string" && !headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
-    const res = await fetchImpl(url, { ...init, headers });
+    const isMessagePost = path === "/posts" && init?.method?.toUpperCase() === "POST";
+    const res = await fetchImpl(url, { ...init, headers, isMessagePost });
     if (!res.ok) {
       const detail = await readMattermostError(res, headers);
       throw new Error(
@@ -295,7 +336,7 @@ export function createMattermostClient(params: {
       }
       return (await readMattermostSuccessText(res, path)) as T;
     } catch (error) {
-      if (path === "/posts" && init?.method?.toUpperCase() === "POST") {
+      if (isMessagePost) {
         // POST already succeeded; a lost/unreadable receipt must never schedule another visible post.
         throw createChannelPartialDeliveryError(error, { messageIds: [], visibleReplySent: true });
       }
@@ -303,7 +344,14 @@ export function createMattermostClient(params: {
     }
   };
 
-  return { baseUrl, apiBaseUrl, token, request, fetchImpl };
+  return {
+    baseUrl,
+    apiBaseUrl,
+    token,
+    request,
+    fetchImpl,
+    ...(assertRequestCurrent ? { assertRequestCurrent } : {}),
+  };
 }
 
 export async function fetchMattermostMe(client: MattermostClient): Promise<MattermostUser> {
@@ -520,6 +568,9 @@ export async function createMattermostDirectChannelWithRetry(
 }
 
 export function isRetryableError(error: Error): boolean {
+  if (error instanceof PlatformMessageNotDispatchedError && !error.retryable) {
+    return false;
+  }
   const candidates = collectErrorGraphCandidates(error, (current) => [
     current.cause,
     current.reason,
