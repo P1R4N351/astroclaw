@@ -1,6 +1,6 @@
 import { asOptionalObjectRecord as asRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
-import { isAgentPlanProgressToolName } from "../session-cards/progress-card-channel-summary.js";
+import { isAgentPlanProgressToolName } from "../session-cards/progress-card-input.js";
 
 export function projectAgentActivityItem<
   Item extends {
