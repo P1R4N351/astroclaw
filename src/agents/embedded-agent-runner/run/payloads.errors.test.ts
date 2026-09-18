@@ -1,6 +1,6 @@
 // Error payload tests ensure embedded runs convert provider/tool failures into
 // concise user-facing replies without leaking raw provider bodies or secrets.
-import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
+import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it, vi } from "vitest";
 // Classification fixtures here exercise message/status tables. Provider-attributed
 // structured signals otherwise cross the plugin-consult gate and cold-materialize
@@ -26,25 +26,49 @@ import {
 } from "./payloads.test-helpers.js";
 
 describe("buildEmbeddedRunPayloads tool-error silence", () => {
-  it.each(["NO_REPLY", '{"action":"NO_REPLY"}'])(
-    "respects an intentional conversational silence after a non-mutating tool failure: %s",
-    (text) => {
+  it.each([
+    { text: "NO_REPLY", mutatingAction: false },
+    { text: "NO_REPLY", mutatingAction: true },
+    { text: "NO_REPLY", mutatingAction: undefined },
+    { text: '{"action":"NO_REPLY"}', mutatingAction: false },
+    { text: '{"action":"NO_REPLY"}', mutatingAction: true },
+    { text: '{"action":"NO_REPLY"}', mutatingAction: undefined },
+  ])(
+    "respects authored conversational silence: $text, mutatingAction=$mutatingAction",
+    ({ text, mutatingAction }) => {
       expect(
         buildPayloads({
           assistantTexts: [text],
           lastToolError: {
             toolName: "codex_apps.slack.slack_read_thread",
             error: "429 RATE_LIMITED",
-            mutatingAction: false,
+            mutatingAction,
           },
         }),
       ).toHaveLength(0);
     },
   );
 
+  it("does not append a bash warning after the agent edits its Slack answer and finishes silently", () => {
+    const assistant = makeAgentAssistantMessage({
+      content: [{ type: "text", text: "NO_REPLY" }],
+    });
+    expect(
+      buildPayloads({
+        assistantTexts: ["NO_REPLY"],
+        lastAssistant: assistant,
+        didSendViaMessagingTool: true,
+        lastToolError: {
+          toolName: "bash",
+          error: "rg: src/optional-panel: No such file or directory",
+          // Native command execution conservatively marks even searches as mutating.
+          mutatingAction: true,
+        },
+      }),
+    ).toHaveLength(0);
+  });
+
   it.each([
-    { name: "unknown mutation status", mutatingAction: undefined },
-    { name: "a failed mutation", mutatingAction: true },
     { name: "a scheduled run", mutatingAction: false, isCronTrigger: true },
     { name: "a heartbeat", mutatingAction: false, isHeartbeatTrigger: true },
     { name: "an aborted run", mutatingAction: false, runAborted: true },
@@ -74,14 +98,17 @@ describe("buildEmbeddedRunPayloads tool-error silence", () => {
     );
   });
 
-  it("still warns when a non-mutating tool failure leaves no answer", () => {
-    expectSingleToolErrorPayload(
-      buildPayloads({
-        lastToolError: { toolName: "read", error: "failed", mutatingAction: false },
-      }),
-      { title: "Read" },
-    );
-  });
+  it.each([false, true, undefined])(
+    "still warns without an answer (mutatingAction=%s)",
+    (mutatingAction) => {
+      expectSingleToolErrorPayload(
+        buildPayloads({
+          lastToolError: { toolName: "read", error: "failed", mutatingAction },
+        }),
+        { title: "Read" },
+      );
+    },
+  );
 });
 
 describe("buildEmbeddedRunPayloads", () => {
