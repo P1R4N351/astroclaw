@@ -1,11 +1,11 @@
 // Gateway cron reconciliation lifecycle.
 // Suppresses stale scheduler completions across reload and shutdown boundaries.
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   PluginHookCronReconciledContext,
   PluginHookCronReconciledEvent,
   PluginHookGatewayCronService,
-} from "../plugins/hook-types.js";
+} from "../plugins/hook-gateway.types.js";
 import type { GatewayCronState } from "./server-cron.js";
 
 type GatewayCronReconciliationArmParams = {
