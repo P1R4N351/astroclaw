@@ -3,14 +3,14 @@ import path from "node:path";
 import {
   invokeNativeHookRelay,
   nativeHookRelayTesting,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { initializeGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
-import * as relayRuntime from "openclaw/plugin-sdk/native-hook-relay-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { initializeGlobalHookRunner } from "astroclaw/plugin-sdk/hook-runtime";
+import * as relayRuntime from "astroclaw/plugin-sdk/native-hook-relay-runtime";
 import {
   createAdmittedHostCapabilityTestFixture,
   createMockPluginRegistry,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
 import { nativeHookRelayUnregisterQueue } from "./native-hook-relay-state.js";
@@ -612,6 +612,7 @@ describe("runCodexAppServerAttempt native hook relay retention", () => {
           turn: {
             id: "turn-1",
             status: "failed",
+            items: [],
             error: { message: "parent failed after yielding" },
           },
         },
