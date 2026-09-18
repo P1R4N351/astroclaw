@@ -12,8 +12,8 @@ import {
   type DeliveryTraceInStep,
   type DeliveryTraceScenarioName,
   type WireRecorder,
-} from "astroclaw/plugin-sdk/channel-contract-testing";
-import { withFetchPreconnect } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/channel-contract-testing";
+import { withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { FeishuConfigSchema } from "./config-schema.js";
 import type { ResolvedFeishuAccount } from "./types.js";
@@ -87,9 +87,9 @@ vi.mock("./client.js", async (importOriginal) => {
 // channel.text uses the real chunking/table helpers because overflow
 // pagination behavior is part of the recorded lifecycle.
 vi.mock("./runtime.js", async () => {
-  const replyChunking = await import("astroclaw/plugin-sdk/reply-chunking");
-  const textChunking = await import("astroclaw/plugin-sdk/text-chunking");
-  const markdownTables = await import("astroclaw/plugin-sdk/markdown-table-runtime");
+  const replyChunking = await import("openclaw/plugin-sdk/reply-chunking");
+  const textChunking = await import("openclaw/plugin-sdk/text-chunking");
+  const markdownTables = await import("openclaw/plugin-sdk/markdown-table-runtime");
   const runtime = {
     media: {
       loadWebMedia: async () => {
@@ -397,7 +397,14 @@ function setupFeishuTrace(recorder: WireRecorder, scenario: DeliveryTraceScenari
         await created.delivery.deliver({ text: step.text }, { kind: "block" });
         break;
       case "tool-progress":
-        created.replyOptions.onToolStart?.({ name: step.name, phase: step.phase });
+        created.replyOptions.onItemEvent?.({
+          itemId: `tool:${step.name}`,
+          kind: "tool",
+          name: step.name,
+          title: step.name,
+          phase: step.phase === "start" ? "start" : "end",
+          status: step.phase === "start" ? "running" : "completed",
+        });
         break;
       case "final":
         await created.delivery.deliver(
