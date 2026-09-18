@@ -1,11 +1,11 @@
 // Codex tests cover request plugin behavior.
 import path from "node:path";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import {
   clearSessionStoreCacheForTest,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import { withTempDir } from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import { withTempDir } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CodexAppServerRpcError } from "./rpc-error.js";
 import { createClientHarness } from "./test-support.js";
@@ -965,7 +965,10 @@ describe("requestCodexAppServerJson sandbox guard", () => {
           vi.setSystemTime(Date.now() + wallJumpMs);
           return { rateLimitsByLimitId: { codex: { limitId: "codex" } } };
         }
-        return { account: { email: "codex-account@example.com" } };
+        return {
+          account: { type: "chatgpt", email: "codex-account@example.com", planType: "pro" },
+          requiresOpenaiAuth: true,
+        };
       });
       const closeAndWait = vi.fn(async () => undefined);
       sharedClientMocks.createIsolatedCodexAppServerClient.mockResolvedValue({
