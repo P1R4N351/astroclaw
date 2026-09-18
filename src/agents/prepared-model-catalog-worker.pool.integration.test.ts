@@ -42,7 +42,7 @@ import {
 
 const { makeTempDir } = usePreparedCatalogWorkerFixtures();
 
-async function createFleetFixture() {
+async function createFleetFixture(onBeforePublication?: () => void) {
   const fixture = createCatalogFixture(makeTempDir, 0);
   for (const name of [
     "OPENCLAW_DISABLE_BUNDLED_PLUGINS",
@@ -83,6 +83,7 @@ async function createFleetFixture() {
       entries[id]!.agentDir,
     );
   }
+  onBeforePublication?.();
   await refreshPreparedModelRuntimeSnapshots(config, {
     gatewayLifecycle: true,
     allowGatewaySubagentBinding: true,
@@ -109,8 +110,6 @@ describe("Gateway catalog worker pool", () => {
     vi.stubEnv("CODEX_HOME", makeTempDir("openclaw-worker-empty-codex-"));
   });
   it("reuses one Gateway catalog worker and source graph across agent publications", async () => {
-    const fixture = await createFleetFixture();
-    const { snapshots, agentIds } = fixture;
     const spawned: Worker[] = [];
     const workerChannel = channel("worker_threads");
     const recordWorker = (message: unknown) => {
@@ -118,8 +117,9 @@ describe("Gateway catalog worker pool", () => {
         spawned.push(message.worker);
       }
     };
-    workerChannel.subscribe(recordWorker);
     try {
+      const fixture = await createFleetFixture(() => workerChannel.subscribe(recordWorker));
+      const { snapshots, agentIds } = fixture;
       await loadCompletedFullCatalog(snapshots[0]!);
       const initialCaptures = new Set(
         readCatalogDiscoveryCaptures(fixture.root)
@@ -162,7 +162,6 @@ describe("Gateway catalog worker pool", () => {
     }
   });
   it("republishes failed catalog borrowers before replacing their source worker", async () => {
-    const fixture = await createFleetFixture();
     const spawned: Worker[] = [];
     let peakWorkers = 0;
     const workerChannel = channel("worker_threads");
@@ -175,8 +174,8 @@ describe("Gateway catalog worker pool", () => {
         );
       }
     };
-    workerChannel.subscribe(recordWorker);
     try {
+      const fixture = await createFleetFixture(() => workerChannel.subscribe(recordWorker));
       await Promise.all(
         fixture.snapshots.map((snapshot) =>
           loadPreparedModelRuntimeAuth(snapshot, { providerIds: [PROVIDER_ID] }),
@@ -255,7 +254,6 @@ describe("Gateway catalog worker pool", () => {
   it.for([false, true])(
     "rotates the pinned environment after a full Gateway publication (shutdown: %s)",
     async (shutdown, { signal }) => {
-      const fixture = await createFleetFixture();
       const spawned: Worker[] = [];
       let peakWorkers = 0;
       const workerChannel = channel("worker_threads");
@@ -269,8 +267,8 @@ describe("Gateway catalog worker pool", () => {
         }
       };
       const warnings = vi.spyOn(process, "emitWarning");
-      workerChannel.subscribe(recordWorker);
       try {
+        const fixture = await createFleetFixture(() => workerChannel.subscribe(recordWorker));
         await Promise.all(
           fixture.snapshots.map((snapshot) =>
             loadPreparedModelRuntimeAuth(snapshot, { providerIds: [] }),
