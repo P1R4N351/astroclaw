@@ -11,10 +11,10 @@ import {
 describe("defineChannelMessageAdapter", () => {
   const loadPluginSdkSubpaths = async () =>
     await Promise.all([
-      import("openclaw/plugin-sdk/channel-outbound"),
-      import("openclaw/plugin-sdk/channel-message"),
-      import("openclaw/plugin-sdk/channel-inbound"),
-      import("openclaw/plugin-sdk/channel-reply-pipeline"),
+      import("astroclaw/plugin-sdk/channel-outbound"),
+      import("astroclaw/plugin-sdk/channel-message"),
+      import("astroclaw/plugin-sdk/channel-inbound"),
+      import("astroclaw/plugin-sdk/channel-reply-pipeline"),
     ] as const);
   let pluginSdkSubpaths: Awaited<ReturnType<typeof loadPluginSdkSubpaths>>;
 
@@ -36,6 +36,13 @@ describe("defineChannelMessageAdapter", () => {
     );
     expect(channelMessage.createTypingCallbacks).toBe(channelReplyPipeline.createTypingCallbacks);
     expect(channelOutbound.defineChannelMessageAdapter).toBe(defineCoreChannelMessageAdapter);
+  });
+
+  it("keeps new outbound helpers off the deprecated compatibility facade", () => {
+    const [channelOutbound, channelMessage] = pluginSdkSubpaths;
+
+    expect(channelOutbound.isCompleteAgentPreamble).toBeTypeOf("function");
+    expect(channelMessage).not.toHaveProperty("isCompleteAgentPreamble");
   });
 
   it("preserves legacy count-shaped dispatch projections", () => {
