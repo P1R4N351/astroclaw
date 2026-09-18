@@ -108,7 +108,9 @@ ${view.details || t("updates.run.noDetails")}</pre
       </ul>
       ${view.terminal
         ? html`<section
-            class="update-run-view__report update-run-view__report--${this.run.status}"
+            class="update-run-view__report ${view.reconciled
+              ? ""
+              : `update-run-view__report--${this.run.status}`}"
             aria-label=${t("updates.run.report")}
           >
             <h4>${view.report.headline}</h4>
