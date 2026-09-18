@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { createConfigIoContext } from "../config/io.context.js";
 import { readConfigFileSnapshotFromContext } from "../config/io.snapshot.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
 import type { GatewayRemoteConfig } from "../config/types.gateway.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveGatewayClientBootstrap } from "./client-bootstrap.js";
 
 const tempDirs = useAutoCleanupTempDirTracker(afterEach);
@@ -217,7 +217,7 @@ describe("resolveGatewayClientBootstrap interactive auth policy", () => {
         gatewayUrl: "wss://override.example/rpc/?ignored=1",
         env: {},
         authPolicy: "interactive",
-        allowStoredOriginAuth: (scope) => {
+        allowStoredOriginAuth: async (scope) => {
           seenScopes.push(scope);
           return scope === "wss://override.example/rpc";
         },
@@ -235,7 +235,7 @@ describe("resolveGatewayClientBootstrap interactive auth policy", () => {
         gatewayUrl: "wss://other.example/rpc",
         env: {},
         authPolicy: "interactive",
-        allowStoredOriginAuth: (scope) => scope === "wss://override.example/rpc",
+        allowStoredOriginAuth: async (scope) => scope === "wss://override.example/rpc",
         overrideAuthErrorHint: "Fix: pair this origin.",
       }),
     ).rejects.toThrow("gateway url override requires explicit credentials");
