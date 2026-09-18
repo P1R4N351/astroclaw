@@ -12,6 +12,7 @@ import type { WebClient } from "@slack/web-api";
 // settles, including when native rejection requires ordinary-message fallback.
 // Refresh goldens with OPENCLAW_TRACE_UPDATE=1 (see delivery-trace harness docs).
 import { ChatStreamer } from "@slack/web-api/dist/chat-stream.js";
+import { projectAgentToolActivity } from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   expectDeliveryTraceMatchesGolden,
   runDeliveryTraceScenario,
@@ -19,10 +20,10 @@ import {
   type DeliveryTraceStep,
   type TraceEvent,
   type TraceNormalizer,
-} from "astroclaw/plugin-sdk/channel-contract-testing";
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import type { ReplyDispatchKind, ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/channel-contract-testing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import type { ReplyDispatchKind, ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { noteSlackDraftConversationMessage } from "./draft-message-boundaries.js";
 import type { PreparedSlackMessage } from "./monitor/message-handler/types.js";
@@ -105,8 +106,8 @@ const traceState = vi.hoisted(
 // deliver/typing/replyOptions wiring (dedupe, thread plan, native stream ladder,
 // draft preview, preview finalize, deliverReplies chunking, sendMessageSlack)
 // stays the real production code.
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
+vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
   type DispatchParams = Parameters<typeof actual.dispatchChannelInboundTurn>[0];
   return {
     ...actual,
@@ -157,7 +158,7 @@ vi.mock("./client.js", async (importOriginal) => {
 import { dispatchPreparedSlackMessage } from "./monitor/message-handler/dispatch.js";
 
 afterAll(() => {
-  vi.doUnmock("astroclaw/plugin-sdk/channel-inbound");
+  vi.doUnmock("openclaw/plugin-sdk/channel-inbound");
   vi.doUnmock("./client.js");
   vi.resetModules();
 });
@@ -306,6 +307,7 @@ const slackTraceScenarios: Record<SlackTraceScenarioName, readonly DeliveryTrace
     { kind: "reply-start" },
     { kind: "tool-progress", name: "read", phase: "start" },
     { kind: "advance", ms: 2000 },
+    { kind: "tool-progress", name: "read", phase: "result" },
     { kind: "final", text: "The session card is complete." },
     { kind: "idle" },
   ],
@@ -665,29 +667,32 @@ async function setupSlackTrace(
           await turn.replyOptions.onPartialReply?.({ text: step.text });
         }
         break;
-      case "tool-progress":
-        if (scenario === "progress-native-unified") {
-          if (step.phase === "start") {
-            await turn.replyOptions.onToolStart?.({
-              name: step.name,
-              phase: step.phase,
-              itemId: "write-1",
-              toolCallId: "write-call-1",
-              args: { path: "src/native-card.ts", content: "const unified = true;\n" },
-            });
-          } else {
-            await turn.replyOptions.onItemEvent?.({
-              kind: "tool",
-              itemId: "write-1",
-              toolCallId: "write-call-1",
-              phase: "end",
-              status: "completed",
-              progressText: "src/native-card.ts",
-              name: step.name,
-            });
-          }
+      case "tool-progress": {
+        const toolCallId = `${step.name}-call-1`;
+        const args =
+          scenario === "progress-native-unified"
+            ? { path: "src/native-card.ts", content: "const unified = true;\n" }
+            : undefined;
+        if (step.phase === "start") {
+          await turn.replyOptions.onItemEvent?.(
+            projectAgentToolActivity({ toolCallId, name: step.name, phase: "start", args }),
+          );
+          await turn.replyOptions.onToolStart?.({
+            toolCallId,
+            name: step.name,
+            phase: "start",
+            args,
+          });
         } else {
-          await turn.replyOptions.onToolStart?.({ name: step.name, phase: step.phase });
+          await turn.replyOptions.onItemEvent?.(
+            projectAgentToolActivity({
+              toolCallId,
+              name: step.name,
+              phase: "result",
+              status: "completed",
+              args,
+            }),
+          );
         }
         // The mocked core dispatcher owns default tool progress messages; when
         // dispatch did not suppress them it would deliver a tool-kind payload,
@@ -696,6 +701,7 @@ async function setupSlackTrace(
           await deliver({ text: `Using tool: ${step.name} (${step.phase})` }, "tool");
         }
         break;
+      }
       case "final":
         await deliver(
           {
