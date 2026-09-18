@@ -5,14 +5,17 @@ import path from "node:path";
 import {
   createChannelPartialDeliveryError,
   isChannelPartialDeliveryError,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import {
+  createMessageReceiptFromOutboundResults,
+  verifyChannelMessageAdapterCapabilityProofs,
+} from "astroclaw/plugin-sdk/channel-outbound";
 import {
   adaptMessagePresentationForChannel,
   renderMessagePresentationFallbackText,
   type MessagePresentation,
   type MessagePresentationAction,
-} from "openclaw/plugin-sdk/interactive-runtime";
+} from "astroclaw/plugin-sdk/interactive-runtime";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig, ReplyPayload } from "../runtime-api.js";
 import {
@@ -56,7 +59,7 @@ const resolvePinnedHostnameWithPolicyMock = vi.hoisted(() =>
   }),
 );
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
@@ -123,7 +126,6 @@ import { createFeishuCardInteractionEnvelope } from "./card-interaction.js";
 import { feishuPlugin } from "./channel.js";
 import { buildFeishuPostMessageContent } from "./markdown.js";
 import { FEISHU_PROPAGATE_MEDIA_UPLOAD_FAILURE_MARKER, feishuOutbound } from "./outbound.js";
-import { createFeishuSendReceipt } from "./send-result.js";
 
 async function raceWithNextMacrotask<T>(promise: Promise<T>): Promise<T | "pending"> {
   return await Promise.race([
@@ -227,7 +229,7 @@ afterAll(() => {
   vi.doUnmock("./client.js");
   vi.doUnmock("./drive.js");
   vi.doUnmock("./comment-reaction.js");
-  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
@@ -293,18 +295,16 @@ describe("feishuOutbound.sendText local-image auto-convert", () => {
     sendMessageFeishuMock.mockResolvedValue({
       messageId: "feishu-text-1",
       chatId: "chat-1",
-      receipt: createFeishuSendReceipt({
-        messageId: "feishu-text-1",
-        chatId: "chat-1",
+      receipt: createMessageReceiptFromOutboundResults({
+        results: [{ messageId: "feishu-text-1", chatId: "chat-1" }],
         kind: "text",
       }),
     });
     sendMediaFeishuMock.mockResolvedValue({
       messageId: "feishu-media-1",
       chatId: "chat-1",
-      receipt: createFeishuSendReceipt({
-        messageId: "feishu-media-1",
-        chatId: "chat-1",
+      receipt: createMessageReceiptFromOutboundResults({
+        results: [{ messageId: "feishu-media-1", chatId: "chat-1" }],
         kind: "media",
       }),
     });
