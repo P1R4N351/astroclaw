@@ -4,7 +4,10 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { upsertSessionEntryCore } from "../../../../src/config/sessions/session-accessor.js";
 import { closeOpenClawAgentDatabasesForTest } from "../../../../src/state/openclaw-agent-db.js";
-import { closeOpenClawStateDatabaseForTest } from "../../../../src/state/openclaw-state-db.js";
+import {
+  closeOpenClawStateDatabaseAsync,
+  closeOpenClawStateDatabaseForTest,
+} from "../../../../src/state/openclaw-state-db.js";
 import type {
   TranscriptSessionDescriptor,
   TranscriptUtterance,
@@ -14,7 +17,7 @@ import { summarizeTranscripts } from "../../../../src/transcripts/summary.js";
 import {
   createOpenClawTestInstance,
   type OpenClawTestInstance,
-} from "../../../helpers/astroclaw-test-instance.js";
+} from "../../../helpers/openclaw-test-instance.js";
 
 const SESSION_KEY = "agent:main:qa:missing-transcript";
 const SESSION_ID = "qa-missing-transcript";
@@ -61,6 +64,7 @@ let instance: OpenClawTestInstance | undefined;
 
 afterEach(async () => {
   closeOpenClawAgentDatabasesForTest();
+  await closeOpenClawStateDatabaseAsync();
   closeOpenClawStateDatabaseForTest();
   await instance?.cleanup();
   instance = undefined;
@@ -124,6 +128,7 @@ describe("session and transcript child CLI product proof", () => {
       );
       const transcriptSession = await seedTranscript(instance.stateDir, instance.env);
       closeOpenClawAgentDatabasesForTest();
+      await closeOpenClawStateDatabaseAsync();
       closeOpenClawStateDatabaseForTest();
 
       const sessionsBefore = parseCommandJson<SessionsJson>(
