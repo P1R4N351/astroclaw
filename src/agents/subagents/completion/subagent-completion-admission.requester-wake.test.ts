@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../../../test/helpers/temp-dir.js";
-import { resolvePreferredOpenClawTmpDir } from "../../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../../../infra/tmp-astroclaw-dir.js";
 import {
   closeOpenClawStateDatabaseForTest,
   openOpenClawStateDatabase,
@@ -36,7 +36,7 @@ describe("persisted subagent requester wakes", () => {
   let database: OpenClawStateDatabase;
 
   beforeEach(() => {
-    const tempDir = tempDirs.make("openclaw-subagent-wake-", resolvePreferredOpenClawTmpDir());
+    const tempDir = tempDirs.make("openclaw-subagent-wake-", resolvePreferredAstroclawTmpDir());
     vi.stubEnv("OPENCLAW_STATE_DIR", tempDir);
     database = openOpenClawStateDatabase();
   });
