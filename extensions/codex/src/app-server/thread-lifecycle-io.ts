@@ -1,5 +1,5 @@
 import path from "node:path";
-import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { codexCatalogHomeId } from "../session-catalog-home-id.js";
 import {
   CODEX_APP_SERVER_UNSUBSCRIBE_TIMEOUT_MS,
@@ -266,6 +266,10 @@ export async function resumeExistingCodexThread(
       // Keeping its previous client id disables warm reuse after every restart.
       clientId: resolveCodexAppServerClientInstanceId(params.client),
       pendingResumeConfiguration: undefined,
+      ...(resumeBinding.agentWorkspaceDeveloperInstructions === undefined &&
+      params.agentWorkspaceDeveloperInstructions !== undefined
+        ? { agentWorkspaceDeveloperInstructions: params.agentWorkspaceDeveloperInstructions }
+        : {}),
       cwd: params.cwd,
       rolloutPath: resolveCodexThreadRolloutPath(response.thread) ?? resumeBinding.rolloutPath,
       authProfileId,
