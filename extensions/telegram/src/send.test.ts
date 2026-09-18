@@ -1,17 +1,17 @@
 // Telegram tests cover send plugin behavior.
 import fs from "node:fs";
-import type { Bot } from "grammy";
-import { isChannelPartialDeliveryError } from "openclaw/plugin-sdk/channel-inbound";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { PluginStateKeyedStore } from "openclaw/plugin-sdk/plugin-state-runtime";
+import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { PluginStateKeyedStore } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { closeOpenClawStateDatabaseAsync } from "openclaw/plugin-sdk/sqlite-runtime-testing";
-import { createRequireRecord, importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+import { createRequireRecord, importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import type { Bot } from "grammy";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { markdownToTelegramHtml, telegramHtmlToPlainTextFallback } from "./format.js";
 import {
@@ -35,9 +35,8 @@ import {
 import { recordTelegramPollRegistryEntry } from "./poll-registry.js";
 import { createTelegramPromptContextProjectionCursor } from "./prompt-context-projection.js";
 import {
-  countInputRichBlockMedia,
-  countInputRichBlocks,
   inputRichBlocksToPlainText,
+  measureInputRichBlocks,
   type InputRichBlock,
 } from "./rich-block-model.js";
 import { setTelegramRuntime } from "./runtime.js";
@@ -140,10 +139,10 @@ const {
   probeVideoDimensions,
 } = getTelegramSendTestMocks();
 const telegramSendModule = await importTelegramSendModule();
-const { PlatformMessageNotDispatchedError } = await import("openclaw/plugin-sdk/error-runtime");
+const { PlatformMessageNotDispatchedError } = await import("astroclaw/plugin-sdk/error-runtime");
 const { TelegramRequestNotStartedError } = await import("./network-errors.js");
 const { getChildLogger, resetLogger, setLoggerOverride } =
-  await import("openclaw/plugin-sdk/runtime-env");
+  await import("astroclaw/plugin-sdk/runtime-env");
 const {
   buildInlineKeyboard,
   createForumTopicTelegram,
@@ -260,7 +259,7 @@ function markdownTable(columns: number): string {
 }
 
 function countTelegramRichBlocks(blocks: readonly InputRichBlock[] | undefined): number {
-  return countInputRichBlocks(blocks ?? []);
+  return measureInputRichBlocks(blocks ?? []).blocks;
 }
 
 beforeEach(async () => {
@@ -1603,17 +1602,11 @@ describe("sendMessageTelegram", () => {
     const albums = blocks.filter((block) => block.type === "collage");
 
     expect(requests.length).toBeGreaterThan(1);
-    expect(requests.every((request) => countInputRichBlocks(request?.blocks ?? []) <= 500)).toBe(
-      true,
-    );
     expect(
-      requests.every(
-        (request) =>
-          (request?.blocks ?? []).reduce(
-            (total, block) => total + countInputRichBlockMedia(block),
-            0,
-          ) <= 50,
-      ),
+      requests.every((request) => measureInputRichBlocks(request?.blocks ?? []).blocks <= 500),
+    ).toBe(true);
+    expect(
+      requests.every((request) => measureInputRichBlocks(request?.blocks ?? []).media <= 50),
     ).toBe(true);
     expect(items.map((item) => item.value)).toEqual(
       Array.from({ length: 250 }, (_, index) => index + 1),
