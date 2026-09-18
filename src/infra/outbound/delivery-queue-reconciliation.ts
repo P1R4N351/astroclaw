@@ -3,7 +3,7 @@ import type {
   ChannelMessageUnknownSendContext,
   ChannelMessageUnknownSendReconciliationResult,
 } from "../../channels/message/types.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../errors.js";
 import { resolveOutboundChannelMessageAdapter } from "./channel-resolution.js";
 import type { QueuedDelivery } from "./delivery-queue-types.js";
@@ -60,13 +60,16 @@ export async function reconcileUnknownQueuedDelivery(params: {
   payloads: readonly ReplyPayload[];
   cfg: OpenClawConfig;
   warn: (message: string) => void;
+  assertCurrent?: () => void;
 }): Promise<ChannelMessageUnknownSendReconciliationResult | null> {
-  const adapter = resolveOutboundChannelMessageAdapter({
+  const adapter = await resolveOutboundChannelMessageAdapter({
     channel: params.entry.channel,
     cfg: params.cfg,
     agentId: params.entry.session?.agentId,
     allowBootstrap: true,
+    assertCurrent: params.assertCurrent,
   });
+  params.assertCurrent?.();
   if (adapter?.durableFinal?.capabilities?.reconcileUnknownSend !== true) {
     return null;
   }
