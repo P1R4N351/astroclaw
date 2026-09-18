@@ -4,17 +4,17 @@ import {
   sanitizeForPlainText,
   type OutboundDeliveryFormattingOptions,
   type OutboundSendDeps,
-} from "astroclaw/plugin-sdk/channel-outbound";
+} from "openclaw/plugin-sdk/channel-outbound";
 import {
   attachChannelToResult,
   createAttachedChannelResultAdapter,
   type ChannelOutboundAdapter,
-} from "astroclaw/plugin-sdk/channel-send-result";
-import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
-import { chunkMarkdownTextWithMode } from "astroclaw/plugin-sdk/reply-chunking";
-import { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import { sanitizeAssistantVisibleText } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/channel-send-result";
+import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
+import { chunkMarkdownTextWithMode } from "openclaw/plugin-sdk/reply-chunking";
+import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
 import { mergeTelegramAccountConfig, resolveDefaultTelegramAccountId } from "./accounts.js";
 import { resolveTelegramInlineButtons, type TelegramInlineButtons } from "./button-types.js";
 import { TELEGRAM_MAX_CAPTION_LENGTH, telegramCaptionDeliveryMetadata } from "./caption.js";
@@ -544,7 +544,14 @@ export function createTelegramOutboundAdapter(
         },
       });
     },
-    pinDeliveredMessage: async ({ cfg, target, messageId, pin, gatewayClientScopes }) => {
+    pinDeliveredMessage: async ({
+      cfg,
+      target,
+      messageId,
+      pin,
+      gatewayClientScopes,
+      assertDirectAdapterHandoff,
+    }) => {
       const { pinMessageTelegram } = await loadSendModule();
       const outboundTo = normalizeTelegramOutboundTarget(target.to);
       const pinTarget = parseTelegramTarget(outboundTo);
@@ -554,6 +561,7 @@ export function createTelegramOutboundAdapter(
         notify: pin.notify,
         verbose: false,
         gatewayClientScopes,
+        assertPlatformSendAuthorized: assertDirectAdapterHandoff,
       });
     },
     resolveEffectiveTextChunkLimit: ({ cfg, accountId, formatting }) =>
