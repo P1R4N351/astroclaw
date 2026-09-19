@@ -7,7 +7,7 @@ import path from "node:path";
 import { setImmediate } from "node:timers/promises";
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import type {
-  OpenKeyedStoreOptions,
+  OpenAsyncKeyedStoreOptions,
   PluginStateKeyedStore,
 } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
@@ -137,7 +137,7 @@ function holdRecoveryKeyPersistence() {
   const admitted = createDeferred<void>();
   const release = createDeferred<void>();
   const stateRuntime: MatrixSnapshotStateRuntime = {
-    openKeyedStore<T>(options: OpenKeyedStoreOptions): PluginStateKeyedStore<T> {
+    openKeyedStore<T>(options: OpenAsyncKeyedStoreOptions): PluginStateKeyedStore<T> {
       const store = createPluginStateKeyedStoreForTests<T>("matrix", options);
       const compareAndApply = store.compareAndApply;
       if (!compareAndApply) {
