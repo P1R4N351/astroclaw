@@ -616,6 +616,7 @@ export abstract class ChatPaneHeader extends ChatPaneDiscussion {
                 pinned: row.pinned === true,
                 pinnable,
                 unread: row.unread === true,
+                hiddenFromInvolvingMe: row.hiddenFromInvolvingMe,
                 archived: row.archived === true,
                 archiving: this.context.sessions.archiveVisibility(row.key) === "pending",
                 category: normalizeOptionalString(row.category) ?? null,
