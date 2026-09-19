@@ -93,6 +93,7 @@ export function renderSelectedHumanMentions(
   text: string,
   mentions: readonly HumanMention[] | undefined,
   onRemove: () => void,
+  avatarUrls?: ReadonlyMap<string, string>,
 ) {
   if (!mentions?.length) {
     return nothing;
@@ -114,6 +115,7 @@ export function renderSelectedHumanMentions(
             id: person.profileId,
             name: person.name,
             identity: { type: "profile", id: person.profileId },
+            profileAvatarUrl: avatarUrls?.get(person.profileId),
           })}
           <bdi class="composer-context-strip__person-name"
             >${person.name}${index < people.length - 1 ? "," : ""}</bdi
