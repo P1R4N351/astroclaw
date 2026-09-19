@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import type { OpenAsyncKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   openOpenClawStateDatabase,
@@ -55,7 +55,7 @@ function installStateRuntime({
   setVoiceCallStateRuntime({
     state: {
       ...state,
-      openKeyedStore: <T>(options: OpenKeyedStoreOptions) => {
+      openKeyedStore: <T>(options: OpenAsyncKeyedStoreOptions) => {
         const backingStore = state.openKeyedStore<T>(options);
         const store = beforeOperation
           ? {
@@ -212,7 +212,7 @@ describe("voice-call call record store", () => {
       setVoiceCallStateRuntime({
         state: {
           ...state,
-          openKeyedStore: <T>(options: OpenKeyedStoreOptions) => {
+          openKeyedStore: <T>(options: OpenAsyncKeyedStoreOptions) => {
             const store = state.openKeyedStore<T>(options);
             if (options.namespace !== CALL_RECORD_EVENT_CHUNKS_NAMESPACE) {
               return store;
