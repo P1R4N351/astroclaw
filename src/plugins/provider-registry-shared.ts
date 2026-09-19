@@ -1,12 +1,8 @@
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalLowercaseString,
-} from "@astroclaw/normalization-core/string-coerce";
+import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";
 import type { PluginMetadataRegistryView } from "./plugin-metadata-snapshot.types.js";
-import type { ProviderPlugin } from "./provider-plugin.types.js";
 
 /** A full snapshot retains shared-root scope; narrowed views may still use the ambient workspace. */
 export function resolveProviderRuntimeWorkspaceDir(
@@ -64,22 +60,6 @@ export function matchesProviderPluginRef(
       [...(provider.aliases ?? []), ...(provider.hookAliases ?? [])].some(
         (alias) => normalizeProviderId(alias) === normalized,
       )),
-  );
-}
-
-/** Explicit API owners keep foreign aliases from taking over a configured provider route. */
-export function matchesProviderRuntimePlugin(
-  plugin: ProviderPlugin,
-  provider: string,
-  ownerRefs: readonly string[],
-): boolean {
-  if (ownerRefs.length === 0) {
-    return matchesProviderPluginRef(plugin, provider);
-  }
-  const literalId = normalizeLowercaseStringOrEmpty(provider);
-  return (
-    (Boolean(literalId) && normalizeLowercaseStringOrEmpty(plugin.id) === literalId) ||
-    ownerRefs.some((ownerRef) => matchesProviderPluginRef(plugin, ownerRef))
   );
 }
 
