@@ -1,9 +1,9 @@
 // Collects startup speech provider metadata from plugin manifests.
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalLowercaseString } from "@astroclaw/normalization-core/string-coerce";
-import { listAgentEntries } from "../agents/agent-scope-config.js";
+import { listAgentEntries, withAgentRosterFactsBatch } from "../agents/agent-scope-config.js";
 import { resolveConfiguredTalkSpeechProviderId } from "../config/talk.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveEffectiveTtsConfig } from "../tts/tts-config.js";
 
 const TTS_PROVIDER_CONFIG_RESERVED_KEYS = new Set([
@@ -146,12 +146,14 @@ export function collectConfiguredSpeechProviderIds(config: OpenClawConfig): Read
     configured.add(talkProviderId.toLowerCase());
   }
 
-  for (const agent of listAgentEntries(config)) {
-    addConfiguredTtsProviderIds(
-      configured,
-      resolveEffectiveTtsConfig(config, { agentId: agent.id }),
-    );
-  }
+  withAgentRosterFactsBatch(config, () => {
+    for (const agent of listAgentEntries(config)) {
+      addConfiguredTtsProviderIds(
+        configured,
+        resolveEffectiveTtsConfig(config, { agentId: agent.id }),
+      );
+    }
+  });
 
   const channels = config.channels;
   if (isRecord(channels)) {
