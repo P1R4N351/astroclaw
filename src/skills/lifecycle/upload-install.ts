@@ -1,12 +1,12 @@
 // Upload install helpers install skills from staged uploaded archives.
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { ArchiveLogger } from "../../infra/archive.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import {
   installSkillArchiveFromPath,
   type SkillArchiveInstallFailureKind,
-  validateRequestedSkillSlug,
 } from "./archive-install.js";
+import { validateRequestedSkillSlug } from "./install-paths.js";
 import {
   defaultSkillUploadStore,
   normalizeSkillUploadSha256,
