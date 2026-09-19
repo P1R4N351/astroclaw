@@ -103,7 +103,7 @@ export function renderGatewayCpuVital(
         <strong>${t("debug.overlay.cpuBreakdownCurrent")}</strong>
         <dl>
           <div class="gateway-cpu-detail__total">
-            <dt>${t("debug.overlay.gatewayCpuScope")}</dt>
+            <dt>${t("debug.overlay.gatewayCpuProcess")}</dt>
             <dd>${formatCpuReading(eventLoop?.cpuCoreRatio)}</dd>
           </div>
           ${renderCpuDetailRow(t("debug.overlay.mainThreadCpu"), cpu?.mainThreadCoreRatio, "main")}
@@ -126,8 +126,6 @@ export function renderGatewayCpuVital(
             <dd>${formatCpuReading(eventLoop?.utilization)}</dd>
           </div>
         </dl>
-        <p>${t("debug.overlay.cpuUnits")}</p>
-        <p>${t("debug.overlay.cpuAttribution")}</p>
       </div>
     </openclaw-tooltip>
   `;
@@ -142,7 +140,7 @@ function renderCpuDetailRow(label: string, value: number | undefined, kind: stri
     <dt>
       <span class="gateway-cpu-key gateway-cpu-key--${kind}" aria-hidden="true"></span>${label}
     </dt>
-    <dd>${formatCpuReading(value)}</dd>
+    <dd>${kind === "other" && typeof value === "number" ? "≈" : ""}${formatCpuReading(value)}</dd>
   </div>`;
 }
 
