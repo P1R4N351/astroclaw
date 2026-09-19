@@ -1,22 +1,22 @@
 // Codex tests cover run attempt.steering plugin behavior.
 import path from "node:path";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "openclaw/plugin-sdk/provider-model-shared";
-import { upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { GPT5_BEHAVIOR_CONTRACT as CODEX_GPT5_BEHAVIOR_CONTRACT } from "astroclaw/plugin-sdk/provider-model-shared";
+import { upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   readSessionTranscriptEvents,
-} from "openclaw/plugin-sdk/session-transcript-runtime";
+} from "astroclaw/plugin-sdk/session-transcript-runtime";
 import { describe, expect, it, vi } from "vitest";
 import type { CodexSteeringQueueOptions } from "./attempt-steering.js";
 import { readAttemptTerminal } from "./attempt-terminal.test-helper.js";
 import type { JsonObject } from "./protocol.js";
+import { seedRunSessionOwnerForTest } from "./run-attempt-session-owners.test-support.js";
 import {
   createStartedThreadHarness,
   fastWait,
   queueActiveRunMessageForTest,
   runCodexAppServerAttempt,
-  seedRunSessionOwnerForTest,
   setupRunAttemptTestHooks,
   tempDir,
 } from "./run-attempt-test-harness.js";
@@ -27,10 +27,10 @@ import {
 } from "./run-attempt.steering.test-support.js";
 import { readCodexAppServerBinding } from "./session-binding.test-helpers.js";
 
-vi.mock("openclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", async (importOriginal) => {
   const { createSteeringRuntimeMock } = await import("./run-attempt.steering.test-helpers.js");
   return createSteeringRuntimeMock(
-    await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness-runtime")>(),
+    await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness-runtime")>(),
   );
 });
 
