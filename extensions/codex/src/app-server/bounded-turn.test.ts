@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { describe, expect, it, vi } from "vitest";
 import { runBoundedCodexAppServerTurn } from "./bounded-turn.js";
 import {
@@ -312,8 +312,8 @@ describe("runBoundedCodexAppServerTurn settled finalization isolation", () => {
       if (suspendedMethod === "model/list") {
         expect(fake.methods).not.toContain("thread/start");
       }
-      expect(fake.notifications).toHaveLength(0);
-      expect(fake.requests).toHaveLength(0);
+      expect(fake.notifications.size).toBe(0);
+      expect(fake.requests.size).toBe(0);
       if (!codexHome) {
         throw new Error("expected the bounded turn's temporary Codex home");
       }
