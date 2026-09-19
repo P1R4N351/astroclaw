@@ -3,21 +3,21 @@ import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { WebClient } from "@slack/web-api";
-import type { PluginRuntime } from "openclaw/plugin-sdk/channel-core";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { PLUGIN_COMMAND_DISPATCH } from "openclaw/plugin-sdk/plugin-command-runtime";
-import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/channel-core";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { PLUGIN_COMMAND_DISPATCH } from "astroclaw/plugin-sdk/plugin-command-runtime";
+import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
-} from "openclaw/plugin-sdk/runtime-config-snapshot";
+} from "astroclaw/plugin-sdk/runtime-config-snapshot";
 import {
   getSessionEntry,
   normalizeSessionDeliveryState,
   patchSessionEntry as patchStoredSessionEntry,
   upsertSessionEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-import * as sessionStoreRuntime from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+import * as sessionStoreRuntime from "astroclaw/plugin-sdk/session-store-runtime";
 // Slack tests cover Agent View lifecycle handling.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSlackListenerWriteClient } from "../../client.js";
@@ -58,7 +58,7 @@ function createSessionEventHarness(channelType: "im" | "channel" | "mpim" = "im"
     ok: true,
     messages: [],
   });
-  const setSlackSessionStatus = vi.fn(async () => {});
+  const setSlackSessionStatus = vi.fn(async () => true);
   const recordSlackSessionTitle = vi.fn();
   const storePath = path.join(tempDir, "sessions.sqlite");
   Object.assign(harness.ctx, {
