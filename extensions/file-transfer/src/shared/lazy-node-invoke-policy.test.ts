@@ -2,7 +2,7 @@
 import type {
   OpenClawPluginNodeInvokePolicy,
   OpenClawPluginNodeInvokePolicyContext,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import { describe, expect, it, vi } from "vitest";
 import { createLazyFileTransferNodeInvokePolicy } from "./lazy-node-invoke-policy.js";
 
@@ -36,7 +36,13 @@ describe("lazy file-transfer node invoke policy", () => {
 
     const policy = createLazyFileTransferNodeInvokePolicy(loadPolicy);
 
-    expect(policy.commands).toEqual(["file.fetch", "dir.list", "dir.fetch", "file.write"]);
+    expect(policy.commands).toEqual([
+      "file.fetch",
+      "file.stat",
+      "dir.list",
+      "dir.fetch",
+      "file.write",
+    ]);
     expect(loadPolicy).not.toHaveBeenCalled();
   });
 
