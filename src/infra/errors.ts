@@ -6,6 +6,7 @@ import {
 import { redactSensitiveText } from "../logging/redact.js";
 export {
   collectErrorGraphCandidates,
+  readErrorCauses,
   extractErrorCode,
   readErrorName,
 } from "@astroclaw/normalization-core/error-coercion";
