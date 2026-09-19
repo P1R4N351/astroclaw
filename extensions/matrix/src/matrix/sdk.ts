@@ -1,6 +1,5 @@
 import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import { normalizeStringEntries, uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
-// Matrix plugin module implements sdk behavior.
 import type { Room } from "matrix-js-sdk/lib/models/room.js";
 import { resolveMatrixRoomKeyBackupReadinessError } from "./backup-health.js";
 import { isMatrixNotFoundError } from "./errors.js";
