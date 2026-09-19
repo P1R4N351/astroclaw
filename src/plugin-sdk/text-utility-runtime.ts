@@ -4,6 +4,7 @@ import { withTimeout } from "../utils/with-timeout.js";
 
 export { estimateStringChars } from "@astroclaw/normalization-core/cjk-chars";
 export { truncateCodePoints } from "@astroclaw/normalization-core/code-points";
+export { findGraphemeChunkEnd } from "@astroclaw/normalization-core/grapheme";
 
 export {
   estimateToolResultTextChars,
