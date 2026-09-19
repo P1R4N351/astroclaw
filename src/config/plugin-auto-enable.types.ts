@@ -1,5 +1,5 @@
 // Defines plugin auto-enable decision and candidate types.
-import type { OpenClawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 /** Reasons a configured surface can cause a plugin to be auto-enabled. */
 export type PluginAutoEnableCandidate =
@@ -26,6 +26,11 @@ export type PluginAutoEnableCandidate =
   | {
       pluginId: string;
       kind: "worker-provider-selected";
+      providerId: string;
+    }
+  | {
+      pluginId: string;
+      kind: "decision-provider-selected";
       providerId: string;
     }
   | {
