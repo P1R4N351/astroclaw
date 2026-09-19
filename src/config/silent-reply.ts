@@ -7,7 +7,7 @@ import {
   type SilentReplyPolicy,
   type SilentReplyPolicyShape,
 } from "../shared/silent-reply-policy.js";
-import type { OpenClawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 type ResolveSilentReplyParams = {
   cfg?: OpenClawConfig;
@@ -44,9 +44,4 @@ export function resolveSilentReplySettings(params: ResolveSilentReplyParams): {
   return {
     policy: resolveSilentReplyPolicyFromPolicies(context),
   };
-}
-
-/** Returns just the effective silent-reply policy for callers that do not need metadata. */
-export function resolveSilentReplyPolicy(params: ResolveSilentReplyParams): SilentReplyPolicy {
-  return resolveSilentReplySettings(params).policy;
 }
