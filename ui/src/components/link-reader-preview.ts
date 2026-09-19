@@ -128,7 +128,37 @@ export function renderLoading(card: HTMLDivElement): void {
   );
 }
 
-export function renderPreview(card: HTMLDivElement, preview: LinkPreview, seeded = false): void {
+function renderErrorNotice(message: string) {
+  return html`<p class="link-reader-hovercard__error" role="status">${message}</p>`;
+}
+
+export function renderPreviewError(
+  card: HTMLDivElement,
+  target: LinkReaderTarget,
+  message: string,
+): void {
+  card.dataset.loading = "false";
+  card.removeAttribute("data-cached");
+  card.removeAttribute("data-state");
+  card.setAttribute("aria-label", t("linkReader.previewUnavailable"));
+  render(
+    html`<div class="link-reader-hovercard__title">${t("linkReader.previewUnavailable")}</div>
+      ${renderErrorNotice(message)}
+      ${renderCardLink(
+        "link-reader-hovercard__subtitle",
+        target.href,
+        t("linkReader.openExternal", { provider: target.reader.label }),
+      )}`,
+    card,
+  );
+}
+
+export function renderPreview(
+  card: HTMLDivElement,
+  preview: LinkPreview,
+  seeded = false,
+  error?: string,
+): void {
   card.dataset.loading = "false";
   card.dataset.cached = String(seeded);
   card.dataset.state = preview.badge?.tone ?? "neutral";
@@ -169,7 +199,8 @@ export function renderPreview(card: HTMLDivElement, preview: LinkPreview, seeded
               >`,
           )}</span
         >
-      </div>`,
+      </div>
+      ${error ? renderErrorNotice(error) : nothing}`,
     card,
   );
   card.setAttribute("aria-label", t("linkReader.previewAriaLabel", { title: preview.title }));
@@ -177,7 +208,6 @@ export function renderPreview(card: HTMLDivElement, preview: LinkPreview, seeded
 
 export type CacheEntry = {
   preview?: ControlUiLinkReaderPreview;
-  failed?: boolean;
   expiresAt: number;
   promise: Promise<ControlUiLinkReaderPreview>;
   controller: AbortController;
