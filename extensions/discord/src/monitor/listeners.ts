@@ -1,4 +1,3 @@
-// Discord plugin module implements listeners behavior.
 import { pruneMapToMaxSize } from "astroclaw/plugin-sdk/collection-runtime";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { requestHeartbeat } from "astroclaw/plugin-sdk/heartbeat-runtime";
