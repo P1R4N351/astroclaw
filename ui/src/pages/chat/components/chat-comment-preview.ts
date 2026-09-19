@@ -75,6 +75,7 @@ export function renderCommentPreviewChip(
   content: TemplateResult,
   onReveal?: () => void,
   openOnClick = false,
+  removal?: { onRemove: (event: Event) => void; disabled: boolean },
 ) {
   return renderAttachmentPreviewChip({
     label: t(count === 1 ? "chat.messages.annotationCount" : "chat.messages.annotationsCount", {
@@ -85,5 +86,6 @@ export function renderCommentPreviewChip(
     content,
     onReveal,
     openOnClick,
+    removal: removal ? { ...removal, label: t("chat.messages.removeAnnotations") } : undefined,
   });
 }
