@@ -168,15 +168,15 @@ export function renderWorkGroupSummary(
   const cards = item.groups.flatMap((group) =>
     group.messages.flatMap(({ message }) => extractToolCardsCached(message)),
   );
-  const label = cards.length
-    ? summarizeToolGroup(
-        item.groups.flatMap((group) =>
-          group.messages.flatMap(({ message }) => readPreparedActivity(message)),
-        ),
-      )
-    : duration
-      ? t("chat.workRun.workedFor", { duration })
-      : t("chat.workRun.worked");
+  const activity = item.groups.flatMap((group) =>
+    group.messages.flatMap(({ message }) => readPreparedActivity(message)),
+  );
+  const label =
+    activity.length || cards.length
+      ? summarizeToolGroup(activity, { includeFailureCount: opts.expanded })
+      : duration
+        ? t("chat.workRun.workedFor", { duration })
+        : t("chat.workRun.worked");
   const content = html`
     <div class="chat-activity-group chat-work-group ${opts.expanded ? "is-open" : ""}">
       <button
@@ -194,14 +194,16 @@ export function renderWorkGroupSummary(
         <span class="chat-tool-disclosure__content">
           <span class="chat-activity-group__label">${label}</span>
         </span>
-        ${cards.length && duration
+        ${(activity.length || cards.length) && duration
           ? html`<span
               class="chat-activity-group__duration"
               aria-label=${t("chat.workRun.workedFor", { duration })}
               >${duration}</span
             >`
           : nothing}
-        ${opts.expanded ? nothing : renderToolOutcomeSummary(cards)}
+        ${opts.expanded
+          ? nothing
+          : renderToolOutcomeSummary(cards, true, activity.length ? activity : undefined)}
         <span class="chat-tool-row__chevron" aria-hidden="true">${icons.chevronRight}</span>
       </button>
       <div class="chat-work-group__separator" aria-hidden="true"></div>
