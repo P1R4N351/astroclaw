@@ -54,6 +54,14 @@ function renderTaskRows(
   `;
 }
 
+export function renderBackgroundTasksError(error: string | null): TemplateResult | typeof nothing {
+  return error
+    ? html`<div class="chat-tasks-rail__state chat-tasks-rail__state--error" role="alert">
+        ${error}
+      </div>`
+    : nothing;
+}
+
 export function renderBackgroundTasksRail(
   backgroundTasks: BackgroundTasksProps | undefined,
   options: { embedded?: boolean } = {},
@@ -113,11 +121,7 @@ export function renderBackgroundTasksRail(
       ${!backgroundTasks.connected
         ? html`<div class="chat-tasks-rail__state">${t("tasksPage.disconnected")}</div>`
         : nothing}
-      ${backgroundTasks.error
-        ? html`<div class="chat-tasks-rail__state chat-tasks-rail__state--error" role="alert">
-            ${backgroundTasks.error}
-          </div>`
-        : nothing}
+      ${renderBackgroundTasksError(backgroundTasks.error)}
       ${backgroundTasks.loading && !loaded
         ? renderPanelLoadingSkeleton("tasks", t("chat.backgroundTasks.loading"))
         : nothing}
