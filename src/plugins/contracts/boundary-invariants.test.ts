@@ -20,6 +20,7 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_FILES = [
   "extensions/codex/index.ts",
   "extensions/diffs/src/plugin.ts",
   "extensions/discord/subagent-hooks-api.ts",
+  "extensions/facetime/index.ts",
   "extensions/feishu/subagent-hooks-api.ts",
   "extensions/matrix/subagent-hooks-api.ts",
   "extensions/memory-core/index.ts",
@@ -37,6 +38,7 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_GUARDS = {
   "extensions/codex/index.ts": ["inbound_claim", "session_end"],
   "extensions/diffs/src/plugin.ts": ["before_prompt_build"],
   "extensions/discord/subagent-hooks-api.ts": ["subagent_delivery_target", "subagent_ended"],
+  "extensions/facetime/index.ts": ["before_tool_call"],
   "extensions/feishu/subagent-hooks-api.ts": ["subagent_delivery_target", "subagent_ended"],
   "extensions/matrix/subagent-hooks-api.ts": ["subagent_delivery_target", "subagent_ended"],
   "extensions/memory-core/src/dreaming.ts": ["before_agent_reply", "gateway_start"],
@@ -341,7 +343,7 @@ describe("plugin contract boundary invariants", () => {
       }
       const source = readRepoSource(file);
       return (
-        source.includes("openclaw/plugin-sdk/test-fixtures") &&
+        source.includes("astroclaw/plugin-sdk/test-fixtures") &&
         /\b(?:BUNDLED_PLUGIN_|bundled(?:Dist)?Plugin(?:Root|File|DirPrefix)|installedPluginRoot|repoInstallSpec)\b/u.test(
           source,
         )
