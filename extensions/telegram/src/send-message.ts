@@ -1,13 +1,13 @@
-import type { Message } from "grammy/types";
-import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
+import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
 import {
   createChannelPartialDeliveryError,
   isChannelPartialDeliveryError,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { createMessageReceiptFromOutboundResults } from "openclaw/plugin-sdk/channel-outbound";
-import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { createMessageReceiptFromOutboundResults } from "astroclaw/plugin-sdk/channel-outbound";
+import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import type { Message } from "grammy/types";
 import { telegramCaptionDeliveryMetadata } from "./caption.js";
 import { renderTelegramHtmlText } from "./format.js";
 import { buildInlineKeyboard } from "./inline-keyboard.js";
@@ -466,10 +466,12 @@ export async function sendMessageTelegram(
             silent: opts.silent,
           });
         },
-        () => ({
-          receipt: buildMediaReceipt(),
-          visibleReplySent: true,
-        }),
+        {
+          partialDeliveryResult: () => ({
+            receipt: buildMediaReceipt(),
+            visibleReplySent: true,
+          }),
+        },
       );
       const mediaMessageId = resolveTelegramMessageIdOrThrow(lastMedia.result, "media send");
       const resolvedChatId = String(lastMedia.result.chat?.id ?? chatId);
