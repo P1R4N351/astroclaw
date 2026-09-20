@@ -24,11 +24,25 @@ NODE_MIN_VERSION="${NODE_MIN_MAJOR}.${NODE_MIN_MINOR}"
 ORIGINAL_PATH="${PATH:-}"
 
 TMPFILES=()
+# 2026-08-29 [P-BACKLOG 62a44c7, class found in cryo 2631720]: every call site
+# here is `tmp="$(mktempfile)"`, so the `TMPFILES+=()` inside the helper ran in
+# the command-substitution SUBSHELL and never reached this shell — probe shows
+# parent_registered=0, so this trap reaps nothing (8 call sites, no explicit
+# rm). Back the array with a registry FILE keyed on $$ ($$ is the top-level
+# shell PID and is stable inside subshells), mirroring the cryo/skills fix
+# (d99d0e1a2871).
+TMPFILE_REG="${TMPFILE_REG:-${TMPDIR:-/tmp}/.astroclaw-install-tmpreg.$$}"
 cleanup_tmpfiles() {
     local f
     for f in "${TMPFILES[@]:-}"; do
         rm -rf "$f" 2>/dev/null || true
     done
+    if [[ -f "${TMPFILE_REG}" ]]; then
+        while IFS= read -r f; do
+            [[ -n "$f" ]] && rm -rf "$f" 2>/dev/null || true
+        done <"${TMPFILE_REG}"
+        rm -f "${TMPFILE_REG}" 2>/dev/null || true
+    fi
 }
 trap cleanup_tmpfiles EXIT
 
@@ -36,6 +50,7 @@ mktempfile() {
     local f
     f="$(mktemp)"
     TMPFILES+=("$f")
+    printf '%s\n' "$f" >>"${TMPFILE_REG}" 2>/dev/null || true
     echo "$f"
 }
 
