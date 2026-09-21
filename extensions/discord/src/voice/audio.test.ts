@@ -17,15 +17,15 @@ vi.mock("node:child_process", async (importOriginal) => ({
   ...(await importOriginal<typeof import("node:child_process")>()),
   spawn: spawnMock,
 }));
-vi.mock("openclaw/plugin-sdk/media-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/media-runtime")>()),
+vi.mock("astroclaw/plugin-sdk/media-ffmpeg", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/media-ffmpeg")>()),
   resolveFfmpegBin: () => "ffmpeg",
 }));
-vi.mock("openclaw/plugin-sdk/temp-path", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/temp-path")>();
+vi.mock("astroclaw/plugin-sdk/temp-path", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/temp-path")>();
   return {
     ...actual,
-    resolvePreferredOpenClawTmpDir: () => voiceWorkspaceFixture.rootDir,
+    resolvePreferredAstroclawTmpDir: () => voiceWorkspaceFixture.rootDir,
     tempWorkspace: async (options: Parameters<typeof actual.tempWorkspace>[0]) => {
       const workspace = await actual.tempWorkspace({
         ...options,
