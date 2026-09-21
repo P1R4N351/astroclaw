@@ -3,6 +3,7 @@ import { calculateUsageCost } from "@astroclaw/llm-core";
 import { expectDefined } from "@astroclaw/normalization-core";
 import { configureAiTransportHost, getAiTransportHost } from "@openclaw/ai";
 import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import { useProviderCatalogMetadata } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { resolveProviderEndpoint } from "astroclaw/plugin-sdk/provider-model-shared";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -13,6 +14,8 @@ import {
   resolveAnthropicFastMode,
   wrapAnthropicProviderStream,
 } from "./stream-wrappers.js";
+
+useProviderCatalogMetadata(new URL(".", import.meta.url));
 
 const CONTEXT_1M_BETA = "context-1m-2025-08-07";
 const OAUTH_BETA = "oauth-2025-04-20";
