@@ -1,4 +1,4 @@
-import { resolveFfmpegBin } from "astroclaw/plugin-sdk/media-runtime";
+import { resolveFfmpegBin } from "astroclaw/plugin-sdk/media-ffmpeg";
 // Minimax tests cover minimax plugin behavior.
 import {
   registerProviderPlugin,
