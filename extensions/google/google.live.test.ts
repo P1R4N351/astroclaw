@@ -7,7 +7,7 @@ import {
   type ProviderModel,
   type ProviderStreamFunction,
 } from "astroclaw/plugin-sdk/llm";
-import { resolveFfmpegBin } from "astroclaw/plugin-sdk/media-runtime";
+import { resolveFfmpegBin } from "astroclaw/plugin-sdk/media-ffmpeg";
 import {
   createCapturedPluginRegistration,
   registerProviderPlugin,
