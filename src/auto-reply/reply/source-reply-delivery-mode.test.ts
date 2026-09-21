@@ -1,6 +1,6 @@
 // Tests source reply delivery visibility across message tool and visible reply modes.
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { CommandTurnContext } from "../command-turn-context.js";
 import {
   resolveSourceReplyDeliveryMode,
@@ -31,6 +31,25 @@ function expectPolicyFields(
 }
 
 describe("resolveSourceReplyDeliveryMode", () => {
+  it("keeps progress refresh replies, hooks and typing silent without changing session reply mode", () => {
+    const policy = resolveSourceReplyVisibilityPolicy({
+      cfg: emptyConfig,
+      ctx: {
+        Provider: "webchat",
+        Surface: "webchat",
+        InputProvenance: { kind: "internal_system", sourceTool: "progress_card_refresh" },
+      },
+      sendPolicy: "allow",
+    });
+    expect(policy).toMatchObject({
+      sourceReplyDeliveryMode: "automatic",
+      sessionStableSourceReplyDeliveryMode: "automatic",
+      suppressDelivery: true,
+      suppressHookUserDelivery: true,
+      suppressHookReplyLifecycle: true,
+      suppressTyping: true,
+    });
+  });
   it("defaults source replies to automatic delivery outside ambient room events", () => {
     expect(resolveSourceReplyDeliveryMode({ cfg: emptyConfig, ctx: { ChatType: "channel" } })).toBe(
       "automatic",
