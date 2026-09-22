@@ -2,14 +2,15 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
   createPluginStateKeyedStoreForTests,
   createPluginStateSyncKeyedStoreForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
-import { closeOpenClawStateDatabaseAsync } from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { beginTelegramPollRegistration } from "./poll-answer-context.js";
 import { recordTelegramPollRegistryEntry } from "./poll-registry.js";
@@ -40,6 +41,7 @@ async function withTempState<T>(
     options: Parameters<typeof createPluginStateKeyedStoreForTests<StoreValue>>[1],
   ) => createPluginStateKeyedStoreForTests<StoreValue>("telegram", options);
   setTelegramRuntime({
+    channel: { inbound: { ingress: createPluginRuntimeMock().channel.inbound.ingress } },
     state: {
       resolveStateDir: () => stateDir,
       openKeyedStore,
