@@ -1,6 +1,7 @@
 import type { ChatCommandDefinition } from "astroclaw/plugin-sdk/command-auth-native";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { useBundledProviderPolicyArtifactsForTest } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
@@ -13,6 +14,7 @@ import {
   InteractionContextType,
 } from "discord-api-types/v10";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { installDiscordIngressTestRuntime } from "../test-support/ingress-runtime.js";
 import { createDiscordLivePolicyReader } from "./live-policy.js";
 import type { DiscordLivePolicy, DiscordLivePolicyReader } from "./live-policy.js";
 
@@ -892,3 +894,7 @@ describe("createDiscordNativeCommand option wiring", () => {
     });
   });
 });
+
+installDiscordIngressTestRuntime();
+
+useBundledProviderPolicyArtifactsForTest(["openai", "anthropic"]);
