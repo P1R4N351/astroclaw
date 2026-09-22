@@ -6,6 +6,7 @@ import * as dispatcherModule from "astroclaw/plugin-sdk/reply-dispatch-runtime";
 // Discord tests cover native command.commands allowfrom plugin behavior.
 import { ChannelType } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { installDiscordIngressTestRuntime } from "../test-support/ingress-runtime.js";
 import { defineThrowingDiscordChannelGetter } from "../test-support/partial-channel.js";
 import { createDiscordNativeCommand } from "./native-command.js";
 
@@ -183,6 +184,25 @@ describe("Discord native slash commands with commands.allowFrom", () => {
     expect(dispatchSpy).toHaveBeenCalledTimes(1);
     expectNotUnauthorizedReply(interaction);
   });
+
+  it.each([false, true])(
+    "preserves explicit owner name compatibility only when opted in: %s",
+    async (dangerouslyAllowNameMatching) => {
+      const { dispatchSpy, interaction } = await runGuildSlashCommand({
+        mutateConfig: (cfg) => {
+          cfg.commands = { ownerAllowFrom: ["discord:discord-user"] };
+          cfg.channels!.discord!.dangerouslyAllowNameMatching = dangerouslyAllowNameMatching;
+        },
+      });
+      if (dangerouslyAllowNameMatching) {
+        expect(dispatchSpy).toHaveBeenCalledOnce();
+        expectNotUnauthorizedReply(interaction);
+      } else {
+        expect(dispatchSpy).not.toHaveBeenCalled();
+        expectUnauthorizedReply(interaction);
+      }
+    },
+  );
 
   it("authorizes command allowlist users even when commands.ownerAllowFrom is also configured", async () => {
     const { dispatchSpy, interaction } = await runGuildSlashCommand({
@@ -635,3 +655,5 @@ describe("Discord native slash commands with commands.allowFrom", () => {
     expect(interaction.followUp).not.toHaveBeenCalled();
   });
 });
+
+installDiscordIngressTestRuntime();
