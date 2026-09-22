@@ -5,21 +5,23 @@ import path from "node:path";
 import type {
   OpenClawPluginCommandDefinition,
   PluginCommandContext,
-} from "openclaw/plugin-sdk/core";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+} from "astroclaw/plugin-sdk/core";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi } from "./api.js";
 
 const pluginApiMocks = vi.hoisted(() => ({
   clearDeviceBootstrapTokens: vi.fn(async () => ({ removed: 2 })),
-  issueDeviceBootstrapToken: vi.fn(async () => ({
+  issueDeviceBootstrapToken: vi.fn(async (_params?: { assertCurrent?: () => void }) => ({
     token: "boot-token",
     expiresAtMs: Date.now() + 10 * 60_000,
   })),
   revokeDeviceBootstrapToken: vi.fn(async () => ({ removed: true })),
   renderQrPngDataUrl: vi.fn(async () => "data:image/png;base64,ZmFrZXBuZw=="),
   resolveGatewayPort: vi.fn(() => 18789),
-  resolvePreferredOpenClawTmpDir: vi.fn(() => path.join(os.tmpdir(), "openclaw-device-pair-tests")),
+  resolvePreferredAstroclawTmpDir: vi.fn(() =>
+    path.join(os.tmpdir(), "openclaw-device-pair-tests"),
+  ),
   writeQrPngTempFile: vi.fn(async (dataValue: string, opts: { tmpRoot: string }) => {
     const dirPath = await fs.mkdtemp(path.join(opts.tmpRoot, "device-pair-qr-"));
     const filePath = path.join(dirPath, "pair-qr.png");
@@ -40,7 +42,7 @@ vi.mock("./api.js", () => ({
   listDevicePairing: vi.fn(async () => ({ pending: [] })),
   renderQrPngDataUrl: pluginApiMocks.renderQrPngDataUrl,
   revokeDeviceBootstrapToken: pluginApiMocks.revokeDeviceBootstrapToken,
-  resolvePreferredOpenClawTmpDir: pluginApiMocks.resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir: pluginApiMocks.resolvePreferredAstroclawTmpDir,
   resolveAdvertisedLanHost: vi.fn(async () => null),
   resolveGatewayBindUrl: vi.fn(),
   resolveGatewayPort: pluginApiMocks.resolveGatewayPort,
@@ -292,11 +294,11 @@ beforeEach(async () => {
     token: "boot-token",
     expiresAtMs: Date.now() + 10 * 60_000,
   });
-  await fs.mkdir(pluginApiMocks.resolvePreferredOpenClawTmpDir(), { recursive: true });
+  await fs.mkdir(pluginApiMocks.resolvePreferredAstroclawTmpDir(), { recursive: true });
 });
 
 afterEach(async () => {
-  await fs.rm(pluginApiMocks.resolvePreferredOpenClawTmpDir(), { recursive: true, force: true });
+  await fs.rm(pluginApiMocks.resolvePreferredAstroclawTmpDir(), { recursive: true, force: true });
 });
 
 afterAll(() => {
@@ -622,6 +624,53 @@ describe("device-pair /pair default setup code", () => {
     expect(pluginApiMocks.issueDeviceBootstrapToken).toHaveBeenCalledWith(FULL_SETUP_REQUEST);
     expect(text).toContain("Pairing setup code generated.");
   });
+
+  it.each([false, true])(
+    "rechecks channel ownership after Gateway URL discovery (gateway admin: %s)",
+    async (gatewayAdmin) => {
+      let current = true;
+      const ctx = createCommandContext({
+        channel: "discord",
+        args: "",
+        commandBody: "/pair",
+        gatewayClientScopes: gatewayAdmin ? ["operator.admin"] : undefined,
+        senderIsOwner: true,
+        assertOwnerCurrent: () => {
+          if (!current) {
+            throw new Error("original owner revoked");
+          }
+        },
+      });
+      vi.mocked(resolveTailnetHostWithRunner).mockImplementationOnce(async () => {
+        current = false;
+        ctx.assertOwnerCurrent = () => {};
+        return "gateway.tailnet.ts.net";
+      });
+      let issued = false;
+      pluginApiMocks.issueDeviceBootstrapToken.mockImplementationOnce(async (params) => {
+        params?.assertCurrent?.();
+        issued = true;
+        return { token: "boot-token", expiresAtMs: Date.now() + 60_000 };
+      });
+      const pending = registerPairCommand({
+        config: {
+          gateway: {
+            tailscale: { mode: "serve" },
+            auth: { mode: "token", token: "gateway-token" },
+          },
+        },
+        pluginConfig: { publicUrl: undefined },
+      }).handler(ctx);
+      if (gatewayAdmin) {
+        await expect(pending).resolves.toMatchObject({
+          text: expect.stringContaining("Pairing setup code generated"),
+        });
+      } else {
+        await expect(pending).rejects.toThrow("original owner revoked");
+      }
+      expect(issued).toBe(gatewayAdmin);
+    },
+  );
 
   it.each`
     toString                                                                                    | options                                                                                                                                                                  | context                                        | expectedText
