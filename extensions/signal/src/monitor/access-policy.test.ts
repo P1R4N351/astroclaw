@@ -1,8 +1,14 @@
 // Signal tests cover access policy plugin behavior.
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import type { AccessGroupsConfig, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveSignalSender } from "../identity.js";
+import { setSignalRuntime } from "../runtime.js";
 import { handleSignalDirectMessageAccess, resolveSignalAccessState } from "./access-policy.js";
+
+beforeEach(() => {
+  setSignalRuntime(createPluginRuntimeMock());
+});
 
 const SIGNAL_GROUP_ID = "signal-group-id";
 const OTHER_SIGNAL_GROUP_ID = "other-signal-group-id";
