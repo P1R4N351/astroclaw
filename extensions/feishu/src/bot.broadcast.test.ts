@@ -1,5 +1,6 @@
 // Feishu tests cover bot.broadcast plugin behavior.
 import { buildChannelInboundEventContext } from "astroclaw/plugin-sdk/channel-inbound";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig, PluginRuntime } from "../runtime-api.js";
@@ -169,6 +170,7 @@ describe("broadcast dispatch", () => {
         saveMediaBuffer: mockSaveMediaBuffer,
       },
       inbound: {
+        ingress: createPluginRuntimeMock().channel.inbound.ingress,
         buildContext: buildChannelInboundEventContext,
         run: vi.fn(async (params: Parameters<PluginRuntime["channel"]["inbound"]["run"]>[0]) => {
           const input = await params.adapter.ingest(params.raw);
