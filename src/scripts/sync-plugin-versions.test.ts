@@ -3,9 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { syncPluginVersions } from "../../scripts/sync-plugin-versions.js";
-import { cleanupTempDirs, makeTempDir } from "../../test/helpers/temp-dir.js";
+import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 
-const tempDirs: string[] = [];
+const tempDirs = useAutoCleanupTempDirTracker(afterEach);
 
 function writeJson(filePath: string, value: unknown) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -13,12 +13,8 @@ function writeJson(filePath: string, value: unknown) {
 }
 
 describe("syncPluginVersions", () => {
-  afterEach(() => {
-    cleanupTempDirs(tempDirs);
-  });
-
   it("preserves workspace openclaw devDependencies and plugin host floors", () => {
-    const rootDir = makeTempDir(tempDirs, "openclaw-sync-plugin-versions-");
+    const rootDir = tempDirs.make("openclaw-sync-plugin-versions-");
 
     writeJson(path.join(rootDir, "package.json"), {
       name: "openclaw",
@@ -37,10 +33,10 @@ describe("syncPluginVersions", () => {
       name: "@openclaw/imessage",
       version: "2026.3.30",
       devDependencies: {
-        astroclaw: "workspace:*",
+        openclaw: "workspace:*",
       },
       peerDependencies: {
-        astroclaw: ">=2026.3.30",
+        openclaw: ">=2026.3.30",
       },
       openclaw: {
         install: {
@@ -85,15 +81,50 @@ describe("syncPluginVersions", () => {
       JSON.parse(fs.readFileSync(path.join(rootDir, "packages/llm-core/package.json"), "utf8")),
     ).toMatchObject({ private: true, version: "0.0.0-private" });
     expect(updatedPackage.version).toBe("2026.4.1");
-    expect(updatedPackage.devDependencies?.astroclaw).toBe("workspace:*");
-    expect(updatedPackage.peerDependencies?.astroclaw).toBe(">=2026.4.1");
+    expect(updatedPackage.devDependencies?.openclaw).toBe("workspace:*");
+    expect(updatedPackage.peerDependencies?.openclaw).toBe(">=2026.4.1");
     expect(updatedPackage.openclaw?.install?.minHostVersion).toBe(">=2026.3.30");
     expect(updatedPackage.openclaw?.compat?.pluginApi).toBe(">=2026.4.1");
     expect(updatedPackage.openclaw?.build?.openclawVersion).toBe("2026.4.1");
   });
 
+  it.each([
+    ["2026.9.5", ">=2026.9.4", ">=2026.9.5"],
+    ["2026.9.5", ">=2026.9.5", ">=2026.9.5"],
+    ["2026.9.5", ">=2026.9.6", ">=2026.9.6"],
+    ["2026.9.5", ">=2026.9.10", ">=2026.9.10"],
+    ["2026.9.5", ">=2026.8.0", ">=2026.9.5"],
+    ["2026.9.5-beta.2", ">=2026.9.5-beta.1", ">=2026.9.5-beta.2"],
+    ["2026.9.5-beta.2", ">=2026.9.5-beta.10", ">=2026.9.5-beta.10"],
+    ["2026.9.5-beta.2", ">=2026.9.5", ">=2026.9.5"],
+    ["2026.9.5", ">=2026.9.5-1", ">=2026.9.5-1"],
+    ["2026.9.5-1", ">=2026.9.5", ">=2026.9.5-1"],
+    ["2026.9.5", ">=2026.9.5-rc.1", ">=2026.9.5"],
+    ["2026.9.5", ">=2026.9.6-rc.1", ">=2026.9.6-rc.1"],
+    ["2026.9.5", ">=2026.9.5.beta.1", ">=2026.9.5.beta.1"],
+  ])("syncs release %s API floor %s to %s", (version, current, expected) => {
+    const rootDir = tempDirs.make("openclaw-sync-plugin-api-floor-");
+    const packagePath = path.join(rootDir, "extensions/example/package.json");
+    const pkg = {
+      name: "@openclaw/example",
+      version,
+      openclaw: { compat: { pluginApi: current } },
+    };
+    writeJson(path.join(rootDir, "package.json"), { name: "openclaw", version });
+    writeJson(packagePath, pkg);
+
+    const updated = current === expected ? [] : [pkg.name];
+    expect(syncPluginVersions(rootDir, { write: false }).updated).toEqual(updated);
+    expect(JSON.parse(fs.readFileSync(packagePath, "utf8"))).toEqual(pkg);
+    expect(syncPluginVersions(rootDir).updated).toEqual(updated);
+    expect(JSON.parse(fs.readFileSync(packagePath, "utf8"))).toEqual({
+      ...pkg,
+      openclaw: { compat: { pluginApi: expected } },
+    });
+  });
+
   it("reports pending version sync without writing in check mode", () => {
-    const rootDir = makeTempDir(tempDirs, "openclaw-sync-plugin-versions-check-");
+    const rootDir = tempDirs.make("openclaw-sync-plugin-versions-check-");
 
     writeJson(path.join(rootDir, "package.json"), {
       name: "openclaw",
@@ -103,7 +134,7 @@ describe("syncPluginVersions", () => {
       name: "@openclaw/discord",
       version: "2026.4.1",
       peerDependencies: {
-        astroclaw: ">=2026.4.1",
+        openclaw: ">=2026.4.1",
       },
       openclaw: {
         compat: {
@@ -127,12 +158,12 @@ describe("syncPluginVersions", () => {
 
     expect(summary.updated).toEqual(["@openclaw/discord"]);
     expect(unchangedPackage.version).toBe("2026.4.1");
-    expect(unchangedPackage.peerDependencies?.astroclaw).toBe(">=2026.4.1");
+    expect(unchangedPackage.peerDependencies?.openclaw).toBe(">=2026.4.1");
     expect(unchangedPackage.openclaw?.compat?.pluginApi).toBe(">=2026.4.1");
   });
 
   it("uses the base release version for beta changelog entries", () => {
-    const rootDir = makeTempDir(tempDirs, "openclaw-sync-plugin-versions-beta-changelog-");
+    const rootDir = tempDirs.make("openclaw-sync-plugin-versions-beta-changelog-");
 
     writeJson(path.join(rootDir, "package.json"), {
       name: "openclaw",
