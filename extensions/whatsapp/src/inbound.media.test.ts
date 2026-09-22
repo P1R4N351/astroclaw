@@ -172,13 +172,16 @@ vi.mock("astroclaw/plugin-sdk/media-store", async () => {
 });
 
 vi.mock("./runtime.js", async () => {
+  const { createPluginRuntimeMock } = await import("astroclaw/plugin-sdk/channel-test-helpers");
   const { createChannelIngressQueueForTests: createChannelIngressQueue } = await Promise.resolve(
     vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-state-test-runtime")>(
       "astroclaw/plugin-sdk/plugin-state-test-runtime",
     ),
   );
   const stateDir = `/tmp/openclaw-whatsapp-inbound-media-${Date.now()}-${Math.random()}`;
+  const channelRuntime = createPluginRuntimeMock().channel;
   return {
+    getWhatsAppChannelRuntime: () => channelRuntime,
     getOptionalWhatsAppRuntime: () => undefined,
     getWhatsAppRuntime: () => ({
       state: {
