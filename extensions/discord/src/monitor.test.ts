@@ -1,3 +1,4 @@
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { danger } from "astroclaw/plugin-sdk/runtime-env";
@@ -23,6 +24,8 @@ import {
 } from "./monitor/allow-list.js";
 import { createDiscordLivePolicyReader } from "./monitor/live-policy.js";
 import { resolveDiscordReplyTarget, sanitizeDiscordThreadName } from "./monitor/threading.js";
+import { setDiscordRuntime } from "./runtime.js";
+import { firstMockArg, firstMockCall } from "./test-support/mock-calls.js";
 type DiscordReactionEvent = Parameters<
   import("./monitor/listeners.js").DiscordReactionListener["handle"]
 >[0];
@@ -89,6 +92,7 @@ function createAutoThreadMentionContext() {
 }
 
 beforeEach(() => {
+  setDiscordRuntime(createPluginRuntimeMock());
   vi.useRealTimers();
   readAllowFromStoreMock.mockReset().mockResolvedValue([]);
 });
@@ -927,20 +931,6 @@ const {
   DiscordReactionRemoveListener,
   registerDiscordListener,
 } = await import("./monitor/listeners.js");
-
-type MockWithCalls = { mock: { calls: unknown[][] } };
-
-function firstMockCall(mock: MockWithCalls, label: string): unknown[] {
-  const call = mock.mock.calls.at(0);
-  if (!call) {
-    throw new Error(`expected ${label} call`);
-  }
-  return call;
-}
-
-function firstMockArg(mock: MockWithCalls, label: string) {
-  return firstMockCall(mock, label)[0];
-}
 
 const requireRecord = createRequireRecord("object", "expected-label-object");
 
