@@ -1,5 +1,6 @@
 import syncFs from "node:fs";
 import fs from "node:fs/promises";
+import { userInfo } from "node:os";
 import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { createTempDirTracker } from "../../../test/helpers/temp-dir.js";
@@ -13,7 +14,7 @@ import { captureConfigWriteLockGuard, withConfigWriteLock } from "../../config/w
 import * as gatewayEntrypoint from "../../daemon/gateway-entrypoint.js";
 import { executeSqliteQuerySync, getNodeSqliteKysely } from "../../infra/kysely-sync.js";
 import { openNodeSqliteDatabase } from "../../infra/node-sqlite.js";
-import * as temporaryState from "../../infra/tmp-openclaw-dir.js";
+import * as temporaryState from "../../infra/tmp-astroclaw-dir.js";
 import {
   POST_CORE_UPDATE_INSTALL_RECORDS_PATH_ENV,
   POST_CORE_UPDATE_REQUESTED_CHANNEL_ENV,
@@ -92,7 +93,7 @@ it.each(
       // Exercise modern parent-owned completion before the config preparation boundary.
       await fs.writeFile(path.join(home, "handoff.json"), '{"completionOwner":"parent"}\n');
     }
-    vi.spyOn(temporaryState, "resolvePreferredOpenClawTmpDir").mockReturnValue(control);
+    vi.spyOn(temporaryState, "resolvePreferredAstroclawTmpDir").mockReturnValue(control);
     await withEnvAsync(
       {
         HOME: home,
@@ -200,13 +201,18 @@ it.each(
               updateOutcomes: [],
             }),
           );
-          vi.spyOn(postCoreConvergence, "runPostCorePluginConvergence").mockResolvedValue({
-            changes: [],
-            warnings: [],
-            installRecords: {},
-            errored: false,
-            smokeFailures: [],
-          });
+          vi.spyOn(postCoreConvergence, "runPostCorePluginConvergence").mockImplementation(
+            async ({ cfg: pluginConfig }) => ({
+              config: pluginConfig,
+              configChanges: [],
+              installedPluginIdRecovery: new Map(),
+              changes: [],
+              warnings: [],
+              installRecords: {},
+              errored: false,
+              smokeFailures: [],
+            }),
+          );
         }
         vi.spyOn(defaultRuntime, "exit").mockImplementation(() => {
           throw new Error("Unexpected post-core completion after ownership loss");
@@ -446,7 +452,7 @@ it("converges healthy candidate code once without nested delegation and restores
   await fs.mkdir(control);
   await fs.writeFile(path.join(root, "package.json"), '{"name":"openclaw","version":"1.0.0"}\n');
   await fs.writeFile(configPath, '{"gateway":{"mode":"local","port":18789}}\n');
-  vi.spyOn(temporaryState, "resolvePreferredOpenClawTmpDir").mockReturnValue(control);
+  vi.spyOn(temporaryState, "resolvePreferredAstroclawTmpDir").mockReturnValue(control);
   await withEnvAsync(
     {
       HOME: home,
@@ -555,7 +561,7 @@ it.each([
     const configPath = path.join(stateDir, "openclaw.json");
     const control = path.join(home, "control");
     await fs.mkdir(control);
-    vi.spyOn(temporaryState, "resolvePreferredOpenClawTmpDir").mockReturnValue(control);
+    vi.spyOn(temporaryState, "resolvePreferredAstroclawTmpDir").mockReturnValue(control);
     const env = {
       ...process.env,
       HOME: home,
@@ -577,7 +583,9 @@ it.each([
     if (included) {
       await fs.mkdir(path.dirname(includePath));
       if (process.platform !== "win32") {
+        await fs.chown(path.dirname(includePath), -1, userInfo().gid);
         await fs.chmod(path.dirname(includePath), 0o3700);
+        expect((await fs.stat(path.dirname(includePath))).mode & 0o7777).toBe(0o3700);
       }
       await fs.writeFile(includePath, includedRaw);
     }
