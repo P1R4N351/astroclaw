@@ -1,6 +1,6 @@
 // Payload tests cover successful embedded run replies, final-answer selection,
 // message-tool source replies, media directives, and tool-error warning policy.
-import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
+import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { resolveHeartbeatReplyPayload } from "../../../auto-reply/heartbeat-reply-payload.js";
 import { selectHeartbeatToolResponse } from "../../../auto-reply/heartbeat-tool-response.js";
@@ -59,12 +59,17 @@ describe("buildEmbeddedRunPayloads tool-error warnings", () => {
     expect(payloads).toStrictEqual([]);
   });
 
+  it("keeps indented code intact when preparing the final channel payload", () => {
+    const text = `    ${"A".repeat(128)}\n\n    ${"B".repeat(128)}`;
+    expectSinglePayloadText(buildPayloads({ assistantTexts: [text] }), text);
+  });
+
   it("sanitizes every streamed text while preserving multiple visible answers", () => {
     const payloads = buildPayloads({
       assistantTexts: [
         '<tool_call>{"name":"exec","arguments":{"command":"secret"}}</tool_call>',
-        "</mm:think>First visible answer.",
-        "Second visible answer.",
+        "  </mm:think>First visible answer.  ",
+        "\nSecond visible answer.\n",
       ],
     });
 
