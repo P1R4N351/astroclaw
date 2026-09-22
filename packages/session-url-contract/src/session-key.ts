@@ -3,6 +3,15 @@ import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/s
 
 export const DEFAULT_MAIN_KEY = "main";
 
+const INCOGNITO_SESSION_RE =
+  /^agent:[^:]+:(?:dashboard|subagent|internal-session-effects):incognito-[^:]+$/u;
+
+/** Classifies process-only agent session keys without consulting runtime registry state. */
+export function isIncognitoSessionKey(sessionKey: string | undefined | null): boolean {
+  const raw = sessionKey?.trim().toLowerCase();
+  return Boolean(raw && INCOGNITO_SESSION_RE.test(raw));
+}
+
 export type ParsedAgentSessionKey = {
   agentId: string;
   rest: string;
