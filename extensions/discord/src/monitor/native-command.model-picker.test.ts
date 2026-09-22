@@ -9,18 +9,19 @@ import type {
 } from "astroclaw/plugin-sdk/command-auth-native";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import type { ModelsRuntimeChoice } from "astroclaw/plugin-sdk/models-provider-runtime";
-import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
 import * as runtimeConfigSnapshotModule from "astroclaw/plugin-sdk/runtime-config-snapshot";
 import { getSessionEntry, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import * as commandTextModule from "astroclaw/plugin-sdk/text-utility-runtime";
 import { ChannelType } from "discord-api-types/v10";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseCustomId, serializePayload, type MessagePayload } from "../internal/discord.js";
+import { installDiscordIngressTestRuntime } from "../test-support/ingress-runtime.js";
 import { defineThrowingDiscordChannelGetter } from "../test-support/partial-channel.js";
 import { resolveDiscordChannelContext } from "./agent-components-context.js";
 import * as modelPickerPreferencesModule from "./model-picker-preferences.js";
 import * as modelPickerModule from "./model-picker.state.js";
 import {
+  createResolvedAgentRoute,
   createModelsProviderData as createBaseModelsProviderData,
   setFixtureRuntimeChoices,
 } from "./model-picker.test-utils.js";
@@ -74,19 +75,6 @@ type MockInteraction = {
 };
 
 let tempDir: string;
-
-function createResolvedAgentRoute(overrides: Partial<ResolvedAgentRoute> = {}): ResolvedAgentRoute {
-  return {
-    agentId: "main",
-    channel: "discord",
-    accountId: "default",
-    sessionKey: "agent:main:discord:dm:owner",
-    mainSessionKey: "agent:main:main",
-    lastRoutePolicy: "session",
-    matchedBy: "default",
-    ...overrides,
-  };
-}
 
 function createModelsProviderData(entries: Record<string, string[]>) {
   return createBaseModelsProviderData(entries, { defaultProviderOrder: "sorted" });
@@ -1678,3 +1666,5 @@ describe("Discord model picker interactions", () => {
   });
 });
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
+
+installDiscordIngressTestRuntime();
