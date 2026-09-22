@@ -1,4 +1,4 @@
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import { setDiscordTranscriptsVoiceManager } from "./transcripts-source.js";
 import { defineDiscordVoiceTests } from "./voice-test-harness.test-support.js";
 
@@ -18,6 +18,7 @@ defineDiscordVoiceTests(
     createAgentProxyManager,
     expectConnectedStatus,
     getSessionEntry,
+    getSessionConnection,
     getVoiceReceive,
     createJoinedAgentProxyFixture,
     startTranscripts,
@@ -363,7 +364,7 @@ defineDiscordVoiceTests(
             expect(connection.destroy).not.toHaveBeenCalled();
             expect(joinVoiceChannelMock).toHaveBeenCalledTimes(2);
             expectConnectedStatus(manager, channelId);
-            expect(getSessionEntry(manager).connection).toBe(connection);
+            expect(getSessionConnection(getSessionEntry(manager))).toBe(connection);
             expect(getSessionEntry(manager).realtimeLifecycle.status).toBe("active");
             await receiveRecordedSpeech(manager, "newer conversation");
             expect(realtimeSessionMock.sendAudio).toHaveBeenCalled();
