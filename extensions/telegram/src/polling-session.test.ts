@@ -6,6 +6,7 @@ import { Worker } from "node:worker_threads";
 import { expectDefined } from "@astroclaw/normalization-core";
 import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
 import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "astroclaw/plugin-sdk/channel-outbound";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import { toErrorObject as toLintErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 import {
@@ -34,6 +35,7 @@ import {
   topicUpdate,
   type TestTelegramUpdate,
 } from "./polling-session-spool.test-support.js";
+import { installTelegramIngressQueueRuntime } from "./runtime-state.test-support.js";
 import { setTelegramRuntime } from "./runtime.js";
 import {
   clearTelegramRuntimeForTest as clearTelegramRuntime,
@@ -223,25 +225,6 @@ type IsolatedIngressOptions = NonNullable<
 >;
 
 const POLLING_TEST_WATCHDOG_INTERVAL_MS = 30_000;
-
-function installTelegramIngressQueueRuntime(
-  resolveStateDir: () => string,
-  queueOpenError?: Error,
-): void {
-  setTelegramRuntime({
-    state: {
-      resolveStateDir,
-      openChannelIngressQueue: (
-        options?: Omit<Parameters<typeof createChannelIngressQueue>[0], "channelId">,
-      ) => {
-        if (queueOpenError) {
-          throw queueOpenError;
-        }
-        return createChannelIngressQueue({ ...options, channelId: "telegram" });
-      },
-    },
-  } as TelegramRuntime);
-}
 
 function mockObjectArg(
   source: MockCallSource,
@@ -1291,6 +1274,7 @@ describe("TelegramPollingSession", () => {
       });
       let blockedFirstClaim = false;
       setTelegramRuntime({
+        channel: { inbound: { ingress: createPluginRuntimeMock().channel.inbound.ingress } },
         state: {
           resolveStateDir: () => tempDir,
           openChannelIngressQueue: (
