@@ -1,3 +1,6 @@
+import { installDiscordIngressTestRuntime } from "../test-support/ingress-runtime.js";
+
+installDiscordIngressTestRuntime();
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
 // Discord tests cover message handler.preflight plugin behavior.
 import { ComponentType, MessageReferenceType } from "discord-api-types/v10";
@@ -46,6 +49,7 @@ import {
 } from "astroclaw/plugin-sdk/conversation-runtime";
 import { saveRemoteMedia } from "astroclaw/plugin-sdk/media-runtime";
 import {
+  createThreadBinding,
   createDiscordMessage,
   createDiscordPreflightArgs,
   createGuildEvent,
@@ -86,31 +90,6 @@ beforeEach(() => {
   );
   vi.mocked(saveRemoteMedia).mockImplementation((...args) => saveRemoteMediaMock(...args));
 });
-
-function createThreadBinding(
-  overrides?: Partial<import("astroclaw/plugin-sdk/conversation-runtime").SessionBindingRecord>,
-) {
-  return {
-    bindingId: "default:thread-1",
-    targetSessionKey: "agent:main:subagent:child-1",
-    targetKind: "subagent",
-    conversation: {
-      channel: "discord",
-      accountId: "default",
-      conversationId: "thread-1",
-      parentConversationId: "parent-1",
-    },
-    status: "active",
-    boundAt: 1,
-    metadata: {
-      agentId: "main",
-      boundBy: "test",
-      webhookId: "wh-1",
-      webhookToken: "tok-1",
-    },
-    ...overrides,
-  } satisfies import("astroclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
-}
 
 function createPreflightArgs(params: {
   cfg: import("astroclaw/plugin-sdk/config-contracts").OpenClawConfig;
