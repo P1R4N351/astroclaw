@@ -3,6 +3,7 @@ import type { ChatCommandDefinition } from "astroclaw/plugin-sdk/command-auth-na
 import * as commandRegistryModule from "astroclaw/plugin-sdk/command-auth-native";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { installDiscordIngressTestRuntime } from "../test-support/ingress-runtime.js";
 import { createDiscordCommandArgFallbackButton } from "./native-command-arg-ui.js";
 import type { DispatchDiscordCommandInteraction } from "./native-command-dispatch.js";
 import { createNoopThreadBindingManager } from "./thread-bindings.js";
@@ -111,3 +112,5 @@ describe("discord command argument fallback", () => {
     expect(dispatchCall?.dispatchReplyFromConfig).toBe(dispatchReplyFromConfig);
   });
 });
+
+installDiscordIngressTestRuntime();
