@@ -1,7 +1,11 @@
 // Mattermost tests cover draft stream plugin behavior.
 import { isChannelPartialDeliveryError } from "astroclaw/plugin-sdk/channel-inbound";
-import { createChannelProgressDraftCompositor } from "astroclaw/plugin-sdk/channel-outbound";
+import {
+  createChannelProgressDraftCompositor,
+  createLivePreviewLifecycle,
+} from "astroclaw/plugin-sdk/channel-outbound";
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 import { describe, expect, it, vi } from "vitest";
 import type { MattermostClient } from "./client.js";
 import {
@@ -291,9 +295,10 @@ describe("createMattermostDraftStream", () => {
           info: { kind: "final" },
           kind: "direct",
           client,
-          draftStream: stream,
+          previewLifecycle: createLivePreviewLifecycle<ReplyPayload, string>({
+            draft: { ...stream, id: stream.postId },
+          }),
           resolvePreviewFinalText: (text) => ({ editText: text, alreadyDelivered: false }),
-          previewState: { finalizedViaPreviewPost: false },
           logVerboseMessage: vi.fn(),
           deliverPayload,
         });
