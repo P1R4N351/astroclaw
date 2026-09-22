@@ -1,6 +1,8 @@
 // Telegram tests cover dm access plugin behavior.
-import type { createChannelPairingChallengeIssuer } from "openclaw/plugin-sdk/channel-pairing";
+import type { createChannelPairingChallengeIssuer } from "astroclaw/plugin-sdk/channel-pairing";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { setTelegramRuntime } from "./runtime.js";
 
 const createChannelPairingChallengeIssuerMock = vi.hoisted(() => vi.fn());
 const upsertChannelPairingRequestMock = vi.hoisted(() =>
@@ -12,7 +14,7 @@ const createPairingPrefixStripperMock = vi.hoisted(
     normalize(value.replace(prefix, "")),
 );
 
-vi.mock("openclaw/plugin-sdk/channel-pairing", () => ({
+vi.mock("astroclaw/plugin-sdk/channel-pairing", () => ({
   createChannelPairingChallengeIssuer: createChannelPairingChallengeIssuerMock,
   createPairingPrefixStripper: createPairingPrefixStripperMock,
   createLoggedPairingApprovalNotifier: () => undefined,
@@ -20,7 +22,7 @@ vi.mock("openclaw/plugin-sdk/channel-pairing", () => ({
   createChannelPairingController: () => ({}),
 }));
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", () => ({
   upsertChannelPairingRequest: upsertChannelPairingRequestMock,
   createStaticReplyToModeResolver: (mode: string) => () => mode,
   createTopLevelChannelReplyToModeResolver: () => () => "off",
@@ -79,6 +81,7 @@ describe("enforceTelegramDmAccess", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setTelegramRuntime(createPluginRuntimeMock());
   });
 
   it("allows DMs when policy is open with wildcard allowFrom", async () => {
