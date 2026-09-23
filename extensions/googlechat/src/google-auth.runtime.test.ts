@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   buildHostnameAllowlistPolicyFromSuffixAllowlist:
     mocks.buildHostnameAllowlistPolicyFromSuffixAllowlist,
   fetchWithSsrFGuard: mocks.fetchWithSsrFGuard,
@@ -61,7 +61,7 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
   vi.doUnmock("google-auth-library");
   vi.resetModules();
 });
