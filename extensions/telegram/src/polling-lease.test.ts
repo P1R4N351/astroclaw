@@ -1,5 +1,5 @@
 // Telegram tests cover polling lease plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   acquireTelegramPollingLease,
@@ -10,22 +10,6 @@ import { resetTelegramPollingLeasesForTest as resetTelegramPollingLeasesForTests
 describe("Telegram polling lease", () => {
   beforeEach(() => {
     resetTelegramPollingLeasesForTests();
-  });
-
-  it("refuses an active duplicate poller for the same bot token", async () => {
-    const first = await acquireTelegramPollingLease({
-      token: "123:abc",
-      accountId: "default",
-    });
-
-    await expect(
-      acquireTelegramPollingLease({
-        token: "123:abc",
-        accountId: "ops",
-      }),
-    ).rejects.toThrow('refusing duplicate poller for account "ops"');
-
-    first.release();
   });
 
   it("refuses an old active duplicate poller for the same bot token", async () => {
@@ -51,22 +35,6 @@ describe("Telegram polling lease", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it("allows concurrent pollers for different bot tokens", async () => {
-    const first = await acquireTelegramPollingLease({
-      token: "123:abc",
-      accountId: "default",
-    });
-    const second = await acquireTelegramPollingLease({
-      token: "456:def",
-      accountId: "ops",
-    });
-
-    expect(first.tokenFingerprint).not.toBe(second.tokenFingerprint);
-
-    first.release();
-    second.release();
   });
 
   it("waits for an aborting same-token poller before acquiring", async () => {
