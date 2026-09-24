@@ -1,6 +1,6 @@
 import { buildLegacyMigrationPreview } from "../channels/plugins/legacy-state-migration-preview.js";
 import type { ChannelLegacyStateMigrationPlan } from "../channels/plugins/legacy-state-migration.types.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginDoctorStateMigration } from "../plugins/doctor-contract-module.js";
 
 type PluginDoctorPlanResolver = (params: {
@@ -19,6 +19,7 @@ export function definePluginDoctorMigrationFromPlans(params: {
   id: string;
   label: string;
   doctorOnly?: boolean;
+  collectBackupResources?: PluginDoctorStateMigration["collectBackupResources"];
   resolvePlans: PluginDoctorPlanResolver;
 }): PluginDoctorStateMigration {
   const resolvePlans = async (input: {
@@ -49,6 +50,7 @@ export function definePluginDoctorMigrationFromPlans(params: {
     id: params.id,
     label: params.label,
     ...(params.doctorOnly === true ? { doctorOnly: true } : {}),
+    collectBackupResources: params.collectBackupResources,
     async detectLegacyState(input) {
       const plans = await resolvePlans(input);
       return plans.length > 0
