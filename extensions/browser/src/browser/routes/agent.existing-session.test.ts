@@ -1,7 +1,7 @@
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { saveMediaBuffer } from "astroclaw/plugin-sdk/media-runtime";
 import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { saveMediaBuffer } from "../../media/store.js";
 import { withChromeMcpTarget } from "../chrome-mcp-routing.js";
 import type { ChromeMcpSnapshotNode } from "../chrome-mcp.snapshot.js";
 import { EXISTING_SESSION_LIMITS } from "./existing-session-limits.js";
@@ -126,7 +126,8 @@ vi.mock("../screenshot.js", () => ({
   })),
 }));
 
-vi.mock("../../media/store.js", () => ({
+vi.mock("astroclaw/plugin-sdk/media-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/media-runtime")>()),
   ensureMediaDir: vi.fn(async () => {}),
   saveMediaBuffer: vi.fn(async () => ({ path: "/tmp/fake.png" })),
 }));
