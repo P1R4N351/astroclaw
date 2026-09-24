@@ -1,25 +1,25 @@
-import { runAgentLoop } from "openclaw/plugin-sdk/agent-core";
+import { runAgentLoop } from "astroclaw/plugin-sdk/agent-core";
 import {
   createAssistantOutput,
   createSubscribedSessionHarness,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
-import type { PluginHookReplyPayloadSendingEvent } from "openclaw/plugin-sdk/core";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { AssistantMessageEventStream, type Message, type Model } from "openclaw/plugin-sdk/llm";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+import type { PluginHookReplyPayloadSendingEvent } from "astroclaw/plugin-sdk/core";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { AssistantMessageEventStream, type Message, type Model } from "astroclaw/plugin-sdk/llm";
 import {
   addTestHook,
   createEmptyPluginRegistry,
   initializeGlobalHookRunner,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { consumeGoogleGenerateContentStream } from "openclaw/plugin-sdk/provider-transport-runtime";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-payload";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { consumeGoogleGenerateContentStream } from "astroclaw/plugin-sdk/provider-transport-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
 import {
   createBlockReplyDeliveryHandler,
   createReplyToModeFilterForChannel,
   createTypingController,
   createTypingSignaler,
   setReplyPayloadMetadata,
-} from "openclaw/plugin-sdk/reply-payload-testing";
+} from "astroclaw/plugin-sdk/reply-payload-testing";
 import { describe, expect, it, vi } from "vitest";
 import { createTelegramDispatchHttpFixture } from "./bot-message-dispatch.telegram-http.test-support.js";
 
@@ -196,7 +196,6 @@ describe("Telegram preview and presentation delivery through HTTP", () => {
   );
 
   it("keeps sending typing before Telegram expiry beyond the default pipeline cutoff", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     const acceptedTypingAt: number[] = [];
     http.respondToCall = (call) => {
       if (call.method === "sendChatAction" && call.fields.action === "typing") {
@@ -212,8 +211,8 @@ describe("Telegram preview and presentation delivery through HTTP", () => {
         for (let interval = 0; interval < 17; interval += 1) {
           const previousCount = acceptedTypingAt.length;
           await vi.advanceTimersByTimeAsync(4_000);
-          await expect.poll(() => acceptedTypingAt.length).toBeGreaterThan(previousCount);
           await http.waitForTypingSend();
+          expect(acceptedTypingAt.length).toBeGreaterThan(previousCount);
           await vi.advanceTimersByTimeAsync(0);
         }
         expect(acceptedTypingAt.at(-1)! - acceptedTypingAt[0]!).toBeGreaterThan(60_000);
