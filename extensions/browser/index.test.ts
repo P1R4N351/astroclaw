@@ -1,7 +1,7 @@
 // Browser tests cover index plugin behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   browserPluginNodeHostCommands,
@@ -509,7 +509,7 @@ describe("browser plugin", () => {
     const { api, registerGatewayMethod } = createApi();
     registerBrowserPlugin(api);
 
-    expect(registerGatewayMethod).toHaveBeenCalledTimes(1);
+    expect(registerGatewayMethod).toHaveBeenCalledTimes(2);
     expect(mockCallArg(registerGatewayMethod)).toBe("browser.request");
     const handler = mockCallArg(registerGatewayMethod, 0, 1) as (request: {
       method: string;
