@@ -6,8 +6,7 @@ const transcodeAudioBufferToOpusMock = vi.hoisted(() => vi.fn());
 
 const PROVIDER_RESPONSE_MAX_BYTES = 16 * 1024 * 1024;
 
-vi.mock("astroclaw/plugin-sdk/media-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/media-runtime")>()),
+vi.mock("astroclaw/plugin-sdk/media-runtime", () => ({
   transcodeAudioBufferToOpus: transcodeAudioBufferToOpusMock,
 }));
 
