@@ -1,7 +1,7 @@
 // Browser tests cover navigation guard plugin behavior.
 import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { SsrFBlockedError, type LookupFn } from "astroclaw/plugin-sdk/security-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SsrFBlockedError, type LookupFn } from "../infra/net/ssrf.js";
 import {
   assertBrowserNavigationAllowed,
   assertBrowserNavigationRedirectChainAllowed,
