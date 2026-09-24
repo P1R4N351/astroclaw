@@ -3,7 +3,7 @@ import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { getActivePluginChannelRegistry } from "../../plugins/runtime.js";
 
 type CommandSurfaceParams = {
@@ -18,17 +18,8 @@ type CommandSurfaceParams = {
   };
 };
 
-type ChannelAccountParams = {
+type ChannelAccountParams = CommandSurfaceParams & {
   cfg: OpenClawConfig;
-  ctx: {
-    OriginatingChannel?: string;
-    Surface?: string;
-    Provider?: string;
-    AccountId?: string;
-  };
-  command: {
-    channel?: string;
-  };
 };
 
 /** Resolves the command surface channel from inbound context and command state. */
