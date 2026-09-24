@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import type { BrowserConfig, BrowserProfileConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { withEnv, withTempDir } from "astroclaw/plugin-sdk/test-env";
+import { resolveUserPath } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { describe, expect, it, vi } from "vitest";
-import { resolveUserPath } from "../utils.js";
 import {
   getManagedBrowserMissingDisplayError,
   isLocalManagedProfile,
