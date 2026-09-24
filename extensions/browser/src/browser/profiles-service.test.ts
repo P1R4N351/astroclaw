@@ -2,10 +2,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
+import type { BrowserProfileConfig, OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test-support.js";
-import { getRuntimeConfig } from "../config/config.js";
-import type { BrowserProfileConfig, OpenClawConfig } from "../config/config.js";
 import { resolveOpenClawUserDataDir } from "./chrome.js";
 import type { BrowserRouteContext, BrowserServerState } from "./server-context.js";
 import {
@@ -66,14 +66,19 @@ const lifecycleMocks = vi.hoisted(() => ({
   stopOwnedOpenClawChrome: vi.fn<typeof import("./chrome.js").stopOwnedOpenClawChrome>(),
 }));
 
-vi.mock("../config/config.js", async () => {
-  const actual = await vi.importActual<typeof import("../config/config.js")>("../config/config.js");
+vi.mock("astroclaw/plugin-sdk/config-mutation", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal<typeof import("astroclaw/plugin-sdk/config-mutation")>()),
     replaceConfigFile: vi.fn(async ({ nextConfig }: { nextConfig: OpenClawConfig }) => {
       await configMocks.writeConfigFile(nextConfig);
     }),
     mutateConfigFile: configMocks.mutateConfigFile,
+  };
+});
+
+vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async (importOriginal) => {
+  return {
+    ...(await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")>()),
     getRuntimeConfig: configMocks.getRuntimeConfig,
     getRuntimeConfigSourceSnapshot: configMocks.getRuntimeConfigSourceSnapshot,
   };
