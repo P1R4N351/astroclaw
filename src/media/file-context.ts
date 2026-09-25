@@ -1,6 +1,6 @@
 // File context helpers build user-visible context for media file references.
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import { sanitizeUntrustedFileName } from "../infra/fs-safe-advanced.js";
+import { sanitizeUntrustedFileName } from "@openclaw/fs-safe/advanced";
 
 const XML_ESCAPE_MAP: Record<string, string> = {
   "<": "&lt;",
