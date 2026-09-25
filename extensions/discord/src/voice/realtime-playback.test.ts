@@ -1,7 +1,7 @@
 import type { PassThrough } from "node:stream";
 import { finished } from "node:stream/promises";
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import { resamplePcm } from "openclaw/plugin-sdk/realtime-voice";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import { resamplePcm } from "astroclaw/plugin-sdk/realtime-voice";
 import type { MockCallSource } from "./manager.e2e.test-support.js";
 import { defineDiscordVoiceTests } from "./voice-test-harness.test-support.js";
 
@@ -511,7 +511,7 @@ defineDiscordVoiceTests(
           | (() => void)
           | undefined;
         idleHandler?.();
-        expectUserMessageIncludes("second answer");
+        await vi.waitFor(() => expectUserMessageIncludes("second answer"));
         beginSpeakerTurn(entry);
         bridgeParams?.onTranscript?.("user", "third question", true);
         await vi.advanceTimersByTimeAsync(260);
