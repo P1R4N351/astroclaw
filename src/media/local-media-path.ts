@@ -1,6 +1,6 @@
 import path from "node:path";
 import { isPassThroughRemoteMediaSource } from "@astroclaw/media-core/media-source-url";
-import { safeFileURLToPath } from "../infra/local-file-access.js";
+import { safeFileURLToPath } from "@openclaw/fs-safe/advanced";
 import { resolveUserPath } from "../utils.js";
 
 const DATA_URL_RE = /^data:/i;
