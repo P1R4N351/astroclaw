@@ -5,7 +5,7 @@ import { buildManifestModelProviderConfig } from "openclaw/plugin-sdk/provider-c
 import { buildOpenAICompletionsParams } from "openclaw/plugin-sdk/provider-transport-runtime";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { COHERE_LIVE_MODEL_DISCOVERY } from "./provider-catalog.js";
 import { wrapCohereProviderStream } from "./stream.js";
 

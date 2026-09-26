@@ -23,7 +23,7 @@ import { createCopilotClientPool } from "./src/runtime.js";
 
 function loadManifest(): Record<string, unknown> {
   return JSON.parse(
-    fs.readFileSync(new URL("./openclaw.plugin.json", import.meta.url), "utf8"),
+    fs.readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf8"),
   ) as Record<string, unknown>;
 }
 

@@ -4,7 +4,7 @@ import type {
   ModelCompatConfig,
   ModelDefinitionConfig,
 } from "openclaw/plugin-sdk/provider-model-shared";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 const FEATHERLESS_MANIFEST_PROVIDER = buildManifestModelProviderConfig({
   providerId: "featherless",
