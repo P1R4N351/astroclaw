@@ -57,9 +57,22 @@ function hasWorkerOverride(env: Record<string, string | undefined>): boolean {
   return Boolean((env.OPENCLAW_VITEST_MAX_WORKERS ?? env.OPENCLAW_TEST_WORKERS)?.trim());
 }
 
+// Workspace packages are mid-rebrand: renamed ones declare "@astroclaw/<id>" in
+// their package.json, while manifest-less source-only packages (retry,
+// session-url-contract, workboard-contract) are still imported as "@openclaw/<id>".
+// Derive the alias scope from the manifest so both resolve under Vitest.
+function sourcePackageScope(packageId: string): string {
+  const manifestPath = path.join(repoRoot, "packages", packageId, "package.json");
+  if (!fs.existsSync(manifestPath)) {
+    return "@openclaw";
+  }
+  const name: unknown = JSON.parse(fs.readFileSync(manifestPath, "utf8")).name;
+  return typeof name === "string" && name.startsWith("@") ? name.split("/")[0] : "@openclaw";
+}
+
 function sourcePackageAlias(packageId: string, subpath?: string) {
   return {
-    find: `@openclaw/${packageId}${subpath ? `/${subpath}` : ""}`,
+    find: `${sourcePackageScope(packageId)}/${packageId}${subpath ? `/${subpath}` : ""}`,
     replacement: path.join(
       repoRoot,
       "packages",

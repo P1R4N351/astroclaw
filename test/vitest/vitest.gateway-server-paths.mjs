@@ -1,3 +1,5 @@
+import { databaseWorkerCoreTestFiles } from "./vitest.database-worker-core-paths.mjs";
+
 // Plugin integration tests retain Gateway runtime setup outside core source.
 export const gatewayPluginTestFiles = [
   "test/plugins/codex-model-catalog.gateway.test.ts",
@@ -182,3 +184,59 @@ export function isGatewayServerTestFile(file) {
       normalized.endsWith(".test.ts"))
   );
 }
+
+// Shard include/exclude lists consumed by the gateway-core/-client/-methods
+// configs and declared in vitest.gateway-server-paths.d.mts. Values are the
+// inline lists those configs carried before the 2026-09-24 p10 rewrites
+// (8482fd389bb, 6ff8a5d1e65, 9e3d0c20c52) hoisted them here without defining them.
+export const gatewayCoreTestInclude = ["src/gateway/**/*.test.ts"];
+
+export const gatewayCoreTestExclude = [
+  ...gatewayDatabaseWorkerTestFiles,
+  "src/gateway/server-methods/**/*.test.ts",
+  "packages/gateway-protocol/src/**/*.test.ts",
+  "src/gateway/**/*client*.test.ts",
+  "src/gateway/**/*reconnect*.test.ts",
+  "src/gateway/**/*android-node*.test.ts",
+  "src/gateway/**/*gateway-cli-backend*.test.ts",
+  "src/gateway/**/*server*.test.ts",
+  "src/gateway/gateway.test.ts",
+  "src/gateway/embeddings-http.test.ts",
+  "src/gateway/models-http.test.ts",
+  "src/gateway/openai-http.test.ts",
+  "src/gateway/openresponses-http.test.ts",
+  "src/gateway/probe.auth.integration.test.ts",
+  "src/gateway/server.startup-matrix-migration.integration.test.ts",
+  "src/gateway/sessions-history-http.test.ts",
+];
+
+export const gatewayClientTestInclude = [
+  "packages/gateway-client/src/**/*.test.ts",
+  "packages/gateway-protocol/src/**/*.test.ts",
+  "src/gateway/**/*client*.test.ts",
+  "src/gateway/**/*reconnect*.test.ts",
+  "src/gateway/**/*android-node*.test.ts",
+  "src/gateway/**/*gateway-cli-backend*.test.ts",
+];
+
+export const gatewayClientTestExclude = [
+  ...gatewayDatabaseWorkerTestFiles,
+  "src/gateway/**/*server*.test.ts",
+  "src/gateway/server-methods/**/*.test.ts",
+];
+
+export const gatewayMethodsTestInclude = [
+  "src/gateway/server-methods/**/*.test.ts",
+  ...gatewayPluginTestFiles,
+];
+
+export const gatewayMethodsTestExclude = [
+  ...gatewayDatabaseWorkerTestFiles,
+  ...gatewayMethodsIsolatedTestFiles,
+  ...databaseWorkerCoreTestFiles,
+];
+
+// Gateway server tests pinned to the serial native leaf (phase-container mode of
+// vitest.gateway-server.config.ts). Empty preserves the pre-f2a883f8247 behaviour,
+// where every gateway-server file ran in the single parallel project.
+export const gatewayServerSerialTestFiles = [];
