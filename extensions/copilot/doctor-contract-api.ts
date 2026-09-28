@@ -7,7 +7,7 @@
  *     fields exist for copilot yet; the array is empty by design
  *     and normalizeCompatibilityConfig is a structural no-op so
  *     future retirements have a stable in-tree home. Session-route ownership
- *     is static manifest metadata in openclaw.plugin.json.
+ *     is static manifest metadata in astroclaw.plugin.json.
  */
 
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
