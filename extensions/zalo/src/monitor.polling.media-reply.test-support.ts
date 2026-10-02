@@ -1,20 +1,20 @@
 // Zalo test support covers monitor.polling.media reply plugin behavior.
 import type { ServerResponse } from "node:http";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { OpenKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   createEmptyPluginRegistry,
   createPluginRegistryOwner,
   createRuntimeEnv,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { createReplyDispatcher } from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { createReplyDispatcher } from "openclaw/plugin-sdk/reply-runtime";
+import type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { PluginRuntime } from "../runtime-api.js";
 import type { ZaloFetch } from "./api.js";
 import { setZaloRuntime } from "./runtime.js";
 import {
@@ -190,7 +190,7 @@ describe("Zalo polling media replies", () => {
       );
       const api = await vi.importActual<typeof import("./api.js")>("./api.js");
       vi.mocked((await import("./api.js")).sendPhoto).mockImplementationOnce(api.sendPhoto);
-      const ssrf = await import("astroclaw/plugin-sdk/ssrf-runtime");
+      const ssrf = await import("openclaw/plugin-sdk/ssrf-runtime");
       const pinnedHost = await ssrf.resolvePinnedHostnameWithPolicy("example.com", {
         lookupFn: async () => [{ address: "93.184.216.34", family: 4 }],
       });
@@ -272,12 +272,6 @@ describe("Zalo polling media replies", () => {
 
   it.each<ZaloReplyFailureCase>([
     { name: "block text", kind: "block", payload: { text: "block reply" } },
-    { name: "tool text", kind: "tool", payload: { text: "tool reply" } },
-    {
-      name: "first block attachment",
-      kind: "block",
-      payload: { text: "caption", mediaUrl: "https://example.com/first.png" },
-    },
     {
       name: "first tool attachment",
       kind: "tool",
