@@ -3,10 +3,12 @@ import "./test-helpers.js";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { setTimeout as waitForLogTick } from "node:timers/promises";
 import { escapeRegExp, formatEnvelopeTimestamp } from "astroclaw/plugin-sdk/channel-test-helpers";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { extractErrorCode, toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
 import { getChildLogger, setLoggerOverride } from "astroclaw/plugin-sdk/runtime-env";
+import { withinTest } from "astroclaw/plugin-sdk/test-fixtures";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { createRuntimeSpies } from "../../test-support/runtime-spies.js";
 import { getActiveWebListener } from "./active-listener.js";
@@ -98,6 +100,37 @@ async function waitForScriptedListeners(
     },
     { timeout: 250, interval: 2 },
   );
+}
+
+// The async file transport's flush promise is not exposed through the plugin SDK.
+async function waitForLogText(
+  filePath: string,
+  text: string,
+  signal: AbortSignal,
+): Promise<string> {
+  try {
+    for (;;) {
+      signal.throwIfAborted();
+      const content = await withinTest(
+        fs.readFile(filePath, "utf8").catch((error: unknown) => {
+          if (extractErrorCode(error) === "ENOENT") {
+            return "";
+          }
+          throw error;
+        }),
+        signal,
+      );
+      if (content.includes(text)) {
+        return content;
+      }
+      await waitForLogTick(10, undefined, { signal });
+    }
+  } catch (error) {
+    if (signal.aborted) {
+      throw new Error(`Timed out waiting for ${text} in ${filePath}`, { cause: error });
+    }
+    throw error;
+  }
 }
 
 describe("web auto-reply connection", () => {
@@ -917,7 +950,7 @@ describe("web auto-reply connection", () => {
     expect(secondBody).not.toContain("first");
   });
 
-  it("emits heartbeat logs with connection metadata", async () => {
+  it("emits heartbeat logs with connection metadata", async ({ signal }) => {
     vi.useFakeTimers();
     const logPath = `/tmp/openclaw-heartbeat-${crypto.randomUUID()}.log`;
     setLoggerOverride({ level: "trace", file: logPath });
@@ -952,17 +985,13 @@ describe("web auto-reply connection", () => {
     await run.catch(() => {});
     vi.useRealTimers();
 
-    let content = "";
-    await vi.waitFor(async () => {
-      content = await fs.readFile(logPath, "utf-8").catch(() => "");
-      expect(content).toMatch(/web-heartbeat/);
-    });
+    const content = await waitForLogText(logPath, "web-heartbeat", signal);
     expect(content).toMatch(/web-heartbeat/);
     expect(content).toMatch(/connectionId/);
     expect(content).toMatch(/messagesHandled/);
   });
 
-  it("logs outbound replies to file", async () => {
+  it("logs outbound replies to file", async ({ signal }) => {
     const logPath = `/tmp/openclaw-log-test-${crypto.randomUUID()}.log`;
     setLoggerOverride({ level: "trace", file: logPath });
     const spies = createWebInboundDeliverySpies();
@@ -990,11 +1019,7 @@ describe("web auto-reply connection", () => {
       connectionId: "conn-file-log",
     });
 
-    let content = "";
-    await vi.waitFor(async () => {
-      content = await fs.readFile(logPath, "utf-8").catch(() => "");
-      expect(content).toMatch(/web-auto-reply/);
-    });
+    const content = await waitForLogText(logPath, "web-auto-reply", signal);
     expect(content).toMatch(/web-auto-reply/);
     expect(content).toMatch(/auto/);
   });
