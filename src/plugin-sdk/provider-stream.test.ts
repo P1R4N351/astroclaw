@@ -1,22 +1,15 @@
-import type { ProviderWrapStreamFnContext } from "astroclaw/plugin-sdk/core";
-import type { Model } from "astroclaw/plugin-sdk/llm";
+import type { ProviderWrapStreamFnContext } from "openclaw/plugin-sdk/core";
+import type { Model } from "openclaw/plugin-sdk/llm";
 // Provider stream tests cover shared stream-wrapper families and payload compatibility.
-import { createRequireRecord, createZeroUsageFixture } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord, createZeroUsageFixture } from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { createAssistantMessageEventStream } from "../llm/utils/event-stream.js";
 import { VERSION } from "../version.js";
-import {
-  composeProviderStreamWrappers as composeProviderStreamWrappersShared,
-  createMoonshotThinkingWrapper as createMoonshotThinkingWrapperShared,
-  createPlainTextToolCallCompatWrapper as createPlainTextToolCallCompatWrapperShared,
-  createToolStreamWrapper as createToolStreamWrapperShared,
-} from "./provider-stream-shared.js";
 import {
   buildProviderStreamFamilyHooks,
   composeProviderStreamWrappers,
   createMoonshotThinkingWrapper,
   createPlainTextToolCallCompatWrapper,
-  createToolStreamWrapper,
   GOOGLE_THINKING_STREAM_HOOKS,
   KILOCODE_THINKING_STREAM_HOOKS,
   MINIMAX_FAST_MODE_STREAM_HOOKS,
@@ -241,16 +234,6 @@ describe("createMoonshotThinkingWrapper", () => {
 });
 
 describe("composeProviderStreamWrappers", () => {
-  it("re-exports the shared wrapper composer", () => {
-    expect(composeProviderStreamWrappers).toBe(composeProviderStreamWrappersShared);
-  });
-
-  it("re-exports shared helper wrappers", () => {
-    expect(createMoonshotThinkingWrapper).toBe(createMoonshotThinkingWrapperShared);
-    expect(createPlainTextToolCallCompatWrapper).toBe(createPlainTextToolCallCompatWrapperShared);
-    expect(createToolStreamWrapper).toBe(createToolStreamWrapperShared);
-  });
-
   it("applies wrappers left to right", () => {
     const order: string[] = [];
     const baseStreamFn: StreamFn = (_model, _context, options) => {
