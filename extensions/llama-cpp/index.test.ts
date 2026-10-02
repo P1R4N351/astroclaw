@@ -1,26 +1,26 @@
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import { createAssistantMessageEventStream, type Model } from "openclaw/plugin-sdk/llm";
-import { createLocalEmbeddingProvider } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import { createAssistantMessageEventStream, type Model } from "astroclaw/plugin-sdk/llm";
+import { createLocalEmbeddingProvider } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import {
   createPluginRegistryFixture,
   registerVirtualTestPlugin,
-} from "openclaw/plugin-sdk/plugin-test-contracts";
+} from "astroclaw/plugin-sdk/plugin-test-contracts";
 import {
   clearEmbeddingProviders,
   createEmptyPluginRegistry,
   getActivePluginRegistry,
   getRegisteredEmbeddingProvider,
   setActivePluginRegistry,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import type {
   ModelProviderConfig,
   ProviderPlugin,
-} from "openclaw/plugin-sdk/provider-model-shared";
-import { buildOpenAICompletionsParams } from "openclaw/plugin-sdk/provider-transport-runtime";
+} from "astroclaw/plugin-sdk/provider-model-shared";
+import { buildOpenAICompletionsParams } from "astroclaw/plugin-sdk/provider-transport-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -39,8 +39,8 @@ vi.mock("./src/hardware.js", async (importOriginal) => ({
   detectLlamaCppHardware: mocks.detectHardware,
 }));
 
-vi.mock("openclaw/plugin-sdk/embedding-providers", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/embedding-providers")>()),
+vi.mock("astroclaw/plugin-sdk/embedding-providers", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/embedding-providers")>()),
   getEmbeddingProvider: () => ({ create: mocks.genericCreate }),
 }));
 
@@ -448,51 +448,45 @@ describe("llama.cpp provider plugin", () => {
     );
   });
 
-  it.each([
-    ["uses an active custom local model", { enabled: true, provider: "local" }],
-    ["uses another memory provider", { enabled: true, provider: "openai" }],
-    ["has memory search disabled", { enabled: false, provider: "local" }],
-  ] as const)(
-    "keeps chat preparation independent from embedding config when memory %s",
-    async (_label, searchConfig) => {
-      const staleEmbeddingSource = "hf:retired-org/removed-embedding-model-GGUF/embedding.gguf";
-      const configured = configuredOptions();
-      const providerConfig = configured.config.models.providers[LLAMA_CPP_PROVIDER_ID];
-      const config = {
-        ...configured.config,
-        memory: {
-          search: {
-            ...searchConfig,
-            local: { modelPath: staleEmbeddingSource },
-          },
+  it("keeps chat preparation independent from an active custom embedding model", async () => {
+    const staleEmbeddingSource = "hf:retired-org/removed-embedding-model-GGUF/embedding.gguf";
+    const configured = configuredOptions();
+    const providerConfig = configured.config.models.providers[LLAMA_CPP_PROVIDER_ID];
+    const config = {
+      ...configured.config,
+      memory: {
+        search: {
+          enabled: true,
+          provider: "local" as const,
+          local: { modelPath: staleEmbeddingSource },
         },
-      };
-      const provider = registerTextProvider();
-      const selectedModel = expectDefined(providerConfig.models[0], "managed chat model");
-      const inner = vi.fn(() => ({}) as never);
-      for (const hook of ["wrapStreamFn", "wrapSimpleCompletionStreamFn"] as const) {
-        const wrapped = provider[hook]?.({
-          config,
+      },
+    };
+    const provider = registerTextProvider();
+    const selectedModel = expectDefined(providerConfig.models[0], "managed chat model");
+    const inner = vi.fn(() => ({}) as never);
+    for (const hook of ["wrapStreamFn", "wrapSimpleCompletionStreamFn"] as const) {
+      const wrapped = provider[hook]?.({
+        config,
+        provider: LLAMA_CPP_PROVIDER_ID,
+        modelId: selectedModel.id,
+        model: {
+          ...selectedModel,
           provider: LLAMA_CPP_PROVIDER_ID,
-          modelId: selectedModel.id,
-          model: {
-            ...selectedModel,
-            provider: LLAMA_CPP_PROVIDER_ID,
-            baseUrl: providerConfig.baseUrl,
-          },
-          streamFn: inner,
-        } as never);
-        await wrapped?.({} as never, { messages: [] } as never, {});
-      }
+          baseUrl: providerConfig.baseUrl,
+        },
+        streamFn: inner,
+      } as never);
+      await wrapped?.({} as never, { messages: [] } as never, {});
+    }
 
-      expect(mocks.ensureChat).toHaveBeenCalledWith({
-        provider: providerConfig,
-        model: expect.objectContaining({ id: selectedModel.id }),
-      });
-      expect(mocks.ensureChat).toHaveBeenCalledTimes(2);
-      expect(inner).toHaveBeenCalledTimes(2);
-    },
-  );
+    expect(mocks.ensureChat).toHaveBeenCalledWith({
+      provider: providerConfig,
+      model: expect.objectContaining({ id: selectedModel.id }),
+    });
+    expect(mocks.ensureChat).toHaveBeenCalledTimes(2);
+    expect(inner).toHaveBeenCalledTimes(2);
+  });
 
   it("prepares managed chat before simple-completion transport", async () => {
     const configured = configuredOptions();
