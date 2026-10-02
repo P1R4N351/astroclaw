@@ -5,7 +5,6 @@ import { live } from "lit/directives/live.js";
 import { deviceSettingsGroupLabelKey } from "../../app-navigation.ts";
 import { applicationContext, type ApplicationContext } from "../../app/context.ts";
 import type {
-  NativeChromeExtensionSetupResult,
   NativeDeviceSettingsCapability,
   NativeDeviceSettingsSnapshot,
   SettingKey,
@@ -27,6 +26,7 @@ import { registerAppsEnglish } from "../../i18n/locales/en-apps.ts";
 import { registerSettingsEnglish } from "../../i18n/locales/en-settings.ts";
 import { OpenClawLightDomElement } from "../../lit/openclaw-element.ts";
 import { SubscriptionsController } from "../../lit/subscriptions-controller.ts";
+import "../../components/native-chrome-setup.ts";
 import "./device.css";
 
 registerAppsEnglish();
@@ -71,16 +71,17 @@ class DevicePage extends OpenClawLightDomElement {
   private context!: ApplicationContext;
 
   @state() private newDomain = "";
-  @state() private extensionSetupRunning = false;
-  @state() private extensionSetupResult: NativeChromeExtensionSetupResult | null = null;
-  @state() private extensionSetupFailed = false;
+  @state() private gatewayHostingEdit: {
+    capability: NativeDeviceSettingsCapability;
+    pending: boolean;
+    error?: Error;
+  } | null = null;
   private targetProfileTimer: {
     capability: NativeDeviceSettingsCapability;
     timer: ReturnType<typeof setTimeout>;
   } | null = null;
-  private readonly subscriptions = new SubscriptionsController(this).watch(
+  private readonly subscriptions = new SubscriptionsController(this).watchStore(
     () => this.context?.nativeDeviceSettings,
-    (capability, notify) => capability.subscribe(notify),
     (capability) => {
       if (this.targetProfileTimer && this.targetProfileTimer.capability !== capability) {
         this.flushTargetProfile();
@@ -111,6 +112,39 @@ class DevicePage extends OpenClawLightDomElement {
       checked,
       disabled,
       onChange: (value) => this.context.nativeDeviceSettings?.set(key, value),
+    });
+  }
+
+  private renderGatewayHosting(app: NonNullable<NativeDeviceSettingsSnapshot["app"]>) {
+    const capability = this.context.nativeDeviceSettings;
+    if (app.keepGatewayRunning === undefined || !capability) {
+      return nothing;
+    }
+    const edit =
+      this.gatewayHostingEdit?.capability === capability ? this.gatewayHostingEdit : null;
+    return renderSettingsToggleRow({
+      title: t("configPage.deviceSettings.keepGatewayRunning"),
+      description: html`${t("configPage.deviceSettings.keepGatewayRunningHint")}
+      ${edit?.error
+        ? html`<br /><span role="alert"
+              >${t("configPage.deviceSettings.keepGatewayRunningFailed")}
+              ${edit.error.message}</span
+            >`
+        : nothing}`,
+      checked: app.keepGatewayRunning,
+      disabled: app.keepGatewayRunningAvailable !== true || edit?.pending === true,
+      onChange: (value) => {
+        const request = { capability, pending: true };
+        this.gatewayHostingEdit = request;
+        capability.set("app.keepGatewayRunning", value, (error) => {
+          if (
+            this.gatewayHostingEdit === request &&
+            this.context.nativeDeviceSettings === capability
+          ) {
+            this.gatewayHostingEdit = { capability, pending: false, error };
+          }
+        });
+      },
     });
   }
 
@@ -153,7 +187,7 @@ class DevicePage extends OpenClawLightDomElement {
     }
     const domains =
       pendingCookieSyncEdits.get(capability)?.domains ??
-      capability.snapshot?.browser?.cookieSync.domains;
+      capability.snapshot?.browser?.cookieSync?.domains;
     if (!domains) {
       return;
     }
@@ -175,7 +209,7 @@ class DevicePage extends OpenClawLightDomElement {
     const capability = this.context.nativeDeviceSettings;
     const sync = browser.cookieSync;
     const pending = capability ? pendingCookieSyncEdits.get(capability) : undefined;
-    const domains = pending?.domains ?? sync.domains;
+    const domains = pending?.domains ?? sync?.domains ?? [];
     const addDomain = () => {
       this.updateDomains((current) => [...current, this.newDomain]);
       this.newDomain = "";
@@ -185,23 +219,11 @@ class DevicePage extends OpenClawLightDomElement {
         { title: t("configPage.deviceSettings.chromeExtension") },
         renderSettingsRow({
           title: t("configPage.deviceSettings.chromeExtensionSetup"),
-          description: t("configPage.deviceSettings.chromeExtensionHint"),
           stacked: true,
           control: html`
             <div class="device-extension-setup">
+              <openclaw-native-chrome-setup auto-inspect></openclaw-native-chrome-setup>
               <div class="device-extension-setup__actions">
-                <button
-                  type="button"
-                  class="btn"
-                  ?disabled=${this.extensionSetupRunning}
-                  @click=${() => this.installChromeExtension()}
-                >
-                  ${t(
-                    this.extensionSetupRunning
-                      ? "configPage.deviceSettings.chromeExtensionPreparing"
-                      : "configPage.deviceSettings.chromeExtensionSetup",
-                  )}
-                </button>
                 <a
                   href="https://chromewebstore.google.com/detail/openclaw/kcdjddhmeafeomebliikmbpblkmkfoig"
                   target="_blank"
@@ -210,26 +232,11 @@ class DevicePage extends OpenClawLightDomElement {
                 >
                 ${renderLearnMoreLink("https://docs.openclaw.ai/tools/chrome-extension")}
               </div>
-              <p role="status">
-                ${this.extensionSetupFailed
-                  ? t("configPage.deviceSettings.chromeExtensionFailed")
-                  : this.extensionSetupResult
-                    ? t(
-                        this.extensionSetupResult.nativeHostRegistered
-                          ? this.extensionSetupResult.discoveredProfiles > 0
-                            ? "configPage.deviceSettings.chromeExtensionInstalled"
-                            : this.extensionSetupResult.installRequested
-                              ? "configPage.deviceSettings.chromeExtensionPending"
-                              : "configPage.deviceSettings.chromeExtensionStoreRequired"
-                          : "configPage.deviceSettings.chromeExtensionFailed",
-                      )
-                    : nothing}
-              </p>
             </div>
           `,
         }),
       )}
-      ${browser.importAvailable || !sync.available
+      ${browser.importAvailable || (sync && !sync.available)
         ? renderSettingsSection(
             { title: t("configPage.deviceSettings.browser") },
             html`
@@ -246,7 +253,7 @@ class DevicePage extends OpenClawLightDomElement {
                     </button>`,
                   })
                 : nothing}
-              ${!sync.available
+              ${sync && !sync.available
                 ? renderSettingsRow({
                     title: t("configPage.deviceSettings.cookieSync"),
                     description: t("configPage.deviceSettings.cookieSyncUnavailable"),
@@ -255,7 +262,7 @@ class DevicePage extends OpenClawLightDomElement {
             `,
           )
         : nothing}
-      ${sync.available
+      ${sync?.available
         ? renderSettingsSection(
             {
               title: t(
@@ -352,28 +359,6 @@ class DevicePage extends OpenClawLightDomElement {
     `;
   }
 
-  private async installChromeExtension() {
-    const capability = this.context.nativeDeviceSettings;
-    if (!capability || this.extensionSetupRunning) {
-      return;
-    }
-    this.extensionSetupRunning = true;
-    this.extensionSetupFailed = false;
-    this.extensionSetupResult = null;
-    try {
-      const result = await capability.installChromeExtension();
-      if (this.isConnected && this.context.nativeDeviceSettings === capability) {
-        this.extensionSetupResult = result;
-      }
-    } catch {
-      if (this.isConnected && this.context.nativeDeviceSettings === capability) {
-        this.extensionSetupFailed = true;
-      }
-    } finally {
-      this.extensionSetupRunning = false;
-    }
-  }
-
   private renderSettings(snapshot: NativeDeviceSettingsSnapshot) {
     const { app, capabilities } = snapshot;
     const capability = this.context.nativeDeviceSettings;
@@ -463,6 +448,7 @@ class DevicePage extends OpenClawLightDomElement {
                   : undefined,
                 app.launchAtLoginAvailable === false,
               )}
+              ${this.renderGatewayHosting(app)}
               ${this.toggle(
                 "app.quickChatEnabled",
                 app.quickChatEnabled,
@@ -509,7 +495,11 @@ class DevicePage extends OpenClawLightDomElement {
                 "capabilities.keepAwakeEnabled",
                 capabilities.keepAwakeEnabled,
                 "keepAwake",
-                t("configPage.deviceSettings.keepAwakeHint"),
+                t(
+                  snapshot.device.platform === "ios"
+                    ? "configPage.deviceSettings.keepAwakeHint"
+                    : "configPage.deviceSettings.keepAwakeComputerHint",
+                ),
               )}
               ${capabilities.healthSummaryAvailable
                 ? this.toggle(
@@ -525,6 +515,33 @@ class DevicePage extends OpenClawLightDomElement {
                 "computerControl",
                 t("configPage.deviceSettings.computerControlHint"),
               )}
+              ${this.toggle(
+                "capabilities.desktopSharingEnabled",
+                capabilities.desktopSharingEnabled,
+                "desktopSharing",
+                t(
+                  snapshot.device.platform === "macos"
+                    ? "configPage.deviceSettings.desktopSharingHint"
+                    : "configPage.deviceSettings.desktopSharingComputerHint",
+                ),
+              )}
+              ${snapshot.desktopSharing
+                ? renderSettingsRow({
+                    title: t("configPage.deviceSettings.desktopSharingStatus"),
+                    description: snapshot.desktopSharing.detail,
+                    control: renderSettingsStatus({
+                      kind:
+                        snapshot.desktopSharing.state === "error"
+                          ? "danger"
+                          : snapshot.desktopSharing.state === "running"
+                            ? "ok"
+                            : "muted",
+                      label: t(
+                        `configPage.deviceSettings.desktopSharingStates.${snapshot.desktopSharing.state}`,
+                      ),
+                    }),
+                  })
+                : nothing}
               ${this.toggle(
                 "capabilities.unattendedDesktopEnabled",
                 capabilities.unattendedDesktopEnabled,
@@ -639,14 +656,12 @@ class DevicePage extends OpenClawLightDomElement {
       ${renderSettingsPageHeader({
         title: t(deviceSettingsGroupLabelKey(snapshot)),
         subtitle: html`${t(
-          snapshot?.device.platform === "ios"
-            ? "configPage.deviceSettings.introIos"
-            : "configPage.deviceSettings.intro",
+          snapshot?.device.platform === "macos"
+            ? "configPage.deviceSettings.intro"
+            : "configPage.deviceSettings.introIos",
         )}
         ${renderLearnMoreLink(
-          snapshot?.device.platform === "ios"
-            ? "https://docs.openclaw.ai/platforms/ios"
-            : "https://docs.openclaw.ai/platforms/macos",
+          `https://docs.openclaw.ai/platforms/${snapshot?.device.platform ?? "macos"}`,
         )}`,
       })}
       ${renderSettingsWorkspace(renderSettingsPage(body))}
