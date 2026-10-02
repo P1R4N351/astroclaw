@@ -1,4 +1,5 @@
 // Zalo tests cover actions plugin behavior.
+import "astroclaw/plugin-sdk/compiled-subprocess-testing";
 import http from "node:http";
 import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
