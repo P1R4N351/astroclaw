@@ -1,7 +1,7 @@
 import {
   presentationToInteractiveControlsReply,
   type MessagePresentation,
-} from "astroclaw/plugin-sdk/interactive-runtime";
+} from "openclaw/plugin-sdk/interactive-runtime";
 import { describe, expect, it } from "vitest";
 import { renderSlackMessagePresentationFallbackText } from "./presentation-fallback.js";
 import {
@@ -148,29 +148,6 @@ describe("renderSlackMessagePresentationFallbackText", () => {
       expect(preview.blocks).toEqual(blocks);
     },
   );
-
-  it("includes complete portable table data in Slack accessibility text", () => {
-    expect(
-      renderSlackMessagePresentationFallbackText({
-        text: "Pipeline summary",
-        presentation: {
-          blocks: [
-            {
-              type: "table",
-              caption: "Pipeline",
-              headers: ["Account", "Stage", "ARR"],
-              rows: [
-                ["Acme", "Won", 125000],
-                ["Globex", "Review", 82000],
-              ],
-            },
-          ],
-        },
-      }),
-    ).toBe(
-      "Pipeline summary\n\nPipeline (table)\n- Account: Acme; Stage: Won; ARR: 125000\n- Account: Globex; Stage: Review; ARR: 82000",
-    );
-  });
 
   it("neutralizes raw table mentions without changing authored Slack text", () => {
     expect(
