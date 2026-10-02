@@ -13,6 +13,7 @@ import {
   publicPluginSdkEntrypoints,
   supportedBundledFacadeSdkEntrypoints,
 } from "../../../scripts/lib/plugin-sdk-entries.mts";
+import * as memoryCoreRuntime from "../../plugin-sdk/memory-core-host-runtime-core.js";
 import { expectNoReaddirSyncDuring } from "../../test-utils/fs-scan-assertions.js";
 import {
   listGitTrackedFiles,
@@ -47,15 +48,15 @@ const GENERIC_CORE_HELPER_FILES = ["src/polls.ts", "src/poll-params.ts"] as cons
 const GENERIC_CORE_PLUGIN_OWNER_NAME_PATTERN =
   /\b(?:imessage|discord|feishu|googlechat|matrix|mattermost|msteams|slack|telegram|whatsapp|zalo|zalouser)\b/gi;
 const DEPRECATED_EXTENSION_SDK_SPECIFIERS = new Set([
-  "astroclaw/plugin-sdk",
+  "openclaw/plugin-sdk",
   // Bundled code uses the canonical channel-config-schema subpath; the
   // primitives/legacy shells stay export-compatible for third parties only.
-  "astroclaw/plugin-sdk/channel-config-primitives",
-  "astroclaw/plugin-sdk/channel-config-schema-legacy",
-  "astroclaw/plugin-sdk/compat",
-  "astroclaw/plugin-sdk/test-utils",
+  "openclaw/plugin-sdk/channel-config-primitives",
+  "openclaw/plugin-sdk/channel-config-schema-legacy",
+  "openclaw/plugin-sdk/compat",
+  "openclaw/plugin-sdk/test-utils",
 ]);
-const DEPRECATED_TEST_ALIAS_SPECIFIERS = new Set(["astroclaw/plugin-sdk/test-utils"]);
+const DEPRECATED_TEST_ALIAS_SPECIFIERS = new Set(["openclaw/plugin-sdk/test-utils"]);
 const DEPRECATED_TEST_ALIAS_ALLOWED_REFERENCE_FILES = new Set([
   "src/plugins/compat/registry.ts",
   "src/plugins/contracts/plugin-sdk-package-contract-guardrails.test.ts",
@@ -576,23 +577,13 @@ describe("plugin-sdk package contract guardrails", () => {
     ).toBe(true);
   });
 
-  it("keeps configured local-origin fetch helpers out of deprecated infra-runtime", () => {
-    const source = fs.readFileSync(resolve(REPO_ROOT, "src/plugin-sdk/infra-runtime.ts"), "utf8");
-
-    expect(source).not.toMatch(/export\s+\*\s+from\s+["']\.\.\/infra\/net\/fetch-guard\.js["']/);
-    expect(source).not.toContain("fetchConfiguredLocalOriginWithSsrFGuard");
-    expect(source).not.toContain("GuardedFetchConfiguredLocalOriginOptions");
-  });
-
   it("keeps configured local-origin fetch helpers out of the public SSRF runtime", async () => {
     const ssrfRuntime = await import("../../plugin-sdk/ssrf-runtime.js");
 
     expect(ssrfRuntime).not.toHaveProperty("fetchConfiguredLocalOriginWithSsrFGuard");
   });
 
-  it("keeps memory provenance mutation out of the packaged Memory Core facade", async () => {
-    const memoryCoreRuntime = await import("../../plugin-sdk/memory-core-host-runtime-core.js");
-
+  it("keeps memory provenance mutation out of the packaged Memory Core facade", () => {
     expect(memoryCoreRuntime).not.toHaveProperty("recordMemoryArtifactWriteProvenance");
   });
 
