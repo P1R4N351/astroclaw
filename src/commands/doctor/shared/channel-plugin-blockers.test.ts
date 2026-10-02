@@ -2,7 +2,7 @@
 
 import { expectDefined } from "@astroclaw/normalization-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import * as manifestRegistry from "../../../plugins/manifest-registry.js";
 import { clearPluginMetadataLifecycleCaches } from "../../../plugins/plugin-metadata-lifecycle.js";
 import {
@@ -134,21 +134,7 @@ describe("channel plugin blockers", () => {
       {},
       {},
       {
-        manifestRecords: [
-          {
-            id: "discord",
-            origin: "global",
-            channels: ["discord"],
-            providers: [],
-            cliBackends: [],
-            skills: [],
-            hooks: [],
-            enabledByDefault: false,
-            rootDir: "/plugins/discord",
-            source: "test",
-            manifestPath: "/plugins/discord/plugin.json",
-          },
-        ],
+        manifestRecords: [plugin("discord")],
       },
     );
 
@@ -874,31 +860,9 @@ describe("channel plugin blockers", () => {
         reason: "missing explicit enablement",
       },
     ]);
-  });
-
-  it("reports a single channel owner blocked by plugins.deny", () => {
-    mockManifestPlugins([plugin("discord")]);
-
-    const hits = scanConfiguredChannelPluginBlockers({
-      plugins: {
-        deny: ["discord"],
-      },
-      channels: {
-        discord: {
-          enabled: true,
-        },
-      },
-    });
-
-    expect(hits).toEqual([
-      {
-        channelId: "discord",
-        pluginId: "discord",
-        reason: "blocked by denylist",
-      },
-    ]);
     expect(collectConfiguredChannelPluginBlockerWarnings(hits)).toEqual([
-      '- channels.discord: channel is configured, but plugin "discord" is blocked by plugins.deny. Remove "discord" from plugins.deny. Fix plugin enablement before relying on setup guidance for this channel.',
+      '- channels.shared-chat: channel is configured, but plugin "denied-chat" is blocked by plugins.deny. Remove "denied-chat" from plugins.deny. Fix plugin enablement before relying on setup guidance for this channel.',
+      '- channels.shared-chat: channel is configured, but external plugin "untrusted-chat" is installed without explicit trust. Add plugins.entries.untrusted-chat.enabled=true. Fix plugin enablement before relying on setup guidance for this channel.',
     ]);
   });
 
