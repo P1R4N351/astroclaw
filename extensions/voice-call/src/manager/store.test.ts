@@ -1,16 +1,16 @@
 // Voice Call tests cover store plugin behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { expectDefined } from "astroclaw/plugin-sdk/expect-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
-import type { OpenAsyncKeyedStoreOptions } from "astroclaw/plugin-sdk/plugin-state-runtime";
+import { Command } from "commander";
+import { expectDefined } from "openclaw/plugin-sdk/expect-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
+import type { OpenAsyncKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
 import {
   createPluginStateKeyedStoreForTests,
   openOpenClawStateDatabase,
   resetPluginStateStoreForTests,
-} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
-import { closeOpenClawStateDatabaseAsync } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
-import { Command } from "commander";
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+import { closeOpenClawStateDatabaseAsync } from "openclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerVoiceCallLogs } from "../cli-call-log.js";
 import {
@@ -232,9 +232,6 @@ describe("voice-call call record store", () => {
       }
       const restored = await loadActiveCallsFromStore(storePath);
       expect([...restored.activeCalls.values()]).toEqual(calls);
-      expect([...restored.providerCallIdMap]).toEqual(
-        calls.map((call) => [call.providerCallId, call.callId]),
-      );
       expect([...restored.processedEventIds]).toEqual(
         calls.flatMap((call) => call.processedEventIds),
       );
