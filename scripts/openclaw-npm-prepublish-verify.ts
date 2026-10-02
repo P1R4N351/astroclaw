@@ -8,12 +8,12 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expectDefined } from "../packages/normalization-core/src/expect.js";
 import { formatErrorMessage } from "../src/infra/errors.ts";
-import { resolveNpmCommandInvocation } from "./astroclaw-npm-release-check.ts";
 import { type NpmVerifyCommandInvocation, runNpmVerifyCommand } from "./lib/npm-verify-exec.ts";
 import { runInstalledWorkspaceBootstrapSmoke } from "./lib/workspace-bootstrap-smoke.mts";
 import {
   collectInstalledPackageErrors,
   normalizeInstalledBinaryVersion,
+  npmExec,
   resolveInstalledBinaryCommandInvocation,
 } from "./openclaw-npm-postpublish-verify.ts";
 import { buildCmdExeCommandLine, resolveWindowsCmdExePath } from "./windows-cmd-helpers.mjs";
@@ -111,17 +111,6 @@ function readPackedPackageJson(tarballPath: string): PackedPackageJson {
       maxBuffer: 1024 * 1024,
     }),
   ) as PackedPackageJson;
-}
-
-function npmExec(args: string[], cwd: string): string {
-  const invocation = resolveNpmCommandInvocation({
-    npmArgs: args,
-    npmExecPath: process.env.npm_execpath,
-    nodeExecPath: process.execPath,
-    platform: process.platform,
-  });
-
-  return runNpmVerifyCommand(invocation, cwd);
 }
 
 function main(argv = process.argv.slice(2)): void {
