@@ -141,8 +141,6 @@ const mocks = vi.hoisted(() => ({
     }),
   ),
   maybeRepairLegacyPluginManifestContracts: vi.fn().mockResolvedValue(undefined),
-  detectLegacyClawdBrowserProfileResidue: vi.fn(),
-  maybeArchiveLegacyClawdBrowserProfileResidue: vi.fn(),
   maybeRepairOwnedChromeExtensionNativeHosts: vi.fn().mockResolvedValue({
     changes: [],
     warnings: [],
@@ -459,8 +457,6 @@ vi.mock("../commands/doctor-gateway-health.js", () => ({
 
 vi.mock("../commands/doctor-browser.js", () => ({
   noteChromeMcpBrowserReadiness: mocks.noteChromeMcpBrowserReadiness,
-  detectLegacyClawdBrowserProfileResidue: mocks.detectLegacyClawdBrowserProfileResidue,
-  maybeArchiveLegacyClawdBrowserProfileResidue: mocks.maybeArchiveLegacyClawdBrowserProfileResidue,
   maybeRepairOwnedChromeExtensionNativeHosts: mocks.maybeRepairOwnedChromeExtensionNativeHosts,
 }));
 
@@ -747,11 +743,6 @@ describe("doctor health contributions", () => {
       changes: [],
       warnings: [],
       stepReceipts: [],
-    });
-    mocks.detectLegacyClawdBrowserProfileResidue.mockReturnValue(null);
-    mocks.maybeArchiveLegacyClawdBrowserProfileResidue.mockResolvedValue({
-      changes: [],
-      warnings: [],
     });
     mocks.readConfigFileSnapshot.mockResolvedValue({
       exists: true,
@@ -3104,39 +3095,6 @@ describe("doctor health contributions", () => {
     ).toThrow("must specify health check ids when it declares multiple healthChecks");
   });
 
-  it("repairs browser residue before browser readiness notes", async () => {
-    const calls: string[] = [];
-    mocks.runDoctorHealthRepairs.mockImplementation(async () => {
-      calls.push("repair");
-      return {
-        config: {},
-        findings: [],
-        remainingFindings: [],
-        changes: [],
-        warnings: [],
-        diffs: [],
-        effects: [],
-        checksRun: 1,
-        checksRepaired: 1,
-        checksValidated: 0,
-      };
-    });
-    mocks.noteChromeMcpBrowserReadiness.mockImplementation(async () => {
-      calls.push("note");
-    });
-    const contribution = requireDoctorContribution("doctor:browser");
-    const ctx = createDoctorContext({
-      cfg: {},
-      cfgForPersistence: {},
-      configResult: { cfg: {} },
-      shouldRepair: true,
-    });
-
-    await contribution.run(ctx);
-
-    expect(calls).toEqual(["repair", "note"]);
-  });
-
   it("skips opt-in extension checks during routine repair", async () => {
     setRegisteredHealthChecks([
       { id: "core/example/internal", kind: "core" },
@@ -3162,7 +3120,6 @@ describe("doctor health contributions", () => {
 
   it.each([
     ["doctor:structured-health-repairs", "plugin/example/probe"],
-    ["doctor:browser", "core/doctor/browser-clawd-profile-residue"],
     ["doctor:default-account-routing", "core/doctor/default-account-routing"],
   ])("retains %s update warnings without resolved or non-warning findings", async (id, checkId) => {
     const contribution = requireDoctorContribution(id);
