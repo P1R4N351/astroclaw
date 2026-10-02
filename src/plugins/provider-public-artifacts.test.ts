@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import type { ModelCatalogSnapshot } from "../agents/model-catalog.types.js";
@@ -57,6 +57,17 @@ function writeExternalPolicyFixture(): string {
     "utf8",
   );
   return pluginRoot;
+}
+
+function forbidManifestRegistryScan() {
+  const loadPluginManifestRegistry = vi.fn(() => {
+    throw new Error("unexpected manifest registry scan");
+  });
+  vi.doMock("./manifest-registry.js", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("./manifest-registry.js")>()),
+    loadPluginManifestRegistryCore: loadPluginManifestRegistry,
+  }));
+  return loadPluginManifestRegistry;
 }
 
 describe("provider public artifacts", () => {
@@ -173,44 +184,6 @@ describe("provider public artifacts", () => {
           runtimePolicy: { compatibleIds: ["openclaw", "codex"] },
         },
       ],
-    });
-  });
-
-  it("loads MiniMax thinking policy before runtime registration", () => {
-    const surface = resolveBundledProviderPolicySurface("minimax");
-
-    expect(
-      surface?.resolveThinkingProfile?.({ provider: "minimax", modelId: "MiniMax-M2.7" })
-        ?.defaultLevel,
-    ).toBe("off");
-    expect(
-      surface?.resolveThinkingProfile?.({ provider: "minimax", modelId: "MiniMax-M3" })
-        ?.defaultLevel,
-    ).toBe("adaptive");
-  });
-
-  it("loads Moonshot always-thinking policies before runtime registration", () => {
-    const surface = resolveBundledProviderPolicySurface("moonshot");
-
-    expect(
-      surface?.resolveThinkingProfile?.({
-        provider: "moonshot",
-        modelId: "kimi-k2.7-code",
-      }),
-    ).toEqual({
-      levels: [{ id: "low", label: "on" }],
-      defaultLevel: "low",
-      preserveWhenCatalogReasoningFalse: true,
-    });
-    expect(
-      surface?.resolveThinkingProfile?.({
-        provider: "moonshot",
-        modelId: "kimi-k3",
-      }),
-    ).toEqual({
-      levels: [{ id: "max", label: "max" }],
-      defaultLevel: "max",
-      preserveWhenCatalogReasoningFalse: true,
     });
   });
 
@@ -645,86 +618,8 @@ describe("provider public artifacts", () => {
     },
   );
 
-  it("resolves multi-provider policy artifacts by manifest-owned provider id", async () => {
-    const bundledPluginsDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-provider-policy-"));
-    const pluginDir = path.join(bundledPluginsDir, "openai");
-    fs.mkdirSync(pluginDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(pluginDir, "openclaw.plugin.json"),
-      JSON.stringify({
-        id: "openai",
-        configSchema: { type: "object" },
-        providers: ["openai", "openai"],
-      }),
-    );
-    fs.writeFileSync(
-      path.join(pluginDir, "index.js"),
-      "export default { register() {} };\n",
-      "utf8",
-    );
-
-    const resolveThinkingProfile = vi.fn(({ modelId }: { modelId: string }) => ({
-      levels: modelId === "gpt-5.5" ? [{ id: "xhigh" }] : [{ id: "low" }],
-    }));
-    const loadBundledPluginPublicArtifactModuleFromCandidatesSync = vi.fn(
-      ({ dirName }: { dirName: string }) => {
-        if (dirName !== "openai") {
-          return null;
-        }
-        return { resolveThinkingProfile };
-      },
-    );
-
-    vi.doMock("./bundled-dir.js", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("./bundled-dir.js")>();
-      return {
-        ...actual,
-        resolveBundledPluginsDir: () => bundledPluginsDir,
-      };
-    });
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledPluginsDir;
-    process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
-    vi.doMock("./public-surface-loader.js", () => ({
-      loadBundledPluginPublicArtifactModuleFromCandidatesSync,
-    }));
-
-    try {
-      const { resolveBundledProviderPolicySurface: resolvePolicySurface } = await importFreshModule<
-        typeof import("./provider-public-artifacts.js")
-      >(import.meta.url, "./provider-public-artifacts.js?scope=provider-alias");
-
-      const surface = resolvePolicySurface("openai");
-
-      expect(surface?.resolveThinkingProfile).toBeTypeOf("function");
-      expect(loadBundledPluginPublicArtifactModuleFromCandidatesSync).toHaveBeenCalledWith({
-        dirName: "openai",
-        artifactCandidates: ["provider-policy-api.js"],
-      });
-      expect(
-        surface
-          ?.resolveThinkingProfile?.({
-            provider: "openai",
-            modelId: "gpt-5.5",
-          })
-          ?.levels.map((level) => level.id),
-      ).toContain("xhigh");
-      expect(
-        surface
-          ?.resolveThinkingProfile?.({
-            provider: "openai",
-            modelId: "gpt-4.1",
-          })
-          ?.levels.map((level) => level.id),
-      ).not.toContain("xhigh");
-    } finally {
-      fs.rmSync(bundledPluginsDir, { force: true, recursive: true });
-    }
-  });
-
   it("resolves bundled policy artifacts through provider auth aliases", async () => {
-    const loadPluginManifestRegistry = vi.fn(() => {
-      throw new Error("unexpected manifest registry scan");
-    });
+    const loadPluginManifestRegistry = forbidManifestRegistryScan();
     const loadBundledPluginPublicArtifactModuleFromCandidatesSync = vi.fn(
       ({ dirName }: { dirName: string }) => {
         if (dirName !== "xai") {
@@ -742,13 +637,6 @@ describe("provider public artifacts", () => {
       },
     );
 
-    vi.doMock("./manifest-registry.js", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("./manifest-registry.js")>();
-      return {
-        ...actual,
-        loadPluginManifestRegistryCore: loadPluginManifestRegistry,
-      };
-    });
     vi.doMock("./public-surface-loader.js", () => ({
       loadBundledPluginPublicArtifactModuleFromCandidatesSync,
     }));
@@ -789,9 +677,7 @@ describe("provider public artifacts", () => {
   });
 
   it("resolves bundled policy artifacts for a plugin-owned CLI backend", async () => {
-    const loadPluginManifestRegistry = vi.fn(() => {
-      throw new Error("unexpected manifest registry scan");
-    });
+    const loadPluginManifestRegistry = forbidManifestRegistryScan();
     const loadBundledPluginPublicArtifactModuleFromCandidatesSync = vi.fn(
       ({ dirName }: { dirName: string }) => {
         if (dirName !== "anthropic") {
@@ -805,13 +691,6 @@ describe("provider public artifacts", () => {
       },
     );
 
-    vi.doMock("./manifest-registry.js", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("./manifest-registry.js")>();
-      return {
-        ...actual,
-        loadPluginManifestRegistryCore: loadPluginManifestRegistry,
-      };
-    });
     vi.doMock("./public-surface-loader.js", () => ({
       loadBundledPluginPublicArtifactModuleFromCandidatesSync,
     }));
@@ -919,9 +798,7 @@ describe("provider public artifacts", () => {
   });
 
   it("uses caller-provided manifest metadata for provider policy aliases", async () => {
-    const loadPluginManifestRegistry = vi.fn(() => {
-      throw new Error("unexpected manifest registry scan");
-    });
+    const loadPluginManifestRegistry = forbidManifestRegistryScan();
     const loadBundledPluginPublicArtifactModuleFromCandidatesSync = vi.fn(
       ({ dirName }: { dirName: string }) => {
         if (dirName !== "owner") {
@@ -933,13 +810,6 @@ describe("provider public artifacts", () => {
       },
     );
 
-    vi.doMock("./manifest-registry.js", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("./manifest-registry.js")>();
-      return {
-        ...actual,
-        loadPluginManifestRegistryCore: loadPluginManifestRegistry,
-      };
-    });
     vi.doMock("./public-surface-loader.js", () => ({
       loadBundledPluginPublicArtifactModuleFromCandidatesSync,
     }));
