@@ -1549,7 +1549,6 @@ describe("doctor health contributions", () => {
     const cfg = { plugins: { entries: { codex: { enabled: true } } } };
 
     vi.mocked(fetchNpmPackageTargetStatus).mockResolvedValue({
-      target: "2026.6.1",
       version: null,
       nodeEngine: null,
       error: "HTTP 404",
