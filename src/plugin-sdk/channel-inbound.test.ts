@@ -9,8 +9,15 @@ import { loadSessionEntry, replaceSessionEntrySync } from "../config/sessions/se
 import { resolveSqliteTargetFromSessionStorePath } from "../config/sessions/session-sqlite-target.js";
 import { sessionChanges } from "../sessions/session-row-changes.js";
 import { createDeferredCore } from "../shared/deferred.js";
-import { closeOpenClawAgentDatabasesForTest } from "../state/openclaw-agent-db.js";
-import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
+import { hasOpenClawAgentDatabaseAsyncResources } from "../state/openclaw-agent-db-resources.js";
+import {
+  closeOpenClawAgentDatabasesAsync,
+  closeOpenClawAgentDatabasesForTest,
+} from "../state/openclaw-agent-db.js";
+import {
+  closeOpenClawStateDatabaseAsync,
+  closeOpenClawStateDatabaseForTest,
+} from "../state/openclaw-state-db.js";
 import {
   buildChannelInboundEventContext,
   buildChannelTurnContext,
@@ -54,16 +61,20 @@ function createInboundParams(
 
 describe("channel-inbound public helpers", () => {
   const tempDirs = useAutoCleanupTempDirTracker((cleanup) =>
-    afterEach(() => {
+    afterEach(async () => {
+      // Maintenance admits a reclamation Worker; its lease release must finish in this case.
+      await closeOpenClawAgentDatabasesAsync();
       closeOpenClawAgentDatabasesForTest();
+      await closeOpenClawStateDatabaseAsync();
       closeOpenClawStateDatabaseForTest();
       cleanup();
+      expect(hasOpenClawAgentDatabaseAsyncResources()).toBe(false);
     }),
   );
 
   it("runs a lifecycle-less prepared turn through the published entry point", async () => {
     const events: string[] = [];
-    const { runChannelInboundEvent } = await import("astroclaw/plugin-sdk/channel-inbound");
+    const { runChannelInboundEvent } = await import("openclaw/plugin-sdk/channel-inbound");
     const result = await runChannelInboundEvent({
       channel: "test",
       raw: { id: "msg-1", text: "hello" },
@@ -114,7 +125,7 @@ describe("channel-inbound public helpers", () => {
       { sessionId: "published-inbound-stale", updatedAt: 1 },
     );
     let staleEntryAtDispatch: ReturnType<typeof loadSessionEntry>;
-    const { runChannelInboundEvent } = await import("astroclaw/plugin-sdk/channel-inbound");
+    const { runChannelInboundEvent } = await import("openclaw/plugin-sdk/channel-inbound");
     const databasePath = resolveSqliteTargetFromSessionStorePath(storePath).path;
     const maintenanceCommitted = createDeferredCore();
     // Cold Worker startup can exceed a polling deadline; observe its committed row instead.
