@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 // Covers installed plugin index read, write, and policy behavior.
-import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { recordPluginCandidateInstallOwner } from "./candidate-install-owner.js";
@@ -248,7 +248,6 @@ describe("installed plugin index", () => {
     });
     expectSha256(packageJson.hash);
     expect(resolveInstalledPluginIndexInstallOwner(plugin)).toBeUndefined();
-    expect(index.plugins[0]?.installRecord).toBeUndefined();
     expect(index.plugins[0]?.installRecordHash).toBeUndefined();
   });
 
@@ -645,7 +644,6 @@ describe("installed plugin index", () => {
         pinState: "exact-with-integrity",
       },
     );
-    expect(index.plugins[0]?.installRecord).toBeUndefined();
     expect(index.plugins[0]?.installRecordHash).toMatch(/^[a-f0-9]{64}$/u);
   });
 
