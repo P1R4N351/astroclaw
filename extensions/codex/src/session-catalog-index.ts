@@ -1,8 +1,8 @@
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { isDeepStrictEqual } from "node:util";
-import { embeddedAgentLog } from "astroclaw/plugin-sdk/agent-harness-registration";
-import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
-import { sanitizeTerminalText } from "astroclaw/plugin-sdk/text-chunking";
+import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-registration";
+import { toErrorObject } from "openclaw/plugin-sdk/error-runtime";
+import { sanitizeTerminalText } from "openclaw/plugin-sdk/text-chunking";
 import type { CodexThread } from "./app-server/protocol.js";
 import { CodexCatalogAvailability } from "./session-catalog-availability.js";
 import { CodexCatalogCurrency } from "./session-catalog-currency.js";
@@ -700,6 +700,7 @@ export class CodexCatalogIndex {
           return await this.nativePages.list(params, cursor, this.options, request);
         }
         if (page) {
+          void this.currency.refreshNativeIfDue();
           return page;
         }
         await this.availability.next(expiresAt);
