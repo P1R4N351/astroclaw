@@ -1956,7 +1956,6 @@ describe("doctor health contributions", () => {
       detected,
       config: cfg,
       legacySessionSurfaces,
-      recoverCorruptTargetStore: false,
     });
   });
 
@@ -2065,7 +2064,6 @@ describe("doctor health contributions", () => {
       config: cfg,
       doctorOnlyStateMigrations: true,
       legacySessionSurfaces,
-      recoverCorruptTargetStore: true,
     });
   });
 
