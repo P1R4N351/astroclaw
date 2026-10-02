@@ -1,11 +1,11 @@
 // Sms tests cover twilio plugin behavior.
 import { createHmac } from "node:crypto";
-import { PlatformMessageNotDispatchedError } from "astroclaw/plugin-sdk/error-runtime";
+import { PlatformMessageNotDispatchedError } from "openclaw/plugin-sdk/error-runtime";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { createMockIncomingRequest } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { createMockIncomingRequest } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cancelTrackedTextResponse } from "../../test-support/streaming-error-response.js";
 import { resolveTwilioStatusCallbackUrl } from "./public-webhook-url.js";
@@ -20,11 +20,12 @@ import {
   verifyTwilioSignature,
 } from "./twilio.js";
 import type { ResolvedSmsAccount } from "./types.js";
+import { createSmsTestAccount } from "./webhook.test-support.js";
 
 const fetchWithSsrFGuardMock = vi.hoisted(() => vi.fn());
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: (...args: unknown[]) => fetchWithSsrFGuardMock(...args),
@@ -32,22 +33,7 @@ vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
 });
 
 function createAccount(overrides: Partial<ResolvedSmsAccount> = {}): ResolvedSmsAccount {
-  return {
-    accountId: "default",
-    enabled: true,
-    accountSid: "AC123",
-    authToken: "secret",
-    fromNumber: "+15557654321",
-    messagingServiceSid: "",
-    defaultTo: "",
-    webhookPath: "/webhooks/sms",
-    publicWebhookUrl: "https://gateway.example.com/webhooks/sms",
-    dangerouslyDisableSignatureValidation: false,
-    dmPolicy: "pairing",
-    allowFrom: [],
-    textChunkLimit: 1500,
-    ...overrides,
-  };
+  return createSmsTestAccount({ accountId: "default", ...overrides });
 }
 
 function readUrlEncodedRequestBody(init: RequestInit | undefined): URLSearchParams {
