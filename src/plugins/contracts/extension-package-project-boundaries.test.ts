@@ -12,13 +12,13 @@ const EXTENSION_PACKAGE_BOUNDARY_PATHS_CONFIG =
 const EXTENSION_PACKAGE_BOUNDARY_BASE_CONFIG =
   "extensions/tsconfig.package-boundary.base.json" as const;
 const XAI_OMITTED_BOUNDARY_PATHS = {
-  "astroclaw/plugin-sdk/browser-maintenance": [
+  "openclaw/plugin-sdk/browser-maintenance": [
     "../packages/plugin-sdk/dist/extensions/browser/browser-maintenance.d.ts",
   ],
-  "astroclaw/plugin-sdk/channel-secret-owner-runtime": [
+  "openclaw/plugin-sdk/channel-secret-owner-runtime": [
     "../packages/plugin-sdk/dist/src/plugin-sdk/channel-secret-owner-runtime.d.ts",
   ],
-  "astroclaw/plugin-sdk/channel-secret-tts-runtime": [
+  "openclaw/plugin-sdk/channel-secret-tts-runtime": [
     "../packages/plugin-sdk/dist/src/plugin-sdk/channel-secret-tts-runtime.d.ts",
   ],
   "@openclaw/matrix/test-api.js": [
@@ -189,7 +189,7 @@ describe("opt-in extension package boundaries", () => {
     if (!paths) {
       throw new Error("Missing shared extension package boundary aliases");
     }
-    expect(paths["astroclaw/plugin-sdk/*"]).toEqual([
+    expect(paths["openclaw/plugin-sdk/*"]).toEqual([
       "../packages/plugin-sdk/dist/src/plugin-sdk/*.d.ts",
     ]);
     for (const [specifier, targets] of Object.entries(XAI_OMITTED_BOUNDARY_PATHS)) {
@@ -388,8 +388,8 @@ describe("opt-in extension package boundaries", () => {
     expect(packageJson.exports?.["./provider-model-types"]?.types).toBe(
       "./dist/src/plugin-sdk/provider-model-types.d.ts",
     );
-    expect(packageJson.exports?.["./infra-runtime"]?.types).toBe(
-      "./dist/src/plugin-sdk/infra-runtime.d.ts",
+    expect(packageJson.exports?.["./system-event-runtime"]?.types).toBe(
+      "./dist/src/plugin-sdk/system-event-runtime.d.ts",
     );
     expect(fs.existsSync(resolve(REPO_ROOT, "packages/plugin-sdk/types/plugin-entry.d.ts"))).toBe(
       false,
