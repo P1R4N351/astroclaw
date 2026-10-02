@@ -1,15 +1,15 @@
 // Voice Call plugin entrypoint registers its OpenClaw integration.
-import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { ErrorCodes, errorShape } from "astroclaw/plugin-sdk/gateway-runtime";
-import { resolveGlobalSingleton } from "astroclaw/plugin-sdk/global-singleton";
-import { normalizeAgentId, parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { ErrorCodes, errorShape } from "openclaw/plugin-sdk/gateway-runtime";
+import { resolveGlobalSingleton } from "openclaw/plugin-sdk/global-singleton";
+import { normalizeAgentId, parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
 import {
   asNonArrayRecord as asParamRecord,
   asOptionalRecord,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { jsonResult as json } from "astroclaw/plugin-sdk/tool-results";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { jsonResult as json } from "openclaw/plugin-sdk/tool-results";
 import { Type } from "typebox";
 import {
   definePluginEntry,
@@ -554,7 +554,6 @@ export default definePluginEntry({
           coreConfig: api.config,
           ensureRuntime,
           stateRuntime: api.runtime.state,
-          logger: api.logger,
         });
       },
       { commands: ["voicecall"], descriptors: [VOICE_CALL_CLI_DESCRIPTOR] },
