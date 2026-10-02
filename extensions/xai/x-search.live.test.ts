@@ -1,5 +1,5 @@
 // Xai tests cover x search plugin behavior.
-import { isBillingErrorMessage } from "openclaw/plugin-sdk/test-live";
+import { isBillingErrorMessage } from "astroclaw/plugin-sdk/test-live";
 import { describe, expect, it } from "vitest";
 import { createXSearchTool } from "./x-search.js";
 
@@ -67,7 +67,7 @@ describeLive("xai x_search live", () => {
 
     expect(details.error, details.message).toBeUndefined();
     expect(details.provider).toBe("xai");
-    expect(details.model).toBe("grok-4.3");
+    expect(details.model).toBe("grok-4.7");
     expect(details.content?.trim().length ?? 0).toBeGreaterThan(0);
 
     const citationCount =
