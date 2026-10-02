@@ -2,23 +2,23 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   buildSessionEntry,
   statSessionEntrySync,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
-import type { MemorySyncParams } from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-engine-sessions";
+import type { MemorySyncParams } from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   clearConfigCache,
   clearRuntimeConfigSnapshot,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { deleteSessionEntry, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { deleteSessionEntry, upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   publishSessionTranscriptUpdateByIdentity,
-} from "astroclaw/plugin-sdk/session-transcript-runtime";
-import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+} from "openclaw/plugin-sdk/session-transcript-runtime";
+import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SessionStartupCatchupHarness,
@@ -45,7 +45,7 @@ describe("session startup catch-up", () => {
     vi.useRealTimers();
     resetTranscriptUpdateListener();
     for (const database of startupHarnessDatabases) {
-      database.close();
+      await database.closeShadow();
     }
     startupHarnessDatabases.clear();
     await testState.restoreEnv();
@@ -130,6 +130,38 @@ describe("session startup catch-up", () => {
       corpusPath: `sessions/main/${sessionId}.jsonl`,
     };
   }
+
+  it("excludes system-only cron-base sessions but catches later user content", async () => {
+    const storePath = path.join(stateDir, "agents", "main", "sessions", "sessions.json");
+    const sessionId = "cron-base";
+    const sessionKey = "agent:main:cron:synthetic-job";
+    await configureTestSessionStore(storePath);
+    await upsertSessionEntry({
+      agentId: "main",
+      storePath,
+      sessionKey,
+      entry: { sessionId, updatedAt: 10 },
+    });
+    const identity = { agentId: "main", sessionId, sessionKey, storePath, cwd: stateDir };
+    await appendSessionTranscriptMessageByIdentity({
+      ...identity,
+      message: {
+        role: "user",
+        content: "Scheduled internal maintenance reminder.",
+        provenance: { kind: "internal_system", sourceTool: "cron" },
+      },
+    });
+    const harness = new SessionStartupCatchupHarness([]);
+    await expect(harness.markStartupDirtyFiles()).resolves.toEqual([]);
+    expect(harness.isSessionsDirty()).toBe(false);
+
+    await appendSessionTranscriptMessageByIdentity({
+      ...identity,
+      message: { role: "user", content: "Remember my favorite fruit is mango." },
+    });
+    await expect(harness.markStartupDirtyFiles()).resolves.toEqual([sessionKey]);
+    expect(harness.isSessionsDirty()).toBe(true);
+  });
 
   it("marks stale indexed session files dirty and schedules catch-up sync", async () => {
     const session = await writeSqliteSession();
