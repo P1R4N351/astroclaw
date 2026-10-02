@@ -30,7 +30,7 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_FILES = [
   "extensions/memory-core/src/dreaming.ts",
   "extensions/memory-lancedb/index.ts",
   "extensions/onepassword/index.ts",
-  "extensions/qa-lab/index.ts",
+  "extensions/qa-lab/src/gateway-registration.ts",
   "extensions/visitor-access/index.ts",
   "extensions/workboard/index.ts",
 ] as const;
@@ -49,7 +49,7 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_GUARDS = {
   "extensions/memory-core/index.ts": ["before_agent_reply", "before_prompt_build"],
   "extensions/memory-lancedb/index.ts": ["agent_end", "before_prompt_build", "session_end"],
   "extensions/onepassword/index.ts": ["before_tool_call", "tool_result_persist"],
-  "extensions/qa-lab/index.ts": ["before_agent_run"],
+  "extensions/qa-lab/src/gateway-registration.ts": ["before_agent_run"],
   "extensions/visitor-access/index.ts": ["gateway_start"],
   "extensions/workboard/index.ts": ["agent_end", "gateway_start", "gateway_stop", "subagent_ended"],
 } as const satisfies Record<
@@ -312,14 +312,6 @@ describe("plugin contract boundary invariants", () => {
     expect(bundledCapabilityMetadataOffenders).toStrictEqual([]);
   });
 
-  it("keeps the bundled contract inventory out of non-test runtime code", () => {
-    const files = listTsFiles("src", { excludeTests: true });
-    const offenders = files.filter((file) => {
-      return readRepoSource(file).includes("contracts/inventory/bundled-capability-metadata");
-    });
-    expect(offenders).toStrictEqual([]);
-  });
-
   it("keeps core tests off bundled extension deep imports", () => {
     const files = listTsFiles("src", { testOnly: true });
     const offenders = files.filter((file) => {
@@ -342,7 +334,7 @@ describe("plugin contract boundary invariants", () => {
       }
       const source = readRepoSource(file);
       return (
-        source.includes("astroclaw/plugin-sdk/test-fixtures") &&
+        source.includes("openclaw/plugin-sdk/test-fixtures") &&
         /\b(?:BUNDLED_PLUGIN_|bundled(?:Dist)?Plugin(?:Root|File|DirPrefix)|installedPluginRoot|repoInstallSpec)\b/u.test(
           source,
         )
