@@ -3,8 +3,8 @@ import {
   embeddedAgentLog,
   formatErrorMessage,
   runAgentHarnessLlmOutputHook,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
-import { appendSessionYieldContext } from "astroclaw/plugin-sdk/session-transcript-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
+import { appendSessionYieldContext } from "openclaw/plugin-sdk/session-transcript-runtime";
 import { classifyCodexModelCallFailureKind } from "./attempt-diagnostics.js";
 import {
   buildCodexAppServerPromptTimeoutOutcome,
@@ -590,7 +590,6 @@ export async function finalizeCodexAttempt(
       }
     }
     recordCodexTrajectoryCompletion(trajectoryRecorder, {
-      attempt: params,
       result,
       threadId: resourceState.thread.threadId,
       turnId: activeTurnId,
