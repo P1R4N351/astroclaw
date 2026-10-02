@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { NormalizedModelCatalogRow } from "@astroclaw/model-catalog-core/model-catalog-types";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { testing as cliBackendsTesting } from "../agents/cli-backends.test-support.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
@@ -1099,7 +1099,7 @@ describe("applyModelAllowlist", () => {
     });
 
     const applied = applyModelAllowlist(config, []);
-    const next = stampConfigWriteMetadata(applied, undefined, undefined, config);
+    const next = stampConfigWriteMetadata(applied, undefined, config);
     expect(next.agents?.defaults?.models).toEqual({
       "openai/gpt-5.5": { alias: "gpt" },
     });
