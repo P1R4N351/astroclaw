@@ -1,6 +1,6 @@
 import { asOptionalRecord as asMutableRecord } from "@astroclaw/normalization-core/record-coerce";
 import { normalizeOptionalLowercaseString as normalizeString } from "@astroclaw/normalization-core/string-coerce";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import {
   canAutoMigrateLegacyLosslessCompaction,
   collectLegacyLosslessCompactionConfigs,
@@ -37,7 +37,6 @@ export function rewriteAgentCompactionRefs(params: {
   agent: MutableRecord;
   path: string;
   agentId?: string;
-  currentRuntime?: string;
   inheritedModelRef?: string;
   inheritedCompaction?: unknown;
   inheritedCompactionPath?: string;
@@ -55,7 +54,6 @@ export function rewriteAgentCompactionRefs(params: {
     cfg: params.cfg,
     agent: params.agent,
     agentId: params.agentId,
-    currentRuntime: params.currentRuntime,
     inheritedModelRef: params.inheritedModelRef,
     env: params.env,
   });
@@ -224,7 +222,6 @@ function removeUnsupportedCodexCompactionOverrides(params: {
 
 export function maybeMigrateLegacyLosslessCompactionConfig(params: {
   cfg: OpenClawConfig;
-  ignoreLegacyAgentRuntimePins?: boolean;
   env?: NodeJS.ProcessEnv;
 }): string[] {
   const root = params.cfg as MutableRecord;
