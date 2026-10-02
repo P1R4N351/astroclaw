@@ -1,7 +1,7 @@
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "openclaw/plugin-sdk/plugin-test-contracts";
+} from "astroclaw/plugin-sdk/plugin-test-contracts";
 import { describe, expect, it } from "vitest";
 import { resolveMemoryCapabilityRegistration } from "./memory-state.js";
 import type { MemoryPluginCapability } from "./registry-contribution-types.js";
@@ -157,6 +157,24 @@ describe("memory capability ownership", () => {
       "memory prompt",
     ]);
     expect(sidecar?.capability.flushPlanResolver?.({ cfg: config })).toBeNull();
+    expect(registry.registry.diagnostics.filter(({ level }) => level === "warn")).toHaveLength(1);
+  });
+
+  it("strips the provider runtime from an unselected consolidation sidecar", () => {
+    const { registry, add, selected } = fixture();
+    add("memory-sidecar", {
+      providerRuntime: {
+        async open() {
+          return { provider: null };
+        },
+      },
+      promptBuilder: () => ["consolidation"],
+    });
+    const sidecar = selected();
+    expect(sidecar?.capability.providerRuntime).toBeUndefined();
+    expect(sidecar?.capability.promptBuilder?.({ availableTools: new Set() })).toEqual([
+      "consolidation",
+    ]);
     expect(registry.registry.diagnostics.filter(({ level }) => level === "warn")).toHaveLength(1);
   });
 
