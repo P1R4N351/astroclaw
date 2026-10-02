@@ -9,7 +9,7 @@ import {
   getRuntimeConfigSnapshot,
 } from "../src/config/config.js";
 import { clearSessionStoreCacheForTest } from "../src/config/sessions/store-writer-state.js";
-import type { OpenClawConfig } from "../src/config/types.astroclaw.js";
+import type { OpenClawConfig } from "../src/config/types.openclaw.js";
 import {
   disconnectGatewayClient,
   startGatewayWithClient,
@@ -204,7 +204,7 @@ describe("PR #126853 real Gateway lane proof", () => {
                 },
               },
             },
-            entries: { main: { default: true } },
+            entries: { main: {} },
           },
           models: {
             mode: "replace",
