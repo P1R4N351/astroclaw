@@ -1,9 +1,8 @@
-// Delivers ACP turn results through reply payload routing.
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
-import { hasOutboundReplyContent } from "astroclaw/plugin-sdk/reply-payload";
+import { hasOutboundReplyContent } from "openclaw/plugin-sdk/reply-payload";
 import { logVerbose } from "../../globals.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
