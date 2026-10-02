@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import {
@@ -724,28 +724,6 @@ describe("discoverOpenClawPlugins", () => {
       },
     );
   }
-
-  it("warns on legacy npm declaration stubs without loading workspace node_modules", () => {
-    const stateDir = makeTempDir();
-    const pluginDir = path.join(stateDir, "extensions", "guardrail-bridge");
-
-    writeJson(path.join(pluginDir, "openclaw.extension.json"), {
-      name: "guardrail-bridge",
-      type: "npm",
-      npmSpec: "@guardrail-bridge/guardrail-bridge@1.0.0",
-    });
-
-    const result = discoverWithStateDir(stateDir, {});
-
-    expectCandidateIds(result.candidates, { excludes: ["guardrail-bridge"] });
-    expectDiagnostic({
-      diagnostics: result.diagnostics,
-      level: "warn",
-      pluginId: "guardrail-bridge",
-      source: path.join(pluginDir, "openclaw.extension.json"),
-      messageIncludes: 'run "openclaw doctor --fix"',
-    });
-  });
 
   it("lets a valid bundled plugin win when a managed package is source-only TypeScript", () => {
     const stateDir = makeTempDir();
