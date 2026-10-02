@@ -1,6 +1,6 @@
 // Logger browser import tests cover safe import behavior in browser-like runtimes.
 import path from "node:path";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 type LoggerModule = typeof import("./logger.js");
@@ -11,25 +11,25 @@ const originalGetBuiltinModule = (
 
 async function importLoggerWithMockedTempResolver(params?: {
   nodeFsAvailable?: boolean;
-  resolvePreferredAstroclawTmpDir?: ReturnType<typeof vi.fn>;
+  resolvePreferredOpenClawTmpDir?: ReturnType<typeof vi.fn>;
 }): Promise<{
   module: LoggerModule;
-  resolvePreferredAstroclawTmpDir: ReturnType<typeof vi.fn>;
+  resolvePreferredOpenClawTmpDir: ReturnType<typeof vi.fn>;
 }> {
   vi.resetModules();
-  const resolvePreferredAstroclawTmpDir =
-    params?.resolvePreferredAstroclawTmpDir ??
+  const resolvePreferredOpenClawTmpDir =
+    params?.resolvePreferredOpenClawTmpDir ??
     vi.fn(() => {
-      throw new Error("resolvePreferredAstroclawTmpDir should not run during browser-safe import");
+      throw new Error("resolvePreferredOpenClawTmpDir should not run during browser-safe import");
     });
 
-  vi.doMock("../infra/tmp-astroclaw-dir.js", async () => {
-    const actual = await vi.importActual<typeof import("../infra/tmp-astroclaw-dir.js")>(
-      "../infra/tmp-astroclaw-dir.js",
+  vi.doMock("../infra/tmp-openclaw-dir.js", async () => {
+    const actual = await vi.importActual<typeof import("../infra/tmp-openclaw-dir.js")>(
+      "../infra/tmp-openclaw-dir.js",
     );
     return {
       ...actual,
-      resolvePreferredAstroclawTmpDir,
+      resolvePreferredOpenClawTmpDir,
     };
   });
 
@@ -42,45 +42,39 @@ async function importLoggerWithMockedTempResolver(params?: {
     import.meta.url,
     `./logger.js?scope=${params?.nodeFsAvailable ? "node-safe" : "browser-safe"}`,
   );
-  return { module, resolvePreferredAstroclawTmpDir };
+  return { module, resolvePreferredOpenClawTmpDir };
 }
 
 describe("logging/logger import", () => {
   afterEach(() => {
-    vi.doUnmock("../infra/tmp-astroclaw-dir.js");
+    vi.doUnmock("../infra/tmp-openclaw-dir.js");
     Object.defineProperty(process, "getBuiltinModule", {
       configurable: true,
       value: originalGetBuiltinModule,
     });
   });
 
-  it("does not resolve the preferred temp dir at import time when node fs is unavailable", async () => {
-    const { resolvePreferredAstroclawTmpDir } = await importLoggerWithMockedTempResolver();
-
-    expect(resolvePreferredAstroclawTmpDir).not.toHaveBeenCalled();
-  });
-
   it("defers node temp resolution until active logger settings are requested", async () => {
     const secureLogDir = path.join(process.cwd(), "secure-openclaw-temp");
-    const resolvePreferredAstroclawTmpDir = vi.fn(() => secureLogDir);
+    const resolvePreferredOpenClawTmpDir = vi.fn(() => secureLogDir);
     const { module } = await importLoggerWithMockedTempResolver({
       nodeFsAvailable: true,
-      resolvePreferredAstroclawTmpDir,
+      resolvePreferredOpenClawTmpDir,
     });
 
-    expect(resolvePreferredAstroclawTmpDir).not.toHaveBeenCalled();
+    expect(resolvePreferredOpenClawTmpDir).not.toHaveBeenCalled();
 
     module.applyLoggingConfig(undefined);
     try {
       expect(path.dirname(module.getResolvedLoggerSettings().file)).toBe(secureLogDir);
-      expect(resolvePreferredAstroclawTmpDir).toHaveBeenCalledOnce();
+      expect(resolvePreferredOpenClawTmpDir).toHaveBeenCalledOnce();
     } finally {
       module.resetLogger();
     }
   });
 
   it("disables file logging when imported in a browser-like environment", async () => {
-    const { module, resolvePreferredAstroclawTmpDir } = await importLoggerWithMockedTempResolver();
+    const { module, resolvePreferredOpenClawTmpDir } = await importLoggerWithMockedTempResolver();
 
     expect(module.getResolvedLoggerSettings()).toStrictEqual({
       level: "silent",
@@ -89,6 +83,6 @@ describe("logging/logger import", () => {
     });
     expect(module.isFileLogLevelEnabled("info")).toBe(false);
     expect(module.getLogger().info("browser-safe")).toBeUndefined();
-    expect(resolvePreferredAstroclawTmpDir).not.toHaveBeenCalled();
+    expect(resolvePreferredOpenClawTmpDir).not.toHaveBeenCalled();
   });
 });
