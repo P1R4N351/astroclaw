@@ -1,7 +1,7 @@
 // Session target tests cover persisted channel targets for sessions.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import {
   closeOpenClawAgentDatabaseByPathAsync,
@@ -168,6 +168,29 @@ describe("resolveSessionStoreTargets", () => {
           sessionKey: "agent:ops:main",
         },
         { sessionId: "ops-session", updatedAt: 2 },
+      );
+
+      const diagnostics: string[] = [];
+      expect(
+        resolveSessionStoreTargets(
+          {
+            session: { store: storePath },
+            agents: {
+              ownership: "explicit",
+              entries: { main: { default: true }, ops: {} },
+            },
+          },
+          { allAgents: true },
+          { env, diagnostics },
+        ),
+      ).toEqual([
+        { agentId: "main", storePath },
+        { agentId: "ops", storePath },
+      ]);
+      expect(diagnostics).toContainEqual(
+        expect.stringMatching(
+          /owner "main" selected by database-(?:registry|path); suffixed owner\(s\): "ops"\./,
+        ),
       );
 
       const mainPath = resolveSqliteTargetFromSessionStorePath(storePath, {
