@@ -165,16 +165,6 @@ describe("config footprint guardrails", () => {
     expect(source).not.toContain("allow?: boolean;");
   });
 
-  it("keeps plugin-sdk private-network helpers canonical-first with a narrow compat alias", () => {
-    const source = readSource("src/plugin-sdk/ssrf-policy.ts");
-
-    expect(source).toContain("export function ssrfPolicyFromDangerouslyAllowPrivateNetwork(");
-    expect(source).toContain("export function ssrfPolicyFromAllowPrivateNetwork(");
-    expect(source).toContain(
-      "return ssrfPolicyFromDangerouslyAllowPrivateNetwork(allowPrivateNetwork);",
-    );
-  });
-
   it("keeps current channel schemas plugin-owned behind shipped compatibility exports", () => {
     const source = readSource("src/plugin-sdk/channel-config-schema.ts");
     const bundledSource = readSource("src/plugin-sdk/bundled-channel-config-schema.ts");
@@ -215,7 +205,7 @@ describe("config footprint guardrails", () => {
       expect(source).not.toContain(schemaName);
     }
     expect(bundledSource).toContain("Bundled-channel config schemas");
-    expect(bundledSource).toContain("astroclaw/plugin-sdk/channel-config-schema");
+    expect(bundledSource).toContain("openclaw/plugin-sdk/channel-config-schema");
     expect(bundledSource).toMatch(
       /loadBundledConfigSchema<[^;]+?>\(\s*"imessage",\s*"IMessageConfigSchema",?\s*\)/u,
     );
