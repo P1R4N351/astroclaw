@@ -10,7 +10,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import { isRecord } from "@astroclaw/normalization-core/record-coerce";
 import { configureAiTransportHost, getAiTransportHost } from "@openclaw/ai";
 import { STREAM_ERROR_FALLBACK_TEXT } from "@openclaw/ai/internal/shared";
-import type { Api, Model } from "openclaw/plugin-sdk/llm";
+import type { Api, Model } from "astroclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderCatNoncePngBase64 } from "../../test/helpers/live-image-probe.js";
 import { installTestEnv } from "../../test/test-env.js";
@@ -5616,7 +5616,6 @@ async function resolveGatewayLiveRequestedModels(): Promise<string | undefined> 
     platform: "linux",
     deps: {
       probeLocalCommand: async (command) => ({ command, found: false }),
-      detectClaudeLoginState: async () => ({ credentials: false }),
       readCodexCliCredentials: () => null,
       readGeminiCliCredentials: () => null,
     },
