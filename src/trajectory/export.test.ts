@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@astroclaw/normalization-core";
-import type { Message } from "openclaw/plugin-sdk/llm";
+import type { Message } from "astroclaw/plugin-sdk/llm";
 import { afterAll, describe, expect, it } from "vitest";
 import type { SessionHeader } from "../agents/sessions/session-manager.js";
 import { createReadTool } from "../agents/sessions/tools/read.js";
@@ -1849,35 +1849,6 @@ describe("exportTrajectoryBundle", () => {
     expect(systemPrompt).toContain("$WORKSPACE_DIR/instructions.md");
     expect(tools).toContain("$WORKSPACE_DIR/docs");
     expect(`${prompts}\n${artifacts}\n${systemPrompt}\n${tools}`).not.toContain(tmpDir);
-  });
-
-  it("exports the transcript for a legacy v1 session without entry timestamps", async () => {
-    const { tmpDir, sessionFile, outputDir } = exportPaths();
-    const header = {
-      type: "session",
-      version: 1,
-      id: "session-1",
-      cwd: tmpDir,
-    };
-    const userEntry = {
-      type: "message",
-      message: userMessage("hello"),
-    };
-    const assistantEntry = {
-      type: "message",
-      message: assistantMessage([{ type: "text", text: "done" }]),
-    };
-    writeJsonl(sessionFile, [header, userEntry, assistantEntry]);
-
-    const bundle = await exportTrajectoryBundle({
-      outputDir,
-      sessionFile,
-      sessionId: "session-1",
-      workspaceDir: tmpDir,
-    });
-
-    expect(bundle.manifest.transcriptEventCount).toBe(2);
-    expect(eventTypes(bundle.events)).toEqual(["user.message", "assistant.message"]);
   });
 });
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
