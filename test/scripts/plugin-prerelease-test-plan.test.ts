@@ -348,7 +348,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mts", () => {
     );
     expect(assertionsScript).toContain("!INVALID_PROBE_DIAGNOSTIC_SURFACE_MODES.has(surfaceMode)");
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
-      'from "openclaw/plugin-sdk/plugin-entry"',
+      'from "astroclaw/plugin-sdk/plugin-entry"',
     );
     expect(readFileSync("scripts/e2e/lib/clawhub-fixture-server.cjs", "utf8")).toContain(
       "X-ClawHub-Artifact-Sha256",
@@ -1209,7 +1209,7 @@ describe("scripts/lib/plugin-prerelease-test-plan.mts", () => {
       .filter((row) => row.task === "extension-file-shard")
       .flatMap((row) => row.includePatterns ?? []);
     expect(new Set(fileTargets).size).toBe(fileTargets.length);
-    const sourceOnlyFile = "extensions/device-pair/doctor-contract-api.test.ts";
+    const sourceOnlyFile = "extensions/diffs/src/store.cleanup.test.ts";
     expect(fileTargets).not.toContain(sourceOnlyFile);
     for (const file of [sourceOnlyFile, "extensions/plugin-entry.cli-laziness.test.ts"]) {
       const config = resolveExtensionTestConfig(file);
