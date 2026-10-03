@@ -1,5 +1,5 @@
 /** Tests web-tool secret metadata resolution from config and plugins. */
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { createPluginManifestRecordFixture } from "../plugins/plugin-metadata.test-support.js";
@@ -641,7 +641,7 @@ describe("runtime web tools resolution", () => {
     ]);
   });
 
-  it("resolves search credentials through required external-provider accessors", async () => {
+  it("resolves providerless search credentials through required external-provider accessors", async () => {
     const pluginId = "external.search";
     const provider: PluginWebSearchProviderEntry = {
       pluginId,
@@ -678,7 +678,6 @@ describe("runtime web tools resolution", () => {
               external: {
                 apiKey: {
                   source: "env",
-                  provider: "default",
                   id: "EXTERNAL_SEARCH_API_KEY",
                 },
               },
@@ -1554,14 +1553,13 @@ describe("runtime web tools resolution", () => {
     expect(String(error)).not.toContain("fixture-api-key");
   });
 
-  it("resolves web fetch fallback SecretRefs with provider env var allowlist", async () => {
+  it("resolves providerless web fetch fallback refs with provider env var allowlist", async () => {
     const { metadata, resolvedConfig } = await runRuntimeWebTools({
       config: asConfig({
         plugins: {
           entries: {
             firecrawl: createWebCredentialEntry("webSearch", {
               source: "env",
-              provider: "default",
               id: "FIRECRAWL_API_KEY",
             }),
           },
