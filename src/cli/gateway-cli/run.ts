@@ -252,9 +252,31 @@ function getGatewayStartGuardErrors(params: {
   configExists: boolean;
   configAuditLocation: string;
   mode: string | undefined;
+  /**
+   * Set when the config file exists but could not be READ (EACCES, EISDIR, or
+   * the snapshot read itself threw). An unreadable file yields an empty
+   * config, so without this the mode check below misreports a permissions
+   * fault as "clobbered config" and steers the operator into re-onboarding
+   * over a perfectly good file (P-BACKLOG [9c148ff]).
+   */
+  readErrorCode?: string | null;
+  configPath?: string;
 }): string[] {
   if (params.allowUnconfigured || params.mode === "local") {
     return [];
+  }
+  if (params.configExists && params.readErrorCode !== undefined) {
+    const code = params.readErrorCode ?? "unknown error";
+    const where = params.configPath ? ` (${params.configPath})` : "";
+    return [
+      [
+        `Gateway start blocked: config file exists but could not be read${where}: ${code}.`,
+        "This is a read/permission fault, NOT a clobbered config: the file contents may be intact.",
+        "Do NOT re-run onboard or setup (that would overwrite it). Fix ownership/permissions",
+        "(e.g. chown/setfacl so the gateway uid can read it), then restart the gateway.",
+      ].join(" "),
+      `Config write audit: ${params.configAuditLocation}`,
+    ];
   }
   if (!params.configExists) {
     return [
@@ -1010,11 +1032,23 @@ async function runGatewayCommandOnce(opts: GatewayRunOpts, hooks: GatewayRunRunt
   const configExists = snapshot?.exists ?? fs.existsSync(CONFIG_PATH);
   const effectiveCfg = snapshot?.valid ? snapshot.config : cfg;
   const mode = effectiveCfg.gateway?.mode;
+  // snapshot === null means the snapshot read threw (swallowed by the
+  // .catch in readGatewayStartupConfig); a file that exists but produced no
+  // snapshot is a read fault, not a clobbered config.
+  const readErrorCode: string | null | undefined = snapshot
+    ? snapshot.readError
+      ? snapshot.readError.code
+      : undefined
+    : configExists
+      ? "config snapshot read failed"
+      : undefined;
   const guardErrors = getGatewayStartGuardErrors({
     allowUnconfigured: opts.allowUnconfigured,
     configExists,
     configAuditLocation: CONFIG_AUDIT_STORE_LABEL,
     mode,
+    readErrorCode,
+    configPath: snapshot?.path ?? CONFIG_PATH,
   });
   if (guardErrors.length > 0) {
     for (const error of guardErrors) {

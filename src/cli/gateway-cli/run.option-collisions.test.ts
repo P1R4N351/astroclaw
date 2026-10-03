@@ -2106,6 +2106,30 @@ describe("gateway run option collisions", () => {
     expect(startGatewayServer).not.toHaveBeenCalled();
   });
 
+  it("reports an unreadable config as a read fault, not a clobbered config", async () => {
+    configState.cfg = {};
+    configState.snapshot = {
+      exists: true,
+      valid: false,
+      path: "/tmp/openclaw-test-eacces-config.json",
+      config: {},
+      parsed: null,
+      raw: null,
+      readError: { code: "EACCES" },
+      issues: [{ path: "", message: "read failed: EACCES" }],
+      legacyIssues: [],
+    };
+
+    await expect(runGatewayCli(["gateway", "run"])).rejects.toThrow("__exit__:78");
+
+    const joined = runtimeErrors.join("\n");
+    expect(joined).toContain("config file exists but could not be read");
+    expect(joined).toContain("EACCES");
+    expect(joined).toContain("Do NOT re-run onboard");
+    expect(joined).not.toContain("suspicious or clobbered config");
+    expect(startGatewayServer).not.toHaveBeenCalled();
+  });
+
   it("keeps explicit dev reset as the recovery path for invalid config", async () => {
     configState.snapshot = {
       exists: true,

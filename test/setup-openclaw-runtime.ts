@@ -56,6 +56,7 @@ function loadWorkerCleanupHelpers(): Promise<WorkerCleanupHelpers> {
       modelsConfigState,
       preparedModelRuntime,
       sessionStoreWriterState,
+      sessionStoreWriterTestSupport,
       fileLock,
     ] = await Promise.all([
       vi.importActual<typeof import("../src/agents/context-runtime-state.js")>(
@@ -70,13 +71,17 @@ function loadWorkerCleanupHelpers(): Promise<WorkerCleanupHelpers> {
       vi.importActual<typeof import("../src/config/sessions/store-writer-state.js")>(
         "../src/config/sessions/store-writer-state.js",
       ),
+      // The queue drain moved to the test-support sibling (p10 1ec57b19c26).
+      vi.importActual<typeof import("../src/config/sessions/store-writer-state.test-support.js")>(
+        "../src/config/sessions/store-writer-state.test-support.js",
+      ),
       vi.importActual<typeof import("../src/infra/file-lock.js")>("../src/infra/file-lock.js"),
     ]);
     return {
       clearSessionStoreCacheForTest: sessionStoreWriterState.clearSessionStoreCacheForTest,
       drainFileLockStateForTest: fileLock.drainFileLockStateForTest,
       drainSessionStoreWriterQueuesForTest:
-        sessionStoreWriterState.drainSessionStoreWriterQueuesForTest,
+        sessionStoreWriterTestSupport.drainSessionStoreWriterQueuesForTest,
       resetContextWindowCacheForTest: contextRuntimeState.resetContextWindowCacheForTest,
       resetFileLockStateForTest: fileLock.resetFileLockStateForTest,
       resetModelsJsonReadyCacheForTest: modelsConfigState.resetModelsJsonReadyCacheForTest,

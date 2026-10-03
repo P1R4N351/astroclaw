@@ -2,11 +2,22 @@
 import "./fs-safe-defaults.js";
 import {
   matchRootFileOpenFailure as matchRootFileOpenFailureFsSafe,
-  readFileDescriptorBounded as readFileDescriptorBoundedFsSafe,
-  readFileDescriptorBoundedSync as readFileDescriptorBoundedSyncFsSafe,
   type RootFileOpenFailure,
 } from "@openclaw/fs-safe/advanced";
 import { FsSafeError } from "@openclaw/fs-safe/errors";
+// PINNED-DEPENDENCY DIVERGENCE (P-BACKLOG [5e868d4]; same class as [8a8e8b0]).
+// This branch pins @openclaw/fs-safe 0.2.4, whose ./advanced does NOT export
+// readFileDescriptorBounded / readFileDescriptorBoundedSync (upstream-only, fs-safe
+// >= 0.5.0). Importing them yields undefined, so every call threw "is not a
+// function" and readPluginCacheFile folded it into reason "io": EVERY plugin
+// manifest load failed with "unsafe plugin manifest path ... (io)". The local
+// helpers keep the same RangeError("File exceeds N bytes") overflow contract.
+// Keep this until package.json moves to fs-safe >= 0.5.0; do not re-materialize
+// the upstream import (p10 rewrite 0a718e16c8e introduced it).
+import {
+  readFileDescriptorBounded as readFileDescriptorBoundedFsSafe,
+  readFileDescriptorBoundedSync as readFileDescriptorBoundedSyncFsSafe,
+} from "./file-descriptor-read.js";
 
 // Root-scoped file open helpers. Use these for user paths that must stay under
 // an already trusted boundary.

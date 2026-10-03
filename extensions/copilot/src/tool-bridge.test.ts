@@ -230,7 +230,7 @@ describe("createCopilotToolBridge", () => {
         },
       };
       await fs.writeFile(
-        path.join(pluginRoot, "openclaw.plugin.json"),
+        path.join(pluginRoot, "astroclaw.plugin.json"),
         JSON.stringify({
           id: pluginId,
           configSchema: { type: "object", additionalProperties: false },

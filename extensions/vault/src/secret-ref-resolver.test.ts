@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const resolverPath = fileURLToPath(new URL("../vault-secret-ref-resolver.js", import.meta.url));
 const secretIdHelperPath = fileURLToPath(new URL("../vault-secret-id.js", import.meta.url));
-const manifestPath = fileURLToPath(new URL("../openclaw.plugin.json", import.meta.url));
+const manifestPath = fileURLToPath(new URL("../astroclaw.plugin.json", import.meta.url));
 const packagePath = fileURLToPath(new URL("../package.json", import.meta.url));
 
 function runResolver(params: {
