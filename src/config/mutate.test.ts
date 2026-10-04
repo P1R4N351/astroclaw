@@ -3,7 +3,7 @@ import fsNode from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import * as tmpDirOwner from "../infra/tmp-openclaw-dir.js";
+import * as tmpDirOwner from "../infra/tmp-astroclaw-dir.js";
 import { createSuiteTempRootTracker } from "../test-helpers/temp-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import {
@@ -35,6 +35,7 @@ import {
 import {
   createPluginIncludeFixture,
   createSnapshot,
+  includeSnapshot,
   mockIncludeRollbackRename,
   resolveIncludeTarget,
 } from "./mutate.test-support.js";
@@ -111,15 +112,6 @@ const allowConfigPathWrite = () => {};
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 const enabledPlugin = { plugins: { entries: { demo: { enabled: true } } } };
 
-function includeSnapshot(configPath: string, sourceConfig: OpenClawConfig): ConfigFileSnapshot {
-  return createSnapshot({
-    hash: "include-hash",
-    path: configPath,
-    parsed: { plugins: { $include: "./config/plugins.json5" } },
-    sourceConfig,
-  });
-}
-
 function includeIO(configPath: string) {
   return createActualConfigIO({
     env: { ...process.env, OPENCLAW_CONFIG_PATH: configPath },
@@ -176,7 +168,7 @@ describe("config mutate helpers", () => {
 
   beforeAll(async () => {
     await suiteRootTracker.setup();
-    vi.spyOn(tmpDirOwner, "resolvePreferredOpenClawTmpDir").mockReturnValue(
+    vi.spyOn(tmpDirOwner, "resolvePreferredAstroclawTmpDir").mockReturnValue(
       await suiteRootTracker.make("coordinator"),
     );
   });
@@ -187,7 +179,7 @@ describe("config mutate helpers", () => {
     } else {
       process.env.OPENCLAW_NIX_MODE = originalNixMode;
     }
-    vi.mocked(tmpDirOwner.resolvePreferredOpenClawTmpDir).mockRestore();
+    vi.mocked(tmpDirOwner.resolvePreferredAstroclawTmpDir).mockRestore();
     await suiteRootTracker.cleanup();
   });
 
@@ -243,11 +235,11 @@ describe("config mutate helpers", () => {
   it("retries transform mutations on stale config conflicts", async () => {
     const initial = createSnapshot({
       hash: "hash-1",
-      sourceConfig: { agents: { list: [] } },
+      sourceConfig: { agents: { entries: {} } },
     });
     const fresh = createSnapshot({
       hash: "hash-2",
-      sourceConfig: { agents: { list: [{ id: "other-agent" }] } },
+      sourceConfig: { agents: { entries: { "other-agent": {} } } },
     });
     ioMocks.readConfigFileSnapshotForWrite
       .mockResolvedValueOnce(readResult(initial, { ownedConfigPathForWrite: initial.path }))
@@ -263,7 +255,8 @@ describe("config mutate helpers", () => {
           nextConfig: {
             ...config,
             agents: {
-              list: [...(config.agents?.list ?? []), { id: "work" }],
+              ownership: "explicit",
+              entries: { ...config.agents?.entries, work: {} },
             },
           },
           result: context.attempt,
@@ -278,7 +271,8 @@ describe("config mutate helpers", () => {
       2,
       {
         agents: {
-          list: [{ id: "other-agent" }, { id: "work" }],
+          ownership: "explicit",
+          entries: { "other-agent": {}, work: {} },
         },
       },
       {
@@ -296,12 +290,12 @@ describe("config mutate helpers", () => {
     const initial = createSnapshot({
       hash: "hash-1",
       path: "/tmp/first-openclaw.json",
-      sourceConfig: { agents: { list: [] } },
+      sourceConfig: { agents: { entries: {} } },
     });
     const fresh = createSnapshot({
       hash: "hash-2",
       path: "/tmp/second-openclaw.json",
-      sourceConfig: { agents: { list: [] } },
+      sourceConfig: { agents: { entries: {} } },
     });
     ioMocks.readConfigFileSnapshotForWrite
       .mockResolvedValueOnce(readResult(initial, { ownedConfigPathForWrite: initial.path }))
@@ -326,12 +320,12 @@ describe("config mutate helpers", () => {
     const initial = createSnapshot({
       hash: "hash-1",
       path: configPath,
-      sourceConfig: { agents: { list: [] } },
+      sourceConfig: { agents: { entries: {} } },
     });
     const fresh = createSnapshot({
       hash: "hash-2",
       path: configPath,
-      sourceConfig: { agents: { list: [{ id: "first" }] } },
+      sourceConfig: { agents: { entries: { first: {} } } },
     });
     ioMocks.readConfigFileSnapshotForWrite
       .mockResolvedValueOnce(readResult(initial))
@@ -352,7 +346,7 @@ describe("config mutate helpers", () => {
         return {
           nextConfig: {
             ...config,
-            agents: { list: [{ id: "first" }] },
+            agents: { entries: { first: {} } },
           },
         };
       },
@@ -363,7 +357,8 @@ describe("config mutate helpers", () => {
         nextConfig: {
           ...config,
           agents: {
-            list: [...(config.agents?.list ?? []), { id: "second" }],
+            ownership: "explicit",
+            entries: { ...config.agents?.entries, second: {} },
           },
         },
       }),
@@ -378,7 +373,8 @@ describe("config mutate helpers", () => {
       2,
       {
         agents: {
-          list: [{ id: "first" }, { id: "second" }],
+          ownership: "explicit",
+          entries: { first: {}, second: {} },
         },
       },
       {
@@ -946,11 +942,11 @@ describe("config mutate helpers", () => {
     await fs.writeFile(configPath, json(authoredRoot), "utf-8");
     await fs.writeFile(agentPath, json({ bootstrapMaxChars: 25000 }), "utf-8");
     const migrated = {
-      agents: { entries: { alpha: { bootstrapMaxChars: 25000, default: true } } },
-    } as OpenClawConfig;
+      agents: { entries: { alpha: { bootstrapMaxChars: 25000, bootstrapTotalMaxChars: 50000 } } },
+    } satisfies OpenClawConfig;
     const nextConfig = {
-      agents: { entries: { alpha: { bootstrapMaxChars: 40000, default: true } } },
-    } as OpenClawConfig;
+      agents: { entries: { alpha: { bootstrapMaxChars: 40000, bootstrapTotalMaxChars: 50000 } } },
+    } satisfies OpenClawConfig;
     const snapshot: ConfigFileSnapshot = {
       ...createSnapshot({
         hash: "hash-nested-include-migrated",
@@ -997,7 +993,7 @@ describe("config mutate helpers", () => {
     expect(ioMocks.writeConfigFile).not.toHaveBeenCalled();
     expect(JSON.parse(await fs.readFile(agentPath, "utf-8"))).toEqual({
       bootstrapMaxChars: 40000,
-      default: true,
+      bootstrapTotalMaxChars: 50000,
     });
     await expect(fs.readFile(configPath, "utf-8")).resolves.toContain(
       '"$include": "./config/agent-alpha.json5"',
