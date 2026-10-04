@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { AgentSelectionRequiredError } from "../../agents/agent-scope-config.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox/runtime-status.js";
-import type { OpenClawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { MsgContext } from "../templating.js";
 import { resolveRuntimePolicySessionKey } from "./runtime-policy-session-key.js";
 
@@ -12,7 +12,7 @@ describe("resolveRuntimePolicySessionKey", () => {
       defaults: {
         sandbox: { mode: "non-main", scope: "agent" },
       },
-      list: [{ id: "main", default: true }],
+      entries: { main: {} },
     },
   };
 
