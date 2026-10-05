@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { ChannelOutboundAdapter } from "../channels/plugins/types.public.js";
@@ -543,7 +543,7 @@ describe("runHeartbeatOnce", () => {
     const cfg: OpenClawConfig = {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
-        list: [{ id: "main" }, { id: "ops", heartbeat: { every: "1h" } }],
+        entries: { main: {}, ops: { heartbeat: { every: "1h" } } },
       },
     };
 
@@ -563,7 +563,7 @@ describe("runHeartbeatOnce", () => {
           workspace: tmpDir,
           heartbeat: { every: "0m", target: "none" },
         },
-        list: [{ id: "main" }],
+        entries: { main: {} },
       },
       channels: { whatsapp: { allowFrom: ["*"] } },
       session: { store: storePath },
