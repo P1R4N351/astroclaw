@@ -2,7 +2,7 @@
 import * as fs from "node:fs/promises";
 import path from "node:path";
 import { FILE_TYPE_SNIFF_MAX_BYTES } from "@astroclaw/media-core/mime";
-import { registerTestPlugin } from "openclaw/plugin-sdk/plugin-test-contracts";
+import { registerTestPlugin } from "astroclaw/plugin-sdk/plugin-test-contracts";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions.js";
 import { loadSessionEntry, replaceSessionEntry } from "../../config/sessions/session-accessor.js";
@@ -243,7 +243,7 @@ describe("plugin session attachments", () => {
         config: {
           session: { store: storePath },
           agents: {
-            list: [{ id: "main", default: true, workspace: workspaceDir }],
+            entries: { main: { workspace: workspaceDir } },
           },
         },
       });
