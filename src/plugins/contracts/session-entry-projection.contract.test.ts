@@ -2,9 +2,9 @@ import path from "node:path";
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "openclaw/plugin-sdk/plugin-test-contracts";
+} from "astroclaw/plugin-sdk/plugin-test-contracts";
 // Session entry projection contract tests cover plugin session entry projection behavior.
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { SessionEntry } from "../../config/sessions.js";
 import {
@@ -77,7 +77,7 @@ async function withProjectionSessionStore(
   const stateDir = sessionDirs.make();
   const storePath = path.join(stateDir, "sessions.json");
   const tempConfig = {
-    agents: { entries: { main: { default: true } } },
+    agents: { entries: { main: {} } },
     session: { store: storePath },
   };
   return await withEnvAsync(
