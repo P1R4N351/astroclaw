@@ -2,7 +2,7 @@
 import {
   resolveScopeRequireMention,
   resolveScopeToolsPolicy,
-} from "openclaw/plugin-sdk/channel-policy";
+} from "astroclaw/plugin-sdk/channel-policy";
 import { describe, expect, it } from "vitest";
 import {
   buildZalouserGroupCandidates,
@@ -83,7 +83,6 @@ describe("zalouser group policy helpers", () => {
         buildZalouserGroupCandidates({
           groupId: "123",
           groupName: "Team Alpha",
-          includeWildcard: false,
           allowNameMatching,
         }),
       );
