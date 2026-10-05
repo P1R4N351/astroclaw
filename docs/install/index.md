@@ -122,7 +122,7 @@ SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g astroclaw@latest
 For contributors or anyone who wants to run from a local checkout:
 
 ```bash
-git clone https://github.com/astroclaw/astroclaw.git
+git clone https://github.com/P1R4N351/astroclaw.git
 cd astroclaw
 pnpm install && pnpm build && pnpm ui:build
 pnpm link --global
