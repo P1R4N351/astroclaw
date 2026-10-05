@@ -4,7 +4,7 @@ import { expectDefined } from "@astroclaw/normalization-core";
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "openclaw/plugin-sdk/plugin-test-contracts";
+} from "astroclaw/plugin-sdk/plugin-test-contracts";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import {
   PROTOCOL_VERSION,
@@ -30,7 +30,7 @@ import {
 } from "../../gateway/operator-scopes.js";
 import { pluginHostHookHandlers } from "../../gateway/server-methods/plugin-host-hooks.js";
 import type { GatewayRequestContext } from "../../gateway/server-methods/types.js";
-import { buildGatewaySessionRow } from "../../gateway/session-utils.js";
+import { buildGatewaySessionRow } from "../../gateway/session-utils-row.js";
 import { withTempConfig } from "../../gateway/test-temp-config.js";
 import { emitAgentEvent, resetAgentEventsForTest } from "../../infra/agent-events.js";
 import { createDeferredCore } from "../../shared/deferred.js";
@@ -189,7 +189,7 @@ const sessionDirs = useSessionStoreTempDirs(afterAll, "openclaw-host-hooks-scope
 async function withHostHookState(
   run: (fixture: HostHookStateFixture) => Promise<void>,
   createTempConfig: (storePath: string) => HostHookStateFixture["tempConfig"] = (storePath) => ({
-    agents: { entries: { main: { default: true } } },
+    agents: { entries: { main: {} } },
     session: { store: storePath },
   }),
 ): Promise<void> {
