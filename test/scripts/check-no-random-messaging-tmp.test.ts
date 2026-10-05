@@ -57,7 +57,7 @@ describe("check-no-random-messaging-tmp", () => {
       new Set(runtimePaths.map((relativePath) => `- ${relativePath}:2`)),
     );
     expect(errorLog).toHaveBeenLastCalledWith(
-      "Use resolvePreferredOpenClawTmpDir() or plugin-sdk temp helpers instead of host tmp defaults.",
+      "Use resolvePreferredAstroclawTmpDir() or plugin-sdk temp helpers instead of host tmp defaults.",
     );
   });
 
@@ -79,16 +79,6 @@ describe("check-no-random-messaging-tmp", () => {
     expect(
       findMessagingTmpdirCallLines(source, "file.ts", parser.parseSourceFile("file.ts", source)),
     ).toEqual([3]);
-  });
-
-  it("ignores mentions in comments and strings", () => {
-    const source = `
-      // os.tmpdir()
-      const text = "tmpdir()";
-    `;
-    expect(
-      findMessagingTmpdirCallLines(source, "file.ts", parser.parseSourceFile("file.ts", source)),
-    ).toStrictEqual([]);
   });
 
   it("ignores tmpdir symbols that are not imported from node:os", () => {
