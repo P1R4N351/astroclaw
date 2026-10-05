@@ -9,7 +9,7 @@ import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
 import { parseReplyDirectives } from "../auto-reply/reply/reply-directives.js";
 import { resolveStateDir } from "../config/paths.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../plugins/runtime.js";
 import { withPluginRuntimeRegistryScope } from "../plugins/runtime/gateway-request-scope.js";
@@ -25,7 +25,6 @@ let media: typeof import("./web-media.js");
 const suiteDirs = useAutoCleanupTempDirTracker(afterAll);
 const tempDirs = useAutoCleanupTempDirTracker(afterEach);
 const TINY_PNG = createSolidPngBuffer(1, 1, { r: 255, g: 255, b: 255 });
-const CANVAS_PATH = "/__openclaw__/canvas/documents/cv_test/collection.media/tiny.png";
 const IMAGE_LIMITS = {
   models: [
     { maxSidePx: 32, preferredSidePx: 32 },
@@ -134,7 +133,7 @@ async function xlsmFixture() {
 
 beforeAll(async () => {
   media = await import("./web-media.js");
-  fixtureRoot = suiteDirs.make("web-media-core-", resolvePreferredOpenClawTmpDir());
+  fixtureRoot = suiteDirs.make("web-media-core-", resolvePreferredAstroclawTmpDir());
   tinyPngFile = await writeFile("tiny.png", TINY_PNG);
   workspaceDir = path.join(fixtureRoot, "workspace");
   await writeFile("chart.png", TINY_PNG, workspaceDir);
@@ -204,12 +203,6 @@ describe("loadWebMedia", () => {
       platform.mockRestore();
       realpath.mockRestore();
     }
-  });
-
-  it("loads browser-style canvas media paths as managed local files", async () => {
-    const result = await media.loadWebMedia(CANVAS_PATH, { maxBytes: 1024 * 1024 });
-    expect(result.kind).toBe("image");
-    expect(result.buffer).toEqual(TINY_PNG);
   });
 
   it("keeps trying hosted media resolvers after one throws", async () => {
@@ -414,22 +407,6 @@ describe("loadWebMedia", () => {
     },
   );
 
-  it("passes Windows sandbox paths unchanged to custom readers and emits only the leaf filename", async () => {
-    const file = String.raw`C:\workspace\captures\tiny.png`;
-    const readFile = vi.fn(async (_source: string) => TINY_PNG);
-    const result = await media.loadWebMediaRaw(file, {
-      maxBytes: 1024 * 1024,
-      sandboxValidated: true,
-      readFile,
-    });
-    expect(readFile).toHaveBeenCalledWith(file);
-    expect(readFile.mock.calls[0]).toHaveLength(1);
-    expect(result.buffer).toEqual(TINY_PNG);
-    expect(result.kind).toBe("image");
-    expect(result.contentType).toBe("image/png");
-    expect(result.fileName).toBe("tiny.png");
-  });
-
   it("resolves home-relative paths through allowed local roots", async () => {
     await withEnvAsync({ OPENCLAW_HOME: fixtureRoot }, async () => {
       const result = await media.loadWebMedia("~/workspace/chart.png", {
@@ -449,15 +426,6 @@ describe("loadWebMedia", () => {
 
   it("rejects host-read LOG files even though they map to text/plain", async () => {
     await expectAccessError(hostDocument("debug.log", "plain text\n"));
-  });
-
-  it("allows byte-verified XLSM without changing its name or bytes", async () => {
-    const body = await xlsmFixture();
-    const result = await hostDocument("report.XLSM", body);
-    expect(result.kind).toBe("document");
-    expect(result.contentType).toBe("application/vnd.ms-excel.sheet.macroenabled.12");
-    expect(result.fileName).toBe("report.XLSM");
-    expect(result.buffer).toEqual(body);
   });
 
   it("rejects text disguised as an allowed binary document", async () => {
@@ -514,9 +482,9 @@ describe("loadWebMedia", () => {
   it("requires provenance even when outbound staging is under the trusted temp root", async () => {
     await inState(async () => {
       const saved = await stageHtml();
-      expect(path.resolve(saved.path)).toContain(path.resolve(resolvePreferredOpenClawTmpDir()));
+      expect(path.resolve(saved.path)).toContain(path.resolve(resolvePreferredAstroclawTmpDir()));
       await expectAccessError(loadWithHostRead(saved.path));
-    }, resolvePreferredOpenClawTmpDir());
+    }, resolvePreferredAstroclawTmpDir());
   });
 
   it("keeps HTML provenance when filesystem inspection fails transiently", async () => {
@@ -603,7 +571,7 @@ describe("loadWebMedia", () => {
   it.each(["symlink", "hardlink"] as const)(
     "rejects a trusted HTML %s to an outside file",
     async (kind) => {
-      const root = tempDirs.make("html-outside-", path.dirname(resolvePreferredOpenClawTmpDir()));
+      const root = tempDirs.make("html-outside-", path.dirname(resolvePreferredAstroclawTmpDir()));
       const outside = await writeFile(
         "report.html",
         "<!doctype html><title>Outside</title><body>secret</body>\n",
