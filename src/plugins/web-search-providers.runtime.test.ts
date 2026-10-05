@@ -1,5 +1,5 @@
 /** Covers runtime loading and sorting for plugin web search providers. */
-import { createRequireRecord } from "openclaw/plugin-sdk/test-fixtures";
+import { createRequireRecord } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createWebSearchTestProvider } from "../test-utils/web-provider-runtime.test-helpers.js";
 import { createPluginMetadataSnapshotFixture } from "./plugin-metadata.test-support.js";
@@ -412,7 +412,7 @@ describe("resolvePluginWebSearchProviders", () => {
       diagnostics: [],
     });
     const config = { plugins: { allow: ["moonshot"] } };
-    const providers = resolvePluginWebSearchProviders({ config, mode: "setup", activate: false });
+    const providers = resolvePluginWebSearchProviders({ config, mode: "setup" });
     const provider = providers[0];
     if (!provider?.runSetup) {
       throw new Error("Expected Moonshot web-search setup from the public artifact");
