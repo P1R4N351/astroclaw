@@ -2,23 +2,24 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveSessionTranscriptsDirForAgent } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resolveSessionTranscriptsDirForAgent } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
 import {
   buildSessionEntry,
   statSessionEntrySync,
-} from "openclaw/plugin-sdk/memory-core-host-engine-sessions";
-import type { MemorySyncParams } from "openclaw/plugin-sdk/memory-core-host-engine-storage";
-import { resetPluginStateStoreForTests } from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/memory-core-host-engine-sessions";
+import type { MemorySyncParams } from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { resetPluginStateStoreForTests } from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   clearConfigCache,
   clearRuntimeConfigSnapshot,
-} from "openclaw/plugin-sdk/runtime-config-snapshot";
-import { deleteSessionEntry, upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
+} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { deleteSessionEntry, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
 import {
   appendSessionTranscriptMessageByIdentity,
   publishSessionTranscriptUpdateByIdentity,
-} from "openclaw/plugin-sdk/session-transcript-runtime";
-import { createOpenClawTestState, type OpenClawTestState } from "openclaw/plugin-sdk/test-state";
+} from "astroclaw/plugin-sdk/session-transcript-runtime";
+import { observeHostDataSql } from "astroclaw/plugin-sdk/sqlite-runtime-testing";
+import { createOpenClawTestState, type OpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SessionStartupCatchupHarness,
@@ -478,8 +479,34 @@ describe("session startup catch-up", () => {
       true,
     );
 
-    await expect(harness.catchUp()).resolves.toEqual([session.sessionKey]);
-    await harness.waitForSessionSync();
+    const observed = observeHostDataSql();
+    const cpuStart = process.threadCpuUsage();
+    const started = performance.now();
+    try {
+      await expect(harness.catchUp()).resolves.toEqual([session.sessionKey]);
+      await harness.waitForSessionSync();
+      const sourceSql = observed.queries.filter((sql) =>
+        /\b(?:from|update)\s+["`]?memory_index_sources\b/i.test(sql),
+      );
+      if (process.env.OPENCLAW_MEMORY_RETRIEVAL_BENCH === "1") {
+        const cpu = process.threadCpuUsage(cpuStart);
+        console.log(
+          "MEMORY_PUBLICATION_BENCH",
+          JSON.stringify({
+            operation: "source-refresh",
+            cohortSqlObservations: sourceSql.length,
+            wholeMainSqlCalls: observed.calls
+              .slice(1)
+              .reduce((total, call) => total + call.mock.calls.length, 0),
+            wholeMainCpuMs: (cpu.user + cpu.system) / 1000,
+            endToEndMs: performance.now() - started,
+          }),
+        );
+      }
+      expect(sourceSql).toEqual([]);
+    } finally {
+      observed.restore();
+    }
 
     expect(harness.syncCalls).toEqual([{ reason: "session-startup-catchup" }]);
     expect(harness.indexedPaths).toEqual([]);
