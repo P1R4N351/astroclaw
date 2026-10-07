@@ -1,8 +1,8 @@
 import { PassThrough } from "node:stream";
-import type { OpenClawConfig, DiscordAccountConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+import type { OpenClawConfig, DiscordAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
 import type { Client } from "../internal/discord.js";
 import type { DiscordLivePolicyReader } from "../monitor/live-policy.js";
 import type { DiscordAudioFrame } from "./audio-worker-protocol.js";
@@ -80,7 +80,7 @@ export class DiscordVoiceReceive {
     },
   ) {}
 
-  scheduleCaptureFinalize(entry: VoiceSessionEntry, userId: string, _reason: string): void {
+  scheduleCaptureFinalize(entry: VoiceSessionEntry, userId: string): void {
     // Before admission there is no worker subscription. Main expires only its
     // reservation; subscribed stream deadlines are driven by the worker receiver.
     if (entry.capture.get(userId)?.stream) {
