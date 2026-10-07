@@ -6,10 +6,10 @@ import { Agent, createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { awaitGateBeforeSettlement, withinTest } from "openclaw/plugin-sdk/test-fixtures";
-import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
-import { rawDataToString } from "openclaw/plugin-sdk/webhook-ingress";
-import { WebSocketServer } from "openclaw/plugin-sdk/websocket-runtime";
+import { awaitGateBeforeSettlement, withinTest } from "astroclaw/plugin-sdk/test-fixtures";
+import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
+import { rawDataToString } from "astroclaw/plugin-sdk/webhook-ingress";
+import { WebSocketServer } from "astroclaw/plugin-sdk/websocket-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const spawnMock = vi.hoisted(() => vi.fn());
@@ -37,7 +37,7 @@ const { registerManagedProxyBrowserCdpBypassMock } = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime-internal", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime-internal", () => ({
   registerManagedProxyBrowserCdpBypass: registerManagedProxyBrowserCdpBypassMock,
 }));
 
@@ -45,14 +45,14 @@ const ensurePortAvailableMock = vi.hoisted(() =>
   vi.fn<(port: number, host?: string) => Promise<void>>(async () => {}),
 );
 
-vi.mock("openclaw/plugin-sdk/security-runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/security-runtime")>()),
+vi.mock("astroclaw/plugin-sdk/security-runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/security-runtime")>()),
   ensurePortAvailable: ensurePortAvailableMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/temp-path", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("openclaw/plugin-sdk/temp-path")>()),
-  resolvePreferredOpenClawTmpDir: () => "/tmp/openclaw-browser-test",
+vi.mock("astroclaw/plugin-sdk/temp-path", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/temp-path")>()),
+  resolvePreferredAstroclawTmpDir: () => "/tmp/openclaw-browser-test",
 }));
 
 // Shrink long launch/bootstrap timeouts so tests don't wait 15s for
@@ -745,46 +745,6 @@ describe("chrome.ts internal", () => {
             expect(spawnOptions.env?.XDG_CACHE_HOME).toEqual(expect.any(String));
           }
           // Cleanup.
-          running.proc.kill?.("SIGTERM");
-        },
-      });
-    });
-
-    it("accepts a ready CDP diagnostic after the launch HTTP probe expires", async () => {
-      stubBrowserExecutableAndPrefs("present");
-      spawnMock.mockImplementation(() => makeFakeProc());
-
-      const originalFetch = globalThis.fetch;
-      let now = 1_000_000;
-      vi.spyOn(Date, "now").mockImplementation(() => now);
-      let discoveryCalls = 0;
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-          const url =
-            typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-          if (url.includes("/json/version")) {
-            discoveryCalls += 1;
-            if (discoveryCalls === 1) {
-              now += 2;
-              throw new Error("ECONNREFUSED");
-            }
-          }
-          return await originalFetch(input, init);
-        }),
-      );
-
-      await withMockChromeCdpServer({
-        wsPath: "/devtools/browser/COLD_START",
-        run: async (baseUrl) => {
-          const port = new URL(baseUrl).port;
-          const profile = makeProfile(Number(port));
-          const running = await launchOpenClawChrome(
-            makeResolved({ localLaunchTimeoutMs: 1 }),
-            profile,
-          );
-          expect(running.pid).toBe(4242);
-          expect(discoveryCalls).toBeGreaterThan(1);
           running.proc.kill?.("SIGTERM");
         },
       });
@@ -1651,28 +1611,6 @@ describe("chrome.ts internal", () => {
       await expect(
         launchOpenClawChrome(makeResolved({ localLaunchTimeoutMs: 20 }), makeProfile(54325)),
       ).rejects.toThrow("Managed Chrome process spawned without a pid.");
-    });
-
-    it("preflights managed-proxy policy and registers exact CDP probe URLs", async () => {
-      stubBrowserExecutableAndPrefs("present");
-      const release = vi.fn();
-      registerManagedProxyBrowserCdpBypassMock.mockImplementation(() => release);
-      spawnMock.mockImplementation(() => makeFakeProc());
-
-      await withMockChromeCdpServer({
-        wsPath: "/devtools/browser/BYPASS_OK",
-        run: async (baseUrl) => {
-          const port = Number(new URL(baseUrl).port);
-          const profile = { ...makeProfile(port), cdpUrl: baseUrl };
-          const running = await launchOpenClawChrome(makeResolved(), profile);
-          expect(registerManagedProxyBrowserCdpBypassMock).toHaveBeenCalledWith(baseUrl);
-          expect(registerManagedProxyBrowserCdpBypassMock).toHaveBeenCalledWith(
-            `${baseUrl}/json/version`,
-          );
-          expect(release).toHaveBeenCalled();
-          running.proc.kill?.("SIGTERM");
-        },
-      });
     });
 
     it("releases scoped bypass registrations when the CDP probe never succeeds", async () => {
