@@ -1,5 +1,5 @@
-import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
-import type { RealtimeVoiceAgentControlResult } from "openclaw/plugin-sdk/realtime-voice";
+import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+import type { RealtimeVoiceAgentControlResult } from "astroclaw/plugin-sdk/realtime-voice";
 import type { MockCallSource } from "./manager.e2e.test-support.js";
 import { defineDiscordVoiceTests } from "./voice-test-harness.test-support.js";
 
@@ -438,7 +438,7 @@ defineDiscordVoiceTests(
         { voice: { realtime: { consultPolicy: "auto" } } },
         {
           agents: {
-            list: [{ id: "agent-1", identity: { name: "Molty" } }],
+            entries: { "agent-1": { identity: { name: "Molty" } } },
           },
         },
         "bot-user",
@@ -777,7 +777,7 @@ defineDiscordVoiceTests(
         { voice: { realtime: { consultPolicy: "auto", requireWakeName: true } } },
         {
           agents: {
-            list: [{ id: "agent-1", identity: { name: "Molty" } }],
+            entries: { "agent-1": { identity: { name: "Molty" } } },
           },
         },
       );
