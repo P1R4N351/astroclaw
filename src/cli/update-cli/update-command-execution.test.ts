@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../test/helpers/promise.js";
 import { mockSystemAccountHome } from "../../daemon/service.test-helpers.js";
-import * as tempRoot from "../../infra/tmp-openclaw-dir.js";
+import * as tempRoot from "../../infra/tmp-astroclaw-dir.js";
 import { createUpdateRun, getUpdateRun } from "../../infra/update-run-ledger.js";
 import { withTestDir } from "../../test-helpers/temp-dir.js";
 import { withEnvAsync } from "../../test-utils/env.js";
@@ -17,12 +17,14 @@ import { registerExecutionTimeoutTests } from "./update-command-execution-timeou
 import { executeMutableUpdate } from "./update-command-execution.js";
 import { withUpdateCommandExecutor } from "./update-command-executor.js";
 import * as readiness from "./update-command-readiness.js";
+import { registerServiceCollectionTests } from "./update-command-service-collection.test-support.js";
 import * as publication from "./update-command-service-revalidation.js";
 
 const { bindExecutionGuards, executionParams, inspectOrStopService, mocks, successfulUpdate } =
   await import("./update-command-execution.test-support.js");
 
 describe("mutable update execution", () => {
+  registerServiceCollectionTests();
   it.each(
     (["root", "include"] as const).flatMap((source) =>
       (["after-validation", "after-stop", "after-git-transfer"] as const).flatMap((phase) =>
@@ -274,7 +276,7 @@ describe("mutable update execution", () => {
     await withTestDir({ prefix: "partial-stop-recovery-owner-" }, async (dir) => {
       const control = path.join(dir, "leases");
       await fs.mkdir(control);
-      vi.spyOn(tempRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(control);
+      vi.spyOn(tempRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(control);
       const env = { OPENCLAW_STATE_DIR: dir };
       const runId = createUpdateRun({ trigger: "cli" }, { env }).runId;
       const params = executionParams("package");
@@ -925,7 +927,7 @@ describe("mutable update execution", () => {
 
         const coordinator = path.join(root, "coordinator");
         await fs.mkdir(coordinator);
-        vi.spyOn(tempRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(coordinator);
+        vi.spyOn(tempRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(coordinator);
         const env = { OPENCLAW_STATE_DIR: path.join(root, "state") };
         const runId = createUpdateRun({ trigger: "cli" }, { env }).runId;
         const params = { ...executionParams("git"), root, onActivation };
