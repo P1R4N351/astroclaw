@@ -8,10 +8,8 @@ import { writePackageDistInventory } from "../../../scripts/lib/package-dist-inv
 import { useAutoCleanupTempDirTracker } from "../../../test/helpers/temp-dir.js";
 import { finalizeRestartUpdateRun } from "../../gateway/server-restart-update-run.js";
 import { writePackageRoot } from "../../infra/package-update-steps.test-support.js";
-import {
-  swapStagedPackageInstall,
-  type PackageUpdateTransaction,
-} from "../../infra/package-update-swap.js";
+import type { PackageUpdateTransaction } from "../../infra/package-update-swap-contract.js";
+import { swapStagedPackageInstall } from "../../infra/package-update-swap.js";
 import {
   createPackageSwapFixture,
   createRetainedPackageSwap,
@@ -20,7 +18,7 @@ import { readRestartSentinel } from "../../infra/restart-sentinel.js";
 import { runtimeProcessEntrypoints } from "../../infra/runtime-process-entrypoints.js";
 import { resolveRuntimeWorkerUrl } from "../../infra/runtime-worker-url.js";
 import * as snapshot from "../../infra/sqlite-snapshot-source.js";
-import * as temporaryRoot from "../../infra/tmp-openclaw-dir.js";
+import * as temporaryRoot from "../../infra/tmp-astroclaw-dir.js";
 import { readUpdateStateSchemaVersions } from "../../infra/update-candidate-state.js";
 import { createManagedHandoffLeaseStore } from "../../infra/update-managed-service-handoff-lease.js";
 import { prepareNativePackageStage } from "../../infra/update-native-package-stage.js";
@@ -86,17 +84,19 @@ let base: string;
 let temporary: string;
 let jsonOutput: unknown[];
 let humanOutput: string[];
+let errorOutput: string[];
 beforeEach(async () => {
   vi.mocked(verifyUpdatedGateway).mockReset();
   base = await fs.realpath(dirs.make("update-terminal-outcome-"));
   temporary = path.join(base, "private-tmp");
   await fs.mkdir(temporary, { mode: 0o700 });
-  vi.spyOn(temporaryRoot, "resolvePreferredOpenClawTmpDir").mockReturnValue(temporary);
+  vi.spyOn(temporaryRoot, "resolvePreferredAstroclawTmpDir").mockReturnValue(temporary);
   vi.stubEnv("OPENCLAW_STATE_DIR", path.join(base, "state"));
   vi.stubEnv("OPENCLAW_CONFIG_PATH", path.join(base, "state", "openclaw.json"));
   vi.stubEnv("OPENCLAW_UPDATE_RUN_HANDOFF", "");
   jsonOutput = [];
   humanOutput = [];
+  errorOutput = [];
   vi.spyOn(defaultRuntime, "writeJson").mockImplementation((value) => {
     jsonOutput.push(structuredClone(value));
   });
@@ -105,6 +105,7 @@ beforeEach(async () => {
   });
   vi.spyOn(defaultRuntime, "error").mockImplementation((value) => {
     humanOutput.push(String(value));
+    errorOutput.push(String(value));
   });
 });
 afterEach(() => {
@@ -637,6 +638,7 @@ async function scenario(
     observationLeases,
     sentinel: preparedRecovery ? await readRestartSentinel(run.env) : undefined,
     humanOutput,
+    errorOutput,
     history,
     report,
     beforeRepeat,
@@ -666,6 +668,9 @@ describe("composed cleanup and terminal outcome", () => {
     expect(value.observedResults).toEqual([expect.objectContaining({ status: "ok" })]);
     expect(value.observationLeases).toEqual(["absent"]);
     expect(value.humanOutput.join("\n").toLowerCase()).toContain("updated");
+    expect(value.errorOutput).not.toContain(
+      "Finishing update: checking package backup retention and cleanup.",
+    );
     expect(value.afterRepeat).toEqual(value.beforeRepeat);
   });
   it.each(["release-failure", "revoked", "link-retained"] as const)(
