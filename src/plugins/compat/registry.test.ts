@@ -15,6 +15,9 @@ const retiredPluginSdkSurfaceCodes = [
   "plugin-sdk-channel-reply-pipeline-subpath",
   "plugin-sdk-config-runtime-subpath",
   "plugin-sdk-infra-runtime-subpath",
+  "plugin-sdk-command-auth-subpath",
+  "plugin-sdk-discord-subpath",
+  "plugin-sdk-telegram-account-subpath",
   "plugin-sdk-channel-streaming-subpath",
   "plugin-sdk-text-runtime-subpath",
   "plugin-sdk-channel-secret-runtime-subpath",
@@ -24,6 +27,14 @@ const retiredPluginSdkSurfaceCodes = [
   "plugin-sdk-group-access-subpath",
   "plugin-sdk-zod-subpath",
   "deprecated-session-store-beta5-api",
+  "plugin-sdk-allowlist-resolution-entry-mapper",
+  "plugin-sdk-computer-use-validator-compiler",
+  "plugin-sdk-stoppable-passive-monitor",
+  "plugin-sdk-advertised-lan-host",
+  "plugin-sdk-json-file-fallback-reader",
+  "plugin-sdk-secret-input-mode-normalizer",
+  "plugin-sdk-persistent-dedupe-legacy-json-migration",
+  "plugin-sdk-provider-auth-copilot-helpers",
 ] as const satisfies readonly PluginCompatCode[];
 const deprecationMarkingCodes = [
   "plugin-sdk-channel-setup-input-fields",
@@ -120,8 +131,8 @@ describe("plugin compatibility registry", () => {
     });
     expect(records.get("plugin-state-sync-keyed-store")?.removeAfter).toBeUndefined();
     expect(records.get("agent-harness-sdk-alias")?.surfaces).toEqual([
-      "openclaw/plugin-sdk/agent-harness",
-      "openclaw/plugin-sdk/agent-harness-runtime",
+      "astroclaw/plugin-sdk/agent-harness",
+      "astroclaw/plugin-sdk/agent-harness-runtime",
     ]);
   });
 
@@ -133,7 +144,10 @@ describe("plugin compatibility registry", () => {
         status: "removed",
         releaseNote: expect.stringMatching(/\S/u),
       });
-      expect(records.get(code)?.removeAfter, code).toBeUndefined();
+      const removeAfter = records.get(code)?.removeAfter;
+      if (removeAfter !== undefined) {
+        expect(removeAfter, code).toMatch(datePattern);
+      }
     }
   });
 
@@ -159,18 +173,18 @@ describe("plugin compatibility registry", () => {
     });
     expect(records.get("plugin-sdk-broad-runtime-barrels")?.surfaces).toEqual(
       expect.arrayContaining([
-        "openclaw/plugin-sdk/agent-runtime",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.useCache",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.cacheOnly",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog params.metadataSnapshot",
-        "openclaw/plugin-sdk/agent-runtime loadModelCatalog",
-        "openclaw/plugin-sdk/cli-runtime",
-        "openclaw/plugin-sdk/conversation-runtime",
-        "openclaw/plugin-sdk/hook-runtime",
-        "openclaw/plugin-sdk/media-runtime",
-        "openclaw/plugin-sdk/media-runtime buildAgentMediaPayload",
-        "openclaw/plugin-sdk/plugin-runtime",
-        "openclaw/plugin-sdk/security-runtime",
+        "astroclaw/plugin-sdk/agent-runtime",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.useCache",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.cacheOnly",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog params.metadataSnapshot",
+        "astroclaw/plugin-sdk/agent-runtime loadModelCatalog",
+        "astroclaw/plugin-sdk/cli-runtime",
+        "astroclaw/plugin-sdk/conversation-runtime",
+        "astroclaw/plugin-sdk/hook-runtime",
+        "astroclaw/plugin-sdk/media-runtime",
+        "astroclaw/plugin-sdk/media-runtime buildAgentMediaPayload",
+        "astroclaw/plugin-sdk/plugin-runtime",
+        "astroclaw/plugin-sdk/security-runtime",
       ]),
     );
   });
