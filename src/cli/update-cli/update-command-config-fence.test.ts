@@ -18,7 +18,7 @@ import { captureConfigWriteLockGuard, withConfigWriteLock } from "../../config/w
 import * as gatewayEntrypoint from "../../daemon/gateway-entrypoint.js";
 import { executeSqliteQuerySync, getNodeSqliteKysely } from "../../infra/kysely-sync.js";
 import { openNodeSqliteDatabase } from "../../infra/node-sqlite.js";
-import * as temporaryState from "../../infra/tmp-openclaw-dir.js";
+import * as temporaryState from "../../infra/tmp-astroclaw-dir.js";
 import {
   POST_CORE_UPDATE_INSTALL_RECORDS_PATH_ENV,
   POST_CORE_UPDATE_REQUESTED_CHANNEL_ENV,
@@ -213,7 +213,7 @@ it.each([
       // Exercise modern parent-owned completion before the config preparation boundary.
       await fs.writeFile(path.join(home, "handoff.json"), '{"completionOwner":"parent"}\n');
     }
-    vi.spyOn(temporaryState, "resolvePreferredOpenClawTmpDir").mockReturnValue(control);
+    vi.spyOn(temporaryState, "resolvePreferredAstroclawTmpDir").mockReturnValue(control);
     await withEnvAsync(
       {
         HOME: home,
@@ -475,7 +475,6 @@ it.each([
                   npm: { changed: false, outcomes: [] },
                   integrityDrifts: [],
                 },
-                freshDoctorRequired: false,
                 yes: true,
                 json: true,
                 timeoutMs: 1_000,
@@ -571,7 +570,7 @@ it.each([
     const configPath = path.join(stateDir, "openclaw.json");
     const control = path.join(home, "control");
     await fs.mkdir(control);
-    vi.spyOn(temporaryState, "resolvePreferredOpenClawTmpDir").mockReturnValue(control);
+    vi.spyOn(temporaryState, "resolvePreferredAstroclawTmpDir").mockReturnValue(control);
     const env = {
       ...process.env,
       HOME: home,
