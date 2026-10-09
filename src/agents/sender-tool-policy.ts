@@ -4,7 +4,7 @@
  * channel delivery can narrow tool access by sender identity.
  */
 import { resolveToolsBySender } from "../config/group-policy.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { parseSessionDeliveryRoute } from "../routing/session-key.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 import { pickSandboxToolPolicy } from "./sandbox-tool-policy.js";
@@ -43,16 +43,8 @@ export function resolveSenderToolPolicy(
     params.agentId && params.agentId.trim()
       ? resolveAgentConfig(cfg, params.agentId)?.tools
       : undefined;
-  const agentPolicy = resolveToolsBySender({
-    toolsBySender: agentTools?.toolsBySender,
-    ...sender,
-  });
-  if (agentPolicy) {
-    return pickSandboxToolPolicy(agentPolicy);
-  }
-  const globalPolicy = resolveToolsBySender({
-    toolsBySender: cfg.tools?.toolsBySender,
-    ...sender,
-  });
-  return pickSandboxToolPolicy(globalPolicy);
+  return pickSandboxToolPolicy(
+    resolveToolsBySender({ toolsBySender: agentTools?.toolsBySender, ...sender }) ||
+      resolveToolsBySender({ toolsBySender: cfg.tools?.toolsBySender, ...sender }),
+  );
 }
