@@ -2,6 +2,7 @@
 
 package ai.astroclaw.app
 
+import ai.astroclaw.app.pebble.PebbleClient
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
@@ -38,6 +39,16 @@ class SecurePrefs(
       "notifications.forwarding.maxEventsPerMinute"
     private const val notificationsForwardingSessionKeyKey = "notifications.forwarding.sessionKey"
     private const val voiceMicEnabledKey = "voice.micEnabled"
+
+    /** Pebble Iris base URL — not a secret, lives beside the other endpoint settings. */
+    private const val pebbleBaseUrlKey = "pebble.baseUrl"
+
+    /**
+     * Pebble Iris `X-Iris-Token`. Stored in the ENCRYPTED prefs file, never the plain one, and
+     * excluded from cloud backup and device transfer via `backup_rules.xml` /
+     * `data_extraction_rules.xml`.
+     */
+    private const val pebbleTokenKey = "pebble.token"
   }
 
   private val appContext = context.applicationContext
@@ -169,6 +180,16 @@ class SecurePrefs(
 
   private val _speakerEnabled = MutableStateFlow(plainPrefs.getBoolean("voice.speakerEnabled", true))
   val speakerEnabled: StateFlow<Boolean> = _speakerEnabled
+
+  private val _pebbleBaseUrl = MutableStateFlow(loadPebbleBaseUrl())
+  val pebbleBaseUrl: StateFlow<String> = _pebbleBaseUrl
+
+  /**
+   * Hydrated lazily by [loadPebbleToken], mirroring the gateway token: reading it eagerly would
+   * force EncryptedSharedPreferences (and its master key) open on every cold start.
+   */
+  private val _pebbleToken = MutableStateFlow("")
+  val pebbleToken: StateFlow<String> = _pebbleToken
 
   fun setLastDiscoveredStableId(value: String) {
     val trimmed = value.trim()
@@ -494,6 +515,38 @@ class SecurePrefs(
   fun setSpeakerEnabled(value: Boolean) {
     plainPrefs.edit { putBoolean("voice.speakerEnabled", value) }
     _speakerEnabled.value = value
+  }
+
+  /** Blank resets to the household default rather than leaving an unusable empty endpoint. */
+  fun setPebbleBaseUrl(value: String) {
+    val resolved = value.trim().ifEmpty { PebbleClient.DEFAULT_BASE_URL }
+    plainPrefs.edit { putString(pebbleBaseUrlKey, resolved) }
+    _pebbleBaseUrl.value = resolved
+  }
+
+  fun setPebbleToken(value: String) {
+    val trimmed = value.trim()
+    securePrefs.edit { putString(pebbleTokenKey, trimmed) }
+    _pebbleToken.value = trimmed
+  }
+
+  /**
+   * Read the Pebble Iris token, hydrating the flow on first use.
+   *
+   * @return the stored token, or an empty string when none is set. An empty token means the UI
+   *   must show a setup hint rather than firing an unauthenticated request.
+   */
+  fun loadPebbleToken(): String {
+    val cached = _pebbleToken.value
+    if (cached.isNotEmpty()) return cached
+    val stored = securePrefs.getString(pebbleTokenKey, null)?.trim().orEmpty()
+    if (stored.isNotEmpty()) _pebbleToken.value = stored
+    return stored
+  }
+
+  private fun loadPebbleBaseUrl(): String {
+    val stored = plainPrefs.getString(pebbleBaseUrlKey, null)?.trim().orEmpty()
+    return stored.ifEmpty { PebbleClient.DEFAULT_BASE_URL }
   }
 
   private fun loadNotificationForwardingPackages(): Set<String> {

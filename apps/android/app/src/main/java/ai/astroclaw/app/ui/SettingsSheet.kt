@@ -1170,6 +1170,16 @@ fun SettingsSheet(viewModel: MainViewModel) {
         }
       }
 
+      // ── Pebble Iris ──
+      item {
+        Text(
+          "PEBBLE IRIS",
+          style = mobileCaption1.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+          color = mobileAccent,
+        )
+      }
+      item { PebbleSettingsCard(viewModel = viewModel) }
+
       // ── Preferences ──
       item {
         Text(
@@ -1282,7 +1292,7 @@ internal fun resolveNotificationCandidatePackages(
 }
 
 @Composable
-private fun settingsTextFieldColors() =
+internal fun settingsTextFieldColors() =
   OutlinedTextFieldDefaults.colors(
     focusedContainerColor = mobileSurface,
     unfocusedContainerColor = mobileSurface,
@@ -1294,14 +1304,14 @@ private fun settingsTextFieldColors() =
   )
 
 @Composable
-private fun Modifier.settingsRowModifier() =
+internal fun Modifier.settingsRowModifier() =
   this
     .fillMaxWidth()
     .border(width = 1.dp, color = mobileBorder, shape = RoundedCornerShape(14.dp))
     .background(mobileCardSurface, RoundedCornerShape(14.dp))
 
 @Composable
-private fun settingsPrimaryButtonColors() =
+internal fun settingsPrimaryButtonColors() =
   ButtonDefaults.buttonColors(
     containerColor = mobileAccent,
     contentColor = Color.White,

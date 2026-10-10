@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
     <exclude domain="root" path="." />
+    <!--
+      Redundant while the blanket root exclusion above stands, but stated explicitly so that
+      relaxing the blanket rule later cannot silently start backing up credentials. The Pebble
+      Iris X-Iris-Token lives in the encrypted prefs file below.
+    -->
+    <exclude domain="sharedpref" path="astroclaw.node.secure.xml" />
 </full-backup-content>

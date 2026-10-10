@@ -2,8 +2,11 @@
 <data-extraction-rules>
     <cloud-backup disableIfNoEncryptionCapabilities="true">
         <exclude domain="root" path="." />
+        <!-- Explicit: the Pebble Iris token (encrypted prefs) never leaves the device. -->
+        <exclude domain="sharedpref" path="astroclaw.node.secure.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="root" path="." />
+        <exclude domain="sharedpref" path="astroclaw.node.secure.xml" />
     </device-transfer>
 </data-extraction-rules>

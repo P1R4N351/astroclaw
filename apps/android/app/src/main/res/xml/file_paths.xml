@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="apk_updates" path="updates/" />
+    <!-- Verified Pebble watchapp bundles handed to the Pebble app via a content:// URI. -->
+    <cache-path name="pebble_watchapps" path="pebble/" />
 </paths>

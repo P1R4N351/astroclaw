@@ -52,8 +52,7 @@ class AlarmsHandlerTest : NodeHandlerRobolectricTest() {
     }
   }
 
-  private fun handler(launcher: AlarmLauncher = RecordingAlarmLauncher()): AlarmsHandler =
-    AlarmsHandler.forTesting(appContext(), launcher)
+  private fun handler(launcher: AlarmLauncher = RecordingAlarmLauncher()): AlarmsHandler = AlarmsHandler.forTesting(appContext(), launcher)
 
   @Test
   fun set_withValidTime_launchesAndEchoesPayload() {
