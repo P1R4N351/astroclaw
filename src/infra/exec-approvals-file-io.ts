@@ -47,16 +47,26 @@ export function isExecApprovalsLockMissing(filePath: string): boolean {
 function ensureDir(filePath: string) {
   const dir = path.dirname(filePath);
   assertNoExecApprovalsSymlinkParents(dir, resolveRequiredHomeDir());
-  fs.mkdirSync(dir, { recursive: true });
+  // mkdirSync(recursive) returns the first path it created, or undefined when
+  // the directory already existed. Only tighten a directory WE created: when
+  // the approvals file sits at the state root, that directory is shared and
+  // operator-managed, and an unconditional chmod here fires on every read/write
+  // lock acquisition. A chmod rewrites the POSIX ACL mask, so each call silently
+  // zeroes every named ACE on the state root — measured as recurring
+  // mask r-x -> --- drift at seconds cadence. Confidentiality of the policy
+  // itself does not depend on this: the file is chmod 0o600 on every write.
+  const createdDir = fs.mkdirSync(dir, { recursive: true });
   const dirStat = fs.lstatSync(dir);
   if (!dirStat.isDirectory() || dirStat.isSymbolicLink()) {
     throw new Error(`Refusing to use unsafe exec approvals directory: ${dir}`);
   }
-  try {
-    fs.chmodSync(dir, 0o700);
-  } catch (err) {
-    if (process.platform !== "win32") {
-      throw err;
+  if (createdDir !== undefined) {
+    try {
+      fs.chmodSync(dir, 0o700);
+    } catch (err) {
+      if (process.platform !== "win32") {
+        throw err;
+      }
     }
   }
   return dir;
