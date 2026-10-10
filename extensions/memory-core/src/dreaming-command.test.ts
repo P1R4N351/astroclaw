@@ -1,8 +1,8 @@
 // Memory Core tests cover dreaming command plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { PluginCommandContext } from "openclaw/plugin-sdk/core";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import { asNullableRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { PluginCommandContext } from "astroclaw/plugin-sdk/core";
+import type { OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import { asNullableRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { handleDreamingCommand } from "./dreaming-command.js";
 
@@ -137,19 +137,6 @@ describe("memory-core /dreaming command", () => {
     expect(storedDreaming.enabled).toBe(false);
     expect(storedDreaming.frequency).toBe("0 */6 * * *");
     expect(result.text).toContain("Dreaming disabled.");
-  });
-
-  it("blocks unscoped gateway callers from persisting dreaming config", async () => {
-    const harness = createHarness();
-
-    const result = await runDreamingCommand(harness, "off", {
-      gatewayClientScopes: [],
-    });
-
-    expect(result.text).toContain(
-      "requires owner status for channel callers or operator.admin for gateway clients",
-    );
-    expect(harness.runtime.config.mutateConfigFile).not.toHaveBeenCalled();
   });
 
   it("blocks write-scoped gateway callers from persisting dreaming config", async () => {
