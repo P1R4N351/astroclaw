@@ -133,8 +133,9 @@ vi.mock("./http-utils.js", () => ({
   resolveOpenAiCompatibleHttpSenderIsOwner: resolveOpenAiCompatibleHttpSenderIsOwnerMock,
 }));
 
-vi.mock("./session-utils.js", () => ({
-  loadSessionEntry: loadSessionEntryMock,
+vi.mock("./session-utils-store.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./session-utils-store.js")>()),
+  loadGatewaySessionEntry: loadSessionEntryMock,
   loadGatewaySessionEntryReadOnly: loadSessionEntryMock,
 }));
 
