@@ -1,5 +1,5 @@
 // Msteams tests cover sent message cache plugin behavior.
-import { resolveGlobalDedupeCache } from "openclaw/plugin-sdk/dedupe-runtime";
+import { resolveGlobalDedupeCache } from "astroclaw/plugin-sdk/dedupe-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const TTL_MS = 24 * 60 * 60 * 1000;
@@ -24,6 +24,7 @@ describe("msteams sent message cache", () => {
   afterEach(() => {
     sentMessageMemory.clear();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("records and resolves sent message ids", async () => {
