@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 
 const { gatewayLogError } = vi.hoisted(() => ({ gatewayLogError: vi.fn() }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/runtime-env")>();
+vi.mock("astroclaw/plugin-sdk/runtime-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/runtime-env")>();
   return {
     ...actual,
     createSubsystemLogger: () => ({ error: gatewayLogError }),
@@ -123,6 +123,7 @@ describe("createDiscordGatewaySupervisor", () => {
 
     supervisor.detachLifecycle();
     emitter.emit("error", new Error("Max reconnect attempts (0) reached after close code 1006"));
+    emitter.emit("error", new Error("another retired socket failure"));
 
     expect(seen).toEqual(["disallowed-intents", "fatal"]);
     expect(runtime.error).toHaveBeenCalledTimes(1);
@@ -162,6 +163,7 @@ describe("createDiscordGatewaySupervisor", () => {
       const error = new Error(`late gateway error ${index}`);
       expect(() => emitter.emit("error", error)).not.toThrow();
       emitter.emit("error", error);
+      emitter.emit("error", new Error("different late gateway failure"));
     }
 
     expect(emitter.listenerCount("error")).toBe(1);
