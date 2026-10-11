@@ -4,7 +4,10 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { Minimatch } from "minimatch";
 import { collectVitestFileFilters } from "../../scripts/lib/vitest-cli-mode.mts";
-import { narrowIncludePatterns } from "./vitest.include-patterns.ts";
+import {
+  intersectIncludePatterns as intersectIncludePatternsWithMatcher,
+  narrowIncludePatterns,
+} from "./vitest.include-patterns.ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const require = createRequire(import.meta.url);
@@ -166,6 +169,15 @@ export function narrowIncludePatternsForCli(
   }
 
   return narrowIncludePatterns(includePatterns, cliPatterns, matchesVitestGlob);
+}
+
+// Binds the include-patterns core to this module's glob matcher, mirroring
+// narrowIncludePatternsForCli, so callers never pass a matcher by hand.
+export function intersectIncludePatterns(
+  includePatterns: string[],
+  candidatePatterns: string[] | null,
+): string[] | null {
+  return intersectIncludePatternsWithMatcher(includePatterns, candidatePatterns, matchesVitestGlob);
 }
 
 export function relativizeScopedPatterns(values: readonly string[], dir = ""): string[] {

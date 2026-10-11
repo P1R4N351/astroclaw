@@ -2,6 +2,10 @@ import path from "node:path";
 
 type GlobMatcher = (value: string, pattern: string) => boolean;
 
+// Basename glob selecting every *.test.ts EXCEPT the *.browser.test.ts shard, which
+// the ui config swaps in for "*.test.ts" so browser specs stay out of the jsdom lane.
+export const nonBrowserTestBasenamePattern = "!(*.browser).test.ts";
+
 export function filterFilesByPatterns(
   files: readonly string[],
   include: readonly string[],
