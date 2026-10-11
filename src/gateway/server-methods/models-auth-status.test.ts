@@ -40,10 +40,12 @@ const mocks = vi.hoisted(() => ({
     agentId === "main" ? "/tmp/agent" : `/tmp/agent-${agentId}`,
   ),
   resolveDefaultAgentId: vi.fn(() => "main"),
-  ensureAuthProfileStoreWithoutExternalProfiles: vi.fn((agentDir?: string): AuthProfileStore => {
-    void agentDir;
-    return { version: 1, profiles: {} };
-  }),
+  ensureAuthProfileStoreWithoutExternalProfilesAsync: vi.fn(
+    (agentDir?: string): AuthProfileStore => {
+      void agentDir;
+      return { version: 1, profiles: {} };
+    },
+  ),
   listProfilesForProvider: vi.fn((): string[] => []),
   removeModelAuthCredentials: vi.fn(async () => {}),
   saveModelProviderApiKey:
@@ -90,8 +92,8 @@ vi.mock("../../agents/auth-profiles.js", async () => {
   );
   return {
     ...actual,
-    ensureAuthProfileStoreWithoutExternalProfiles:
-      mocks.ensureAuthProfileStoreWithoutExternalProfiles,
+    ensureAuthProfileStoreWithoutExternalProfilesAsync:
+      mocks.ensureAuthProfileStoreWithoutExternalProfilesAsync,
     listProfilesForProvider: mocks.listProfilesForProvider,
     setAuthProfileOrder: mocks.setAuthProfileOrder,
   };
@@ -279,7 +281,7 @@ function createLogoutOptions(
 }
 
 function setLogoutProfiles(profiles: AuthProfileStore["profiles"]) {
-  mocks.ensureAuthProfileStoreWithoutExternalProfiles.mockReturnValue(
+  mocks.ensureAuthProfileStoreWithoutExternalProfilesAsync.mockReturnValue(
     createAuthProfileStoreFixture(profiles),
   );
   mocks.listProfilesForProvider.mockReturnValue(Object.keys(profiles));
@@ -394,7 +396,7 @@ function resetAuthStatusMocks(): void {
   mocks.loadDeferredCatalog.mockImplementation(async (_context, agentId: string) =>
     createPreparedOwnerSnapshot(agentId),
   );
-  mocks.ensureAuthProfileStoreWithoutExternalProfiles.mockReturnValue(
+  mocks.ensureAuthProfileStoreWithoutExternalProfilesAsync.mockReturnValue(
     createAuthProfileStoreFixture({}),
   );
   mocks.listProfilesForProvider.mockReturnValue([]);
@@ -497,7 +499,7 @@ describe("models.authStatus", () => {
       },
     });
     expect(mocks.loadDeferredCatalog).not.toHaveBeenCalled();
-    expect(mocks.ensureAuthProfileStoreWithoutExternalProfiles).not.toHaveBeenCalled();
+    expect(mocks.ensureAuthProfileStoreWithoutExternalProfilesAsync).not.toHaveBeenCalled();
     expect(mocks.buildAuthHealthSummary).not.toHaveBeenCalled();
     expect(mocks.loadProviderUsageSummary).not.toHaveBeenCalled();
 
@@ -1409,7 +1411,7 @@ describe("models.authLogout", () => {
     await logoutHandler(opts);
 
     expect(mocks.resolveAgentDir).not.toHaveBeenCalled();
-    expect(mocks.ensureAuthProfileStoreWithoutExternalProfiles).not.toHaveBeenCalled();
+    expect(mocks.ensureAuthProfileStoreWithoutExternalProfilesAsync).not.toHaveBeenCalled();
     expect(mocks.removeModelAuthCredentials).not.toHaveBeenCalled();
     expectUnknownAgentId(opts, "retired");
   });
@@ -1520,7 +1522,7 @@ describe("models.authLogout", () => {
     const [ok, , error] = firstRespondCall(opts) ?? [];
     expect(ok).toBe(false);
     expect(error?.message).toContain("non-empty string array");
-    expect(mocks.ensureAuthProfileStoreWithoutExternalProfiles).not.toHaveBeenCalled();
+    expect(mocks.ensureAuthProfileStoreWithoutExternalProfilesAsync).not.toHaveBeenCalled();
     expect(mocks.removeModelAuthCredentials).not.toHaveBeenCalled();
   });
 
