@@ -3,7 +3,7 @@ import path from "node:path";
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "openclaw/plugin-sdk/plugin-test-contracts";
+} from "astroclaw/plugin-sdk/plugin-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { withTempConfig } from "../../gateway/test-temp-config.js";
 import { emitAgentEvent, resetAgentEventsForTest } from "../../infra/agent-events.js";
@@ -863,6 +863,7 @@ describe("plugin run context lifecycle", () => {
     const resultPromise = runPluginHostCleanup({
       reason: "disable",
       pluginId: "hung-cleanup-plugin",
+      sessionStoreTargets: [],
     });
     await vi.advanceTimersByTimeAsync(0);
     expect(cleanup).toHaveBeenCalledTimes(1);
@@ -910,6 +911,7 @@ describe("plugin run context lifecycle", () => {
       registry: registry.registry,
       pluginId: "hanging-cleanup-fixture",
       reason: "delete",
+      sessionStoreTargets: [],
     });
     try {
       for (let index = 0; index < 3; index += 1) {
