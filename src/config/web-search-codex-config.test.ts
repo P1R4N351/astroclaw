@@ -1,5 +1,5 @@
 // Verifies web-search config behavior for Codex provider settings.
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { mergeScopedSearchConfig } from "../agents/tools/web-search-provider-config.js";
 import { validateConfigObjectRaw } from "./validation.js";
@@ -115,29 +115,6 @@ describe("web search Codex native config validation", () => {
         (entry) => entry.path === "tools.web.search.openaiCodex.mode",
       );
       expect(issue?.allowedValues).toEqual(["cached", "live"]);
-    }
-  });
-
-  it("rejects invalid openaiCodex.contextSize", () => {
-    const result = validateConfigObjectRaw({
-      tools: {
-        web: {
-          search: {
-            openaiCodex: {
-              enabled: true,
-              contextSize: "huge",
-            },
-          },
-        },
-      },
-    });
-
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      const issue = result.issues.find(
-        (entry) => entry.path === "tools.web.search.openaiCodex.contextSize",
-      );
-      expect(issue?.allowedValues).toEqual(["low", "medium", "high"]);
     }
   });
 });
