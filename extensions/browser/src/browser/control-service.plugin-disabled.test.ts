@@ -24,7 +24,8 @@ vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
   >("astroclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
-    getRuntimeConfig: mocks.loadConfig,
+    readRuntimeConfig: mocks.loadConfig,
+    captureRuntimeConfigAsyncReader: () => async () => mocks.loadConfig(),
     loadConfig: mocks.loadConfig,
   };
 });
