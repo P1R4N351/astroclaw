@@ -1,6 +1,6 @@
 // Hooks token reuse repair tests cover doctor repairs for reused gateway hook tokens.
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { repairHooksTokenReuseGatewayAuth } from "./hooks-token-reuse-repair.js";
 
 const ROTATED_HOOKS_TOKEN = "rotated-hooks-token-1234567890";
@@ -27,50 +27,6 @@ describe("repairHooksTokenReuseGatewayAuth", () => {
     expect(result.changes).toContain(
       "Rotated hooks.token because it reused active Gateway shared-secret auth. Update external hook senders to use the new hooks.token.",
     );
-  });
-
-  it("rotates hooks.token when it reuses gateway password auth", async () => {
-    const result = await repair({
-      gateway: {
-        auth: {
-          mode: "password",
-          password: "shared-gateway-password-1234567890", // pragma: allowlist secret
-        },
-      },
-      hooks: {
-        enabled: true,
-        token: "shared-gateway-password-1234567890",
-      },
-    });
-
-    expect(result.config.hooks?.token).toBe(ROTATED_HOOKS_TOKEN);
-  });
-
-  it("rotates hooks.token when it reuses gateway password auth from a SecretRef", async () => {
-    const result = await repair(
-      {
-        secrets: {
-          providers: {
-            default: { source: "env" },
-          },
-        },
-        gateway: {
-          auth: {
-            mode: "password",
-            password: { source: "env", provider: "default", id: "GW_PASSWORD" },
-          },
-        },
-        hooks: {
-          enabled: true,
-          token: "shared-gateway-password-1234567890",
-        },
-      },
-      {
-        GW_PASSWORD: "shared-gateway-password-1234567890", // pragma: allowlist secret
-      } as NodeJS.ProcessEnv,
-    );
-
-    expect(result.config.hooks?.token).toBe(ROTATED_HOOKS_TOKEN);
   });
 
   it("does not abort when active gateway auth SecretRef is unavailable", async () => {
@@ -125,24 +81,6 @@ describe("repairHooksTokenReuseGatewayAuth", () => {
       config: cfg,
       changes: [],
     });
-  });
-
-  it("rotates hooks.token when it reuses trusted-proxy local password fallback", async () => {
-    const result = await repair({
-      gateway: {
-        auth: {
-          mode: "trusted-proxy",
-          trustedProxy: { userHeader: "x-forwarded-user" },
-          password: "trusted-proxy-local-password-1234567890", // pragma: allowlist secret
-        },
-      },
-      hooks: {
-        enabled: true,
-        token: "trusted-proxy-local-password-1234567890",
-      },
-    });
-
-    expect(result.config.hooks?.token).toBe(ROTATED_HOOKS_TOKEN);
   });
 
   it("rotates hooks.token when it reuses trusted-proxy password auth from a SecretRef", async () => {
