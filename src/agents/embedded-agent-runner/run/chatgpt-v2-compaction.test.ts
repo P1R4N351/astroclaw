@@ -1,5 +1,5 @@
 import { zstdDecompressSync } from "node:zlib";
-import type { Model, StreamFn } from "@astroclaw/llm-core";
+import type { Context, Model, StreamFn } from "@astroclaw/llm-core";
 import { createApiRegistry } from "@openclaw/ai";
 import { createOpenAIResponsesTransportStreamFn } from "@openclaw/ai/transports";
 import { Type } from "typebox";
@@ -513,25 +513,27 @@ describe("ChatGPT V2 at the embedded normal request boundary", () => {
     ).toBe(false);
   });
 
-  it("rejects retained input requiring redaction before making a provider request", async () => {
+  it("preserves retained input despite configured log redaction patterns", async () => {
     const f = await fixture();
     const boundary = createChatGPTV2CompactionBoundary({
       ...f.boundaryParams,
       config: { logging: { redactPatterns: ["PRIVATE_VALUE"] } },
     });
+    const content = "PRIVATE_VALUE API_TOKEN = computeToken()";
+    const messages: Context["messages"] = [
+      { role: "user", content, timestamp: 1 },
+      ...f.sessionManager
+        .buildSessionContext()
+        .messages.filter(
+          (message) => message.role === "assistant" || message.role === "toolResult",
+        ),
+    ];
     await expect(
-      boundary(
-        f.session.agent.streamFn,
-        model,
-        {
-          messages: [
-            { role: "user", content: "PRIVATE_VALUE " + "large ".repeat(5_000), timestamp: 1 },
-          ],
-        },
-        {},
-      ),
-    ).rejects.toBeInstanceOf(MidTurnPrecheckSignal);
-    expect(requests).toHaveLength(0);
+      boundary(f.session.agent.streamFn, model, { messages }, {}),
+    ).resolves.toMatchObject({ providerReplay: { compactedWindow: { outputTokens: 5 } } });
+    expect(requests).toHaveLength(1);
+    expect(requests.map(realUserText)).toEqual([[content]]);
+    expect(f.onFallback).not.toHaveBeenCalled();
   });
 
   it("never falls back after a committed checkpoint or caller abort", async () => {
