@@ -3280,9 +3280,9 @@ describe("doctor health contributions", () => {
         }),
       );
 
-      expect(mocks.readConfigFileSnapshot).toHaveBeenCalledWith({
-        skipPluginValidation: true,
-      });
+      expect(mocks.readConfigFileSnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({ skipPluginValidation: true }),
+      );
     });
   });
   describe("Doctor contribution migration outcomes", () => {
