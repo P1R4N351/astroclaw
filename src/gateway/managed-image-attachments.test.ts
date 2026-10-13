@@ -1333,7 +1333,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
     expect(result).toEqual({ deletedRecordCount: 0, deletedFileCount: 0, retainedCount: 1 });
     expect(checkedSessionKeys).toEqual([fixture.sessionKey]);
-    await expect(fs.access(fixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(fixture.originalPath);
     expect(
       await attachManagedImageRecordsToMessage({
         attachments: [fixture],
@@ -1404,7 +1404,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
     expect(failed).toEqual({ deletedRecordCount: 0, deletedFileCount: 0, retainedCount: 1 });
     expect(await readManagedImageRecord(fixture.attachmentId, stateDir)).toBeNull();
-    await expect(fs.access(fixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(fixture.originalPath);
 
     const retried = await cleanupManagedOutgoingImageRecords({ stateDir });
 
@@ -1459,7 +1459,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
     });
 
     expect(result).toEqual({ deletedRecordCount: 0, deletedFileCount: 0, retainedCount: 0 });
-    await expect(fs.access(orphanPath)).resolves.toBeUndefined();
+    await fs.access(orphanPath);
   });
 
   it("does not let a valid fallback mask an unreadable exact row", async () => {
@@ -1482,7 +1482,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
     expect(result).toEqual({ deletedRecordCount: 0, deletedFileCount: 0, retainedCount: 1 });
     expect(await readManagedImageRecord(fixture.attachmentId, stateDir)).not.toBeNull();
-    await expect(fs.access(fixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(fixture.originalPath);
     expect(readSessionMessagesMock).not.toHaveBeenCalled();
   });
 
@@ -1549,7 +1549,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
     expect(result).toEqual({ deletedRecordCount: 0, deletedFileCount: 0, retainedCount: 1 });
     expect(await readManagedImageRecord(fixture.attachmentId, stateDir)).not.toBeNull();
-    await expect(fs.access(fixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(fixture.originalPath);
     expect(loadSessionEntryMock).not.toHaveBeenCalled();
     expect(readSessionMessagesMock).not.toHaveBeenCalled();
   });
@@ -1590,8 +1590,8 @@ describe("cleanupManagedOutgoingImageRecords", () => {
     expect(result.deletedRecordCount).toBe(0);
     expect(result.deletedFileCount).toBe(0);
     expect(result.retainedCount).toBe(2);
-    await expect(fs.access(firstFixture.originalPath)).resolves.toBeUndefined();
-    await expect(fs.access(secondFixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(firstFixture.originalPath);
+    await fs.access(secondFixture.originalPath);
     expect(readSessionMessagesMock).toHaveBeenCalledTimes(1);
   });
 
@@ -1622,7 +1622,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
     expect(result.deletedRecordCount).toBe(1);
     expect(result.retainedCount).toBe(1);
-    await expect(fs.access(retainedFixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(retainedFixture.originalPath);
   });
 
   it("retains other selected-agent global records during scoped cleanup", async () => {
@@ -1664,7 +1664,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
     expect(result.deletedRecordCount).toBe(1);
     expect(result.retainedCount).toBe(1);
-    await expect(fs.access(retainedFixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(retainedFixture.originalPath);
     await expectPathMissing(deletedFixture.originalPath);
   });
 
@@ -1708,7 +1708,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
     expect(readSessionMessagesMock).toHaveBeenCalled();
     expect(result).toEqual({ deletedRecordCount: 0, deletedFileCount: 0, retainedCount: 1 });
-    await expect(fs.access(fixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(fixture.originalPath);
   });
 
   it("treats legacy unscoped global records as the configured default agent", async () => {
@@ -1765,7 +1765,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
     expect(result.deletedRecordCount).toBe(1);
     expect(result.retainedCount).toBe(1);
     await expectPathMissing(deletedFixture.originalPath);
-    await expect(fs.access(retainedFixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(retainedFixture.originalPath);
   });
 
   it("retains ownerless global records when no compatibility owner exists", async () => {
@@ -1784,7 +1784,7 @@ describe("cleanupManagedOutgoingImageRecords", () => {
 
     expect(result).toEqual({ deletedRecordCount: 0, deletedFileCount: 0, retainedCount: 1 });
     expect(await readManagedImageRecord(fixture.attachmentId, stateDir)).not.toBeNull();
-    await expect(fs.access(fixture.originalPath)).resolves.toBeUndefined();
+    await fs.access(fixture.originalPath);
     expect(loadSessionEntryMock).not.toHaveBeenCalled();
     expect(readSessionMessagesMock).not.toHaveBeenCalled();
   });
