@@ -9,6 +9,7 @@ import {
   type RuntimeAuthProfileStore,
 } from "../../agents/auth-profiles.js";
 import { createAuthProfileStoreFixture } from "../../agents/auth-profiles/credential-fixtures.test-support.js";
+import * as authProfileSnapshots from "../../agents/auth-profiles/runtime-snapshots.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import {
   resetConfigRuntimeState,
@@ -57,6 +58,7 @@ const mocks = vi.hoisted(() => ({
     }),
   ),
   refreshActiveProviderAuthRuntimeSnapshot: vi.fn(async () => false),
+  refreshRuntimeAuthProfileStoreSources: vi.fn(async () => {}),
   prepareModelRuntimeSnapshot: vi.fn(async () => {}),
   loadDeferredCatalog: vi.fn(),
   readPreparedCatalog: vi.fn(),
@@ -390,6 +392,10 @@ function resetAuthStatusMocks(): void {
   });
   mocks.loadProviderUsageSummary.mockResolvedValue(emptyUsageSummary());
   mocks.refreshActiveProviderAuthRuntimeSnapshot.mockResolvedValue(false);
+  vi.spyOn(authProfileSnapshots, "refreshRuntimeAuthProfileStoreSources").mockImplementation(
+    mocks.refreshRuntimeAuthProfileStoreSources,
+  );
+  mocks.refreshRuntimeAuthProfileStoreSources.mockResolvedValue();
   mocks.prepareModelRuntimeSnapshot.mockResolvedValue();
 }
 
@@ -407,6 +413,7 @@ function firstDeferredAuthScope() {
 beforeEach(resetAuthStatusMocks);
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   resetConfigRuntimeState();
 });
@@ -445,7 +452,23 @@ describe("models.authStatus", () => {
     expect(mocks.readPreparedCatalog).not.toHaveBeenCalled();
     expect(mocks.loadDeferredCatalog).not.toHaveBeenCalled();
     expect(mocks.refreshActiveProviderAuthRuntimeSnapshot).not.toHaveBeenCalled();
+    expect(mocks.refreshRuntimeAuthProfileStoreSources).not.toHaveBeenCalled();
     expectUnknownAgentId(opts, "retired");
+  });
+
+  it("waits for persisted source refresh before preparing refreshed credentials", async () => {
+    const sourceRefresh = createDeferred();
+    mocks.refreshRuntimeAuthProfileStoreSources.mockReturnValueOnce(sourceRefresh.promise);
+    const pending = readAuthStatus({ refresh: true });
+
+    expect(mocks.refreshRuntimeAuthProfileStoreSources).toHaveBeenCalledOnce();
+    expect(mocks.refreshActiveProviderAuthRuntimeSnapshot).not.toHaveBeenCalled();
+    expect(mocks.loadDeferredCatalog).not.toHaveBeenCalled();
+    sourceRefresh.resolve();
+    await pending;
+
+    expect(mocks.refreshActiveProviderAuthRuntimeSnapshot).toHaveBeenCalledOnce();
+    expect(mocks.loadDeferredCatalog).toHaveBeenCalledOnce();
   });
 
   it.each(["???", "   "])(
