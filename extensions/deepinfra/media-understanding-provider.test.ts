@@ -2,7 +2,7 @@
 import {
   describeImagesWithModel,
   describeImageWithModel,
-} from "openclaw/plugin-sdk/media-understanding";
+} from "astroclaw/plugin-sdk/media-understanding";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { deepinfraMediaUnderstandingProvider } from "./media-understanding-provider.js";
 
@@ -10,9 +10,9 @@ const { transcribeOpenAiCompatibleAudioMock } = vi.hoisted(() => ({
   transcribeOpenAiCompatibleAudioMock: vi.fn(async () => ({ text: "hello", model: "whisper" })),
 }));
 
-vi.mock("openclaw/plugin-sdk/media-understanding", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-understanding")>(
-    "openclaw/plugin-sdk/media-understanding",
+vi.mock("astroclaw/plugin-sdk/media-understanding", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-understanding")>(
+    "astroclaw/plugin-sdk/media-understanding",
   );
   return {
     ...actual,
@@ -21,7 +21,7 @@ vi.mock("openclaw/plugin-sdk/media-understanding", async () => {
 });
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/media-understanding");
+  vi.doUnmock("astroclaw/plugin-sdk/media-understanding");
   vi.resetModules();
 });
 
@@ -31,7 +31,7 @@ describe("deepinfra media understanding provider", () => {
       id: "deepinfra",
       capabilities: ["image", "audio"],
       defaultModels: {
-        image: "moonshotai/Kimi-K2.5",
+        image: "moonshotai/Kimi-K2.6",
         audio: "openai/whisper-large-v3-turbo",
       },
       autoPriority: {
