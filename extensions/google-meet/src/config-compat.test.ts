@@ -1,5 +1,5 @@
 // Google Meet tests cover config compat plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { legacyConfigRules, normalizeCompatibilityConfig } from "./config-compat.js";
 
@@ -36,8 +36,10 @@ describe("google-meet config compatibility", () => {
       },
     } as OpenClawConfig;
 
+    const original = structuredClone(config);
     const migration = normalizeCompatibilityConfig({ cfg: config });
 
+    expect(config).toEqual(original);
     expect(migration.changes).toEqual([
       'Moved Google Meet legacy realtime.provider="google" intent to realtime.voiceProvider="google" and realtime.transcriptionProvider="openai".',
     ]);
