@@ -2394,7 +2394,6 @@ describe("repairMissingConfiguredPluginInstalls", () => {
     );
 
     expect(mocks.resolveOfficialExternalWebProviderContractPluginIdsForEnv).toHaveBeenCalledWith({
-      contract: "webFetchProviders",
       env: { ...testEnv, ...env },
     });
     expectRecordFields(mockCallArg(installNpm), {
