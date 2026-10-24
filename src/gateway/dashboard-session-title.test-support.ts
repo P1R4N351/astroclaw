@@ -1,4 +1,5 @@
 import { text as readText } from "node:stream/consumers";
+import { modelDefinition } from "../agents/model-auth.fixtures.test-support.js";
 import { setRuntimeConfigSnapshot } from "../config/runtime-snapshot.js";
 import type { ModelDefinitionConfig } from "../config/types.models.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
@@ -94,16 +95,8 @@ export async function withTitleProvider(
                 agentRuntime: { id: "openclaw" },
                 request: { allowPrivateNetwork: true },
                 models: [primaryModel, fixtureModel].map(
-                  (id): ModelDefinitionConfig => ({
-                    id,
-                    name: id,
-                    api,
-                    reasoning: false,
-                    input: ["text"],
-                    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-                    contextWindow: 16_000,
-                    maxTokens: 8_192,
-                  }),
+                  (id): ModelDefinitionConfig =>
+                    modelDefinition(id, { api, reasoning: false, contextWindow: 16_000 }),
                 ),
               },
             },
