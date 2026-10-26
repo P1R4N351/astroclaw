@@ -2,7 +2,7 @@
  * Slug derivation: kebab-case lowercase, deterministic, idempotent.
  * Used by parse + resolve for section/item addressing.
  *
- * @module @astroclaw/oc-path/slug
+ * @module @openclaw/oc-path/slug
  */
 
 const NON_SLUG_CHARS = /[^a-z0-9-]+/g;
@@ -13,7 +13,6 @@ const TRIM_HYPHENS = /^-+|-+$/g;
 export function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/_/g, "-")
     .replace(NON_SLUG_CHARS, "-")
     .replace(COLLAPSE_HYPHENS, "-")
     .replace(TRIM_HYPHENS, "");
