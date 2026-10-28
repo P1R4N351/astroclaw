@@ -12,7 +12,8 @@ export type RegistryOperations = {
     | "begin"
     | "settle"
     | "label"
-    | "maintenance"]: StoreRegistry[K];
+    | "maintenance"
+    | "grant"]: StoreRegistry[K];
 };
 export type RegistryRequest = { id: number; op: keyof RegistryOperations; args: unknown[] };
 export type RegistryResponse =
