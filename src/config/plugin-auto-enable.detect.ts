@@ -1,4 +1,3 @@
-// Detects plugin auto-enable candidates from config and discovery results.
 import type { AmbientEnvTriggerPolicy } from "../channels/config-presence.js";
 import type { PluginDiscoveryResult } from "../plugins/discovery.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
@@ -8,7 +7,7 @@ import {
   resolvePluginAutoEnableManifestRegistry,
 } from "./plugin-auto-enable.shared.js";
 import type { PluginAutoEnableCandidate } from "./plugin-auto-enable.types.js";
-import type { OpenClawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 /** Detects installed plugins that should become enabled from existing config usage. */
 export function detectPluginAutoEnableCandidates(params: {
@@ -19,7 +18,7 @@ export function detectPluginAutoEnableCandidates(params: {
   ambientEnvTriggers?: AmbientEnvTriggerPolicy;
 }): PluginAutoEnableCandidate[] {
   const env = params.env ?? process.env;
-  const config = params.config ?? ({} as OpenClawConfig);
+  const config = params.config ?? {};
   const readiness = resolvePluginAutoEnableReadiness(
     config,
     env,
