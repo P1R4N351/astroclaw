@@ -1,6 +1,4 @@
 /**
- * Session-to-agent binding resolver.
- *
  * Derives the trusted active agent from explicit agent ids, agent session keys, or configured main-session aliases.
  */
 import {
@@ -8,7 +6,7 @@ import {
   normalizeOptionalString,
 } from "@astroclaw/normalization-core/string-coerce";
 import { resolvePersistedSessionStoreOwnerForKey } from "../config/sessions/session-store-owner.js";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeMainKey, parseAgentSessionKey } from "../routing/session-key.js";
 import { resolveSessionAgentId } from "./agent-scope.js";
 
