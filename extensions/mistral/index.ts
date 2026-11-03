@@ -1,4 +1,5 @@
 import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
+import { buildProviderReplayFamilyHooks } from "openclaw/plugin-sdk/provider-model-shared";
 import { applyMistralModelCompat } from "./api.js";
 import manifest from "./astroclaw.plugin.json" with { type: "json" };
 import { mistralMediaUnderstandingProvider } from "./media-understanding-provider.js";
@@ -24,10 +25,7 @@ export default defineSingleProviderPluginEntry({
     matchesContextOverflowError: ({ errorMessage }) =>
       /\bmistral\b.*(?:input.*too long|token limit.*exceeded)/i.test(errorMessage),
     normalizeResolvedModel: ({ model }) => applyMistralModelCompat(model),
-    buildReplayPolicy: () => ({
-      sanitizeToolCallIds: true,
-      toolCallIdMode: "strict9",
-    }),
+    ...buildProviderReplayFamilyHooks({ family: "mistral" }),
   },
   register(api) {
     api.registerEmbeddingProvider(mistralMemoryEmbeddingProviderAdapter);
