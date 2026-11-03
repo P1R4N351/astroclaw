@@ -1,4 +1,3 @@
-// Classifies sensitive config paths for redaction and validation.
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 
 /**
