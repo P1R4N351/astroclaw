@@ -1,18 +1,15 @@
 /**
  * JSONL AST types — JSON-Lines: one JSON value per line, separated by
- * `\n`. The shape used by astroclaw session-event logs, audit trails,
+ * `\n`. The shape used by openclaw session-event logs, audit trails,
  * and LKG checkpoints (which is why JSONL is part of the universal
  * OcPath addressing scheme).
- *
- * **Per-kind discriminator**: every AST in this substrate carries a
- * `kind` field. The OcPath resolver dispatches on `kind`.
  *
  * **Byte-fidelity**: `raw` is preserved on the root for round-trip
  * emit. JSONL is line-oriented, so blank lines and per-line comments
  * (we don't strip them in render mode either — we preserve them as
  * "raw" line entries) live in the AST.
  *
- * @module @astroclaw/oc-path/jsonl/ast
+ * @module @openclaw/oc-path/jsonl/ast
  */
 
 import type { JsoncValue } from "../jsonc/ast.js";
