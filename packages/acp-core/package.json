@@ -13,6 +13,7 @@
     "./session-interaction-mode": "./src/session-interaction-mode.ts",
     "./session-lineage-meta": "./src/session-lineage-meta.ts",
     "./session": "./src/session.ts",
+    "./structured-auth-redaction": "./src/structured-auth-redaction.ts",
     "./types": "./src/types.ts",
     "./runtime/error-text": "./src/runtime/error-text.ts",
     "./runtime/errors": "./src/runtime/errors.ts",

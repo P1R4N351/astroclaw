@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./attachment-classify": "./src/attachment-classify.ts",
     "./base64": "./src/base64.ts",
     "./constants": "./src/constants.ts",
     "./content-length": "./src/content-length.ts",

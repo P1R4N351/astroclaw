@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./ansi-sequences": "./src/ansi-sequences.ts",
     "./ansi": "./src/ansi.ts",
     "./decorative-emoji": "./src/decorative-emoji.ts",
     "./display-string": "./src/display-string.ts",

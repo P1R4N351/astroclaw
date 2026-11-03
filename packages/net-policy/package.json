@@ -9,6 +9,7 @@
     "./ip": "./src/ip.ts",
     "./ipv4": "./src/ipv4.ts",
     "./redact-sensitive-url": "./src/redact-sensitive-url.ts",
+    "./url-protocol": "./src/url-protocol.ts",
     "./url-userinfo": "./src/url-userinfo.ts"
   }
 }
