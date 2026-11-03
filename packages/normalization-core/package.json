@@ -2,32 +2,163 @@
   "name": "@astroclaw/normalization-core",
   "version": "0.0.0-private",
   "private": true,
+  "files": ["dist"],
   "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
-    ".": "./src/index.ts",
-    "./agent-id": "./src/agent-id.ts",
-    "./agent-run-terminal-outcome": "./src/agent-run-terminal-outcome.ts",
-    "./boolean-coercion": "./src/boolean-coercion.ts",
-    "./cjk-chars": "./src/cjk-chars.ts",
-    "./code-points": "./src/code-points.ts",
-    "./error-coercion": "./src/error-coercion.ts",
-    "./expect": "./src/expect.ts",
-    "./grapheme": "./src/grapheme.ts",
-    "./home-dir": "./src/home-dir.ts",
-    "./json-coercion": "./src/json-coercion.ts",
-    "./json-schema": "./src/json-schema.ts",
-    "./markdown-plain-text": "./src/markdown-plain-text.ts",
-    "./mountinfo-path": "./src/mountinfo-path.ts",
-    "./node-crypto": "./src/node-crypto.ts",
-    "./number-coercion": "./src/number-coercion.ts",
-    "./phone-presentation": "./src/phone-presentation.ts",
-    "./promise-like": "./src/promise-like.ts",
-    "./record-coerce": "./src/record-coerce.ts",
-    "./result": "./src/result.ts",
-    "./stable-node-path": "./src/stable-node-path.ts",
-    "./stable-stringify": "./src/stable-stringify.ts",
-    "./string-coerce": "./src/string-coerce.ts",
-    "./string-normalization": "./src/string-normalization.ts",
-    "./utf16-slice": "./src/utf16-slice.ts"
+    "./agent-id": {
+      "types": "./dist/agent-id.d.mts",
+      "import": "./dist/agent-id.mjs",
+      "default": "./dist/agent-id.mjs"
+    },
+    "./agent-run-terminal-outcome": {
+      "types": "./dist/agent-run-terminal-outcome.d.mts",
+      "import": "./dist/agent-run-terminal-outcome.mjs",
+      "default": "./dist/agent-run-terminal-outcome.mjs"
+    },
+    "./balanced-json": {
+      "types": "./dist/balanced-json.d.mts",
+      "import": "./dist/balanced-json.mjs",
+      "default": "./dist/balanced-json.mjs"
+    },
+    "./boolean-coercion": {
+      "types": "./dist/boolean-coercion.d.mts",
+      "import": "./dist/boolean-coercion.mjs",
+      "default": "./dist/boolean-coercion.mjs"
+    },
+    "./browser-error-runtime": {
+      "types": "./dist/browser-error-runtime.d.mts",
+      "import": "./dist/browser-error-runtime.mjs",
+      "default": "./dist/browser-error-runtime.mjs"
+    },
+    "./cjk-chars": {
+      "types": "./dist/cjk-chars.d.mts",
+      "import": "./dist/cjk-chars.mjs",
+      "default": "./dist/cjk-chars.mjs"
+    },
+    "./code-points": {
+      "types": "./dist/code-points.d.mts",
+      "import": "./dist/code-points.mjs",
+      "default": "./dist/code-points.mjs"
+    },
+    "./error-coercion": {
+      "types": "./dist/error-coercion.d.mts",
+      "import": "./dist/error-coercion.mjs",
+      "default": "./dist/error-coercion.mjs"
+    },
+    "./expect": {
+      "types": "./dist/expect.d.mts",
+      "import": "./dist/expect.mjs",
+      "default": "./dist/expect.mjs"
+    },
+    "./format": {
+      "types": "./dist/format.d.mts",
+      "import": "./dist/format.mjs",
+      "default": "./dist/format.mjs"
+    },
+    "./grapheme": {
+      "types": "./dist/grapheme.d.mts",
+      "import": "./dist/grapheme.mjs",
+      "default": "./dist/grapheme.mjs"
+    },
+    "./home-dir": {
+      "types": "./dist/home-dir.d.mts",
+      "import": "./dist/home-dir.mjs",
+      "default": "./dist/home-dir.mjs"
+    },
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./json-coercion": {
+      "types": "./dist/json-coercion.d.mts",
+      "import": "./dist/json-coercion.mjs",
+      "default": "./dist/json-coercion.mjs"
+    },
+    "./json-schema": {
+      "types": "./dist/json-schema.d.mts",
+      "import": "./dist/json-schema.mjs",
+      "default": "./dist/json-schema.mjs"
+    },
+    "./json-schema-validator": {
+      "types": "./dist/json-schema-validator.d.mts",
+      "import": "./dist/json-schema-validator.mjs",
+      "default": "./dist/json-schema-validator.mjs"
+    },
+    "./markdown-plain-text": {
+      "types": "./dist/markdown-plain-text.d.mts",
+      "import": "./dist/markdown-plain-text.mjs",
+      "default": "./dist/markdown-plain-text.mjs"
+    },
+    "./mountinfo-path": {
+      "types": "./dist/mountinfo-path.d.mts",
+      "import": "./dist/mountinfo-path.mjs",
+      "default": "./dist/mountinfo-path.mjs"
+    },
+    "./node-crypto": {
+      "types": "./dist/node-crypto.d.mts",
+      "import": "./dist/node-crypto.mjs",
+      "default": "./dist/node-crypto.mjs"
+    },
+    "./number-coercion": {
+      "types": "./dist/number-coercion.d.mts",
+      "import": "./dist/number-coercion.mjs",
+      "default": "./dist/number-coercion.mjs"
+    },
+    "./phone-presentation": {
+      "types": "./dist/phone-presentation.d.mts",
+      "import": "./dist/phone-presentation.mjs",
+      "default": "./dist/phone-presentation.mjs"
+    },
+    "./promise-like": {
+      "types": "./dist/promise-like.d.mts",
+      "import": "./dist/promise-like.mjs",
+      "default": "./dist/promise-like.mjs"
+    },
+    "./record-coerce": {
+      "types": "./dist/record-coerce.d.mts",
+      "import": "./dist/record-coerce.mjs",
+      "default": "./dist/record-coerce.mjs"
+    },
+    "./result": {
+      "types": "./dist/result.d.mts",
+      "import": "./dist/result.mjs",
+      "default": "./dist/result.mjs"
+    },
+    "./stable-node-path": {
+      "types": "./dist/stable-node-path.d.mts",
+      "import": "./dist/stable-node-path.mjs",
+      "default": "./dist/stable-node-path.mjs"
+    },
+    "./stable-stringify": {
+      "types": "./dist/stable-stringify.d.mts",
+      "import": "./dist/stable-stringify.mjs",
+      "default": "./dist/stable-stringify.mjs"
+    },
+    "./string-coerce": {
+      "types": "./dist/string-coerce.d.mts",
+      "import": "./dist/string-coerce.mjs",
+      "default": "./dist/string-coerce.mjs"
+    },
+    "./string-normalization": {
+      "types": "./dist/string-normalization.d.mts",
+      "import": "./dist/string-normalization.mjs",
+      "default": "./dist/string-normalization.mjs"
+    },
+    "./text-decoding": {
+      "types": "./dist/text-decoding.d.mts",
+      "import": "./dist/text-decoding.mjs",
+      "default": "./dist/text-decoding.mjs"
+    },
+    "./utf16-slice": {
+      "types": "./dist/utf16-slice.d.mts",
+      "import": "./dist/utf16-slice.mjs",
+      "default": "./dist/utf16-slice.mjs"
+    }
+  },
+  "scripts": {
+    "build": "node --import ../../scripts/tsx.mjs ../../scripts/build-workspace-package.mts normalization-core"
   }
 }

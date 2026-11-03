@@ -5,6 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./contract": "./src/contract.ts",
+    "./diagnostics": "./src/utils/diagnostics.ts",
+    "./event-stream": "./src/utils/event-stream.ts",
     "./types": "./src/types.ts",
     "./validation": "./src/validation.ts",
     "./model-contracts/anthropic": "./src/model-contracts/anthropic.ts",

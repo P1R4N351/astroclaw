@@ -4,6 +4,23 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./api": "./api.ts",
+    "./runtime-api": "./runtime-api.ts",
+    "./speaker": "./speaker.ts",
+    "./voice-models": "./voice-models.ts",
+    "./runtime-api.js": "./runtime-api.ts",
+    "./runtime-availability": "./src/runtime-availability.ts",
+    "./speech-text": "./src/speech-text.ts",
+    "./tts-payload": "./src/tts-payload.ts",
+    "./tts-provider-resolution": "./src/tts-provider-resolution.ts",
+    "./tts-request": "./src/tts-request.ts",
+    "./tts-settings-writes": "./src/tts-settings-writes.ts",
+    "./tts-settings": "./src/tts-settings.ts",
+    "./tts-streaming": "./src/tts-streaming.ts",
+    "./tts-synthesis-support": "./src/tts-synthesis-support.ts",
+    "./tts-synthesis": "./src/tts-synthesis.ts",
+    "./tts-telephony": "./src/tts-telephony.ts",
+    "./tts-types": "./src/tts-types.ts",
     "./tts": "./src/tts.ts"
   }
 }
