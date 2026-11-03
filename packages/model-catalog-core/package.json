@@ -6,11 +6,14 @@
   "exports": {
     "./configured-model-refs": "./src/configured-model-refs.ts",
     ".": "./src/index.ts",
+    "./model-catalog-context-windows": "./src/model-catalog-context-windows.ts",
     "./model-catalog-normalize": "./src/model-catalog-normalize.ts",
+    "./model-catalog-pricing": "./src/model-catalog-pricing.ts",
     "./model-catalog-refs": "./src/model-catalog-refs.ts",
     "./model-catalog-types": "./src/model-catalog-types.ts",
     "./provider-id": "./src/provider-id.ts",
     "./provider-model-id-normalization": "./src/provider-model-id-normalization.ts",
-    "./provider-model-id-normalize": "./src/provider-model-id-normalize.ts"
+    "./provider-model-id-normalize": "./src/provider-model-id-normalize.ts",
+    "./remote-catalog-bundle": "./src/remote-catalog-bundle.ts"
   }
 }

@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./contracts": "./src/contracts.ts",
     "./grammar": "./src/grammar.ts",
     ".": "./src/index.ts",
     "./payload": "./src/payload.ts",
     "./promote": "./src/promote.ts",
+    "./protection-fast-path": "./src/protection-fast-path.ts",
     "./stream-normalizer": "./src/stream-normalizer.ts"
   }
 }
