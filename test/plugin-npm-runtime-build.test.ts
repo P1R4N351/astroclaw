@@ -266,10 +266,10 @@ describe("plugin npm runtime build planning", () => {
       if (existsSync(path.join(plan.packageDir, "assets", "activity"))) {
         expect(plan.packageFiles).toContain("assets/activity/*.svg");
       }
-      expect(plan.packagePeerMetadata.peerDependencies.openclaw).toBe(
-        plan.packageJson.openclaw?.compat?.pluginApi,
+      expect(plan.packagePeerMetadata.peerDependencies.astroclaw).toBe(
+        plan.packageJson.astroclaw?.compat?.pluginApi,
       );
-      expect(plan.packagePeerMetadata.peerDependenciesMeta.openclaw.optional).toBe(true);
+      expect(plan.packagePeerMetadata.peerDependenciesMeta.astroclaw.optional).toBe(true);
     }
   });
 
