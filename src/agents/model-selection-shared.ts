@@ -1530,6 +1530,8 @@ export function isModelKeyAllowedBySet(allowedKeys: ReadonlySet<string>, key: st
   return false;
 }
 
+const warnedAllowedModelSubstitutions = new Set<string>();
+
 function resolveInitialModelSelection(
   params: {
     cfg?: OpenClawConfig;
@@ -1567,7 +1569,20 @@ function resolveInitialModelSelection(
   const fallback = params.allowedCatalog.find((entry) =>
     params.allows({ provider: entry.provider, model: entry.id }),
   );
-  return fallback ? { provider: fallback.provider, model: fallback.id } : null;
+  if (!fallback) {
+    return null;
+  }
+  const substituted = { provider: fallback.provider, model: fallback.id };
+  const requestedKey = modelKey(current.provider, current.model);
+  const substitutedKey = modelKey(substituted.provider, substituted.model);
+  const dedupeKey = `${requestedKey}->${substitutedKey}`;
+  if (!warnedAllowedModelSubstitutions.has(dedupeKey)) {
+    warnedAllowedModelSubstitutions.add(dedupeKey);
+    getLog().warn(
+      `Model "${sanitizeModelWarningValue(requestedKey)}" is not in the allowed model list. Falling back to "${sanitizeModelWarningValue(substitutedKey)}". Check the allowed-model config for a typo.`,
+    );
+  }
+  return substituted;
 }
 
 export type ModelVisibilityPolicy = {
