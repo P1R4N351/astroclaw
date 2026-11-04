@@ -1,8 +1,20 @@
-import type { DatabaseSync } from "node:sqlite";
-import { stageSqliteTransactionState } from "../../infra/sqlite-post-commit.js";
-import type { SessionEntryCacheDatabase } from "./session-accessor.sqlite-entry-cache-projection.js";
-import type { SessionEntryCacheSnapshot } from "./session-accessor.sqlite-entry-cache.types.js";
-import type { SqliteSessionEntryRevision } from "./session-accessor.sqlite-entry-revision.js";
+import type { EngineConnection } from "../../infra/sql-connection.js";
+import { isPostgresSqlConnection } from "../../infra/sql-connection.js";
+import {
+  publishSqliteCommittedState,
+  stageSqliteTransactionState,
+} from "../../infra/sqlite-post-commit.js";
+import { getAdmittedSqliteSchemaFacts } from "../../infra/sqlite-schema-facts.js";
+import type {
+  SessionEntryCacheDatabase,
+  SessionEntryCacheSnapshot,
+} from "./session-accessor.sqlite-entry-cache.types.js";
+import {
+  cacheValidityTokensEqual,
+  readSessionEntryCacheValidityToken,
+  type SqliteSessionEntryRevision,
+} from "./session-accessor.sqlite-entry-revision.js";
+import type { SessionParticipantProjection } from "./session-membership-facts.types.js";
 
 export type SqliteSessionEntryCache = SessionEntryCacheSnapshot & {
   validityToken: SqliteSessionEntryRevision;
@@ -14,29 +26,37 @@ export type SqliteSessionEntryCache = SessionEntryCacheSnapshot & {
 // snapshots current; narrow tracked upserts patch one authoritative row after commit, while
 // structural/unknown writes invalidate. Without both, every read would re-query and re-parse
 // every entry_json document.
-export const sessionEntryCaches = new WeakMap<DatabaseSync, SqliteSessionEntryCache>();
+export const sessionEntryCaches = new WeakMap<EngineConnection, SqliteSessionEntryCache>();
 
 export function publishTrackedCacheUpdate(
   database: SessionEntryCacheDatabase,
   publish: () => void,
   stage?: () => () => void,
+  invalidateFacts?: () => void,
 ): boolean {
   let settle: (() => void) | undefined;
+  const commit = () => {
+    publish();
+    settle?.();
+  };
+  const invalidate = () => {
+    sessionEntryCaches.delete(database.db);
+    invalidateFacts?.();
+    settle?.();
+  };
   // Committed cache state must settle before observers can reenter with newer writes.
   if (
-    stageSqliteTransactionState(database.db, {
-      stage: () => {
-        settle = stage?.();
+    stageSqliteTransactionState(
+      isPostgresSqlConnection(database.db) ? database.db.anchor : database.db,
+      {
+        stage: () => {
+          settle = stage?.();
+        },
+        rollback: () => settle?.(),
+        commit,
+        invalidate,
       },
-      rollback: () => settle?.(),
-      commit: () => {
-        try {
-          publish();
-        } finally {
-          settle?.();
-        }
-      },
-    })
+    )
   ) {
     return true;
   }
@@ -45,6 +65,29 @@ export function publishTrackedCacheUpdate(
       "SQLite session entry writes must use runOpenClawAgentWriteTransaction for cache publication",
     );
   }
-  publish();
+  publishSqliteCommittedState({ installFacts: commit, invalidate, notify() {} });
   return false;
+}
+
+/** Participant display facts may be borrowed in a transaction only at its native revision. */
+export function readCurrentSessionEntryCacheParticipants(
+  database: EngineConnection,
+  sessionKey: string,
+): SessionParticipantProjection | undefined {
+  const cached = sessionEntryCaches.get(database);
+  const entry = cached?.entries.get(sessionKey);
+  if (
+    !cached ||
+    !entry ||
+    !getAdmittedSqliteSchemaFacts(database) ||
+    !cacheValidityTokensEqual(cached.validityToken, readSessionEntryCacheValidityToken(database))
+  ) {
+    return undefined;
+  }
+  return entry.participants
+    ? {
+        participants: entry.participants.map(({ identity }) => ({ identity: { ...identity } })),
+        participantCount: entry.participantCount,
+      }
+    : {};
 }
