@@ -1,11 +1,9 @@
 /**
- * Live provider ownership helpers.
- *
  * Live provider checks use this to decide when two provider ids belong to the
  * same plugin owner without repeating manifest/provider resolution work.
  */
 import { normalizeProviderId } from "@astroclaw/model-catalog-core/provider-id";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveOwningPluginIdsForProviderRef } from "../plugins/providers.js";
 
 type LiveProviderOwnerContext = {
