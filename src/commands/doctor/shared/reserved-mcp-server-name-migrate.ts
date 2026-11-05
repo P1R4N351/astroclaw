@@ -1,19 +1,12 @@
-// Removes MCP server entries whose names are reserved by config validation.
-import type { OpenClawConfig } from "../../../config/types.astroclaw.js";
-import { isRecord, type JsonRecord } from "./legacy-config-record-shared.js";
+import { asOptionalRecord } from "@astroclaw/normalization-core/record-coerce";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 
 const RESERVED_MCP_SERVER_NAME = "__proto__";
 
-function resolveMcpServers(raw: unknown, nodeHost: boolean): JsonRecord | undefined {
-  if (!isRecord(raw)) {
-    return undefined;
-  }
-  const owner = nodeHost ? raw.nodeHost : raw;
-  if (!isRecord(owner)) {
-    return undefined;
-  }
-  const mcp = isRecord(owner.mcp) ? owner.mcp : undefined;
-  return isRecord(mcp?.servers) ? mcp.servers : undefined;
+function resolveMcpServers(raw: unknown, nodeHost: boolean): Record<string, unknown> | undefined {
+  const root = asOptionalRecord(raw);
+  const owner = nodeHost ? asOptionalRecord(root?.nodeHost) : root;
+  return asOptionalRecord(asOptionalRecord(owner?.mcp)?.servers);
 }
 
 /** Drop reserved MCP server names before canonical config validation runs. */
