@@ -5,15 +5,10 @@
 import { findNormalizedProviderValue as findNormalizedProviderValueCore } from "@astroclaw/model-catalog-core/provider-id";
 import { normalizeLowercaseStringOrEmpty } from "@astroclaw/normalization-core/string-coerce";
 import {
-  type ModelManifestNormalizationContext,
   type ModelRef,
+  type ModelRefNormalizeOptions,
   normalizeModelRef,
 } from "./model-ref-shared.js";
-
-type ModelRefNormalizeOptions = ModelManifestNormalizationContext & {
-  allowManifestNormalization?: boolean;
-  allowPluginNormalization?: boolean;
-};
 
 const OPENROUTER_AUTO_COMPAT_ALIAS = "openrouter:auto";
 
