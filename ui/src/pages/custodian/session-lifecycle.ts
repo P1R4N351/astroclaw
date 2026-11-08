@@ -1,9 +1,9 @@
+import type { SystemAgentChatParams } from "@astroclaw/gateway-protocol";
+import type { SystemAgentPluginReference } from "@astroclaw/gateway-protocol/system-agent-context";
 import {
   readSystemAgentSessionInvalidatedErrorDetails,
   readSystemAgentInferenceUnavailableErrorDetails,
-  type SystemAgentChatParams,
-} from "@astroclaw/gateway-protocol";
-import type { SystemAgentPluginReference } from "@astroclaw/gateway-protocol/system-agent-context";
+} from "../../../../packages/gateway-protocol/src/system-agent-error-details.ts";
 import { inferBasePathFromPathname, routeIdFromPath } from "../../app-route-paths.ts";
 
 export type CustodianSessionVariant = "onboarding" | "new-agent" | "caretaker";
