@@ -1,7 +1,7 @@
 import { normalizeAgentId } from "@astroclaw/normalization-core/agent-id";
-import { listAgentIds } from "../../agents/agent-scope-config.js";
+import { listAgentIds } from "../../agents/agent-roster.js";
 import { classifySessionKeyShape } from "../../routing/session-key.js";
-import type { OpenClawConfig } from "../types.astroclaw.js";
+import type { OpenClawConfig } from "../types.openclaw.js";
 import {
   isPerAgentSessionStoreConfig,
   isSameFixedSessionStoreConfig,
