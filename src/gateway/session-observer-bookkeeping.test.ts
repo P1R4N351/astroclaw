@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createHarness, persistedLiveDigest } from "./session-observer.test-utils.js";
 
 describe("session observer run bookkeeping", () => {
@@ -47,7 +47,7 @@ describe("session observer run bookkeeping", () => {
       session: { scope: "global" as const },
       agents: {
         defaults: { utilityModel: "openai/gpt-test" },
-        list: [{ id: "main", default: true }, { id: "work" }],
+        entries: { main: {}, work: {} },
       },
     } satisfies OpenClawConfig;
     const digest = persistedLiveDigest({ agentId: "work", sessionKey: "global" });
