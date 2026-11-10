@@ -1,5 +1,5 @@
 import { normalizeOptionalString } from "@astroclaw/normalization-core/string-coerce";
-import type { NpmSpecResolution } from "./install-source-utils.js";
+import type { NpmSpecResolution } from "./npm-registry-spec.js";
 
 export type NpmIntegrityDriftPayload = {
   spec: string;
