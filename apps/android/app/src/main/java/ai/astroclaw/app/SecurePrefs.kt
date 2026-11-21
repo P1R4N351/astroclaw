@@ -517,7 +517,7 @@ class SecurePrefs(
     _speakerEnabled.value = value
   }
 
-  /** Blank resets to the household default rather than leaving an unusable empty endpoint. */
+  /** Blank resets to the build-time default, which is empty in builds that do not set one. */
   fun setPebbleBaseUrl(value: String) {
     val resolved = value.trim().ifEmpty { PebbleClient.DEFAULT_BASE_URL }
     plainPrefs.edit { putString(pebbleBaseUrlKey, resolved) }

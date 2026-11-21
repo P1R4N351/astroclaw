@@ -11,7 +11,7 @@ import kotlinx.serialization.json.longOrNull
 /**
  * Pebble Iris protocol v1 — strict client-side renderer contract.
  *
- * The server (`pebble-iris`, Node-RED on CT908) owns every decision; this app renders what it is
+ * The server (`pebble-iris`) owns every decision; this app renders what it is
  * told and reports which row was pressed. Parsing is therefore deliberately asymmetric:
  *
  * - UNKNOWN FIELDS ARE TOLERATED. The protocol evolves additively, so an object carrying keys this

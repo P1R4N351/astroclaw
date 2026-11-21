@@ -15,6 +15,18 @@ val resolvedAndroidStoreFile =
     }
   }
 
+// Default Pebble Iris base URL baked into BuildConfig. Unset means no default (empty string).
+val pebbleDefaultBaseUrl =
+  providers
+    .gradleProperty("ASTROCLAW_PEBBLE_BASE_URL")
+    .orNull
+    ?.trim()
+    .orEmpty()
+
+require(pebbleDefaultBaseUrl.none { it == '"' || it == '\\' || it.isISOControl() }) {
+  "ASTROCLAW_PEBBLE_BASE_URL must not contain quotes, backslashes or control characters."
+}
+
 val hasAndroidReleaseSigning =
   listOf(resolvedAndroidStoreFile, androidStorePassword, androidKeyAlias, androidKeyPassword).all { it != null }
 
@@ -67,6 +79,7 @@ android {
     targetSdk = 36
     versionCode = 2026090500
     versionName = "2026.9.5"
+    buildConfigField("String", "PEBBLE_DEFAULT_BASE_URL", "\"$pebbleDefaultBaseUrl\"")
     ndk {
       // Support all major ABIs — native libs are tiny (~47 KB per ABI)
       abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")

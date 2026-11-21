@@ -59,7 +59,12 @@ internal fun PebbleSettingsCard(viewModel: MainViewModel) {
       colors = settingsTextFieldColors(),
     )
     PebbleSettingsActionRow(
-      helper = "Default: ${PebbleClient.DEFAULT_BASE_URL}",
+      helper =
+        if (PebbleClient.DEFAULT_BASE_URL.isEmpty()) {
+          "No default URL in this build. Enter the Pebble Iris server address."
+        } else {
+          "Default: ${PebbleClient.DEFAULT_BASE_URL}"
+        },
       primaryLabel = "Save URL",
       primaryEnabled = baseUrlDirty,
       onPrimary = { viewModel.setPebbleBaseUrl(baseUrlDraft) },

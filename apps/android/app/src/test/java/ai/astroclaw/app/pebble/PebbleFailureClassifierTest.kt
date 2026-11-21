@@ -65,7 +65,7 @@ class PebbleFailureClassifierTest {
   @Test
   fun classifiedTextNeverLeaksTheExceptionMessage() {
     // OkHttp embeds the target host in connect failures; those must not reach the UI verbatim.
-    val secretish = "https://trueblue.example:18879/pebble/action?token=hunter2"
+    val secretish = "https://iris.example:18879/pebble/action?token=hunter2"
     val failure = PebbleFailureClassifier.fromThrowable(ConnectException(secretish))
     assertFalse(PebbleFailureText.detail(failure).contains(secretish))
     assertFalse(PebbleFailureText.detail(failure).contains("hunter2"))
@@ -104,8 +104,8 @@ class PebbleFailureClassifierTest {
   @Test
   fun endpointsResolveAgainstUserSuppliedBaseUrls() {
     assertEquals(
-      "https://trueblue.tail8d99b6.ts.net:18879/pebble/action",
-      PebbleClient.endpoint("https://trueblue.tail8d99b6.ts.net:18879", "pebble/action").toString(),
+      "https://iris.example:18879/pebble/action",
+      PebbleClient.endpoint("https://iris.example:18879", "pebble/action").toString(),
     )
     assertEquals(
       "https://example.org/pebble/ui",

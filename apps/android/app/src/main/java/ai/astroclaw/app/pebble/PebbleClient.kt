@@ -1,5 +1,6 @@
 package ai.astroclaw.app.pebble
 
+import ai.astroclaw.app.BuildConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -86,8 +87,11 @@ class PebbleClient(
   private val callFactory: Call.Factory = defaultCallFactory(),
 ) : PebbleApi {
   companion object {
-    /** Default Pebble Iris front. `tailscale serve` on trueblue proxies this to CT908. */
-    const val DEFAULT_BASE_URL = "https://trueblue.tail8d99b6.ts.net:18879"
+    /**
+     * Default Pebble Iris base URL, fixed at build time by the `ASTROCLAW_PEBBLE_BASE_URL` Gradle
+     * property. Empty when the build does not set it: the user enters the URL in Settings.
+     */
+    const val DEFAULT_BASE_URL: String = BuildConfig.PEBBLE_DEFAULT_BASE_URL
 
     const val TOKEN_HEADER = "X-Iris-Token"
 

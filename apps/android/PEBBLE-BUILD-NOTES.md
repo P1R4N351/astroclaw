@@ -1,8 +1,8 @@
 # Pebble Iris — Android client build notes
 
 The Astroclaw Android app is now a second client of the Pebble Iris protocol v1, alongside the
-Pebble watchapp. Server: `pebble-iris` (Node-RED on CT908), fronted by `tailscale serve` on
-trueblue at `https://trueblue.tail8d99b6.ts.net:18879`.
+Pebble watchapp. Server: `pebble-iris`, reached over HTTPS at a base URL configured in the app's
+settings.
 
 Protocol reference: `pebble-iris/README.md` and `pebble-iris/flows-lib/protocol.js`. The server
 owns every decision; this client renders and reports, and nothing else.
@@ -24,6 +24,11 @@ owns every decision; this client renders and reports, and nothing else.
 Navigation follows the `VoiceTabScreen` precedent: a `HomeTab` entry in `PostOnboardingTabs.kt`.
 Settings follow the existing mechanism: base URL in the plain prefs, token in the
 `EncryptedSharedPreferences` file, both exposed as `StateFlow` on `MainViewModel`.
+
+The default base URL is a build-time value: the Gradle property `ASTROCLAW_PEBBLE_BASE_URL`
+(for example `-PASTROCLAW_PEBBLE_BASE_URL=https://iris.example:18879`, or the same key in
+`~/.gradle/gradle.properties`) becomes `BuildConfig.PEBBLE_DEFAULT_BASE_URL`. A build that does not
+set it has no default; the Pebble tab stays idle until a URL is entered in Settings.
 
 ## Deliberate decisions
 
@@ -61,7 +66,7 @@ Settings follow the existing mechanism: base URL in the plain prefs, token in th
 
 `java`, `javac`, `kotlinc` and the Android SDK are all absent from the host this was written on
 (`which java` → not found). **Nothing here has been compiled and no test has been executed.** The
-build and the test run must happen on CT923. Specifically unverified:
+build and the test run must happen on an Android build host. Specifically unverified:
 
 1. **Everything compiles.** No `kotlinc` was available. Kotlin `allWarningsAsErrors=true` is set
    repo-wide, so any unused import, deprecation, or shadowed name is a build failure, not a
@@ -79,9 +84,9 @@ build and the test run must happen on CT923. Specifically unverified:
    (`python3 hashlib` cross-checked with `sha256sum`), NOT by the class under test.
 4. **Fault-injection validation of the new tests** (does each test actually fail when the property
    it asserts is broken?). This is the instrument-validation step and it has NOT been run — a test
-   that passes with the defect present is worse than no test. Do this on CT923 before trusting a
-   green run: at minimum, break `PebbleController.confirm()` to mint a fresh rid and confirm
-   `confirmReusesThePromptsOwnRid` fails.
+   that passes with the defect present is worse than no test. Do this on the build host before
+   trusting a green run: at minimum, break `PebbleController.confirm()` to mint a fresh rid and
+   confirm `confirmReusesThePromptsOwnRid` fails.
 5. **Android lint**, including `AutoboxingStateCreation` (an error here). No numeric Compose state
    is created in the new code, but this was not machine-checked.
 6. **`FileProvider` hand-off end to end**: the `content://` URI, the read grant, whether the Pebble
