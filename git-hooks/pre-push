@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# relaxes P10 rule 10 (set -e only) — hook body uses set -uo pipefail; -e omitted so per-command exit checks drive the block/allow decision instead of aborting.
+# pre-push-secret-guard.sh — canonical pre-push hook body (P-BACKLOG [06b99a4]).
+#
+# WHY: tracked JSON configs (openclaw.json / astroclaw.json / kudzu.json, at the
+# repo root AND under astroclaw/ + openclaw/ in the outer checkout) carry live
+# secrets inline (gho_ GitHub OAuth token, Discord bot token, gateway/gossip
+# tokens). The GitHub `origin` (KuriGohan-Kamehameha/Piranesi) is PUBLIC. This
+# guard BLOCKS pushes to public github.com remotes while a secret signature is
+# present in the pushed tree, and ALLOWS the tailnet-internal gitea remote.
+#
+# Path-agnostic: greps the whole pushed tree (*.json) at each pushed tip, so it
+# protects every checkout regardless of where the config lives in that tree.
+#
+# INSTALL into every checkout of the public repo (copy, don't symlink — .git/hooks
+# is not version-controlled, and a symlink into the worktree would itself be a
+# pushable artifact):
+#   cp skills/_lib/pre-push-secret-guard.sh "$(git rev-parse --git-dir)/hooks/pre-push"
+#   chmod +x "$(git rev-parse --git-dir)/hooks/pre-push"
+#
+# Override deliberately: rm "$(git rev-parse --git-dir)/hooks/pre-push"
+# Lifts automatically once secrets are externalized from tracked files.
+#
+# argv: $1 = remote name, $2 = remote URL.  stdin: <local_ref> <local_sha> <remote_ref> <remote_sha>
+set -uo pipefail
+
+remote_name="${1:-}"
+remote_url="${2:-}"
+
+# Only guard PUBLIC github.com remotes. Internal gitea (tailnet) is allowed.
+case "$remote_url" in
+  *github.com*) : ;;
+  *)            exit 0 ;;
+esac
+
+# Two-layer block:
+#  (1) FILENAME: these files are secret-by-design — block them by name regardless
+#      of which specific token shapes are present (a github-pattern-only grep would
+#      miss the Discord/gateway/gossip/postgres secrets they carry):
+#        - openclaw/astroclaw/kudzu.json — gateway/discord/gossip tokens inline.
+#        - *inspect*.json — docker-inspect dumps embed container env (POSTGRES_PASSWORD,
+#          OPENCLAW_GATEWAY_TOKEN, …); .gitignore covers accidental adds, but a
+#          force-add (git add -f) or a renamed dump would bypass that — this is the
+#          backstop for the exact secret class P-BACKLOG [110c180] found world-readable.
+#  (2) PATTERN backstop: catch github token shapes in ANY *.json (covers renamed/new configs).
+SECRET_FILES_RE='(^|/)(openclaw|astroclaw|kudzu)\.json$|(^|/)[^/]*inspect[^/]*\.json$|(^|/)state/creds/|(^|/)[^/]*\.cred$'
+PATTERNS='gho_[A-Za-z0-9]{36}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{20,}'
+
+zero='0000000000000000000000000000000000000000'
+blocked=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [[ -z "${local_sha:-}" ]] && continue
+  [[ "$local_sha" == "$zero" ]] && continue   # branch deletion — nothing to scan
+  reason=""
+  if git ls-tree -r --name-only "$local_sha" 2>/dev/null | grep -qE "$SECRET_FILES_RE"; then
+    reason="secret-by-design file present (config or docker-inspect dump)"
+  elif git grep -I -l -E "$PATTERNS" "$local_sha" -- '*.json' >/dev/null 2>&1; then
+    reason="token signature in a *.json"
+  fi
+  if [[ -n "$reason" ]]; then
+    blocked=1
+    echo "pre-push: BLOCKED ($reason) in $local_ref ($local_sha) bound for PUBLIC remote '$remote_name' ($remote_url)" >&2
+  fi
+done
+
+if (( blocked )); then
+  cat >&2 <<'MSG'
+pre-push: refusing to push live credentials to a PUBLIC github.com remote.
+  A tracked *.json config carries an inline secret (gho_/ghp_/github_pat token).
+  Remediate first (externalize secrets + scrub the unpushed history + rotate),
+  then this guard lifts automatically. See P-BACKLOG [06b99a4].
+  Deliberate override: rm "$(git rev-parse --git-dir)/hooks/pre-push"
+MSG
+  exit 1
+fi
+exit 0
