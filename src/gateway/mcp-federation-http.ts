@@ -18,7 +18,7 @@
 //    tool-bounded, not long-running streams).
 //
 // Migrated to astroclaw source from patch-mcp-federation.js 2026-05-25
-// per Piranesi-Main DECIDE: A. The runtime patch's dynamic-import hash
+// per DECIDE: A. The runtime patch's dynamic-import hash
 // discovery (mcp-http-<hash>.js bundle filename) is gone — source can
 // just import the helpers directly.
 

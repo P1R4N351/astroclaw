@@ -14,8 +14,8 @@ shift
 # Prefer the tool binary already installed under this root's own node_modules.
 #
 # HAZARD [aed233a] — why this branch must come FIRST, before any package
-# manager. Several /home/s/astroclaw-* git worktrees carry a node_modules that
-# is a SYMLINK into the live w1 checkout (/home/s/astroclaw/node_modules).
+# manager. Several git worktrees carry a node_modules that
+# is a SYMLINK into the live checkout (node_modules).
 # `pnpm exec` runs an implicit deps-status check (the `verify-deps-before-run`
 # setting) which compares node_modules/.modules.yaml against THIS root; in a
 # symlinked worktree the recorded virtualStoreDir belongs to the other checkout,
