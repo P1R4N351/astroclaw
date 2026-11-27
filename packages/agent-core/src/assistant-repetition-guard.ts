@@ -1,4 +1,4 @@
-import { REPETITIVE_OUTPUT_ERROR_CODE, type AssistantMessage } from "@astroclaw/llm-core";
+import { REPETITIVE_OUTPUT_ERROR_CODE, type AssistantMessage } from "@astroclaw/llm-core/types";
 import { REPETITIVE_OUTPUT_ERROR_MESSAGE } from "./errors.js";
 import { RepetitionWatch } from "./repetition-guard.js";
 
