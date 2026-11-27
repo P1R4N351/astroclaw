@@ -1,4 +1,4 @@
-import { RUNTIME_CONTEXT_CUSTOM_TYPE } from "@astroclaw/llm-core";
+import { RUNTIME_CONTEXT_CUSTOM_TYPE } from "@astroclaw/llm-core/types";
 import { projectSessionEntryMessage } from "../../../packages/agent-core/src/harness/session/session.js";
 import {
   getOpenClawSystemUpdateKind,
